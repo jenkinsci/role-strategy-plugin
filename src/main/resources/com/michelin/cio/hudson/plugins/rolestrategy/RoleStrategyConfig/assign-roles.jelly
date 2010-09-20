@@ -1,0 +1,83 @@
+<!--
+  - The MIT License
+  -
+  - Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+  -
+  - Permission is hereby granted, free of charge, to any person obtaining a copy
+  - of this software and associated documentation files (the "Software"), to deal
+  - in the Software without restriction, including without limitation the rights
+  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  - copies of the Software, and to permit persons to whom the Software is
+  - furnished to do so, subject to the following conditions:
+  -
+  - The above copyright notice and this permission notice shall be included in
+  - all copies or substantial portions of the Software.
+  -
+  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  - THE SOFTWARE.
+  -->
+
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
+          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
+    <l:layout permission="${app.ADMINISTER}" norefresh="true">
+        <st:include it="${app}" page="sidepanel.jelly"/>
+        <l:main-panel>
+          
+          <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+
+          <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
+          <j:set var="projectGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
+          <j:set var="globalSIDs" value="${it.strategy.getSIDs(it.strategy.GLOBAL)}"/>
+          <j:set var="projectSIDs" value="${it.strategy.getSIDs(it.strategy.PROJECT)}"/>
+          <j:if test="${empty(descriptorPath)}">
+            <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
+          </j:if>
+
+          <d:taglib uri="local">
+            <d:tag name="userRow">
+              <td class="left-most">${title}</td>
+              <j:forEach var="r" items="${attrs.global?globalGrantedRoles:projectGrantedRoles}">
+                <td width="*">
+                  <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
+                </td>
+              </j:forEach>
+              <td class="stop">
+                <a href="#">
+                  <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
+                </a>
+              </td>
+            </d:tag>
+          </d:taglib>
+
+          <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
+
+          <f:form method="post" name="config" action="assignSubmit">
+            <h1>
+                <img src="${imagesURL}/48x48/user.gif" alt="${it.assignRolesName}" />
+                ${it.assignRolesName}
+            </h1>
+
+            <f:section title="${%Global roles}">
+              <f:rowSet name="globalRoles">
+                <f:block><st:include page="assign-global-roles.jelly" optional="true" /></f:block>
+              </f:rowSet>
+            </f:section>
+            <f:section title="${%Project roles}">
+              <f:rowSet name="projectRoles">
+                <f:block><st:include page="assign-project-roles.jelly" optional="true" /></f:block>
+              </f:rowSet>
+            </f:section>
+            <f:block>
+              <f:submit value="${%Save}" />
+            </f:block>
+          </f:form>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

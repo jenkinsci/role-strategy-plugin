@@ -1,0 +1,149 @@
+<!--
+  - The MIT License
+  -
+  - Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+  -
+  - Permission is hereby granted, free of charge, to any person obtaining a copy
+  - of this software and associated documentation files (the "Software"), to deal
+  - in the Software without restriction, including without limitation the rights
+  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  - copies of the Software, and to permit persons to whom the Software is
+  - furnished to do so, subject to the following conditions:
+  -
+  - The above copyright notice and this permission notice shall be included in
+  - all copies or substantial portions of the Software.
+  -
+  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  - THE SOFTWARE.
+  -->
+
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
+
+  <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+
+      <!-- The first row will show grouping -->
+      <tr class="group-row">
+        <td rowspan="2" class="pane-header blank">
+          ${%Role}
+        </td>
+        <td rowspan="2" class="pane-header blank">
+          ${%Pattern}
+        </td>
+        <j:forEach var="g" items="${projectGroups}">
+          <j:set var="cnt" value="${0}" />
+          <j:forEach var="p" items="${g.permissions}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+              <j:set var="cnt" value="${cnt+1}"/>
+            </j:if>
+          </j:forEach>
+
+          <td class="pane-header" colspan="${cnt}">
+            ${g.title}
+          </td>
+        </j:forEach>
+        <td rowspan="2" class="stop" />
+      </tr>
+      <!-- The second row for individual permission -->
+      <tr class="caption-row">
+        <j:forEach var="g" items="${projectGroups}">
+          <j:forEach var="p" items="${g.permissions}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+              <th class="pane" tooltip="${p.description}">
+                ${p.name}
+              </th>
+            </j:if>
+          </j:forEach>
+        </j:forEach>
+      </tr>
+      <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}">
+        <tr name="[${role.key.name}]" class="permission-row">
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" />
+        </tr>
+      </j:forEach>
+      <j:set var="id" value="${h.generateId()}"/>
+      <tr id="${id}" style="display:none" class="permission-row">
+        <local:roleRow role="${null}" global="${false}" />
+      </tr>
+    </table>
+    <br /><br />
+    <f:entry title="${%Role to add}">
+      <f:textbox type="text" id="${id}text" />
+    </f:entry>
+    <f:entry help="plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
+      <f:textbox type="text" id="${id}pattern" />
+    </f:entry>
+    <f:entry>
+      <input type="button" value="${%Add}" id="${id}button"/>
+    </f:entry>
+    
+    <script>
+      var tableHighlighter;
+      (function() {
+        <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
+        var master = document.getElementById('${id}');
+        var table = master.parentNode;
+        table.removeChild(master);
+
+        makeButton($$('${id}button'), function (e) {
+          <!-- when 'add' is clicked... -->
+          var name = $$('${id}text').value;
+          var pattern = $$('${id}pattern').value;
+          if(name=="") {
+            alert("Please enter a role name");
+            return;
+          }
+          if(pattern=="") {
+            alert("Please enter a pattern");
+            return;
+          }
+          if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
+            alert("Entry for '"+name+"' already exists");
+            return;
+          }
+
+          if(document.importNode!=null)
+            copy = document.importNode(master,true);
+          else
+            copy = master.cloneNode(true); <!-- for IE -->
+          copy.removeAttribute("id");
+          copy.removeAttribute("style");
+
+          var child = copy.firstChild;
+          child.innerHTML = name;
+          child.next().innerHTML = pattern;
+
+          var hidden = document.createElement('input');
+          hidden.setAttribute('name', '[pattern]');
+          hidden.setAttribute('type', 'hidden');
+          hidden.setAttribute('value', pattern);
+          child.next().appendChild(hidden);
+
+          copy.setAttribute("name",'['+name+']');
+          table.appendChild(copy);
+          projecttableHighlighter.scan(copy);
+          Behaviour.applySubtree(findAncestor(table,"TABLE"));
+        });
+      })();
+
+      Event.observe(window, 'load', function(event) {
+         projecttableHighlighter = new TableHighlighter('projectRoles', 2, 2);
+      });
+
+      Behaviour.register({
+        "#projectRoles TD.stop A" : function(e) {
+          e.onclick = function() {
+            var tr = findAncestor(this,"TR");
+            tr.parentNode.removeChild(tr);
+            return false;
+          }
+          e = null; <!-- avoid memory leak -->
+        }
+      });
+    </script>
+</j:jelly>
