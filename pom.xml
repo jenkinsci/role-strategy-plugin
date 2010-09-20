@@ -13,6 +13,7 @@
     <packaging>hpi</packaging>
     <version>1.0</version>
     <name>Role-based Authorization Strategy</name>
+    <url>http://wiki.hudson-ci.org/display/HUDSON/Role+Strategy+Plugin</url>
     
     <developers>
         <developer>
