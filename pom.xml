@@ -11,7 +11,7 @@
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>1.0</version>
+    <version>1.0-SNAPSHOT</version>
     <name>Role-based Authorization Strategy</name>
     <url>http://wiki.hudson-ci.org/display/HUDSON/Role+Strategy+Plugin</url>
     
