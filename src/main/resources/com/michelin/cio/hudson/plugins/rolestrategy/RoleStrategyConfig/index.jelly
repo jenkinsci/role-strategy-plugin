@@ -42,7 +42,7 @@
 
         <l:main-panel>
             <h1>
-                <img src="${rootURL}${it.iconFileName}" alt=""/>
+                <img src="${imagesURL}/48x48/${it.iconFileName}" alt="${it.displayName}"/>
                 ${it.displayName}
             </h1>
 
