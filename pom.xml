@@ -21,6 +21,11 @@
             <name>Thomas Maurel</name>
             <timezone>+1</timezone>
         </developer>
+        <developer>
+            <id>rseguy</id>
+            <name>Romain Seguy</name>
+            <timezone>+1</timezone>
+        </developer>
     </developers>
     
     <properties>
