@@ -34,6 +34,7 @@ import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
@@ -486,7 +487,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           groups.remove(PermissionGroup.get(Permission.class));
         }
         else if(type.equals(PROJECT)) {
-          groups = Arrays.asList(PermissionGroup.get(Item.class),PermissionGroup.get(Run.class));
+          groups = Arrays.asList(PermissionGroup.get(Item.class),PermissionGroup.get(Run.class),PermissionGroup.get(SCM.class));
         }
         else {
           groups = null;

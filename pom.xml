@@ -11,9 +11,9 @@
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.1-SNAPSHOT</version>
     <name>Role-based Authorization Strategy</name>
-    <url>http://wiki.hudson-ci.org/display/HUDSON/Role+Strategy+Plugin</url>
+    <url>http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin</url>
     
     <developers>
         <developer>
@@ -31,4 +31,31 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+    
+    <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/83e34c639eec470a for the rationale behind this -->
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-release-plugin</artifactId>
+                <configuration>
+                    <goals>deploy</goals>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/83e34c639eec470a for the rationale behind this -->
+    <scm>
+        <connection>scm:svn:https://guest@svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/</connection>
+        <developerConnection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/</developerConnection>
+        <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/role-strategy</url>
+    </scm>
+    
+    <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/6ea03cf2b527376c for the rationale behind this -->
+    <distributionManagement>
+        <repository>
+            <id>java.net-m2-repository</id>
+            <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
+        </repository>
+    </distributionManagement>
 </project>
