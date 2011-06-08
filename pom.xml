@@ -11,7 +11,7 @@
     <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.1</version>
     <name>Role-based Authorization Strategy</name>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin</url>
     
@@ -46,9 +46,9 @@
 
     <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/83e34c639eec470a for the rationale behind this -->
     <scm>
-        <connection>scm:svn:https://guest@svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/</connection>
-        <developerConnection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/</developerConnection>
-        <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/role-strategy</url>
+        <connection>scm:svn:https://guest@svn.jenkins-ci.org/tags/role-strategy-1.1</connection>
+        <developerConnection>scm:svn:https://svn.jenkins-ci.org/tags/role-strategy-1.1</developerConnection>
+        <url>https://hudson.dev.java.net/source/browse/hudson/tags/role-strategy-1.1</url>
     </scm>
     
     <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/6ea03cf2b527376c for the rationale behind this -->
