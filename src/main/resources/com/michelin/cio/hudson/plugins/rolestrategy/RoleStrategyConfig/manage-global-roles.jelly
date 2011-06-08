@@ -1,7 +1,8 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+  - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
+  - Thomas Maurel, Romain Seguy
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +30,9 @@
 
   <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
-      <!-- The first row will show grouping -->
+      <!-- The first row shows grouping -->
       <tr class="group-row">
+        <td rowspan="2" class="start" />
         <td rowspan="2" class="pane-header blank">
           ${%Role}
         </td>
@@ -60,14 +62,49 @@
           </j:forEach>
         </j:forEach>
       </tr>
+      <j:set var="nbGlobalRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}">
         <tr name="[${role.key.name}]" class="permission-row">
           <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" />
         </tr>
+        <j:set var="nbGlobalRoles" value="${nbGlobalRoles+1}"/>
       </j:forEach>
       <tr id="${id}" style="display:none" class="permission-row">
         <local:roleRow role="${null}" global="${true}" />
       </tr>
+      <!-- The last two rows are used to repeat the header if necessary (if more than 20 lines) -->
+      <j:if test="${nbGlobalRoles ge 20}">
+        <tr class="caption-row">
+          <td rowspan="2" class="start" />
+          <td rowspan="2" class="pane-header blank">
+            ${%Role}
+          </td>
+          <j:forEach var="g" items="${globalGroups}">
+            <j:forEach var="p" items="${g.permissions}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+                <th class="pane" tooltip="${p.description}">
+                  ${p.name}
+                </th>
+              </j:if>
+            </j:forEach>
+          </j:forEach>
+          <td rowspan="2" class="stop" />
+        </tr>
+        <tr class="group-row">
+          <j:forEach var="g" items="${globalGroups}">
+            <j:set var="cnt" value="${0}" />
+            <j:forEach var="p" items="${g.permissions}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+                <j:set var="cnt" value="${cnt+1}"/>
+              </j:if>
+            </j:forEach>
+
+            <td class="pane-header" colspan="${cnt}">
+              ${g.title}
+            </td>
+          </j:forEach>
+        </tr>
+      </j:if>
     </table>
 
     <br /><br />
@@ -104,27 +141,32 @@
             copy = master.cloneNode(true); <!-- for IE -->
           copy.removeAttribute("id");
           copy.removeAttribute("style");
-          copy.firstChild.innerHTML = name;
+          copy.childNodes[1].innerHTML = name;
           copy.setAttribute("name",'['+name+']');
-          table.appendChild(copy);
+          <j:if test="${nbGlobalRoles lt 20}">
+            table.appendChild(copy);
+          </j:if>
+          <j:if test="${nbGlobalRoles ge 20}">
+            table.insertBefore(copy,table.childNodes[table.rows.length-2]);
+          </j:if>
           tableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"));
         });
       })();
 
       Event.observe(window, 'load', function(event) {
-         tableHighlighter = new TableHighlighter('globalRoles', 1, 2);
+         tableHighlighter = new TableHighlighter('globalRoles', 2, 2);
       });
 
-      Behaviour.register({
-        "#globalRoles TD.stop A" : function(e) {
-          e.onclick = function() {
-            var tr = findAncestor(this,"TR");
-            tr.parentNode.removeChild(tr);
-            return false;
-          }
-          e = null; <!-- avoid memory leak -->
+      var deleteGlobalRole = function(e) {
+        e.onclick = function() {
+          var tr = findAncestor(this,"TR");
+          tr.parentNode.removeChild(tr);
+          return false;
         }
-      });
+        e = null; <!-- avoid memory leak -->
+      }
+      Behaviour.register({"#globalRoles TD.stop A" : deleteGlobalRole});
+      Behaviour.register({"#globalRoles TD.start A" : deleteGlobalRole});
     </script>
 </j:jelly>

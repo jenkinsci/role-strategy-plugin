@@ -1,7 +1,8 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+  - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
+  - Thomas Maurel, Romain Seguy
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +30,7 @@
 
       <!-- The first row will show grouping -->
       <tr class="group-row">
+        <td rowspan="2" class="start" />
         <td rowspan="2" class="pane-header blank">
           ${%Role}
         </td>
@@ -61,15 +63,53 @@
           </j:forEach>
         </j:forEach>
       </tr>
+      <j:set var="nbProjectRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}">
         <tr name="[${role.key.name}]" class="permission-row">
           <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" />
         </tr>
+        <j:set var="nbProjectRoles" value="${nbProjectRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
         <local:roleRow role="${null}" global="${false}" />
       </tr>
+      <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
+      <j:if test="${nbProjectRoles ge 20}">
+        <tr class="caption-row">
+          <td rowspan="2" class="start" />
+          <td rowspan="2" class="pane-header blank">
+            ${%Role}
+          </td>
+          <td rowspan="2" class="pane-header blank">
+            ${%Pattern}
+          </td>
+          <j:forEach var="g" items="${projectGroups}">
+            <j:forEach var="p" items="${g.permissions}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                <th class="pane" tooltip="${p.description}">
+                  ${p.name}
+                </th>
+              </j:if>
+            </j:forEach>
+          </j:forEach>
+        </tr>
+        <tr class="group-row">
+          <j:forEach var="g" items="${projectGroups}">
+            <j:set var="cnt" value="${0}" />
+            <j:forEach var="p" items="${g.permissions}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                <j:set var="cnt" value="${cnt+1}"/>
+              </j:if>
+            </j:forEach>
+
+            <td class="pane-header" colspan="${cnt}">
+              ${g.title}
+            </td>
+          </j:forEach>
+          <td rowspan="2" class="stop" />
+        </tr>
+      </j:if>
     </table>
     <br /><br />
     <f:entry title="${%Role to add}">
@@ -114,7 +154,7 @@
           copy.removeAttribute("id");
           copy.removeAttribute("style");
 
-          var child = copy.firstChild;
+          var child = copy.childNodes[1];
           child.innerHTML = name;
           child.next().innerHTML = pattern;
 
@@ -125,25 +165,30 @@
           child.next().appendChild(hidden);
 
           copy.setAttribute("name",'['+name+']');
-          table.appendChild(copy);
+          <j:if test="${nbProjectRoles lt 20}">
+            table.appendChild(copy);
+          </j:if>
+          <j:if test="${nbProjectRoles ge 20}">
+            table.insertBefore(copy,table.childNodes[table.rows.length-2]);
+          </j:if>
           projecttableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"));
         });
       })();
 
       Event.observe(window, 'load', function(event) {
-         projecttableHighlighter = new TableHighlighter('projectRoles', 2, 2);
+         projecttableHighlighter = new TableHighlighter('projectRoles', 3, 2);
       });
 
-      Behaviour.register({
-        "#projectRoles TD.stop A" : function(e) {
-          e.onclick = function() {
-            var tr = findAncestor(this,"TR");
-            tr.parentNode.removeChild(tr);
-            return false;
-          }
-          e = null; <!-- avoid memory leak -->
+      var deleteProjectRole = function(e) {
+        e.onclick = function() {
+          var tr = findAncestor(this,"TR");
+          tr.parentNode.removeChild(tr);
+          return false;
         }
-      });
+        e = null; <!-- avoid memory leak -->
+      }
+      Behaviour.register({"#projectRoles TD.stop A" : deleteProjectRole});
+      Behaviour.register({"#projectRoles TD.start A" : deleteProjectRole});
     </script>
 </j:jelly>
