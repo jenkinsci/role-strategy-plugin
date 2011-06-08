@@ -190,5 +190,18 @@
       }
       Behaviour.register({"#projectRoles TD.stop A" : deleteProjectRole});
       Behaviour.register({"#projectRoles TD.start A" : deleteProjectRole});
+
+      Behaviour.register({"#projectRoles TD.in-place-edit" : function(e) {
+        e.ondblclick = function() {
+          if(this.childNodes.length == 2) {
+            this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
+          }
+          else {
+            this.innerHTML = this.childNodes[0].value + '<input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
+          }
+          return false;
+        }
+        e = null; <!-- again and again, avoid memory leak -->
+      }});
     </script>
 </j:jelly>

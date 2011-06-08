@@ -45,9 +45,9 @@
               </td>
               <td class="left-most">${title}</td>
               <j:if test="${!attrs.global}">
-                <td width="*">
-                    ${attrs.role.pattern}
-                    <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                <td width="*" class="in-place-edit">
+                  ${attrs.role.pattern}
+                  <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
               </j:if>
               <j:forEach var="g" items="${attrs.global?globalGroups:projectGroups}">
@@ -69,8 +69,8 @@
 
           <f:form method="post" name="config" action="rolesSubmit">
             <h1>
-                <img src="${imagesURL}/48x48/fingerprint.gif" alt="${it.displayName}" />
-                ${it.displayName}
+              <img src="${imagesURL}/48x48/fingerprint.gif" alt="${it.displayName}" />
+              ${it.displayName}
             </h1>
 
             <f:section title="${%Global roles}">
