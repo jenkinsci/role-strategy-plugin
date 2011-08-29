@@ -197,7 +197,7 @@
             this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
           }
           else {
-            this.innerHTML = this.childNodes[0].value + '<input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
+            this.innerHTML = this.childNodes[0].value.escapeHTML() + '<input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
           }
           return false;
         }

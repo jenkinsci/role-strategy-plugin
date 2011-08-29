@@ -2,7 +2,7 @@
   - The MIT License
   -
   - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
-  - Thomas Maurel, Romain Seguy
+  - Thomas Maurel, Romain Seguy, Timothy Bingaman
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,6 @@
   - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   - THE SOFTWARE.
   -->
-
 
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
@@ -46,7 +45,7 @@
               <td class="left-most">${title}</td>
               <j:if test="${!attrs.global}">
                 <td width="*" class="in-place-edit">
-                  ${attrs.role.pattern}
+                  ${h.escape(attrs.role.pattern.toString())}
                   <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
               </j:if>
