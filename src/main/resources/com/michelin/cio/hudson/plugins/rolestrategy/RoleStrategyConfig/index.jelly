@@ -1,7 +1,8 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+  - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
+  - Thomas Maurel, Romain Seguy
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -47,7 +48,7 @@
             </h1>
 
             <table style="padding-left: 2em;" id="management-links">
-              <local:feature icon="fingerprint.gif" href="manage-roles" title="${it.displayName}">
+              <local:feature icon="fingerprint.gif" href="manage-roles" title="${it.manageRolesName}">
                 ${%Manage Roles}
               </local:feature>
               <local:feature icon="user.gif" href="assign-roles" title="${it.assignRolesName}">

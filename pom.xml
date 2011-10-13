@@ -2,13 +2,11 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>org.jvnet.hudson.plugins</groupId>
+        <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.358</version>
-        <relativePath>../pom.xml</relativePath>
+        <version>1.409</version>
     </parent>
     
-    <groupId>org.jvnet.hudson.plugins</groupId>
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
     <version>1.2-SNAPSHOT</version>
@@ -31,31 +29,4 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-    
-    <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/83e34c639eec470a for the rationale behind this -->
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-release-plugin</artifactId>
-                <configuration>
-                    <goals>deploy</goals>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
-    <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/83e34c639eec470a for the rationale behind this -->
-    <scm>
-        <connection>scm:svn:https://guest@svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/</connection>
-        <developerConnection>scm:svn:https://svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/</developerConnection>
-        <url>https://hudson.dev.java.net/source/browse/hudson/trunk/hudson/plugins/role-strategy</url>
-    </scm>
-    
-    <!-- see http://groups.google.com/group/hudson-dev/browse_thread/thread/6ea03cf2b527376c for the rationale behind this -->
-    <distributionManagement>
-        <repository>
-            <id>java.net-m2-repository</id>
-            <url>http://maven.jenkins-ci.org/content/repositories/releases/</url>
-        </repository>
-    </distributionManagement>
 </project>

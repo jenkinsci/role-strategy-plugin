@@ -1,7 +1,8 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+ * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
+ * Thomas Maurel, Romain Seguy
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,11 +31,11 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
+import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
-import hudson.model.Run;
-import hudson.scm.SCM;
+import hudson.model.View;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
@@ -45,7 +46,6 @@ import hudson.security.SidACL;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -483,20 +483,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public List<PermissionGroup> getGroups(String type) {
         List<PermissionGroup> groups;
         if(type.equals(GLOBAL)) {
-          groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
-          groups.remove(PermissionGroup.get(Permission.class));
+            groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            groups.remove(PermissionGroup.get(Permission.class));
         }
         else if(type.equals(PROJECT)) {
-          groups = Arrays.asList(PermissionGroup.get(Item.class),PermissionGroup.get(Run.class),PermissionGroup.get(SCM.class));
+            groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            groups.remove(PermissionGroup.get(Permission.class));
+            groups.remove(PermissionGroup.get(Hudson.class));
+            groups.remove(PermissionGroup.get(Computer.class));
+            groups.remove(PermissionGroup.get(View.class));
         }
         else {
-          groups = null;
+            groups = null;
         }
         return groups;
     }
 
     /**
-     * Check if the permission should be shown.
+     * Check if the permission should be displayed.
      */
     public boolean showPermission(String type, Permission p) {
       if(type.equals(GLOBAL)) {

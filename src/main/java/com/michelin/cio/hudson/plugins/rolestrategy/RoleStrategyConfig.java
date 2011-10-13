@@ -1,7 +1,8 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+ * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
+ * Thomas Maurel, Romain Seguy
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -70,7 +71,7 @@ public class RoleStrategyConfig extends ManagementLink {
    * @return Link text in the Admin panel
    */
   public String getDisplayName() {
-    return Messages.RoleBasedAuthorizationStrategy_Manage();
+    return Messages.RoleBasedAuthorizationStrategy_ManageAndAssign();
   }
 
   /**
@@ -79,6 +80,14 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   public String getAssignRolesName() {
     return Messages.RoleBasedAuthorizationStrategy_Assign();
+  }
+
+  /**
+   * Text displayed for the roles management panel.
+   * @return Title of the Role management panel
+   */
+  public String getManageRolesName() {
+    return Messages.RoleBasedAuthorizationStrategy_Manage();
   }
 
   /**
