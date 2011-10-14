@@ -9,7 +9,7 @@
     
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>1.2-SNAPSHOT</version>
+    <version>1.1.2</version>
     <name>Role-based Authorization Strategy</name>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin</url>
     
@@ -29,4 +29,10 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+  <scm>
+    <connection>scm:svn:https://svn.jenkins-ci.org/tags/role-strategy-1.1.2</connection>
+    <developerConnection>scm:svn:https://svn.jenkins-ci.org/tags/role-strategy-1.1.2</developerConnection>
+    <url>https://svn.jenkins-ci.org/tags/role-strategy-1.1.2</url>
+  </scm>
 </project>
