@@ -4,6 +4,9 @@
   - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
   - Thomas Maurel, Romain Seguy, Timothy Bingaman
   -
+  - Parts:
+  -   Slave ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+  -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
   - in the Software without restriction, including without limitation the rights
@@ -34,6 +37,7 @@
 
           <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
+          <j:set var="slaveGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
 
           <d:taglib uri="local">
             <d:tag name="roleRow">
@@ -49,10 +53,12 @@
                   <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
               </j:if>
-              <j:forEach var="g" items="${attrs.global?globalGroups:projectGroups}">
+                                   
+              <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
+              <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
-                  <j:if test="${attrs.global?it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p):it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                    <td width="*">
+                  <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
+                    <td width="*">                     
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>
@@ -80,6 +86,15 @@
             <f:section title="${%Project roles}">
               <f:rowSet name="projectRoles">
                 <f:block><st:include page="manage-project-roles.jelly" optional="true" /></f:block>
+              </f:rowSet>
+            </f:section>
+            <f:section title="${%Slave roles}">
+              <f:rowSet name="slaveRoles">
+                <f:block><st:include page="manage-slave-roles.jelly" 
+                                    optional="true" />
+                </f:block>
+                <!--  class="com.synopsys.arc.jenkins.plugins.rolestrategy.RoleStrategyConfigExtension"
+                                    -->
               </f:rowSet>
             </f:section>
             <f:block>

@@ -53,7 +53,7 @@
               </local:feature>
               <local:feature icon="user.gif" href="assign-roles" title="${it.assignRolesName}">
                 ${%Assign Roles}
-              </local:feature>
+              </local:feature>              
             </table>
 
         </l:main-panel>

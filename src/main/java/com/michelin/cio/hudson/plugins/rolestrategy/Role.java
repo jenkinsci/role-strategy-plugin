@@ -37,7 +37,8 @@ import org.apache.commons.collections.CollectionUtils;
  * @author Thomas Maurel
  */
 public final class Role implements Comparable {
-
+  public static final String GLOBAL_ROLE_PATTERN = ".*";
+      
   /**
    * Name of the role.
    */
@@ -60,7 +61,7 @@ public final class Role implements Comparable {
    * @param permissions The {@link Permission}s associated to the role
    */
   Role(String name, Set < Permission > permissions) {
-    this(name, ".*", permissions);
+    this(name, GLOBAL_ROLE_PATTERN, permissions);
   }
 
   /**

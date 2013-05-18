@@ -3,6 +3,9 @@
  *
  * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
  * Thomas Maurel, Romain Seguy
+ * 
+ * Parts:
+ *   - Slave ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +38,7 @@ import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.model.Node;
 import hudson.model.View;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
@@ -67,7 +71,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
   public final static String GLOBAL    = "globalRoles";
   public final static String PROJECT   = "projectRoles";
+  public final static String SLAVE     = "slaveRoles";
 
+  
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles = new HashMap < String, RoleMap >();
 
@@ -81,25 +87,42 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     return root.getACL();
   }
 
+  
   /**
+   * Universal function for getting ACL for different 
+   * @param roleMapName Name of the role map section
+   * @param itemName Name of the item for patterns
+   * @return ACL
+   */
+   private ACL getACL(String roleMapName, String itemName)
+   {
+     SidACL acl;
+     RoleMap roleMap = grantedRoles.get(roleMapName);
+     if(roleMap == null) {
+       acl = getRootACL();
+     }
+     else {
+       // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
+       acl = roleMap.newMatchingRoleMap(itemName).getACL().newInheritingACL(getRootACL());
+     }
+     return acl;   
+   }
+  
+   /**
    * Get the specific ACL for projects.
    * @param project The access-controlled project
    * @return The project specific ACL
    */
-  @Override
-  public ACL getACL(Job<?,?> project) {
-    SidACL acl;
-    RoleMap roleMap = grantedRoles.get(PROJECT);
-    if(roleMap == null) {
-      acl = getRootACL();
+    @Override
+    public ACL getACL(Job<?,?> project) {
+      return getACL(PROJECT, project.getName());
     }
-    else {
-      // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
-      acl = roleMap.newMatchingRoleMap(project.getName()).getACL().newInheritingACL(getRootACL());
+   
+    @Override
+    public ACL getACL(Computer computer) {
+       return getACL(SLAVE, computer.getName());
     }
-    return acl;
-  }
-
+  
   /**
    * Used by the container realm.
    * @return All the sids referenced by the strategy
@@ -350,6 +373,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           RoleMap roleMap = map.getValue();
           roleMap.clearSids();
           JSONObject roles = json.getJSONObject(map.getKey());
+          
+          // Prevent NPE for role maps with empty assigments
+          if (roles == null) {
+              continue;
+          }
+          if (!roles.has("data")) {
+              continue;
+          }
+          
           for(Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)roles.getJSONObject("data").entrySet()) {
             String sid = r.getKey();
             for(Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
@@ -378,7 +410,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
-      if (formData.has(GLOBAL) && formData.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+      if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
 
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
@@ -405,37 +437,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
 
-        JSONObject projectRoles = formData.getJSONObject(PROJECT);
-        for(Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)projectRoles.getJSONObject("data").entrySet()) {
-          String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<Permission>();
-          String pattern = r.getValue().getString("pattern");
-          if(pattern != null) {
-            r.getValue().remove("pattern");
-          }
-          else {
-            pattern = ".*";
-          }
-          for(Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
-              if(e.getValue()) {
-                  Permission p = Permission.fromId(e.getKey());
-                  permissions.add(p);
-              }
-          }
-
-          Role role = new Role(roleName, pattern, permissions);
-          strategy.addRole(PROJECT, role);
-
-          RoleMap roleMap = ((RoleBasedAuthorizationStrategy) oldStrategy).getRoleMap(PROJECT);
-          if(roleMap != null) {
-            Set<String> sids = roleMap.getSidsForRole(roleName);
-            if(sids != null) {
-              for(String sid : sids) {
-                strategy.assignRole(PROJECT,role, sid);
-              }
-            }
-          }
-        }
+        ReadRoles(formData, PROJECT, strategy);
+        ReadRoles(formData, SLAVE, strategy);
       }
       // When called from Hudson Manage panel, but was already on a role-based strategy
       else if(oldStrategy instanceof RoleBasedAuthorizationStrategy) {
@@ -454,6 +457,51 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       return strategy;
     }
 
+    private void ReadRoles(JSONObject formData, String roleType,
+            RoleBasedAuthorizationStrategy targetStrategy)
+    {     
+        if (!formData.has(roleType)) {
+            assert false : "Unexistent Role type " + roleType;
+            return;
+        }
+        JSONObject projectRoles = formData.getJSONObject(roleType);
+        if (!projectRoles.containsKey("data")) {
+            assert false : "No data at role description";
+            return;
+        }
+        
+        for(Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)projectRoles.getJSONObject("data").entrySet()) {
+          String roleName = r.getKey();
+          Set<Permission> permissions = new HashSet<Permission>();
+          String pattern = r.getValue().getString("pattern");
+          if(pattern != null) {
+            r.getValue().remove("pattern");
+          }
+          else {
+            pattern = ".*";
+          }
+          for(Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
+              if(e.getValue()) {
+                  Permission p = Permission.fromId(e.getKey());
+                  permissions.add(p);
+              }
+          }
+
+          Role role = new Role(roleName, pattern, permissions);
+          targetStrategy.addRole(roleType, role);
+
+          RoleMap roleMap = targetStrategy.getRoleMap(roleType);
+          if(roleMap != null) {
+            Set<String> sids = roleMap.getSidsForRole(roleName);
+            if(sids != null) {
+              for(String sid : sids) {
+                targetStrategy.assignRole(roleType, role, sid);
+              }
+            }
+          }
+        }
+    }
+    
     /**
      * Create an admin role.
      */
@@ -493,6 +541,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(Computer.class));
             groups.remove(PermissionGroup.get(View.class));
         }
+        else if (type.equals(SLAVE)) {
+            groups = new ArrayList<PermissionGroup>();
+            groups.add(PermissionGroup.get(Computer.class));
+        }
         else {
             groups = null;
         }
@@ -509,11 +561,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       else if(type.equals(PROJECT)) {
         return p!=Item.CREATE && p.getEnabled();
       }
+      else if (type.equals(SLAVE)) {
+          return p!=Computer.CREATE && p.getEnabled();
+      }
       else {
         return false;
       }
     }
-
   }
-
 }

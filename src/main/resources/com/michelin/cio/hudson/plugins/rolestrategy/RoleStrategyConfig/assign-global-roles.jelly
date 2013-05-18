@@ -46,15 +46,15 @@
       <j:set var="nbAssignedGlobalRoles" value="${0}" />
       <j:forEach var="sid" items="${globalSIDs}">
         <tr name="[${sid}]" class="permission-row">
-          <local:userRow sid="${sid}" title="${sid}" global="${true}" />
+          <local:userRow sid="${sid}" title="${sid}" global="${true}"  type="${it.strategy.GLOBAL}"/>
         </tr>
         <j:set var="nbAssignedGlobalRoles" value="${nbAssignedGlobalRoles+1}" />
       </j:forEach>
       <tr name="anonymous">
-        <local:userRow sid="anonymous" title="${%Anonymous}" global="${true}"/>
+        <local:userRow sid="anonymous" title="${%Anonymous}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:userRow global="${true}" />
+        <local:userRow global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${nbAssignedGlobalRoles ge 19}">
