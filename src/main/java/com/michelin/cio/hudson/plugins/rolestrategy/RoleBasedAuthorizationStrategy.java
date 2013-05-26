@@ -28,6 +28,8 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -38,7 +40,6 @@ import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
-import hudson.model.Node;
 import hudson.model.View;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
@@ -84,7 +85,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Override
   public SidACL getRootACL() {
     RoleMap root = getRoleMap(GLOBAL);
-    return root.getACL();
+    return root.getACL(RoleType.Global, null);
   }
 
   
@@ -94,7 +95,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param itemName Name of the item for patterns
    * @return ACL
    */
-   private ACL getACL(String roleMapName, String itemName)
+   private ACL getACL(String roleMapName, String itemName, RoleType roleType, AccessControlled item)
    {
      SidACL acl;
      RoleMap roleMap = grantedRoles.get(roleMapName);
@@ -103,7 +104,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      }
      else {
        // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
-       acl = roleMap.newMatchingRoleMap(itemName).getACL().newInheritingACL(getRootACL());
+       acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL());
      }
      return acl;   
    }
@@ -115,12 +116,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
     @Override
     public ACL getACL(Job<?,?> project) {
-      return getACL(PROJECT, project.getName());
+      return getACL(PROJECT, project.getName(), RoleType.Project, project);
     }
    
     @Override
     public ACL getACL(Computer computer) {
-       return getACL(SLAVE, computer.getName());
+       return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
     }
   
   /**
@@ -331,6 +332,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
   }  
 
+   /**
+     * Updates macro roles
+     * @since 2.1.0
+     */
+    void renewMacroRoles()
+    {
+        //TODO: add mandatory roles
+        
+        // Check role extensions
+        for (UserMacroExtension userExt : UserMacroExtension.all())
+        {
+            if (userExt.IsApplicable(RoleType.Global))
+            {
+                getRoleMap(GLOBAL).getSids().contains(userExt.getName());
+            }
+        }
+    }
+  
   /**
    * Descriptor used to bind the strategy to the Web forms.
    */
@@ -454,6 +473,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.addRole(GLOBAL, adminRole);
         strategy.assignRole(GLOBAL, adminRole, getCurrentUser());
       }
+      strategy.renewMacroRoles();
       return strategy;
     }
 
@@ -567,6 +587,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       else {
         return false;
       }
-    }
+    }   
   }
+  
+  
 }
