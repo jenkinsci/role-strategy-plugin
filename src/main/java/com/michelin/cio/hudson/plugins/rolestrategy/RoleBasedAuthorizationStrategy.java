@@ -2,9 +2,9 @@
  * The MIT License
  *
  * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
- * Thomas Maurel, Romain Seguy
+ * Thomas Maurel, Romain Seguy, and contributors
  * 
- * Parts:
+ * Contributions:
  *   - Slave ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy

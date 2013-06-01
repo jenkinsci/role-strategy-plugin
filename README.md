@@ -13,7 +13,7 @@ Contributors
 1. Thomas Maurel, Romain Seguy, Manufacture Française des Pneumatiques Michelin
   - Initial version of the plugin (global and project roles)
 
-2. Oleg Nenashev (oleg-nenashev), Synopsys Inc.
+2. [Oleg Nenashev][6], Synopsys Inc.
   - Individual configuration of roles for the Jenkins slaves
   - Macro extensions for roles and users
 
@@ -30,3 +30,4 @@ The primary location for the source code of this plugin is on [Jenkins' SVN repo
 [3]: http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin
 [4]: https://svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/
 [5]: https://github.com/jenkinsci/role-strategy-plugin
+[6]: https://github.com/oleg-nenashev

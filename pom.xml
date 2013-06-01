@@ -28,7 +28,7 @@
             <name>Oleg Nenashev</name>
             <id>oleg_nenashev</id>
             <organization>Synopsys, Inc.</organization>
-            <organizationUrl>http://www.synopsys.com</organizationUrl>
+            <organizationUrl>http://www.synopsys.com</organizationUrl>          
             <roles>
                 <role>Individual configuration of security for slaves</role>
                 <role>Implementation of RoleMacro Extension points</role>

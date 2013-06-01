@@ -72,11 +72,11 @@ public class RoleMap {
             return true;
         }
         
-        // TODO: Handle roles macro
+        // Handle roles macro
         if (Macro.isMacro(role)) {
             Macro macro = Macro.Parse(role.getName());
             RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-            if (macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
+            if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
                 return true;
             }          
         }        

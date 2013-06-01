@@ -23,7 +23,6 @@
  */
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
-import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 

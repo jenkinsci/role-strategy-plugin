@@ -27,7 +27,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 
 /**
  * Macro for roles and users.
- * Implements "@macro" format.
+ * Implements following format.
  * 
  * @todo Macro parameters (ex, multiple usage of macro)
  * @since 2.1.0
@@ -67,7 +67,7 @@ public class Macro {
     /**
      * Check if role is a macro
      * @param role Role to be checked
-     * @return 
+     * @return true if role meets macro criteria
      */
     public static boolean isMacro(Role role)
     {
@@ -79,11 +79,19 @@ public class Macro {
         return macroString.startsWith(MACRO_PREFIX);
     }
     
+    /**
+     * Parse macro from string
+     * @param macroString - macro string
+     * @return Macro instance
+     * @throws MacroException - Parse error 
+     */
     public static Macro Parse(String macroString)
-    {
-        if (!isMacro(macroString))
+            throws MacroException
+    {        
+        if (!isMacro(macroString)) 
         {
-            throw new IllegalArgumentException("macroString should start from "+MACRO_PREFIX);
+            throw new MacroException(MacroExceptionCode.Not_Macro, 
+               "Can't parse macro: Macro String should start from "+MACRO_PREFIX);
         }
         
         String macroName = macroString.substring(MACRO_PREFIX.length());

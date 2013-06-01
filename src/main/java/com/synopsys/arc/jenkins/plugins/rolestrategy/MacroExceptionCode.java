@@ -23,23 +23,12 @@
  */
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
-import hudson.ExtensionList;
-import hudson.ExtensionPoint;
-import hudson.model.Hudson;
-
 /**
- * User macro, which automatically detects User
- * @deprecated Not supported at 2.1.0. Just a stub
- * @author Oleg Nenashev <nenashev@synopsys.com>
- * @since 2.1.0
+ * Contains type of macro exception
+ * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  */
-public abstract class UserMacroExtension implements ExtensionPoint, IMacroExtension {
-    
-    /**
-     * Get list of all registered {@link UserMacroExtension}s.
-     * @return List of {@link UserMacroExtension}s.
-     */
-    public static ExtensionList<UserMacroExtension> all() {
-        return Hudson.getInstance().getExtensionList(UserMacroExtension.class);
-    }
+public enum MacroExceptionCode {
+    UnknownError,
+    Not_Macro,
+    Wrong_arguments
 }
