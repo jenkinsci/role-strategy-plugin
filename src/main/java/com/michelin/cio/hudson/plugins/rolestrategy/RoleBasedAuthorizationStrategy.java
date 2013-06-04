@@ -275,7 +275,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
                   reader.moveDown();
-                  permissions.add(Permission.fromId(reader.getValue()));
+                  Permission p = Permission.fromId(reader.getValue());
+                  if (p != null) {
+                    permissions.add(p);
+                  }
                   reader.moveUp();
                 }
                 reader.moveUp();
