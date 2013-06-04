@@ -50,6 +50,16 @@ public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtens
         }
     }
     
+    public static Macro getMacro(String unparsedMacroString)
+    {
+        //TODO: add macro cache
+        try {
+            return Macro.Parse(unparsedMacroString);
+        } catch (MacroException ex) {
+            return null;
+        }
+    }
+    
     public static RoleMacroExtension getMacroExtension(String macroName)
     {
         if (Registry.isEmpty()) {

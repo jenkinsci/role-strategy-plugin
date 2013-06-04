@@ -27,7 +27,11 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 
 /**
  * Macro for roles and users.
- * Implements following format.
+ * Implements following format:
+ *  @macroId[:index][("parameter1", "parameter2", ...)], 
+ *     macroId - name of the macro. Supports alphanumeric symbols
+ *     index   - optional integer, which allow to duplicate macro calls 
+ *     parameters - optional set of strings. each parameter should be string 
  * 
  * @todo Macro parameters (ex, multiple usage of macro)
  * @since 2.1.0
@@ -35,14 +39,24 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
  */
 public class Macro {
     public final static String MACRO_PREFIX = "@";
+    private final static String PARAMS_LEFT_BORDER = "(";
+    private final static String PARAMS_RIGHT_BORDER = ")";
+    private final static String PARAMS_DELIMITER = ",";
+    private final static String INDEX_DELIMITER = ":";
+    private final static int DEFAULT_MACRO_ID = Integer.MIN_VALUE;
+    
     
     private String name;
     private String dispName;
+    private int index;
+    private String[] parameters; 
     
-    private Macro(String name)
+    public Macro(String name, Integer index, String[] parameters)
     {
         this.name = name;
         this.dispName = MACRO_PREFIX + name;
+        this.index = (index == null) ? DEFAULT_MACRO_ID : index;
+        this.parameters = parameters;
     }
     
     /**
@@ -59,9 +73,38 @@ public class Macro {
         return dispName;
     }
 
+    public int getIndex() {
+        return index;
+    }
+    
+    public boolean hasIndex() {
+        return index != DEFAULT_MACRO_ID;
+    }
+
+    public String[] getParameters() {
+        return parameters;
+    }
+    
+    public boolean hasParameters() {
+        return parameters!=null && parameters.length!=0;
+    }
+    
     @Override
     public String toString() {
-        return dispName;
+        String str = dispName;
+        if (hasIndex()) {
+            str += ":"+index;
+        }
+        
+        if (hasParameters()) {
+            str+="("+parameters[0];
+            for (int i=1;i<parameters.length;i++) {
+                str+=","+parameters[i];
+            }
+            str+=")";
+        }
+        
+        return str;
     }
    
     /**
@@ -94,7 +137,60 @@ public class Macro {
                "Can't parse macro: Macro String should start from "+MACRO_PREFIX);
         }
         
-        String macroName = macroString.substring(MACRO_PREFIX.length());
-        return new Macro(macroName);
+        int leftBorder = macroString.indexOf(PARAMS_LEFT_BORDER);
+        int rightBorder = macroString.lastIndexOf(PARAMS_RIGHT_BORDER);
+        boolean hasParams = checkBorders(macroString, leftBorder, rightBorder);
+        
+        // Get macroName and id
+        String macroIdStr = hasParams ? macroString.substring(0, leftBorder-1) : macroString;
+        String[] macroIdItems = macroIdStr.split(INDEX_DELIMITER);
+        if (macroIdItems.length > 2) {
+            throw new MacroException(MacroExceptionCode.WrongFormat, 
+                    "Macro string should contain only one '"+INDEX_DELIMITER+"' delimiter");
+        }
+        
+        // Macro name        
+        String macroName = macroIdItems[0];
+        if (macroName.isEmpty()) {
+            throw new MacroException(MacroExceptionCode.WrongFormat, "Macro name is empty");
+        }
+        
+        // Macro id
+        int macroId = DEFAULT_MACRO_ID;
+        if (macroIdItems.length == 2) {
+            try {
+                macroId = Integer.parseInt(macroIdItems[1]);
+            }
+            catch(NumberFormatException ex) {
+                throw new MacroException(MacroExceptionCode.WrongFormat, 
+                        "Can't parse int from "+macroIdItems[1]);
+            }
+        }
+        
+        //TODO: Parse parameters
+        
+        return new Macro(macroName, macroId, null);
+    }
+    
+    private static boolean checkBorders(String macroStr, int leftBorder, int rightBorder)
+            throws MacroException
+    {
+        if (leftBorder==-1 || rightBorder==-1)
+        {
+            if (leftBorder == rightBorder) {
+                return false; // no borders
+            }
+            String missingBorder = (leftBorder == -1) ? "left" : "right";
+            throw new MacroException(MacroExceptionCode.WrongFormat, "Missing border: "+missingBorder);
+        }
+        
+        //TODO: fail on duplicated borders
+        if (!macroStr.endsWith(PARAMS_RIGHT_BORDER))
+        {
+            throw new MacroException(MacroExceptionCode.WrongFormat, 
+                    "Parametrized Macro should end with '"+PARAMS_RIGHT_BORDER+"'");
+        }
+        
+        return true;
     }
 }

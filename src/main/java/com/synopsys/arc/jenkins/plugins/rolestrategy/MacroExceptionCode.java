@@ -30,5 +30,6 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
 public enum MacroExceptionCode {
     UnknownError,
     Not_Macro,
+    WrongFormat,
     Wrong_arguments
 }
