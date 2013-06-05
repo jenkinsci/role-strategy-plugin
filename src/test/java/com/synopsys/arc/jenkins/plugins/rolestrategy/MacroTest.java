@@ -54,13 +54,24 @@ public class MacroTest {
     }
     
     @Test
-    public void TestWrongArguments() {
-        
+    public void TestWrongBrackets() {
+        parseWrongMacro("@test:1(aaa,bbb(", MacroExceptionCode.WrongFormat);
+        parseWrongMacro("@test:1(aaa,bbb(", MacroExceptionCode.WrongFormat); 
+        parseWrongMacro("@test:1()(aaa,bbb)", MacroExceptionCode.WrongFormat); 
+        parseWrongMacro("@test:1[aaa,bbb]", MacroExceptionCode.WrongFormat); 
+        parseWrongMacro("@test:1)aaa,bbb(", MacroExceptionCode.WrongFormat); 
+        parseWrongMacro("@test:1)(", MacroExceptionCode.WrongFormat); 
     }
     
     @Test
     public void ERR_WrongEnding() {
         parseWrongMacro("@test:1(aaa,bbb)error", MacroExceptionCode.WrongFormat);
+    }
+    
+    @Test 
+    public void EmptyParameters() {
+         parseMacro("@Dummy()");
+         parseMacro("@Dummy:1()");      
     }
     
     @Test

@@ -41,7 +41,7 @@ public class Macro {
     public final static String MACRO_PREFIX = "@";
     private final static String PARAMS_LEFT_BORDER = "(";
     private final static String PARAMS_RIGHT_BORDER = ")";
-    private final static String PARAMS_DELIMITER = ",";
+    private final static String PARAMS_DELIMITER = "\\\"*,\\\"*";
     private final static String INDEX_DELIMITER = ":";
     private final static int DEFAULT_MACRO_ID = Integer.MIN_VALUE;
     
@@ -142,7 +142,7 @@ public class Macro {
         boolean hasParams = checkBorders(macroString, leftBorder, rightBorder);
         
         // Get macroName and id
-        String macroIdStr = hasParams ? macroString.substring(0, leftBorder-1) : macroString;
+        String macroIdStr = hasParams ? macroString.substring(0, leftBorder) : macroString;
         String[] macroIdItems = macroIdStr.split(INDEX_DELIMITER);
         if (macroIdItems.length > 2) {
             throw new MacroException(MacroExceptionCode.WrongFormat, 
@@ -163,13 +163,18 @@ public class Macro {
             }
             catch(NumberFormatException ex) {
                 throw new MacroException(MacroExceptionCode.WrongFormat, 
-                        "Can't parse int from "+macroIdItems[1]);
+                        "Can't parse int from "+macroIdItems[1]+": "+ex.getMessage());
             }
         }
         
-        //TODO: Parse parameters
+        // Parse parameters
+        String[] params = null;
+        if (hasParams) {
+            String paramsStr = macroString.substring(leftBorder+1, rightBorder);
+            params = paramsStr.split(PARAMS_DELIMITER);          
+        }
         
-        return new Macro(macroName, macroId, null);
+        return new Macro(macroName, macroId, params);
     }
     
     private static boolean checkBorders(String macroStr, int leftBorder, int rightBorder)
@@ -184,11 +189,21 @@ public class Macro {
             throw new MacroException(MacroExceptionCode.WrongFormat, "Missing border: "+missingBorder);
         }
         
-        //TODO: fail on duplicated borders
-        if (!macroStr.endsWith(PARAMS_RIGHT_BORDER))
+        // Check ending
+        if (rightBorder != -1 && !macroStr.endsWith(PARAMS_RIGHT_BORDER))
         {
             throw new MacroException(MacroExceptionCode.WrongFormat, 
                     "Parametrized Macro should end with '"+PARAMS_RIGHT_BORDER+"'");
+        }
+        
+        // Check duplicated borders
+        if (leftBorder != macroStr.lastIndexOf(PARAMS_LEFT_BORDER)) {
+            throw new MacroException(MacroExceptionCode.WrongFormat, 
+                    "Duplicated left border ('"+PARAMS_LEFT_BORDER+"' symbol)");
+        }
+        if (rightBorder != macroStr.indexOf(PARAMS_RIGHT_BORDER)) {
+            throw new MacroException(MacroExceptionCode.WrongFormat, 
+                    "Duplicated right border ('"+PARAMS_RIGHT_BORDER+"' symbol)");
         }
         
         return true;
