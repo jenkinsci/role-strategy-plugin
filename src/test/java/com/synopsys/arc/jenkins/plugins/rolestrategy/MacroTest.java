@@ -68,6 +68,20 @@ public class MacroTest {
         parseWrongMacro("@test:1(aaa,bbb)error", MacroExceptionCode.WrongFormat);
     }
     
+    @Test
+    public void ERR_Quotes() {
+        parseWrongMacro("@test':1(aaa,bbb)", MacroExceptionCode.WrongFormat);
+        parseWrongMacro("@'test':1(aaa,bbb)", MacroExceptionCode.WrongFormat);
+        parseWrongMacro("@test:1('aaa',bbb)", MacroExceptionCode.WrongFormat);
+        parseWrongMacro("@test:1'(aaa,bbb)'", MacroExceptionCode.WrongFormat);
+        parseWrongMacro("@test:'1'(aaa,bbb)", MacroExceptionCode.WrongFormat);
+        parseWrongMacro("'@test:1(aaa,bbb)'", MacroExceptionCode.Not_Macro);
+        parseWrongMacro("@test\":1(aaa,bbb)", MacroExceptionCode.WrongFormat);       
+        parseWrongMacro("@test:1(aaa,\"bbb\")", MacroExceptionCode.WrongFormat);
+        parseWrongMacro("\"@test:1(aaa,bbb)\"", MacroExceptionCode.Not_Macro);
+        parseWrongMacro("\"@\"test:1(aaa,bbb)", MacroExceptionCode.Not_Macro);
+    }
+    
     @Test 
     public void EmptyParameters() {
          parseMacro("@Dummy()");

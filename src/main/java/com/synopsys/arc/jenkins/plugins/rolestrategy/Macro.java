@@ -28,10 +28,10 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 /**
  * Macro for roles and users.
  * Implements following format:
- *  @macroId[:index][("parameter1", "parameter2", ...)], 
+ *  @macroId[:index][(parameter1, parameter2, ...)], 
  *     macroId - name of the macro. Supports alphanumeric symbols
  *     index   - optional integer, which allow to duplicate macro calls 
- *     parameters - optional set of strings. each parameter should be string 
+ *     parameters - optional set of strings. each parameter should be string without quotes
  * 
  * @todo Macro parameters (ex, multiple usage of macro)
  * @since 2.1.0
@@ -150,7 +150,7 @@ public class Macro {
         }
         
         // Macro name        
-        String macroName = macroIdItems[0];
+        String macroName = macroIdItems[0].substring(MACRO_PREFIX.length());
         if (macroName.isEmpty()) {
             throw new MacroException(MacroExceptionCode.WrongFormat, "Macro name is empty");
         }
@@ -204,6 +204,16 @@ public class Macro {
         if (rightBorder != macroStr.indexOf(PARAMS_RIGHT_BORDER)) {
             throw new MacroException(MacroExceptionCode.WrongFormat, 
                     "Duplicated right border ('"+PARAMS_RIGHT_BORDER+"' symbol)");
+        }
+        
+        // Check quatas
+        if (macroStr.indexOf("\"")!=-1) {
+            throw new MacroException(MacroExceptionCode.WrongFormat, 
+                    "Double quotes aren't supported");
+        }
+        if (macroStr.indexOf("'")!=-1) {
+            throw new MacroException(MacroExceptionCode.WrongFormat, 
+                    "Single quotes aren't supported");
         }
         
         return true;
