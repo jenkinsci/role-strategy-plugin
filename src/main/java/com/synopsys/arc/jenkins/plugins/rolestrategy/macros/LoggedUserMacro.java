@@ -26,7 +26,6 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
-import hudson.Extension;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -36,8 +35,9 @@ import hudson.security.Permission;
  * Allows to set specific rights for the logged users
  * @since 2.1.0
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @deprecated Not supported at current version
  */
-@Extension
+//@Extension
 public class LoggedUserMacro extends UserMacroExtension {
 
     @Override
@@ -54,5 +54,9 @@ public class LoggedUserMacro extends UserMacroExtension {
     public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
         return User.current() != null;
     }
-    
+
+    @Override
+    public String getDescription() {
+        return "Check if user is logged in";
+    }
 }

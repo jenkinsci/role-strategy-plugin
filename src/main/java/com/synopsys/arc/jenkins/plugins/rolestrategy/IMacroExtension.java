@@ -48,6 +48,12 @@ public interface IMacroExtension {
     boolean IsApplicable(RoleType roleType);
     
     /**
+     * Returns description of the macro (including parameters)
+     * @return Description of the macro
+     */
+    String getDescription();
+    
+    /**
      * Check if user belongs to specified Macro
      * @param user User to be checked
      * @param type Type of the role to be checked

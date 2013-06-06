@@ -54,5 +54,10 @@ public final class StubMacro extends RoleMacroExtension {
     public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
         return false;
     }
-    
+
+    @Override
+    public String getDescription() {
+        return "Just a stub";
+    }
+
 }

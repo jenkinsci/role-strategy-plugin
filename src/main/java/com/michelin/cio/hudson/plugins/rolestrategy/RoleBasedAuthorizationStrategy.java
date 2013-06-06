@@ -28,6 +28,8 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.IMacroExtension;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
@@ -36,6 +38,7 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -73,6 +76,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String GLOBAL    = "globalRoles";
   public final static String PROJECT   = "projectRoles";
   public final static String SLAVE     = "slaveRoles";
+  public final static String MACRO_ROLE = "roleMacros";
+  public final static String MACRO_USER  = "userMacros";
+  
 
   
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
@@ -587,8 +593,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       else {
         return false;
       }
-    }   
+    }
   }
-  
-  
 }

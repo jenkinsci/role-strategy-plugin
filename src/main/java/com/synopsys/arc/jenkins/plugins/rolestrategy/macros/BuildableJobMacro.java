@@ -58,5 +58,9 @@ public class BuildableJobMacro extends RoleMacroExtension {
             return false;
         }
     }
-    
+
+    @Override
+    public String getDescription() {
+        return "Filters out unbuildable jobs"; 
+    }
 }
