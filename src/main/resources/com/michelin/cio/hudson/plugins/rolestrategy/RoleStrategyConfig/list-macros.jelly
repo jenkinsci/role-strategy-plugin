@@ -38,7 +38,13 @@
         -->
         <d:tag name="roleMacroTable">           
             <j:invoke var="items" method="${attrs.getmethod}" on="${it}"/>            
-            <table id="${attrs.tableId}" class="center-align global-matrix-authorization-strategy-table" name="${attrs.tableId}">
+            <table id="${attrs.tableId}" 
+                   class="center-align global-matrix-authorization-strategy-table" 
+                   name="${attrs.tableId}" width="1000px">
+                <col></col>
+                <col width="150px"></col>
+                <col style="width:100px;word-wrap:break-word;"></col>
+                
                 <tr name="Caption" class="group-row">
                     <td rowspan="2" class="start" />
                     <td rowspan="2" class="pane-header blank">
