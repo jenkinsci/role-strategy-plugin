@@ -99,13 +99,16 @@
                     <f:block>
                         <local:roleMacroTable tableId="rolesMacros" getmethod="getRoleMacroExtensions"/>
                     </f:block>
-                </f:section>
+                </f:section> 
+                <!--TODO: Enable after adding support of user macros-->
+                <!--
                 <f:section title="${%User Macros}">
                     <f:block>
                         <p style="color:red">Warning! Not supported in the current version</p>
                         <local:roleMacroTable tableId="userMacros" getmethod="getUserMacroExtensions"/>
                     </f:block>
                 </f:section>
+                -->
                 <f:block>
                     <f:submit value="${%Save}" />
                 </f:block>
