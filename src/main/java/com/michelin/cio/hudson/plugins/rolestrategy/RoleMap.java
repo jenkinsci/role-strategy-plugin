@@ -67,21 +67,23 @@ public class RoleMap {
    */
   private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
     for(Role role : getRolesHavingPermission(p)) {     
-        // Default handling
-        if(this.grantedRoles.get(role).contains(sid)) {
-            return true;
-        }
         
-        // Handle roles macro
-        if (Macro.isMacro(role)) {
-            Macro macro = RoleMacroExtension.getMacro(role.getName());
-            if (macro != null) {
-                RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
-                    return true;
-                }          
+        if(this.grantedRoles.get(role).contains(sid)) {            
+            // Handle roles macro
+            if (Macro.isMacro(role)) {
+                Macro macro = RoleMacroExtension.getMacro(role.getName());
+                if (macro != null) {
+                    RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
+                    if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
+                        return true;
+                    }          
+                }
+            } // Default handling
+            else {
+                return true;
             }
-        }        
+        }
+                    
         // TODO: Handle users macro
     }
     return false;

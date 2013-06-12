@@ -28,8 +28,6 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
-import com.synopsys.arc.jenkins.plugins.rolestrategy.IMacroExtension;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
@@ -38,7 +36,6 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
-import hudson.ExtensionList;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;

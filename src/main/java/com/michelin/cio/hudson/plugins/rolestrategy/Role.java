@@ -27,7 +27,6 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.commons.collections.CollectionUtils;
