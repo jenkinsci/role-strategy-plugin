@@ -459,8 +459,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
 
-        ReadRoles(formData, PROJECT, strategy);
-        ReadRoles(formData, SLAVE, strategy);
+        ReadRoles(formData, PROJECT, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
+        ReadRoles(formData, SLAVE, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
       }
       // When called from Hudson Manage panel, but was already on a role-based strategy
       else if(oldStrategy instanceof RoleBasedAuthorizationStrategy) {
@@ -481,7 +481,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     private void ReadRoles(JSONObject formData, String roleType,
-            RoleBasedAuthorizationStrategy targetStrategy)
+            RoleBasedAuthorizationStrategy targetStrategy, RoleBasedAuthorizationStrategy oldStrategy)
     {     
         if (!formData.has(roleType)) {
             assert false : "Unexistent Role type " + roleType;
@@ -513,7 +513,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           Role role = new Role(roleName, pattern, permissions);
           targetStrategy.addRole(roleType, role);
 
-          RoleMap roleMap = targetStrategy.getRoleMap(roleType);
+          RoleMap roleMap = oldStrategy.getRoleMap(roleType);
           if(roleMap != null) {
             Set<String> sids = roleMap.getSidsForRole(roleName);
             if(sids != null) {
