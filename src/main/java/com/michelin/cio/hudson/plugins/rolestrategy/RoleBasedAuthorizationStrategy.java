@@ -31,6 +31,7 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
+import hudson.model.AbstractItem;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -88,6 +89,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @Override
   public ACL getACL(Job<?,?> project) {
+      return getACL((AbstractItem) project);
+  }
+  
+  @Override
+  public ACL getACL(AbstractItem project) {
     SidACL acl;
     RoleMap roleMap = grantedRoles.get(PROJECT);
     if(roleMap == null) {
@@ -95,7 +101,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
     else {
       // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
-      acl = roleMap.newMatchingRoleMap(project.getName()).getACL().newInheritingACL(getRootACL());
+      acl = roleMap.newMatchingRoleMap(project.getFullName()).getACL().newInheritingACL(getRootACL());
     }
     return acl;
   }
