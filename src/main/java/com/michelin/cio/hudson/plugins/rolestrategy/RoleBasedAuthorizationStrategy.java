@@ -355,10 +355,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
         Map<String, RoleMap> maps = strategy.getRoleMaps();
 
-        for(Map.Entry<String, RoleMap> map : maps.entrySet()) {
+        for(Map.Entry<String, RoleMap> map : maps.entrySet()) {        
+          // Get roles and skip non-existent role entries (backward-comp)
           RoleMap roleMap = map.getValue();
           roleMap.clearSids();
           JSONObject roles = json.getJSONObject(map.getKey());
+          if (roles.isNullObject()) {
+              continue;
+          }
+          
           for(Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)roles.getJSONObject("data").entrySet()) {
             String sid = r.getKey();
             for(Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
