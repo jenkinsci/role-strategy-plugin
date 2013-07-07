@@ -12,7 +12,8 @@ The Role Strategy plugin can be installed from any Hudson or Jenkins installatio
 
 Source code
 -----------
-The primary location for the source code of this plugin is on [Jenkins' SVN repository][4]. It is also mirrored on [GitHub][5] for conveniency.
+The initial location for the source code of this plugin was on [Jenkins' SVN repository][4]. 
+Now we use [GitHub][5] as a primary repository.
 
 [1]: http://hudson-ci.org/
 [2]: http://jenkins-ci.org/
