@@ -9,7 +9,7 @@
     
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>1.1.3</version>
+    <version>1.1.3-SNAPSHOT</version>
     <name>Role-based Authorization Strategy</name>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin</url>
     
