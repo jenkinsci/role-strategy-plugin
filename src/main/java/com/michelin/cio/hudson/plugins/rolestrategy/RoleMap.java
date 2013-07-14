@@ -24,7 +24,11 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.model.User;
+import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
 import java.util.Collections;
@@ -46,9 +50,6 @@ import org.acegisecurity.acls.sid.Sid;
  */
 public class RoleMap {
 
-  /** ACL for the current {@link AccessControlled} object. */
-  private transient SidACL acl = new AclImpl();
-
   /** Map associating each {@link Role} with the concerned {@link User}s/groups. */
   private final SortedMap <Role,Set<String>> grantedRoles;
 
@@ -64,11 +65,26 @@ public class RoleMap {
    * Check if the given sid has the provided {@link Permission}.
    * @return True if the sid's granted permission
    */
-  private boolean hasPermission(String sid, Permission p) {
-    for(Role role : getRolesHavingPermission(p)) {
-      if(this.grantedRoles.get(role).contains(sid)) {
-        return true;
-      }
+  private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
+    for(Role role : getRolesHavingPermission(p)) {     
+        
+        if(this.grantedRoles.get(role).contains(sid)) {            
+            // Handle roles macro
+            if (Macro.isMacro(role)) {
+                Macro macro = RoleMacroExtension.getMacro(role.getName());
+                if (macro != null) {
+                    RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
+                    if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
+                        return true;
+                    }          
+                }
+            } // Default handling
+            else {
+                return true;
+            }
+        }
+                    
+        // TODO: Handle users macro
     }
     return false;
   }
@@ -85,8 +101,8 @@ public class RoleMap {
    * Get the ACL for the current {@link RoleMap}.
    * @return ACL for the current {@link RoleMap}
    */
-  public SidACL getACL() {
-    return acl;
+  public SidACL getACL(RoleType roleType, AccessControlled controlledItem) {
+    return new AclImpl(roleType, controlledItem);
   }
 
   /**
@@ -266,6 +282,14 @@ public class RoleMap {
    */
   private final class AclImpl extends SidACL {
 
+    AccessControlled item;
+    RoleType roleType;
+
+    public AclImpl(RoleType roleType, AccessControlled item) {
+        this.item = item;
+        this.roleType = roleType;
+    }
+      
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
@@ -273,8 +297,9 @@ public class RoleMap {
      * @param permission The permission to check
      * @return True if the sid has the given permission
      */
+    @Override
     protected Boolean hasPermission(Sid p, Permission permission) {
-      if(RoleMap.this.hasPermission(toString(p),permission)) {
+      if(RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
         return true;
       }
       return null;

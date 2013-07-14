@@ -66,13 +66,13 @@
       <j:set var="nbProjectRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" />
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}" />
         </tr>
         <j:set var="nbProjectRoles" value="${nbProjectRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${false}" />
+        <local:roleRow role="${null}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
       <j:if test="${nbProjectRoles ge 20}">

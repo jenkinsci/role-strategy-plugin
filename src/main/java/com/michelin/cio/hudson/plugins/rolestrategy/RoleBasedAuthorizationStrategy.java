@@ -2,7 +2,10 @@
  * The MIT License
  *
  * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
- * Thomas Maurel, Romain Seguy
+ * Thomas Maurel, Romain Seguy, and contributors
+ * 
+ * Contributions:
+ *   - Slave ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +28,8 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -68,7 +73,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
   public final static String GLOBAL    = "globalRoles";
   public final static String PROJECT   = "projectRoles";
+  public final static String SLAVE     = "slaveRoles";
+  public final static String MACRO_ROLE = "roleMacros";
+  public final static String MACRO_USER  = "userMacros";
+  
 
+  
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles = new HashMap < String, RoleMap >();
 
@@ -79,33 +89,50 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Override
   public SidACL getRootACL() {
     RoleMap root = getRoleMap(GLOBAL);
-    return root.getACL();
+    return root.getACL(RoleType.Global, null);
   }
 
+  
   /**
+   * Universal function for getting ACL for different 
+   * @param roleMapName Name of the role map section
+   * @param itemName Name of the item for patterns
+   * @return ACL
+   */
+   private ACL getACL(String roleMapName, String itemName, RoleType roleType, AccessControlled item)
+   {
+     SidACL acl;
+     RoleMap roleMap = grantedRoles.get(roleMapName);
+     if(roleMap == null) {
+       acl = getRootACL();
+     }
+     else {
+       // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
+       acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL());
+     }
+     return acl;   
+   }
+  
+   /**
    * Get the specific ACL for projects.
    * @param project The access-controlled project
    * @return The project specific ACL
    */
-  @Override
-  public ACL getACL(Job<?,?> project) {
+    @Override
+    public ACL getACL(Job<?,?> project) {
       return getACL((AbstractItem) project);
-  }
-  
-  @Override
-  public ACL getACL(AbstractItem project) {
-    SidACL acl;
-    RoleMap roleMap = grantedRoles.get(PROJECT);
-    if(roleMap == null) {
-      acl = getRootACL();
     }
-    else {
-      // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
-      acl = roleMap.newMatchingRoleMap(project.getFullName()).getACL().newInheritingACL(getRootACL());
-    }
-    return acl;
-  }
 
+    @Override
+    public ACL getACL(AbstractItem project) {
+      return getACL(PROJECT, project.getFullName(), RoleType.Project, project);
+    }
+
+    @Override
+    public ACL getACL(Computer computer) {
+       return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
+    }
+  
   /**
    * Used by the container realm.
    * @return All the sids referenced by the strategy
@@ -317,6 +344,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
   }  
 
+   /**
+     * Updates macro roles
+     * @since 2.1.0
+     */
+    void renewMacroRoles()
+    {
+        //TODO: add mandatory roles
+        
+        // Check role extensions
+        for (UserMacroExtension userExt : UserMacroExtension.all())
+        {
+            if (userExt.IsApplicable(RoleType.Global))
+            {
+                getRoleMap(GLOBAL).getSids().contains(userExt.getName());
+            }
+        }
+    }
+  
   /**
    * Descriptor used to bind the strategy to the Web forms.
    */
@@ -392,7 +437,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
-      if (formData.has(GLOBAL) && formData.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+      if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
 
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
@@ -419,7 +464,40 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
 
-        JSONObject projectRoles = formData.getJSONObject(PROJECT);
+        ReadRoles(formData, PROJECT, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
+        ReadRoles(formData, SLAVE, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
+      }
+      // When called from Hudson Manage panel, but was already on a role-based strategy
+      else if(oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+        // Do nothing, keep the same strategy
+        strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
+      }
+      // When called from Hudson Manage panel, but when the previous strategy wasn't
+      // role-based, it means we need to create an admin role, and assign it to the
+      // current user to not throw him out of the webapp
+      else {
+        strategy = new RoleBasedAuthorizationStrategy();
+        Role adminRole = createAdminRole();
+        strategy.addRole(GLOBAL, adminRole);
+        strategy.assignRole(GLOBAL, adminRole, getCurrentUser());
+      }
+      strategy.renewMacroRoles();
+      return strategy;
+    }
+
+    private void ReadRoles(JSONObject formData, String roleType,
+            RoleBasedAuthorizationStrategy targetStrategy, RoleBasedAuthorizationStrategy oldStrategy)
+    {     
+        if (!formData.has(roleType)) {
+            assert false : "Unexistent Role type " + roleType;
+            return;
+        }
+        JSONObject projectRoles = formData.getJSONObject(roleType);
+        if (!projectRoles.containsKey("data")) {
+            assert false : "No data at role description";
+            return;
+        }
+        
         for(Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)projectRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
           Set<Permission> permissions = new HashSet<Permission>();
@@ -438,36 +516,20 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
 
           Role role = new Role(roleName, pattern, permissions);
-          strategy.addRole(PROJECT, role);
+          targetStrategy.addRole(roleType, role);
 
-          RoleMap roleMap = ((RoleBasedAuthorizationStrategy) oldStrategy).getRoleMap(PROJECT);
+          RoleMap roleMap = oldStrategy.getRoleMap(roleType);
           if(roleMap != null) {
             Set<String> sids = roleMap.getSidsForRole(roleName);
             if(sids != null) {
               for(String sid : sids) {
-                strategy.assignRole(PROJECT,role, sid);
+                targetStrategy.assignRole(roleType, role, sid);
               }
             }
           }
         }
-      }
-      // When called from Hudson Manage panel, but was already on a role-based strategy
-      else if(oldStrategy instanceof RoleBasedAuthorizationStrategy) {
-        // Do nothing, keep the same strategy
-        strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
-      }
-      // When called from Hudson Manage panel, but when the previous strategy wasn't
-      // role-based, it means we need to create an admin role, and assign it to the
-      // current user to not throw him out of the webapp
-      else {
-        strategy = new RoleBasedAuthorizationStrategy();
-        Role adminRole = createAdminRole();
-        strategy.addRole(GLOBAL, adminRole);
-        strategy.assignRole(GLOBAL, adminRole, getCurrentUser());
-      }
-      return strategy;
     }
-
+    
     /**
      * Create an admin role.
      */
@@ -507,6 +569,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(Computer.class));
             groups.remove(PermissionGroup.get(View.class));
         }
+        else if (type.equals(SLAVE)) {
+            groups = new ArrayList<PermissionGroup>();
+            groups.add(PermissionGroup.get(Computer.class));
+        }
         else {
             groups = null;
         }
@@ -523,11 +589,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       else if(type.equals(PROJECT)) {
         return p!=Item.CREATE && p.getEnabled();
       }
+      else if (type.equals(SLAVE)) {
+          return p!=Computer.CREATE && p.getEnabled();
+      }
       else {
         return false;
       }
     }
-
   }
-
 }

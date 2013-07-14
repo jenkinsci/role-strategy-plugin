@@ -46,15 +46,15 @@
       <j:set var="nbAssignedProjectsRoles" value="${0}" />
       <j:forEach var="sid" items="${projectSIDs}">
         <tr name="[${sid}]" class="permission-row">
-          <local:userRow sid="${sid}" title="${sid}" global="${false}" />
+          <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
         </tr>
         <j:set var="nbAssignedProjectsRoles" value="${nbAssignedProjectsRoles+1}" />
       </j:forEach>
       <tr name="anonymous">
-        <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}"/>
+        <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:userRow global="${false}" />
+        <local:userRow global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${nbAssignedProjectsRoles ge 19}">

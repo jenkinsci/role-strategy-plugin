@@ -1,0 +1,6 @@
+1. Thomas Maurel, Romain Seguy, Manufacture Française des Pneumatiques Michelin
+  - Initial version of the plugin (global and project roles)
+
+2. Oleg Nenashev (oleg-nenashev), Synopsys Inc.
+  - Individual configuration of roles for the Jenkins slaves
+  - Macro extensions for roles and users
