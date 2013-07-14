@@ -13,6 +13,12 @@
     <name>Role-based Authorization Strategy</name>
     <url>http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin</url>
         
+    <scm>
+        <connection>scm:git:ssh://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}-plugin.git</developerConnection>
+        <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
+    </scm>
+    
     <developers>
         <developer>
             <id>tmaurel</id>
@@ -64,14 +70,6 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    <dependencies>
-        <dependency>
-            <groupId>org.jvnet.localizer</groupId>
-            <artifactId>localizer</artifactId>
-            <version>1.14</version>
-            <type>jar</type>
-        </dependency>
-    </dependencies>
 </project>  
   
 

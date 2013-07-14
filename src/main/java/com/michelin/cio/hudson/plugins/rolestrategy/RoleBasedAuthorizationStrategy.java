@@ -36,6 +36,7 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
+import hudson.model.AbstractItem;
 import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
@@ -119,12 +120,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
     @Override
     public ACL getACL(Job<?,?> project) {
-      return getACL(PROJECT, project.getName(), RoleType.Project, project);
+      return getACL((AbstractItem) project);
     }
-   
+
+    @Override
+    public ACL getACL(AbstractItem project) {
+      return getACL(PROJECT, project.getFullName(), RoleType.Project, project);
+    }
+
     @Override
     public ACL getACL(Computer computer) {
-       return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
+       return getACL(SLAVE, computer.getFullName(), RoleType.Slave, computer);
     }
   
   /**
@@ -302,7 +308,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
                   reader.moveDown();
-                  permissions.add(Permission.fromId(reader.getValue()));
+                  Permission p = Permission.fromId(reader.getValue());
+                  if (p != null) {
+                    permissions.add(p);
+                  }
                   reader.moveUp();
                 }
                 reader.moveUp();
@@ -391,16 +400,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
         Map<String, RoleMap> maps = strategy.getRoleMaps();
 
-        for(Map.Entry<String, RoleMap> map : maps.entrySet()) {
+        for(Map.Entry<String, RoleMap> map : maps.entrySet()) {        
+          // Get roles and skip non-existent role entries (backward-comp)
           RoleMap roleMap = map.getValue();
           roleMap.clearSids();
           JSONObject roles = json.getJSONObject(map.getKey());
-          
-          // Prevent NPE for role maps with empty assigments
-          if (roles == null) {
-              continue;
-          }
-          if (!roles.has("data")) {
+          if (roles.isNullObject()) {
               continue;
           }
           
