@@ -130,7 +130,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     @Override
     public ACL getACL(Computer computer) {
-       return getACL(SLAVE, computer.getFullName(), RoleType.Slave, computer);
+       return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
     }
   
   /**

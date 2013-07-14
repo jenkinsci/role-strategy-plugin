@@ -70,6 +70,14 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+    <dependencies>
+        <dependency>
+            <groupId>org.jvnet.localizer</groupId>
+            <artifactId>localizer</artifactId>
+            <version>1.14</version>
+            <type>jar</type>
+        </dependency>
+    </dependencies>
 </project>  
   
 
