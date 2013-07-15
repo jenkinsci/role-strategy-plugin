@@ -27,7 +27,6 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.commons.collections.CollectionUtils;
@@ -37,7 +36,8 @@ import org.apache.commons.collections.CollectionUtils;
  * @author Thomas Maurel
  */
 public final class Role implements Comparable {
-
+  public static final String GLOBAL_ROLE_PATTERN = ".*";
+      
   /**
    * Name of the role.
    */
@@ -60,7 +60,7 @@ public final class Role implements Comparable {
    * @param permissions The {@link Permission}s associated to the role
    */
   Role(String name, Set < Permission > permissions) {
-    this(name, ".*", permissions);
+    this(name, GLOBAL_ROLE_PATTERN, permissions);
   }
 
   /**

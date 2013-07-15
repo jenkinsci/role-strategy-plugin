@@ -5,3 +5,4 @@ work
 .settings
 .classpath
 .project
+/nb-configuration.xml

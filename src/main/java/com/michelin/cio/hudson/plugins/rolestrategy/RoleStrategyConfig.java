@@ -25,7 +25,11 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Hudson;
 import hudson.model.ManagementLink;
@@ -124,6 +128,15 @@ public class RoleStrategyConfig extends ManagementLink {
     // Redirect to the plugin index page
     rsp.sendRedirect(".");
   }
+  
+  public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
+    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    
+    // TODO: MAcros Enable/Disable
+      
+    // Redirect to the plugin index page
+    rsp.sendRedirect(".");
+  }
 
   /**
    * Called on role's assignment form submission.
@@ -135,5 +148,24 @@ public class RoleStrategyConfig extends ManagementLink {
     // Redirect to the plugin index page
     rsp.sendRedirect(".");
   }
+  
+    public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
+        return RoleMacroExtension.all();
+    }
 
+    public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
+        return UserMacroExtension.all();
+    }
+    
+    public final RoleType getGlobalRoleType() {
+        return RoleType.Global;
+    }
+    
+    public final RoleType getProjectRoleType() {
+        return RoleType.Project;
+    }
+    
+    public final RoleType getSlaveRoleType() {
+        return RoleType.Slave;
+    }
 }

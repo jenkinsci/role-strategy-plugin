@@ -1,8 +1,11 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
-  - Thomas Maurel, Romain Seguy
+  - Copyright (c) 2013, Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+  -
+  - OriginalFile: manage-project-roles.jelly
+  - Thomas Maurel & Romain Seguy, Manufacture Française des Pneumatiques Michelin,
+  - 
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -26,20 +29,21 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="id" value="${h.generateId()}"/>
+  <table id="slaveRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
-  <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
-
-      <!-- The first row shows grouping -->
+      <!-- The first row will show grouping -->
       <tr class="group-row">
         <td rowspan="2" class="start" />
         <td rowspan="2" class="pane-header blank">
           ${%Role}
         </td>
-        <j:forEach var="g" items="${globalGroups}">
+        <td rowspan="2" class="pane-header blank">
+          ${%Pattern}
+        </td>
+        <j:forEach var="g" items="${slaveGroups}">
           <j:set var="cnt" value="${0}" />
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
               <j:set var="cnt" value="${cnt+1}"/>
             </j:if>
           </j:forEach>
@@ -52,9 +56,9 @@
       </tr>
       <!-- The second row for individual permission -->
       <tr class="caption-row">
-        <j:forEach var="g" items="${globalGroups}">
+        <j:forEach var="g" items="${slaveGroups}">
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
               <th class="pane" tooltip="${p.description}">
                 ${p.name}
               </th>
@@ -62,39 +66,42 @@
           </j:forEach>
         </j:forEach>
       </tr>
-      <j:set var="nbGlobalRoles" value="${0}" />
-      <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}">
+      <j:set var="nbSlaveRoles" value="${0}" />
+      <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" />
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"/>
         </tr>
-        <j:set var="nbGlobalRoles" value="${nbGlobalRoles+1}"/>
+        <j:set var="nbSlaveRoles" value="${nbSlaveRoles+1}"/>
       </j:forEach>
+      <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${true}" type="${it.strategy.GLOBAL}"/>
+        <local:roleRow role="${null}" global="${false}" type="${it.strategy.SLAVE}"/>
       </tr>
-      <!-- The last two rows are used to repeat the header if necessary (if more than 20 lines) -->
-      <j:if test="${nbGlobalRoles ge 20}">
+      <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
+      <j:if test="${nbSlaveRoles ge 20}">
         <tr class="caption-row">
           <td rowspan="2" class="start" />
           <td rowspan="2" class="pane-header blank">
             ${%Role}
           </td>
-          <j:forEach var="g" items="${globalGroups}">
+          <td rowspan="2" class="pane-header blank">
+            ${%Pattern}
+          </td>
+          <j:forEach var="g" items="${slaveGroups}">
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
                 <th class="pane" tooltip="${p.description}">
                   ${p.name}
                 </th>
               </j:if>
             </j:forEach>
           </j:forEach>
-          <td rowspan="2" class="stop" />
         </tr>
         <tr class="group-row">
-          <j:forEach var="g" items="${globalGroups}">
+          <j:forEach var="g" items="${slaveGroups}">
             <j:set var="cnt" value="${0}" />
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
                 <j:set var="cnt" value="${cnt+1}"/>
               </j:if>
             </j:forEach>
@@ -103,18 +110,21 @@
               ${g.title}
             </td>
           </j:forEach>
+          <td rowspan="2" class="stop" />
         </tr>
       </j:if>
     </table>
-
     <br /><br />
     <f:entry title="${%Role to add}">
       <f:textbox type="text" id="${id}text" />
     </f:entry>
+    <f:entry help="plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
+      <f:textbox type="text" id="${id}pattern" />
+    </f:entry>
     <f:entry>
       <input type="button" value="${%Add}" id="${id}button"/>
     </f:entry>
-
+    
     <script>
       var tableHighlighter;
       (function() {
@@ -126,8 +136,13 @@
         makeButton($$('${id}button'), function (e) {
           <!-- when 'add' is clicked... -->
           var name = $$('${id}text').value;
+          var pattern = $$('${id}pattern').value;
           if(name=="") {
             alert("Please enter a role name");
+            return;
+          }
+          if(pattern=="") {
+            alert("Please enter a pattern");
             return;
           }
           if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
@@ -141,24 +156,34 @@
             copy = master.cloneNode(true); <!-- for IE -->
           copy.removeAttribute("id");
           copy.removeAttribute("style");
-          copy.childNodes[1].innerHTML = name;
+
+          var child = copy.childNodes[1];
+          child.innerHTML = name;
+          child.next().innerHTML = pattern;
+
+          var hidden = document.createElement('input');
+          hidden.setAttribute('name', '[pattern]');
+          hidden.setAttribute('type', 'hidden');
+          hidden.setAttribute('value', pattern);
+          child.next().appendChild(hidden);
+
           copy.setAttribute("name",'['+name+']');
-          <j:if test="${nbGlobalRoles lt 20}">
+          <j:if test="${nbSlaveRoles lt 20}">
             table.appendChild(copy);
           </j:if>
-          <j:if test="${nbGlobalRoles ge 20}">
+          <j:if test="${nbSlaveRoles ge 20}">
             table.insertBefore(copy,table.childNodes[table.rows.length-2]);
           </j:if>
-          tableHighlighter.scan(copy);
+          slavetableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"));
         });
       })();
 
       Event.observe(window, 'load', function(event) {
-         tableHighlighter = new TableHighlighter('globalRoles', 2, 2);
+         slavetableHighlighter = new TableHighlighter('slaveRoles', 3, 2);
       });
 
-      var deleteGlobalRole = function(e) {
+      var deleteSlaveRole = function(e) {
         e.onclick = function() {
           var tr = findAncestor(this,"TR");
           tr.parentNode.removeChild(tr);
@@ -166,7 +191,20 @@
         }
         e = null; <!-- avoid memory leak -->
       }
-      Behaviour.register({"#globalRoles TD.stop A" : deleteGlobalRole});
-      Behaviour.register({"#globalRoles TD.start A" : deleteGlobalRole});
+      Behaviour.register({"#slaveRoles TD.stop A" : deleteSlaveRole});
+      Behaviour.register({"#slaveRoles TD.start A" : deleteSlaveRole});
+
+      Behaviour.register({"#slaveRoles TD.in-place-edit" : function(e) {
+        e.ondblclick = function() {
+          if(this.childNodes.length == 2) {
+            this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
+          }
+          else {
+            this.innerHTML = this.childNodes[0].value.escapeHTML() + '<input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
+          }
+          return false;
+        }
+        e = null; <!-- again and again, avoid memory leak -->
+      }});
     </script>
 </j:jelly>
