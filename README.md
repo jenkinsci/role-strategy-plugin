@@ -14,7 +14,7 @@ Contributors
 2. [Oleg Nenashev][6], Synopsys Inc., www.synopsys.com
   - Individual configuration of roles for the Jenkins slaves
   - Macro extensions for roles and users
-... and all other contributors. 
+3. ... and all other contributors. 
 
 Installation
 ------------
