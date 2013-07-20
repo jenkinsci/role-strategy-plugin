@@ -54,8 +54,8 @@
               <local:feature icon="user.gif" href="assign-roles" title="${it.assignRolesName}">
                 ${%Assign Roles}
               </local:feature>              
-              <local:feature icon="plugin.png" href="list-macros" title="${%List Available Macros}">
-                ${%List Available Macros}
+              <local:feature icon="plugin.png" href="list-macros" title="${%Role Strategy Macros}">
+                ${%Provides info about macro usage and available macros}
               </local:feature>
             </table>
         </l:main-panel>
