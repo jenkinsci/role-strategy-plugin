@@ -570,8 +570,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(View.class));
         }
         else if (type.equals(SLAVE)) {
-            groups = new ArrayList<PermissionGroup>();
-            groups.add(PermissionGroup.get(Computer.class));
+            groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            groups.remove(PermissionGroup.get(Permission.class));
+            groups.remove(PermissionGroup.get(Hudson.class));
+            groups.remove(PermissionGroup.get(View.class));
+            groups.remove(PermissionGroup.get(Job.class));
         }
         else {
             groups = null;
