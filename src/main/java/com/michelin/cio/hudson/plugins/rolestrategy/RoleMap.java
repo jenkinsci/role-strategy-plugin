@@ -101,8 +101,8 @@ public class RoleMap {
    * Get the ACL for the current {@link RoleMap}.
    * @return ACL for the current {@link RoleMap}
    */
-  public SidACL getACL(RoleType roleType, AccessControlled controlledItem) {
-    return new AclImpl(roleType, controlledItem);
+  public SidACL getACL(RoleType roleType, AccessControlled controlledItem, boolean ignoresCase) {
+    return new AclImpl(roleType, controlledItem, ignoresCase);
   }
 
   /**
@@ -284,10 +284,13 @@ public class RoleMap {
 
     AccessControlled item;
     RoleType roleType;
+    /**Makes SID to convert all SIDs to lower-case*/
+    boolean ignoresCase;
 
-    public AclImpl(RoleType roleType, AccessControlled item) {
+    public AclImpl(RoleType roleType, AccessControlled item, boolean ignoresCase) {
         this.item = item;
         this.roleType = roleType;
+        this.ignoresCase = ignoresCase;
     }
       
     /**
@@ -299,7 +302,8 @@ public class RoleMap {
      */
     @Override
     protected Boolean hasPermission(Sid p, Permission permission) {
-      if(RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
+      String effectiveSID = ignoresCase ? toString(p).toLowerCase() : toString(p);
+      if(RoleMap.this.hasPermission(effectiveSID, permission, roleType, item)) {
         return true;
       }
       return null;
