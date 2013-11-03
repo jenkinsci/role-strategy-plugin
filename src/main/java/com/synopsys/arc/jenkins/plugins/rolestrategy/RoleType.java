@@ -26,49 +26,47 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 
 /**
- * Enumeration wrapper for {@link RoleBasedAuthorizationStrategy}'s items
- * @since 2.1.0
+ * Enumeration wrapper for {@link RoleBasedAuthorizationStrategy}'s items.
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @since 2.1.0
  */
 public enum RoleType {
+
     Global,
     Project,
     Slave;
-    
+
     /**
      * Get Role Type for {@link RoleBasedAuthorizationStrategy}'s item
-     * @param roleName String representation of {@link RoleBasedAuthorizationStrategy}'s item
+     *
+     * @param roleName String representation of
+     * {@link RoleBasedAuthorizationStrategy}'s item
      * @return Appropriate row type
      * @throws IllegalArgumentException Invalid roleName
      */
-    public static RoleType FromString(String roleName)
-    {
-        if (roleName.equals(RoleBasedAuthorizationStrategy.GLOBAL))
-        {
+    public static RoleType FromString(String roleName) {
+        if (roleName.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
             return Global;
         }
-        
-        if (roleName.equals(RoleBasedAuthorizationStrategy.PROJECT))
-        {
+
+        if (roleName.equals(RoleBasedAuthorizationStrategy.PROJECT)) {
             return Project;
         }
-        
-        if (roleName.equals(RoleBasedAuthorizationStrategy.SLAVE))
-        {
+
+        if (roleName.equals(RoleBasedAuthorizationStrategy.SLAVE)) {
             return Slave;
         }
-        
-        throw new java.lang.IllegalArgumentException("Unexpected roleName="+roleName);
+
+        throw new java.lang.IllegalArgumentException("Unexpected roleName=" + roleName);
     }
-    
+
     /**
-     * Converts role to the legacy {@link RoleBasedAuthorizationStrategy}'s string
+     * Converts role to the legacy {@link RoleBasedAuthorizationStrategy}'s
+     * string.
      * @return {@link RoleBasedAuthorizationStrategy}'s string
      */
-    public String getStringType()
-    {
-        switch(this)
-        {
+    public String getStringType() {
+        switch (this) {
             case Global:
                 return RoleBasedAuthorizationStrategy.GLOBAL;
             case Project:
@@ -76,7 +74,7 @@ public enum RoleType {
             case Slave:
                 return RoleBasedAuthorizationStrategy.SLAVE;
             default:
-                throw new java.lang.IllegalArgumentException("Unsupported Role: "+this);
+                throw new java.lang.IllegalArgumentException("Unsupported Role: " + this);
         }
     }
 }
