@@ -32,26 +32,24 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Extension for macro roles (automatic membership handling).
- * 
- * @see UserMacroExtension - 
+ *
+ * @see UserMacroExtension -
  * @author Oleg Nenashev <nenashev@synopsys.com>
  * @since 2.1.0
  */
 public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtension {
-    private static final Map<String, RoleMacroExtension> Registry = 
+
+    private static final Map<String, RoleMacroExtension> Registry =
             new ConcurrentHashMap<String, RoleMacroExtension>();
-        
-    private static void updateRegistry()
-    {
+
+    private static void updateRegistry() {
         Registry.clear();
-        for (RoleMacroExtension ext : all())
-        {
+        for (RoleMacroExtension ext : all()) {
             Registry.put(ext.getName(), ext);
         }
     }
-    
-    public static Macro getMacro(String unparsedMacroString)
-    {
+
+    public static Macro getMacro(String unparsedMacroString) {
         //TODO: add macro cache
         try {
             return Macro.Parse(unparsedMacroString);
@@ -59,18 +57,19 @@ public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtens
             return null;
         }
     }
-    
-    public static RoleMacroExtension getMacroExtension(String macroName)
-    {
+
+    public static RoleMacroExtension getMacroExtension(String macroName) {
+        //TODO: the method is not thread-safe
         if (Registry.isEmpty()) {
             updateRegistry();
-        }          
+        }
         RoleMacroExtension ext = Registry.get(macroName);
         return ext != null ? ext : StubMacro.Instance;
     }
-        
+
     /**
      * Get list of all registered {@link UserMacroExtension}s.
+     *
      * @return List of {@link UserMacroExtension}s.
      */
     public static ExtensionList<RoleMacroExtension> all() {

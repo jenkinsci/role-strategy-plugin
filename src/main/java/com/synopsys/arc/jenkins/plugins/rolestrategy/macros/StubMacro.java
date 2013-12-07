@@ -31,8 +31,10 @@ import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
 /**
- * Stub for non-existent macros
+ * A stub for non-existent macros.
+ * Always returns false during permissions check.
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @since 2.1.0
  */
 public final class StubMacro extends RoleMacroExtension {
     public static final StubMacro Instance = new StubMacro();

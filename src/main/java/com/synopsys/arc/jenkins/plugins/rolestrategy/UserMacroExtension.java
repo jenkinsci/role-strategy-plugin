@@ -28,8 +28,8 @@ import hudson.ExtensionPoint;
 import hudson.model.Hudson;
 
 /**
- * User macro, which automatically detects User
- * @deprecated Not supported at 2.1.0. Just a stub
+ * User macro, which automatically detects User.
+ * @deprecated Not supported in 2.1.0. Just a stub
  * @author Oleg Nenashev <nenashev@synopsys.com>
  * @since 2.1.0
  */

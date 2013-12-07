@@ -26,6 +26,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
 /**
  * Stub class, which stores jelly files for RoleStrategyPlugin
  * @author Oleg Nenashev <nenashev@synopsys.com>
+ * @since 2.1.0
  */
 public class RoleStrategyConfigExtension {
     public String getCompanyName(){

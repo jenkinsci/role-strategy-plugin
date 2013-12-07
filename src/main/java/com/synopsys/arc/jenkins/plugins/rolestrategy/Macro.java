@@ -26,7 +26,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 
 /**
- * Macro for roles and users.
+ * Macro representation for roles and users.
  * Implements following format:
  *  @macroId[:index][(parameter1, parameter2, ...)], 
  *     macroId - name of the macro. Supports alphanumeric symbols
@@ -45,14 +45,12 @@ public class Macro {
     private final static String INDEX_DELIMITER = ":";
     private final static int DEFAULT_MACRO_ID = Integer.MIN_VALUE;
     
+    private final String name;
+    private final String dispName;
+    private final int index;
+    private final String[] parameters; 
     
-    private String name;
-    private String dispName;
-    private int index;
-    private String[] parameters; 
-    
-    public Macro(String name, Integer index, String[] parameters)
-    {
+    public Macro(String name, Integer index, String[] parameters) {
         this.name = name;
         this.dispName = MACRO_PREFIX + name;
         this.index = (index == null) ? DEFAULT_MACRO_ID : index;
@@ -63,13 +61,11 @@ public class Macro {
      * Get name of the macro.
      * @return Name of the macro (without prefix)
      */
-    public String getName()
-    {
+    public String getName() {
         return name;
     }
-    
-    public String getDisplayName()
-    {
+
+    public String getDisplayName() {
         return dispName;
     }
 
@@ -108,20 +104,18 @@ public class Macro {
     }
    
     /**
-     * Check if role is a macro
+     * Check if role is a macro.
      * @param role Role to be checked
      * @return true if role meets macro criteria
      */
-    public static boolean isMacro(Role role)
-    {
+    public static boolean isMacro(Role role) {
         return isMacro(role.getName());
     }
-    
-    public static boolean isMacro(String macroString)
-    {
+
+    public static boolean isMacro(String macroString) {
         return macroString.startsWith(MACRO_PREFIX);
     }
-    
+
     /**
      * Parse macro from string
      * @param macroString - macro string
@@ -129,12 +123,10 @@ public class Macro {
      * @throws MacroException - Parse error 
      */
     public static Macro Parse(String macroString)
-            throws MacroException
-    {        
-        if (!isMacro(macroString)) 
-        {
-            throw new MacroException(MacroExceptionCode.Not_Macro, 
-               "Can't parse macro: Macro String should start from "+MACRO_PREFIX);
+            throws MacroException {
+        if (!isMacro(macroString)) {
+            throw new MacroException(MacroExceptionCode.Not_Macro,
+                    "Can't parse macro: Macro String should start from " + MACRO_PREFIX);
         }
         
         int leftBorder = macroString.indexOf(PARAMS_LEFT_BORDER);
