@@ -30,8 +30,8 @@ import hudson.security.Permission;
  * Interface for Role-based plug-in Macro extensions.
  * @see RoleMacroExtension
  * @see UserMacroExtension
- * @since 2.1.0
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @since 2.1.0
  */
 public interface IMacroExtension {
     
@@ -48,7 +48,7 @@ public interface IMacroExtension {
     boolean IsApplicable(RoleType roleType);
     
     /**
-     * Returns description of the macro (including parameters)
+     * Returns description of the macro (including parameters).
      * @return Description of the macro
      */
     String getDescription();

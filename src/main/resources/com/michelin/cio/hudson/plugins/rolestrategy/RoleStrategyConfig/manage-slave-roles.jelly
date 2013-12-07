@@ -118,7 +118,7 @@
     <f:entry title="${%Role to add}">
       <f:textbox type="text" id="${id}text" />
     </f:entry>
-    <f:entry help="plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
+    <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
       <f:textbox type="text" id="${id}pattern" />
     </f:entry>
     <f:entry>

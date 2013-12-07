@@ -24,8 +24,9 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 /**
- * Contains type of macro exception
+ * Contains type of macro exception.
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @since 2.1.0
  */
 public enum MacroExceptionCode {
     UnknownError,

@@ -33,8 +33,8 @@ import hudson.security.Permission;
 /**
  * Demo macro for the Role-Based plugin.
  * Allows to set specific rights for the logged users
- * @since 2.1.0
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @since 2.1.0
  * @deprecated Not supported at current version
  */
 //@Extension

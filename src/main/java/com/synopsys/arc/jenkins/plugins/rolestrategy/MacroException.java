@@ -24,7 +24,7 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 /**
- * Macro exception
+ * Macro exception.
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
  * @since 2.1.0
  */

@@ -32,8 +32,9 @@ import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
 /**
- * Sample Macro - creator of the Job
+ * Applies permissions to buildable jobs only.
  * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @since 2.1.0
  */
 @Extension
 public class BuildableJobMacro extends RoleMacroExtension {
