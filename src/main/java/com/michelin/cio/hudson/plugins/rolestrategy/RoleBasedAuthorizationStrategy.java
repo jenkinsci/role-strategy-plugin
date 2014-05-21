@@ -60,6 +60,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import javax.servlet.ServletException;
+
+import hudson.util.VersionNumber;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.kohsuke.stapler.StaplerRequest;
@@ -361,7 +364,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             }
         }
     }
-  
+
+    /**
+     * Control job create using {@link org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy}
+     * @since 2.1.1
+     */
+    public static boolean isCreateAllowed(){
+        return Jenkins.getVersion().isOlderThan(new VersionNumber("1.566"));
+    }
+
   /**
    * Descriptor used to bind the strategy to the Web forms.
    */
@@ -587,7 +598,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return showPermission(p);
       }
       else if(type.equals(PROJECT)) {
-        return p!=Item.CREATE && p.getEnabled();
+        return p == Item.CREATE && isCreateAllowed() && p.getEnabled() || p != Item.CREATE && p.getEnabled();
       }
       else if (type.equals(SLAVE)) {
           return p!=Computer.CREATE && p.getEnabled();
