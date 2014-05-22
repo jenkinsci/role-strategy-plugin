@@ -82,7 +82,10 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
         @Override
         public String getDisplayName() {
-            return Messages.RoleBasedAuthorizationStrategy_DisplayName();
+            String name = Messages.RoleBasedAuthorizationStrategy_DisplayName();
+            if (!RoleBasedAuthorizationStrategy.isCreateAllowed())
+                name += " (<font color=\"red\">(Require >1.565 core)</font>";
+            return name;
         }
 
     }
