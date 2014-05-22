@@ -132,9 +132,6 @@
                     </f:block>
                 </f:section>
                 -->
-                <f:block>
-                    <f:submit value="${%Go to the main page}" />
-                </f:block>
             </f:form>                  
         </l:main-panel>
     </l:layout>
