@@ -41,7 +41,10 @@ import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.model.Project;
+import hudson.model.Run;
 import hudson.model.View;
+import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
@@ -570,8 +573,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(View.class));
         }
         else if (type.equals(SLAVE)) {
-            groups = new ArrayList<PermissionGroup>();
-            groups.add(PermissionGroup.get(Computer.class));
+            groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            groups.remove(PermissionGroup.get(Permission.class));
+            groups.remove(PermissionGroup.get(Hudson.class));
+            groups.remove(PermissionGroup.get(View.class));
+            
+            // Project, SCM and Run permissions 
+            groups.remove(PermissionGroup.get(Item.class));
+            groups.remove(PermissionGroup.get(SCM.class));
+            groups.remove(PermissionGroup.get(Run.class));
         }
         else {
             groups = null;
