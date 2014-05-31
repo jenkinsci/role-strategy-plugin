@@ -369,11 +369,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * Control job create using {@link org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy}
-     * @since 2.1.1
+     * Control job create using {@link org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy}.
+     * @since 2.2.0
      */
     public static boolean isCreateAllowed(){
-        return Jenkins.getVersion().isOlderThan(new VersionNumber("1.566"));
+        return Jenkins.getVersion().isNewerThan(new VersionNumber("1.566"));
     }
 
   /**
