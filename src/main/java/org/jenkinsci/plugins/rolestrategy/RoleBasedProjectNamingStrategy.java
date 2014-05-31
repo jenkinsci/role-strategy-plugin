@@ -16,16 +16,17 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-
+/**
+ * @author Kanstantsin Shautsou
+ * @since 2.2.0
+ */
 public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implements Serializable {
-//    public static final Logger LOGGER = Logger.getLogger(RoleBasedProjectNamingStrategy.class.getName());
 
     private static final long serialVersionUID = 1L;
 
-    private boolean forceExistingJobs;
+    private final boolean forceExistingJobs;
 
     @DataBoundConstructor
     public RoleBasedProjectNamingStrategy(boolean forceExistingJobs) {
@@ -73,6 +74,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         }
     }
 
+    @Override
     public boolean isForceExistingJobs() {
         return forceExistingJobs;
     }
