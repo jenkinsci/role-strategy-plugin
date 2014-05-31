@@ -93,6 +93,7 @@
             </f:section>
             <f:block>
               <f:submit value="${%Save}" />
+              <f:apply />
             </f:block>
           </f:form>
         </l:main-panel>

@@ -37,8 +37,12 @@ import hudson.security.AuthorizationStrategy;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
+
+import hudson.util.FormApply;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+
+import static hudson.util.FormApply.success;
 
 /**
  * Add the role management link to the Manage Hudson page.
@@ -126,17 +130,18 @@ public class RoleStrategyConfig extends ManagementLink {
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
-    rsp.sendRedirect(".");
+    FormApply.success(".").generateResponse(req, rsp, this);
   }
-  
-  public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
-    
-    // TODO: MAcros Enable/Disable
-      
-    // Redirect to the plugin index page
-    rsp.sendRedirect(".");
-  }
+
+//  no configuration on this page for submission
+//  public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
+//    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+//
+//    // TODO: MAcros Enable/Disable
+//
+//    // Redirect to the plugin index page
+//    FormApply.success(".").generateResponse(req, rsp, this);
+//  }
 
   /**
    * Called on role's assignment form submission.
@@ -145,10 +150,9 @@ public class RoleStrategyConfig extends ManagementLink {
     Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
-    // Redirect to the plugin index page
-    rsp.sendRedirect(".");
+    FormApply.success(".").generateResponse(req, rsp, this);
   }
-  
+
     public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
         return RoleMacroExtension.all();
     }
