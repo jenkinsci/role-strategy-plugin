@@ -210,16 +210,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
   /**
    * Add the given {@link Role} to the {@link RoleMap} associated to the provided class.
-   * @param type The {@link AccessControlled} class referencing the {@link RoleMap}
+   * @param type Role type (use constants in {@link RoleBasedAuthorizationStrategy})
    * @param role The {@link Role} to add
    */
   private void addRole(String type, Role role) {
     RoleMap roleMap = this.grantedRoles.get(type);
     if(roleMap != null) {
       roleMap.addRole(role);
-    }
-    else
-    {
+    } else {
       // Create the RoleMap if it doesnt exist
       roleMap = new RoleMap();
       roleMap.addRole(role);
