@@ -1,16 +1,10 @@
 package org.jenkinsci.plugins.rolestrategy;
 
-import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
-import com.michelin.cio.hudson.plugins.rolestrategy.Role;
-import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import hudson.Extension;
 import hudson.model.Failure;
 import hudson.model.Item;
+import hudson.security.Permission;
 import hudson.security.AuthorizationStrategy;
-import jenkins.model.Jenkins;
-import jenkins.model.ProjectNamingStrategy;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -18,11 +12,28 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 
+import jenkins.model.Jenkins;
+import jenkins.model.ProjectNamingStrategy;
+
+import org.apache.commons.lang.StringUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
+import com.michelin.cio.hudson.plugins.rolestrategy.Role;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+
 /**
  * @author Kanstantsin Shautsou
  * @since 2.2.0
  */
-public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implements Serializable {
+/**
+ * According to https://issues.jenkins-ci.org/browse/JENKINS-19934
+ *
+ * If a user has a global role with "Job Create" then they can create any jobname.
+ * If the user does not have such a global role, they cannot create any jobs. In fact, the "New View" link to create a job is not even displayed.
+ * 
+ *  */
+public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -31,52 +42,90 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     @DataBoundConstructor
     public RoleBasedProjectNamingStrategy(boolean forceExistingJobs) {
         this.forceExistingJobs = forceExistingJobs;
+        Jenkins.getInstance().setProjectNamingStrategy(this);
     }
 
     @Override
     public void checkName(String name) throws Failure {
         boolean matches = false;
-        ArrayList<String> badList = null;
+        ArrayList<String> badList = new ArrayList<String>();
         AuthorizationStrategy auth = Jenkins.getInstance().getAuthorizationStrategy();
-        if (auth instanceof RoleBasedAuthorizationStrategy){
+        if (auth instanceof RoleBasedAuthorizationStrategy) {
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
-            //firstly check global role
-            SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
-            for (SortedMap.Entry<Role, Set<String>> entry: gRole.entrySet()){
-                if (entry.getKey().hasPermission(Item.CREATE))
-                    return;
-            }
-            // check project role with pattern
-            SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
-            badList = new ArrayList<String>(roles.size());
-            for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
-                Role key = entry.getKey();
-                if (key.hasPermission(Item.CREATE)) {
-                    String namePattern = key.getPattern().toString();
+            // The current user
+            String userName = Jenkins.getAuthentication().getName();
+            /*
+             * In jenkins it seems there is a bug. If you only have the Job
+             * Create Permission (and do not have the Global Create Permission),
+             * you actually cannot create a job because the button 'New Item'
+             * does not appear. So a user needs both to create a job.
+             */
+
+            // Here we check if he has both permissions (Global and Project
+            // Creation)
+            // If he has both, it means we want him to respect a pattern
+            if (hasGlobalCreationPermission(userName, Item.CREATE, rbas) && hasProjectCreationPermission(userName, Item.CREATE, rbas)) {
+                final SortedMap<Role, Set<String>> projectRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
+                Role userRole = null;
+                for (SortedMap.Entry<Role, Set<String>> userPerRole : projectRoles.entrySet()) {
+                    userRole = userPerRole.getKey();
+                    String namePattern = userRole.getPattern().toString();
                     if (StringUtils.isNotBlank(namePattern) && StringUtils.isNotBlank(name)) {
-                        if (Pattern.matches(namePattern, name)){
+                        if (Pattern.matches(namePattern, name)) {
                             matches = true;
                         } else {
                             badList.add(namePattern);
                         }
                     }
+
                 }
+
+                // The user has only Global Project Permission, he does not need
+                // to respect a pattern
+            } else if (hasGlobalCreationPermission(userName, Item.CREATE, rbas)) {
+                matches = true;
+            }
+            
+            if (!matches) {
+                String error;
+                if (badList != null && !badList.isEmpty())
+                    // TODO beatify long outputs?
+                    error = jenkins.model.Messages.Hudson_JobNameConventionNotApplyed(name, badList.toString());
+                else
+                    error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();
+                throw new Failure(error);
             }
         }
-        if (!matches) {
-            String error;
-            if (badList != null && !badList.isEmpty())
-                //TODO beatify long outputs?
-                error = jenkins.model.Messages.Hudson_JobNameConventionNotApplyed(name, badList.toString());
-            else
-                error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();
-            throw new Failure(error);
+    }
+
+    private boolean hasGlobalCreationPermission(String userName, Permission permission, RoleBasedAuthorizationStrategy rbas) {
+        return hasPermission(userName, permission, rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));
+    }
+
+    private boolean hasProjectCreationPermission(String userName, Permission permission, RoleBasedAuthorizationStrategy rbas) {
+        return hasPermission(userName, permission, rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT));
+    }
+
+    private boolean hasPermission(String userName, Permission permission, SortedMap<Role, Set<String>> roles) {
+        Role role = null;
+        for (SortedMap.Entry<Role, Set<String>> userPerRole : roles.entrySet()) {
+            role = userPerRole.getKey();
+            if (role.hasPermission(permission)
+                    && roles.get(role).contains(userName))
+                return true;
         }
+        return false;
     }
 
     @Override
     public boolean isForceExistingJobs() {
         return forceExistingJobs;
+    }
+
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl) Jenkins.getInstance().getDescriptor(RoleBasedProjectNamingStrategy.class);
+
     }
 
     @Extension
