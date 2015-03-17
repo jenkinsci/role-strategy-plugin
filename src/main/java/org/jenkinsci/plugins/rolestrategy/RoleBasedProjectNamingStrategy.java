@@ -70,24 +70,27 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
             // Here we check if he has both permissions (Global and Project
             // Creation)
             // If he has both, it means we want him to respect a pattern
-            if (hasGlobalPermission(userName, Item.CREATE, rbas) && hasProjectPermission(userName, Item.CREATE, rbas)) {
-                LOGGER.debug("The user has global and project permissions");
+            boolean hasGlobalPermissions = hasGlobalPermission(userName, Item.CREATE, rbas);
+            boolean hasProjectPermissions = hasProjectPermission(userName, Item.CREATE, rbas);
+            if (hasGlobalPermissions && hasProjectPermissions) {
+                LOGGER.debug("The user: " + userName + " has global and project permissions");
 
-                //Get all the project roles
+                // Get all the project roles
                 final SortedMap<Role, Set<String>> projectRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
                 Role userRole = null;
                 for (SortedMap.Entry<Role, Set<String>> userPerRole : projectRoles.entrySet()) {
                     userRole = userPerRole.getKey();
-                    // We only want to check the pattern from the role with Job Create Permission linked to the current user
+                    // We only want to check the pattern from the role with Job
+                    // Create Permission linked to the current user
                     if (userRole.hasPermission(Item.CREATE) && projectRoles.get(userRole).contains(userName)) {
                         String namePattern = userRole.getPattern().toString();
                         if (StringUtils.isNotBlank(namePattern) && StringUtils.isNotBlank(name)) {
                             if (Pattern.matches(namePattern, name)) {
-                                LOGGER.debug("The project name " + name + " respects the pattern " + namePattern + " of the role "
+                                LOGGER.info("The project name " + name + " respects the pattern " + namePattern + " of the role "
                                         + userRole.getName());
                                 matches = true;
                             } else {
-                                LOGGER.debug("The project name " + name + " does not respect " + namePattern + " of the role " + userRole.getName());
+                                LOGGER.info("The project name " + name + " does not respect " + namePattern + " of the role " + userRole.getName());
                                 badList.add(namePattern);
                             }
                         }
@@ -97,18 +100,22 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
 
                 // The user has only Global Project Permission, he does not need
                 // to respect a pattern
-            } else if (hasGlobalPermission(userName, Item.CREATE, rbas)) {
+            } else if (hasGlobalPermissions) {
+                LOGGER.debug("The user: " + userName + " has only global permissions ");
                 matches = true;
             }
 
             if (!matches) {
-                LOGGER.debug("The name: " + name + " project does not match the pattern");
                 String error;
-                if (badList != null && !badList.isEmpty())
+                if (badList != null && !badList.isEmpty()) {
                     // TODO beatify long outputs?
+                    LOGGER.error("The name: " + name + " project does not match the pattern(s) " + toString(badList));
                     error = jenkins.model.Messages.Hudson_JobNameConventionNotApplyed(name, toString(badList));
-                else
+                }
+                else {
+                    LOGGER.error("The user:" + userName + " does not have create permission.");
                     error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();
+                }
                 throw new Failure(error);
             }
         }
@@ -128,10 +135,13 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
     }
 
     private boolean hasGlobalPermission(String userName, Permission permission, RoleBasedAuthorizationStrategy rbas) {
+        LOGGER.debug("Check the global permission of the user " + userName + " " + rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));
+
         return hasPermission(userName, permission, rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));
     }
 
     private boolean hasProjectPermission(String userName, Permission permission, RoleBasedAuthorizationStrategy rbas) {
+        LOGGER.debug("Check the project permission of the user " + userName + " " + rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT));
         return hasPermission(userName, permission, rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT));
     }
 
@@ -139,10 +149,10 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
         Role role = null;
         for (SortedMap.Entry<Role, Set<String>> userPerRole : roles.entrySet()) {
             role = userPerRole.getKey();
-            if (role.hasPermission(permission)
-                    && roles.get(role).contains(userName))
+            if (role.hasPermission(permission) && roles.get(role).contains(userName)) {
                 LOGGER.debug("The user " + userName + " has the permission " + permission + " from the role " + role);
-            return true;
+                return true;
+            }
         }
         LOGGER.debug("The user " + userName + " doesn not have the permission " + permission);
 
