@@ -57,7 +57,7 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
         if (auth instanceof RoleBasedAuthorizationStrategy) {
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             // The current user
-            String userName = Jenkins.getAuthentication().getName();
+            String userName = Jenkins.getAuthentication().getName().trim();
             LOGGER.debug("Current username " + userName);
 
             /*
