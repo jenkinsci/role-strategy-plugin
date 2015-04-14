@@ -74,7 +74,7 @@
     </table>
 
     <br /><br />
-    <f:entry title="${%User/group to add}">
+    <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
       <f:textbox type="text" id="${id}text" />
     </f:entry>
     <f:entry>
