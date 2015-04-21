@@ -138,9 +138,17 @@
             alert("Please enter a role name");
             return;
           }
+          if(name.trim()!=name) {
+            var r = confirm("Role name starts or ends with a whitespace character, do you want to continue?");
+            if (r != true) return;
+          }
           if(pattern=="") {
             alert("Please enter a pattern");
             return;
+          }
+          if(pattern.trim()!=pattern) {
+            var r = confirm("Pattern starts or ends with a whitespace character, do you want to continue?");
+            if (r != true) return;
           }
           if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
             alert("Entry for '"+name+"' already exists");
