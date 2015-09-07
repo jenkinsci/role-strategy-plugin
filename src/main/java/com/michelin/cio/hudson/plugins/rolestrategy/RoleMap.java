@@ -141,15 +141,13 @@ public class RoleMap {
    * @param sid The sid for thwich you want to clear the {@link Role}s
    */
   public void deleteSids(String sid){
-	 for(Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet())
-	 {
-		 Role role = entry.getKey();
-		 Set<String> sids = entry.getValue();
-		 if(sids.contains(sid))
-		 {
-			 sids.remove(sid);
-		 }
-	 }
+     for(Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
+         Role role = entry.getKey();
+         Set<String> sids = entry.getValue();
+         if(sids.contains(sid)) {
+             sids.remove(sid);
+         }
+     }
   }
 
   /**
@@ -181,7 +179,7 @@ public class RoleMap {
    * @param role The {@link Role} which shall be removed
    */
   public void removeRole(Role role){
-	  this.grantedRoles.remove(role);
+      this.grantedRoles.remove(role);
   }
   
 

@@ -207,7 +207,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private Map<String, RoleMap> getRoleMaps() {
     return grantedRoles;
   }
-  
 
   /**
    * Add the given {@link Role} to the {@link RoleMap} associated to the provided class.
@@ -218,9 +217,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     RoleMap roleMap = this.grantedRoles.get(type);
     if(roleMap != null) {
       roleMap.addRole(role);
-    }
-    else
-    {
+    } else {
       // Create the RoleMap if it doesnt exist
       roleMap = new RoleMap();
       roleMap.addRole(role);
@@ -244,155 +241,138 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   /**
    * API method to add roles
    * @param request has to contain following parameters 
-   * 	type (globalRoles, projectRoles)
-   * 	roleName
-   * 	permissionsIds
-   * 	overwrite (true, false)
-   * example: curl -X POST localhost:8080/role-strategy/strategy/apiAddRole --data "type=globalRoles&roleName=ADM&permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&overwrite=true"
+   *    type (globalRoles, projectRoles)
+   *    roleName
+   *    permissionsIds
+   *    overwrite (true, false)
+   * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&roleName=ADM&permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&overwrite=true"
    * @param response
    * @throws IOException
    */
-  public void doApiAddRole(StaplerRequest request, StaplerResponse response) throws IOException
-  {
-	String type = request.getParameter("type");
-	String roleName = request.getParameter("roleName");
-	String permissions = request.getParameter("permissionIds");
-	String overwrite = request.getParameter("overwrite");
-	
-	if(type != null && roleName != null && permissions != null)
-	{
-		boolean overwriteb = false;
-		String pattern = ".*";
+  public void doAddRole(StaplerRequest request, StaplerResponse response) throws IOException {
+    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    String type = request.getParameter("type");
+    String roleName = request.getParameter("roleName");
+    String permissions = request.getParameter("permissionIds");
+    String overwrite = request.getParameter("overwrite");
+    
+    if(type != null && roleName != null && permissions != null) {
+        boolean overwriteb = false;
+        String pattern = ".*";
 
-		if(type != RoleBasedAuthorizationStrategy.GLOBAL && request.getParameter("pattern") != null)
-		{
-			pattern = request.getParameter("pattern");
-		}
-		
-		if(overwrite != null)
-		{
-			if(overwrite.equals("true"))
-			{
-				overwriteb = true;
-			}
-		}
-		
-		ArrayList<String> permissionList = new ArrayList<String>(); 
-		String[] split = permissions.split(",");
-		for(int i=0; i<split.length; i++)
-		{
-			permissionList.add(split[i]);
-		}
-		
-		Set<Permission> permissionSet = new HashSet<Permission>();	  
-		for(String p: permissionList)
-		{
-		  permissionSet.add(Permission.fromId(p));
-		}
-		Role role = new Role(roleName, pattern, permissionSet);
-		if(overwriteb)
-		{
-		  Role role2 = this.grantedRoles.get(type).getRole(roleName);
-		  if(role2!=null)
-		  {
-			  this.grantedRoles.get(type).removeRole(role2);
-		  }
-		}
-		addRole(type, role); 
-		Hudson.getInstance().save();
-	}	
+        if(type != RoleBasedAuthorizationStrategy.GLOBAL && request.getParameter("pattern") != null) {
+            pattern = request.getParameter("pattern");
+        }
+        
+        if(overwrite != null) {
+            if(overwrite.equals("true")) {
+                overwriteb = true;
+            }
+        }
+        
+        ArrayList<String> permissionList = new ArrayList<String>(); 
+        String[] split = permissions.split(",");
+        for(int i=0; i<split.length; i++) {
+            permissionList.add(split[i]);
+        }
+        
+        Set<Permission> permissionSet = new HashSet<Permission>();    
+        for(String p: permissionList) {
+          permissionSet.add(Permission.fromId(p));
+        }
+        Role role = new Role(roleName, pattern, permissionSet);
+        if(overwriteb) {
+          Role role2 = this.grantedRoles.get(type).getRole(roleName);
+          if(role2!=null) {
+              this.grantedRoles.get(type).removeRole(role2);
+          }
+        }
+        addRole(type, role); 
+        Hudson.getInstance().save();
+    }   
   }
-	
+    
   /**
    * API method to remove roles
    * @param request has to contain the following parameters
-   * 	type (globalRoles, projectRoles)
-   * 	roleNames
-   * example: curl -X POST localhost:8080/role-strategy/strategy/apiRemoveRoles --data "type=globalRoles&roleNames=ADM,DEV"
+   *    type (globalRoles, projectRoles)
+   *    roleNames
+   * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&roleNames=ADM,DEV"
    * @param response
    * @throws IOException
    */
-  public void doApiRemoveRoles(StaplerRequest request, StaplerResponse response) throws IOException
-  {
-	String type = request.getParameter("type");
-	String roleNames = request.getParameter("roleNames");
-	
-	if(type != null && roleNames != null)
-	{
-		RoleMap roleMap = this.grantedRoles.get(type);
-		if(roleMap != null)
-		{
-		  String[] split = roleNames.split(",");
-		  for(int i=0; i<split.length; i++)
-		  {
-			  Role role = roleMap.getRole(split[i]);
-			  if(role != null)
-			  {
-				roleMap.removeRole(role); 
-			  }
-		  }
-		}
-		Hudson.getInstance().save();
-	}
+  public void doRemoveRoles(StaplerRequest request, StaplerResponse response) throws IOException {
+    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    String type = request.getParameter("type");
+    String roleNames = request.getParameter("roleNames");
+    
+    if(type != null && roleNames != null) {
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if(roleMap != null) {
+          String[] split = roleNames.split(",");
+          for(int i=0; i<split.length; i++) {
+              Role role = roleMap.getRole(split[i]);
+              if(role != null) {
+                roleMap.removeRole(role); 
+              }
+          }
+        }
+        Hudson.getInstance().save();
+    }
   }
-	
-	
+    
+    
   /**
    * API method to assign SIDs to roles
    * @param request has to contain the following parameters
-   * 	type (globalRoles, projectRoles)
-   * 	roleName
-   * 	sid
-   * example: curl -X POST localhost:8080/role-strategy/strategy/apiAssignRole --data "type=globalRoles&roleName=ADM&sid=username"
+   *    type (globalRoles, projectRoles)
+   *    roleName
+   *    sid
+   * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&roleName=ADM&sid=username"
    * @param response
    * @throws IOException
    */
-  public void doApiAssignRole(StaplerRequest request, StaplerResponse response) throws IOException
-  {
-	String type = request.getParameter("type");
-	String roleName = request.getParameter("roleName");
-	String sid = request.getParameter("sid");
-		
-	if(type != null && roleName != null && sid != null)
-	{
-		RoleMap roleMap = this.grantedRoles.get(type);
-		if(roleMap != null)
-		{
-		  Role role = roleMap.getRole(roleName);
-			  	  
-		  if(role!=null)
-		  {
-			  assignRole(type, role, sid);
-		  }
-		  Hudson.getInstance().save();
-		}
-	}	
+  public void doAssignRole(StaplerRequest request, StaplerResponse response) throws IOException {
+    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    String type = request.getParameter("type");
+    String roleName = request.getParameter("roleName");
+    String sid = request.getParameter("sid");
+        
+    if(type != null && roleName != null && sid != null) {
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if(roleMap != null) {
+          Role role = roleMap.getRole(roleName);
+                  
+          if(role!=null) {
+              assignRole(type, role, sid);
+          }
+          Hudson.getInstance().save();
+        }
+    }   
   }
   
-	
+    
   /**
    * method to delete a SID
    * @param request has to contain the following parameters
-   * 	type (globalRoles, projectRoles)
-   * 	sid
-   * example: curl -X POST localhost:8080/role-strategy/strategy/apiDeleteSid --data "type=globalRoles&sid=username"
+   *    type (globalRoles, projectRoles)
+   *    sid
+   * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&sid=username"
    * @param response
    * @throws IOException
    */
-  public void doApiDeleteSid(StaplerRequest request, StaplerResponse response) throws IOException
-  {
-	String type = request.getParameter("type");
-	String sid = request.getParameter("sid");
-		
-	if(type != null && sid != null)
-	{
-		RoleMap roleMap = this.grantedRoles.get(type);
-		if(roleMap != null)
-		{
-		  roleMap.deleteSids(sid);
-		}
-		Hudson.getInstance().save();
-	}
+  public void doDeleteSid(StaplerRequest request, StaplerResponse response) throws IOException {
+    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    String type = request.getParameter("type");
+    String sid = request.getParameter("sid");
+        
+    if(type != null && sid != null) {
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if(roleMap != null) {
+          roleMap.deleteSids(sid);
+        }
+        Hudson.getInstance().save();
+    }
   }
 
   @Extension
