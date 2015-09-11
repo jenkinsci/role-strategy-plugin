@@ -59,7 +59,7 @@ public class RoleStrategyConfig extends ManagementLink {
   public String getIconFileName() {
     String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
-    if(Hudson.getInstance().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
+    if (Hudson.getInstance().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
       icon = "secure.gif";
     }
     return icon;
@@ -114,7 +114,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   public AuthorizationStrategy getStrategy() {
     AuthorizationStrategy strategy = Hudson.getInstance().getAuthorizationStrategy();
-    if(strategy instanceof RoleBasedAuthorizationStrategy) {
+    if (strategy instanceof RoleBasedAuthorizationStrategy) {
       return strategy;
     }
     else {
