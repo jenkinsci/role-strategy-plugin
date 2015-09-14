@@ -126,7 +126,7 @@ public class RoleStrategyConfig extends ManagementLink {
    * Called on roles management form submission.
    */
   public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -135,7 +135,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
 //  no configuration on this page for submission
 //  public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-//    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+//    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
 //
 //    // TODO: MAcros Enable/Disable
 //
@@ -147,7 +147,7 @@ public class RoleStrategyConfig extends ManagementLink {
    * Called on role's assignment form submission.
    */
   public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
     FormApply.success(".").generateResponse(req, rsp, this);

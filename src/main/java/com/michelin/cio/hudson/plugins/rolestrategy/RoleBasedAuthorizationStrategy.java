@@ -302,7 +302,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @throws IOException
    */
   public void doRemoveRoles(StaplerRequest request, StaplerResponse response) throws IOException {
-    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     String type = request.getParameter("type");
     String roleNames = request.getParameter("roleNames");
     
@@ -333,7 +333,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @throws IOException
    */
   public void doAssignRole(StaplerRequest request, StaplerResponse response) throws IOException {
-    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     String type = request.getParameter("type");
     String roleName = request.getParameter("roleName");
     String sid = request.getParameter("sid");
@@ -362,7 +362,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @throws IOException
    */
   public void doDeleteSid(StaplerRequest request, StaplerResponse response) throws IOException {
-    Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     String type = request.getParameter("type");
     String sid = request.getParameter("sid");
         
@@ -525,7 +525,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Called on role management form's submission.
      */
     public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
-      Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+      Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
       
       req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
@@ -539,7 +539,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Called on role assignment form's submission.
      */
     public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
-      Hudson.getInstance().checkPermission(Hudson.ADMINISTER);
+      Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
       
       req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
