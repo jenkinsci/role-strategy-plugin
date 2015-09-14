@@ -39,6 +39,8 @@ import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
 import hudson.util.FormApply;
+import jenkins.model.Jenkins;
+
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
