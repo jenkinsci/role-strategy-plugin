@@ -40,8 +40,15 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import jenkins.model.Jenkins;
+import org.acegisecurity.BadCredentialsException;
+import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
+import org.acegisecurity.userdetails.UserDetails;
+import org.springframework.dao.DataAccessException;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating
@@ -52,6 +59,8 @@ public class RoleMap {
 
   /** Map associating each {@link Role} with the concerned {@link User}s/groups. */
   private final SortedMap <Role,Set<String>> grantedRoles;
+
+  private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
   RoleMap() {
     this.grantedRoles = new TreeMap<Role, Set<String>>();
@@ -66,9 +75,9 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
-    for(Role role : getRolesHavingPermission(p)) {     
+    for(Role role : getRolesHavingPermission(p)) {
         
-        if(this.grantedRoles.get(role).contains(sid)) {            
+        if(this.grantedRoles.get(role).contains(sid)) {
             // Handle roles macro
             if (Macro.isMacro(role)) {
                 Macro macro = RoleMacroExtension.getMacro(role.getName());
@@ -76,14 +85,27 @@ public class RoleMap {
                     RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
                     if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
                         return true;
-                    }          
+                    }
                 }
             } // Default handling
             else {
                 return true;
             }
+        } else {
+            try {
+                UserDetails userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+                    if (grantedAuthority.getAuthority().equals(role.getName())) {
+                        return true;
+                    }
+                }
+            } catch (BadCredentialsException e) {
+                LOGGER.log(Level.FINE, "Bad credentials", e);
+            } catch (DataAccessException e) {
+                LOGGER.log(Level.FINE, "failed to access the data", e);
+            }
         }
-                    
+
         // TODO: Handle users macro
     }
     return false;
