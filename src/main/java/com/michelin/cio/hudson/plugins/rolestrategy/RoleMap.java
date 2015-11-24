@@ -24,6 +24,9 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.MapMaker;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -40,6 +43,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -61,6 +66,12 @@ public class RoleMap {
   private final SortedMap <Role,Set<String>> grantedRoles;
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
+  
+  private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
+          .softValues()
+          .maximumSize(100)
+          .expireAfterWrite(60, TimeUnit.SECONDS)
+          .build();
 
   RoleMap() {
     this.grantedRoles = new TreeMap<Role, Set<String>>();
@@ -93,7 +104,11 @@ public class RoleMap {
             }
         } else {
             try {
-                UserDetails userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                UserDetails userDetails = cache.getIfPresent(sid);
+                if (userDetails == null) {
+                    userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                    cache.put(sid, userDetails);
+                }
                 for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
                     if (grantedAuthority.getAuthority().equals(role.getName())) {
                         return true;
