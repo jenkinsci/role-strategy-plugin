@@ -51,13 +51,13 @@ import org.acegisecurity.acls.sid.Sid;
 public class RoleMap {
 
   /** Map associating each {@link Role} with the concerned {@link User}s/groups. */
-  private final SortedMap <Role,Set<String>> grantedRoles;
+  private final SortedMap <Role,SortedSet<String>> grantedRoles;
 
   RoleMap() {
-    this.grantedRoles = new TreeMap<Role, Set<String>>();
+    this.grantedRoles = new TreeMap<Role, SortedSet<String>>();
   }
 
-  RoleMap(SortedMap<Role,Set<String>> grantedRoles) {
+  RoleMap(SortedMap<Role,SortedSet<String>> grantedRoles) {
     this.grantedRoles = grantedRoles;
   }
 
@@ -111,7 +111,7 @@ public class RoleMap {
    */
   public void addRole(Role role) {
     if(this.getRole(role.getName()) == null) {
-      this.grantedRoles.put(role, new HashSet<String>());
+      this.grantedRoles.put(role, new TreeSet<String>());
     }
   }
 
@@ -140,7 +140,7 @@ public class RoleMap {
    * Clear all the sids for each {@link Role} of the {@link RoleMap}.
    */
   public void clearSids() {
-    for(Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
+    for(Map.Entry<Role, SortedSet<String>> entry : this.grantedRoles.entrySet()) {
       Role role = entry.getKey();
       this.clearSidsForRole(role);
     }
@@ -164,7 +164,7 @@ public class RoleMap {
    * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
    * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
    */
-  public SortedMap<Role, Set<String>> getGrantedRoles() {
+  public SortedMap<Role, SortedSet<String>> getGrantedRoles() {
     return Collections.unmodifiableSortedMap(this.grantedRoles);
   }
 
@@ -222,7 +222,7 @@ public class RoleMap {
    */
   public RoleMap newMatchingRoleMap(String namePattern) {
     Set<Role> roles = getMatchingRoles(namePattern);
-    SortedMap<Role, Set<String>> roleMap = new TreeMap<Role, Set<String>>();
+    SortedMap<Role, SortedSet<String>> roleMap = new TreeMap<Role, SortedSet<String>>();
     for(Role role : roles) {
       roleMap.put(role, this.grantedRoles.get(role));
     }
@@ -236,7 +236,7 @@ public class RoleMap {
    */
   private Set<Role> getRolesHavingPermission(final Permission permission) {
     final Set<Role> roles = new HashSet<Role>();
-    final Set<Permission> permissions = new HashSet<Permission>();
+    final SortedSet<Permission> permissions = new TreeSet<Permission>(Permission.ID_COMPARATOR);
     Permission p = permission;
 
     // Get the implying permissions

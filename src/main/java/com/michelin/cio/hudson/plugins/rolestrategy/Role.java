@@ -28,6 +28,8 @@ import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import org.apache.commons.collections.CollectionUtils;
 
@@ -51,7 +53,7 @@ public final class Role implements Comparable {
   /**
    * {@link Permission}s hold by the role.
    */
-  private final Set < Permission > permissions = new HashSet < Permission > ();
+  private final SortedSet< Permission > permissions = new TreeSet< Permission >(Permission.ID_COMPARATOR);
 
   /**
    * Constructor for a global role with no pattern (which is then defaulted to
@@ -59,7 +61,7 @@ public final class Role implements Comparable {
    * @param name The role name
    * @param permissions The {@link Permission}s associated to the role
    */
-  Role(String name, Set < Permission > permissions) {
+  Role(String name, SortedSet < Permission > permissions) {
     this(name, GLOBAL_ROLE_PATTERN, permissions);
   }
 
@@ -69,7 +71,7 @@ public final class Role implements Comparable {
    * @param pattern A string representing the pattern matching {@link AccessControlled} objects names
    * @param permissions The {@link Permission}s associated to the role
    */
-  Role(String name, String pattern, Set < Permission > permissions) {
+  Role(String name, String pattern, SortedSet < Permission > permissions) {
     this(name, Pattern.compile(pattern), permissions);
   }
 
@@ -78,7 +80,7 @@ public final class Role implements Comparable {
    * @param pattern The pattern matching {@link AccessControlled} objects names
    * @param permissions The {@link Permission}s associated to the role
    */
-  Role(String name, Pattern pattern, Set < Permission > permissions) {
+  Role(String name, Pattern pattern, SortedSet < Permission > permissions) {
     this.name = name;
     this.pattern = pattern;
     this.permissions.addAll(permissions);
@@ -104,7 +106,7 @@ public final class Role implements Comparable {
    * Getter for the {@link Permission}s set.
    * @return {@link Permission}s set
    */
-  public final Set < Permission > getPermissions() {
+  public final SortedSet < Permission > getPermissions() {
     return permissions;
   }
 
@@ -122,7 +124,7 @@ public final class Role implements Comparable {
    * @param permissions A {@link Permission}s set
    * @return True if the role holds any of the given {@link Permission}s
    */
-  public final Boolean hasAnyPermission(Set<Permission> permissions) {
+  public final Boolean hasAnyPermission(SortedSet<Permission> permissions) {
     return CollectionUtils.containsAny(this.permissions, permissions);
   }
 

@@ -16,6 +16,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.regex.Pattern;
 
 /**
@@ -41,15 +42,15 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         if (auth instanceof RoleBasedAuthorizationStrategy){
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             //firstly check global role
-            SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
-            for (SortedMap.Entry<Role, Set<String>> entry: gRole.entrySet()){
+            SortedMap<Role, SortedSet<String>> gRole = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+            for (SortedMap.Entry<Role, SortedSet<String>> entry: gRole.entrySet()){
                 if (entry.getKey().hasPermission(Item.CREATE))
                     return;
             }
             // check project role with pattern
-            SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
+            SortedMap<Role, SortedSet<String>> roles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
             badList = new ArrayList<String>(roles.size());
-            for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
+            for (SortedMap.Entry<Role, SortedSet<String>> entry: roles.entrySet())  {
                 Role key = entry.getKey();
                 if (key.hasPermission(Item.CREATE)) {
                     String namePattern = key.getPattern().toString();

@@ -54,14 +54,7 @@ import hudson.security.PermissionGroup;
 import hudson.security.SidACL;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
+import java.util.*;
 import javax.servlet.ServletException;
 
 import hudson.util.VersionNumber;
@@ -159,7 +152,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param type The object type controlled by the {@link RoleMap}
    * @return All roles from the global {@link RoleMap}
    */
-  public SortedMap<Role, Set<String>> getGrantedRoles(String type) {
+  public SortedMap<Role, SortedSet<String>> getGrantedRoles(String type) {
     RoleMap roleMap = this.getRoleMap(type);
     if(roleMap != null) {
       return roleMap.getGrantedRoles();
@@ -263,7 +256,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           writer.startNode("roleMap");
           writer.addAttribute("type", map.getKey());
 
-          for(Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+          for(Map.Entry<Role, SortedSet<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
             Role role = grantedRole.getKey();
             if(role != null) {
               writer.startNode("role");
@@ -305,7 +298,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               reader.moveDown();
               String name = reader.getAttribute("name");
               String pattern = reader.getAttribute("pattern");
-              Set<Permission> permissions = new HashSet<Permission>();
+              SortedSet<Permission> permissions = new TreeSet<Permission>(Permission.ID_COMPARATOR);
 
               String next = reader.peekNextChild();
               if(next != null && next.equals("permissions")) {
@@ -455,7 +448,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
         for(Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)globalRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<Permission>();
+          SortedSet<Permission> permissions = new TreeSet<Permission>(Permission.ID_COMPARATOR);
           for(Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
               if(e.getValue()) {
                   Permission p = Permission.fromId(e.getKey());
@@ -512,7 +505,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         
         for(Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)projectRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<Permission>();
+          SortedSet<Permission> permissions = new TreeSet<Permission>(Permission.ID_COMPARATOR);
           String pattern = r.getValue().getString("pattern");
           if(pattern != null) {
             r.getValue().remove("pattern");
@@ -546,7 +539,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Create an admin role.
      */
     private Role createAdminRole() {
-      Set<Permission> permissions = new HashSet<Permission>();
+      SortedSet<Permission> permissions = new TreeSet<Permission>(Permission.ID_COMPARATOR);
       for(PermissionGroup group : getGroups(GLOBAL)) {
         for(Permission permission : group) {
           permissions.add(permission);
