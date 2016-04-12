@@ -28,20 +28,20 @@
 
   <j:set var="id" value="${h.generateId()}"/>
 
-  <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table table-scrollable" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row">
-        <td class="start" />
-        <td class="pane-header blank">
+      <tr class="group-row scrollable-header-row scrollable-highlightable-row">
+        <td class="start scrollable-first-col scrollable-header-cell" />
+        <td class="pane-header blank scrollable-first-col scrollable-header-cell">
           ${%User/group}
         </td>
         <j:forEach var="role" items="${projectGrantedRoles}">
-          <td class="pane-header">
+          <td class="pane-header scrollable-header-cell">
             ${role.key.name}
           </td>
         </j:forEach>
-        <td class="stop" />
+        <td class="stop scrollable-header-cell" />
       </tr>
       <j:set var="nbAssignedProjectsRoles" value="${0}" />
       <j:forEach var="sid" items="${projectSIDs}">
@@ -59,8 +59,8 @@
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${nbAssignedProjectsRoles ge 19}">
         <tr class="group-row">
-          <td class="start" />
-          <td class="pane-header blank">
+          <td class="start scrollable-first-col" />
+          <td class="pane-header blank scrollable-first-col">
             ${%User/group}
           </td>
           <j:forEach var="role" items="${projectGrantedRoles}">
