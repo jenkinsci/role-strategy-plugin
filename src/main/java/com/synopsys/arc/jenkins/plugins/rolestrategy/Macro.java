@@ -119,13 +119,22 @@ public class Macro {
     }
 
     /**
+     * @deprecated Use {@link #parse(java.lang.String)}
+     */
+    @Deprecated
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "deprecated, just for API compatibility")
+    public static Macro Parse(String macroString) throws MacroException {
+        return parse(macroString);
+    }
+    
+    /**
      * Parse macro from string
      * @param macroString - macro string
      * @return Macro instance
      * @throws MacroException - Parse error 
+     * @since TODO
      */
-    public static Macro Parse(String macroString)
-            throws MacroException {
+    public static Macro parse(String macroString) throws MacroException {
         if (!isMacro(macroString)) {
             throw new MacroException(MacroExceptionCode.Not_Macro,
                     "Can't parse macro: Macro String should start from " + MACRO_PREFIX);

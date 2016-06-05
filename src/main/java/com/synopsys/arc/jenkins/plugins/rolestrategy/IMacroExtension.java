@@ -23,6 +23,7 @@
  */
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
@@ -45,6 +46,8 @@ public interface IMacroExtension {
      * Check if role is applicable to specified role type
      * @param roleType Type to be checked
      */
+    //TODO: fix naming conventions
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
     boolean IsApplicable(RoleType roleType);
     
     /**

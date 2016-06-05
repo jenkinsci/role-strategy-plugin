@@ -24,6 +24,7 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Enumeration wrapper for {@link RoleBasedAuthorizationStrategy}'s items.
@@ -37,14 +38,24 @@ public enum RoleType {
     Slave;
 
     /**
+     * @deprecated Naming convention violation, use {@link #fromString(java.lang.String)}.
+     */
+    @Deprecated
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "deprecated, just for API compatibility")
+    public static RoleType FromString(String roleName) {
+        return fromString(roleName);
+    }
+    
+    /**
      * Get Role Type for {@link RoleBasedAuthorizationStrategy}'s item
      *
      * @param roleName String representation of
      * {@link RoleBasedAuthorizationStrategy}'s item
      * @return Appropriate row type
      * @throws IllegalArgumentException Invalid roleName
+     * @since TODO
      */
-    public static RoleType FromString(String roleName) {
+    public static RoleType fromString(String roleName) {
         if (roleName.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
             return Global;
         }

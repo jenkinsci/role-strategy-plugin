@@ -26,6 +26,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -45,6 +46,8 @@ public class LoggedUserMacro extends UserMacroExtension {
         return "Logged";
     }
 
+    //TODO: fix naming conventions
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
     @Override
     public boolean IsApplicable(RoleType roleType) {
         return true;

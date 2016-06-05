@@ -26,6 +26,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Job;
 import hudson.security.AccessControlled;
@@ -44,6 +45,8 @@ public class BuildableJobMacro extends RoleMacroExtension {
         return "BuildableJob";
     }
 
+    //TODO: fix naming conventions
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
     @Override
     public boolean IsApplicable(RoleType roleType) {
         return roleType == RoleType.Project;
