@@ -55,7 +55,8 @@ public interface IMacroExtension {
     
     /**
      * Check if user belongs to specified Macro
-     * @param user User to be checked
+     * @param sid SID to be checked
+     * @param p Permission
      * @param type Type of the role to be checked
      * @param item Item
      * @param macro Macro with parameters

@@ -28,12 +28,14 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 /**
  * Macro representation for roles and users.
  * Implements following format:
- *  @macroId[:index][(parameter1, parameter2, ...)], 
- *     macroId - name of the macro. Supports alphanumeric symbols
- *     index   - optional integer, which allow to duplicate macro calls 
- *     parameters - optional set of strings. each parameter should be string without quotes
+ *  {@code @macroId[:index][(parameter1, parameter2, ...)]}, 
+ * <ul>
+ *    <li>macroId - name of the macro. Supports alphanumeric symbols</li>
+ *    <li>index   - optional integer, which allow to duplicate macro calls</li> 
+ *    <li>parameters - optional set of strings. each parameter should be string without quotes</li>
+ * </ul>
  * 
- * @todo Macro parameters (ex, multiple usage of macro)
+ * TODO: Macro parameters (ex, multiple usage of macro)
  * @since 2.1.0
  * @author Oleg Nenashev, Synopsys Inc.
  */
