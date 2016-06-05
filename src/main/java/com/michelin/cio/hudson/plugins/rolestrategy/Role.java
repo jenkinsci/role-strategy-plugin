@@ -128,12 +128,49 @@ public final class Role implements Comparable {
 
   /**
    * Compare role names.
-   * <p>Used to sort the set.</p>
+   * Used to sort the sets. 
+   * We presume that any role name is being used once and only once.
    * @param o The object you want to compare this instance to
    * @return Comparison of role names
    */
+  @Override
   public int compareTo(Object o) {
-    return this.name.compareTo(((Role) o).getName());
+    if (o instanceof Role) {
+        return name.compareTo(((Role)o).name);
+    }
+    return -1;
   }
 
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
+        hash = 53 * hash + (this.pattern != null ? this.pattern.hashCode() : 0);
+        hash = 53 * hash + (this.permissions != null ? this.permissions.hashCode() : 0);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Role other = (Role) obj;
+        if ((this.name == null) ? (other.name != null) : !this.name.equals(other.name)) {
+            return false;
+        }
+        if (this.pattern != other.pattern && (this.pattern == null || !this.pattern.equals(other.pattern))) {
+            return false;
+        }
+        if (this.permissions != other.permissions && (this.permissions == null || !this.permissions.equals(other.permissions))) {
+            return false;
+        }
+        return true;
+    }
 }

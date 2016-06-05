@@ -27,6 +27,7 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -297,6 +298,7 @@ public class RoleMap {
      * @param permission The permission to check
      * @return True if the sid has the given permission
      */
+    @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
     protected Boolean hasPermission(Sid p, Permission permission) {
       if(RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {

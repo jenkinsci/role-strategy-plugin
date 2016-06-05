@@ -24,6 +24,9 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Arrays;
+import javax.annotation.Nonnull;
 
 /**
  * Macro representation for roles and users.
@@ -50,13 +53,16 @@ public class Macro {
     private final String name;
     private final String dispName;
     private final int index;
+    
+    //TODO: rework to list/set?
+    @Nonnull
     private final String[] parameters; 
     
     public Macro(String name, Integer index, String[] parameters) {
         this.name = name;
         this.dispName = MACRO_PREFIX + name;
         this.index = (index == null) ? DEFAULT_MACRO_ID : index;
-        this.parameters = parameters;
+        this.parameters = parameters != null ? Arrays.copyOf(parameters, parameters.length) : new String[0];
     }
     
     /**
@@ -80,29 +86,32 @@ public class Macro {
     }
 
     public String[] getParameters() {
-        return parameters;
+        return Arrays.copyOf(parameters, parameters.length);
     }
     
     public boolean hasParameters() {
-        return parameters!=null && parameters.length!=0;
+        return parameters.length != 0;
     }
     
     @Override
     public String toString() {
-        String str = dispName;
+        StringBuilder bldr = new StringBuilder(dispName);
         if (hasIndex()) {
-            str += ":"+index;
+            bldr.append(":");
+            bldr.append(index);
         }
         
         if (hasParameters()) {
-            str+="("+parameters[0];
+            bldr.append("(");
+            bldr.append(parameters[0]);
             for (int i=1;i<parameters.length;i++) {
-                str+=","+parameters[i];
+                bldr.append(",");
+                bldr.append(parameters[i]);
             }
-            str+=")";
+            bldr.append(")");
         }
         
-        return str;
+        return bldr.toString();
     }
    
     /**
@@ -210,11 +219,11 @@ public class Macro {
         }
         
         // Check quatas
-        if (macroStr.indexOf("\"")!=-1) {
+        if (macroStr.contains("\"")) {
             throw new MacroException(MacroExceptionCode.WrongFormat, 
                     "Double quotes aren't supported");
         }
-        if (macroStr.indexOf("'")!=-1) {
+        if (macroStr.contains("'")) {
             throw new MacroException(MacroExceptionCode.WrongFormat, 
                     "Single quotes aren't supported");
         }
