@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * Copyright 2013 Oleg Nenashev, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ import hudson.model.Hudson;
 /**
  * User macro, which automatically detects User.
  * @deprecated Not supported in 2.1.0. Just a stub
- * @author Oleg Nenashev <nenashev@synopsys.com>
+ * @author Oleg Nenashev
  * @since 2.1.0
  */
 public abstract class UserMacroExtension implements ExtensionPoint, IMacroExtension {
