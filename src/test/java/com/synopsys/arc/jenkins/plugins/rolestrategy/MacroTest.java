@@ -131,7 +131,7 @@ public class MacroTest {
         Macro res = null;
         try 
         {
-            res = Macro.Parse(macroString);
+            res = Macro.parse(macroString);
         }
         catch (MacroException ex) 
         {

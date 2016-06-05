@@ -43,8 +43,9 @@ public interface IMacroExtension {
     String getName();      
     
     /**
-     * Check if role is applicable to specified role type
+     * Check if the macro extension is applicable to specified role type
      * @param roleType Type to be checked
+     * @return {@code true} if the macro is applicable to the specified role type
      */
     //TODO: fix naming conventions
     @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")

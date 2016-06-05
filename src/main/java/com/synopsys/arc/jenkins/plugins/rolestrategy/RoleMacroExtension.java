@@ -39,13 +39,13 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtension {
 
-    private static final Map<String, RoleMacroExtension> Registry =
+    private static final Map<String, RoleMacroExtension> NAME_CACHE =
             new ConcurrentHashMap<String, RoleMacroExtension>();
 
     private static void updateRegistry() {
-        Registry.clear();
+        NAME_CACHE.clear();
         for (RoleMacroExtension ext : all()) {
-            Registry.put(ext.getName(), ext);
+            NAME_CACHE.put(ext.getName(), ext);
         }
     }
 
@@ -60,10 +60,10 @@ public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtens
 
     public static RoleMacroExtension getMacroExtension(String macroName) {
         //TODO: the method is not thread-safe
-        if (Registry.isEmpty()) {
+        if (NAME_CACHE.isEmpty()) {
             updateRegistry();
         }
-        RoleMacroExtension ext = Registry.get(macroName);
+        RoleMacroExtension ext = NAME_CACHE.get(macroName);
         return ext != null ? ext : StubMacro.Instance;
     }
 

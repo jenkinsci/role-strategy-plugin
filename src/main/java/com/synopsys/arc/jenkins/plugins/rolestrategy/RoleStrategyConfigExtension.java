@@ -23,11 +23,17 @@
  */
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 /**
  * Stub class, which stores jelly files for RoleStrategyPlugin
  * @author Oleg Nenashev
  * @since 2.1.0
+ * @deprecated the class is not used anywhere, just a stub
  */
+@Deprecated
+@Restricted(NoExternalUse.class)
 public class RoleStrategyConfigExtension {
     public String getCompanyName(){
         return "Synopsys";
