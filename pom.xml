@@ -39,6 +39,7 @@
     
     <properties>
         <jenkins.version>1.532.3</jenkins.version>
+        <jenkins-test-harness.version>1.532.3</jenkins-test-harness.version>
         <java.level>6</java.level>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.license>mit</project.license>
