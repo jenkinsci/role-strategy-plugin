@@ -33,14 +33,7 @@
         <developer>
             <name>Oleg Nenashev</name>
             <id>oleg_nenashev</id>
-            <organization>Synopsys, Inc.</organization>
-            <organizationUrl>http://www.synopsys.com</organizationUrl>          
-            <roles>
-                <role>Individual configuration of security for slaves</role>
-                <role>Implementation of RoleMacro Extension points</role>
-            </roles>
-            <timezone>+4</timezone>
-            <email>nenashev@synopsys.com; o.v.nenashev@gmail.com</email>
+            <email>o.v.nenashev@gmail.com</email>
         </developer>
     </developers>
     
