@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * Copyright 2013 Oleg Nenashev, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ import org.junit.Assert;
  * Contains tests for Macro.
  * @see Macro
  * @since 2.1.0
- * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @author Oleg Nenashev
  */
 public class MacroTest {
     
@@ -131,7 +131,7 @@ public class MacroTest {
         Macro res = null;
         try 
         {
-            res = Macro.Parse(macroString);
+            res = Macro.parse(macroString);
         }
         catch (MacroException ex) 
         {
