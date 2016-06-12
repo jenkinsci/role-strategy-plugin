@@ -14,6 +14,7 @@ import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -24,6 +25,16 @@ public class UserAuthoritiesAsRolesTest {
 
     @Rule public JenkinsRule j = new JenkinsRule();
 
+    @Before
+    public void enableUserAuthorities() {
+        Settings.THREAT_USER_AUTHORITIES_AS_ROLES = true;
+    }
+    
+    @Before
+    public void disableUserAuthorities() {
+        Settings.THREAT_USER_AUTHORITIES_AS_ROLES = false;
+    }
+    
     @LocalData
     @Test public void testRoleAuthority() throws Exception {
         j.jenkins.setSecurityRealm(new AbstractPasswordBasedSecurityRealm() {
