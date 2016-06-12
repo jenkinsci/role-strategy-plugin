@@ -27,12 +27,12 @@ public class UserAuthoritiesAsRolesTest {
 
     @Before
     public void enableUserAuthorities() {
-        Settings.THREAT_USER_AUTHORITIES_AS_ROLES = true;
+        Settings.TREAT_USER_AUTHORITIES_AS_ROLES = true;
     }
     
     @Before
     public void disableUserAuthorities() {
-        Settings.THREAT_USER_AUTHORITIES_AS_ROLES = false;
+        Settings.TREAT_USER_AUTHORITIES_AS_ROLES = false;
     }
     
     @LocalData

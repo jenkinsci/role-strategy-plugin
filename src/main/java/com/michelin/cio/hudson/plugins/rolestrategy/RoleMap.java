@@ -104,7 +104,7 @@ public class RoleMap {
             else {
                 return true;
             }
-        } else if (Settings.THREAT_USER_AUTHORITIES_AS_ROLES) {
+        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
             try {
                 UserDetails userDetails = cache.getIfPresent(sid);
                 if (userDetails == null) {

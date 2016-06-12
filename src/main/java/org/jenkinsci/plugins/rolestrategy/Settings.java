@@ -40,7 +40,7 @@ public class Settings {
     
     /**
      * Defines maximum size of the User details cache.
-     * This cache is being used when {@link #THREAT_USER_AUTHORITIES_AS_ROLES} is enabled.
+     * This cache is being used when {@link #TREAT_USER_AUTHORITIES_AS_ROLES} is enabled.
      * Changing of this option requires Jenkins restart.
      * @since 2.3.1
      */
@@ -49,7 +49,7 @@ public class Settings {
     
     /**
      * Defines lifetime of entries in the User details cache.
-     * This cache is being used when {@link #THREAT_USER_AUTHORITIES_AS_ROLES} is enabled.
+     * This cache is being used when {@link #TREAT_USER_AUTHORITIES_AS_ROLES} is enabled.
      * Changing of this option requires Jenkins restart.
      * @since 2.3.1
      */
@@ -65,7 +65,7 @@ public class Settings {
      * @since 2.3.1
      */
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "We want to be it modifyable on the flight")
-    public static boolean THREAT_USER_AUTHORITIES_AS_ROLES = 
+    public static boolean TREAT_USER_AUTHORITIES_AS_ROLES = 
             Boolean.getBoolean(Settings.class.getName() + ".threatUserAuthoritiesAsRoles");
     
     private Settings() {}
