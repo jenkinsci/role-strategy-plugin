@@ -120,6 +120,10 @@ public class RoleMap {
                 LOGGER.log(Level.FINE, "Bad credentials", e);
             } catch (DataAccessException e) {
                 LOGGER.log(Level.FINE, "failed to access the data", e);
+            } catch (RuntimeException ex) {
+                // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
+                // So we want to ensure this method does not fail horribly in such case
+                LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
             }
         }
 
