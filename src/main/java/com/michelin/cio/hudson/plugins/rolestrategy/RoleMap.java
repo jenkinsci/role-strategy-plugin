@@ -54,6 +54,7 @@ import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
+import org.jenkinsci.plugins.rolestrategy.Settings;
 import org.springframework.dao.DataAccessException;
 
 /**
@@ -70,8 +71,8 @@ public class RoleMap {
   
   private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
           .softValues()
-          .maximumSize(100)
-          .expireAfterWrite(60, TimeUnit.SECONDS)
+          .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
+          .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
 
   RoleMap() {
@@ -103,7 +104,7 @@ public class RoleMap {
             else {
                 return true;
             }
-        } else {
+        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
             try {
                 UserDetails userDetails = cache.getIfPresent(sid);
                 if (userDetails == null) {
