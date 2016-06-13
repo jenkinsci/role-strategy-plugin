@@ -14,6 +14,7 @@ import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,7 +31,7 @@ public class UserAuthoritiesAsRolesTest {
         Settings.TREAT_USER_AUTHORITIES_AS_ROLES = true;
     }
     
-    @Before
+    @After
     public void disableUserAuthorities() {
         Settings.TREAT_USER_AUTHORITIES_AS_ROLES = false;
     }
