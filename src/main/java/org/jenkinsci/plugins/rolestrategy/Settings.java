@@ -66,7 +66,7 @@ public class Settings {
      */
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "We want to be it modifyable on the flight")
     public static boolean TREAT_USER_AUTHORITIES_AS_ROLES = 
-            Boolean.getBoolean(Settings.class.getName() + ".threatUserAuthoritiesAsRoles");
+            Boolean.getBoolean(Settings.class.getName() + ".treatUserAuthoritiesAsRoles");
     
     private Settings() {}
     
