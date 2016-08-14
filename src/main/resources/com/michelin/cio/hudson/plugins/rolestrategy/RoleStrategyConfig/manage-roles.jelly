@@ -38,6 +38,7 @@
           <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
           <j:set var="slaveGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
+          <j:set var="viewGroups" value="${it.strategy.descriptor.getGroups(it.strategy.VIEW)}"/>
 
           <d:taglib uri="local">
             <d:tag name="roleRow">
@@ -95,6 +96,13 @@
                 </f:block>
                 <!--  class="com.synopsys.arc.jenkins.plugins.rolestrategy.RoleStrategyConfigExtension"
                                     -->
+              </f:rowSet>
+            </f:section>
+            <f:section title="${%View roles}">
+              <f:rowSet name="viewRoles">
+                <f:block><st:include page="manage-view-roles.jelly"
+                                     optional="true" />
+                </f:block>
               </f:rowSet>
             </f:section>
             <f:block>

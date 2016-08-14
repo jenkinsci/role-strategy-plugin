@@ -80,6 +80,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String GLOBAL    = "globalRoles";
   public final static String PROJECT   = "projectRoles";
   public final static String SLAVE     = "slaveRoles";
+  public final static String VIEW      = "viewRoles";
   public final static String MACRO_ROLE = "roleMacros";
   public final static String MACRO_USER  = "userMacros";
   
@@ -137,6 +138,23 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     public ACL getACL(Computer computer) {
        return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
+    }
+
+    @Override
+    public ACL getACL(View view) {
+        return getACL(VIEW, getViewFullName(view), RoleType.View, view);
+    }
+
+    String getViewFullName(View view) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(view.getOwnerItemGroup().getFullName());
+        if(sb.length()==0)  {
+            return view.getViewName();
+        }
+        else {
+            sb.append("/" + view.getViewName());
+            return sb.toString();
+        }
     }
   
   /**
@@ -449,7 +467,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
-      if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+      if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && formData.has(VIEW) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
 
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
@@ -478,6 +496,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         ReadRoles(formData, PROJECT, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
         ReadRoles(formData, SLAVE, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
+        ReadRoles(formData, VIEW, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
       }
       // When called from Hudson Manage panel, but was already on a role-based strategy
       else if(oldStrategy instanceof RoleBasedAuthorizationStrategy) {
@@ -592,6 +611,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(SCM.class));
             groups.remove(PermissionGroup.get(Run.class));
         }
+        else if (type.equals(VIEW)) {
+            groups = new ArrayList<PermissionGroup>();
+            groups.add(PermissionGroup.get(View.class));
+        }
         else {
             groups = null;
         }
@@ -610,6 +633,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
       else if (type.equals(SLAVE)) {
           return p!=Computer.CREATE && p.getEnabled();
+      }
+      else if (type.equals(VIEW)) {
+          return p!=View.CREATE && p.getEnabled();
       }
       else {
         return false;

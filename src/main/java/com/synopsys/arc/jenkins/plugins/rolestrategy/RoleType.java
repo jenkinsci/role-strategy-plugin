@@ -35,7 +35,8 @@ public enum RoleType {
 
     Global,
     Project,
-    Slave;
+    Slave,
+    View;
 
     /**
      * @deprecated Naming convention violation, use {@link #fromString(java.lang.String)}.
@@ -68,6 +69,10 @@ public enum RoleType {
             return Slave;
         }
 
+        if (roleName.equals(RoleBasedAuthorizationStrategy.VIEW)) {
+            return View;
+        }
+
         throw new java.lang.IllegalArgumentException("Unexpected roleName=" + roleName);
     }
 
@@ -84,6 +89,8 @@ public enum RoleType {
                 return RoleBasedAuthorizationStrategy.PROJECT;
             case Slave:
                 return RoleBasedAuthorizationStrategy.SLAVE;
+            case View:
+                return RoleBasedAuthorizationStrategy.VIEW;
             default:
                 throw new java.lang.IllegalArgumentException("Unsupported Role: " + this);
         }
