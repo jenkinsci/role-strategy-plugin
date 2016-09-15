@@ -71,7 +71,7 @@
                         <td>${macroExt.IsApplicable(it.globalRoleType)}</td>
                         <td>${macroExt.IsApplicable(it.projectRoleType)}</td>
                         <td>${macroExt.IsApplicable(it.slaveRoleType)}</td>
-                        <td>${macroExt.getDescription()}</td> 
+                        <td><j:out value="${macroExt.getDescription()}"/></td> 
                         <td class="stop" />
                     </tr>
                 </j:forEach>
