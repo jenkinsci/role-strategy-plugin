@@ -26,15 +26,15 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table table-scrollable" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row">
-        <td rowspan="2" class="start" />
-        <td rowspan="2" class="pane-header blank">
+      <tr class="group-row scrollable-header-row">
+        <td rowspan="2" class="start scrollable-first-col scrollable-header-cell" />
+        <td rowspan="2" class="pane-header blank scrollable-first-col scrollable-header-cell">
           ${%Role}
         </td>
-        <td rowspan="2" class="pane-header blank">
+        <td rowspan="2" class="pane-header blank scrollable-first-col scrollable-header-cell">
           ${%Pattern}
         </td>
         <j:forEach var="g" items="${projectGroups}">
@@ -45,18 +45,18 @@
             </j:if>
           </j:forEach>
 
-          <td class="pane-header" colspan="${cnt}">
+          <td class="pane-header scrollable-header-cell" colspan="${cnt}">
             ${g.title}
           </td>
         </j:forEach>
-        <td rowspan="2" class="stop" />
+        <td rowspan="2" class="stop scrollable-header-cell" />
       </tr>
       <!-- The second row for individual permission -->
-      <tr class="caption-row">
+      <tr class="caption-row scrollable-header-row scrollable-highlightable-row">
         <j:forEach var="g" items="${projectGroups}">
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-              <th class="pane" tooltip="${p.description}">
+              <th class="pane scrollable-header-cell" tooltip="${p.description}">
                 ${p.name}
               </th>
             </j:if>
@@ -77,11 +77,11 @@
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
       <j:if test="${nbProjectRoles ge 20}">
         <tr class="caption-row">
-          <td rowspan="2" class="start" />
-          <td rowspan="2" class="pane-header blank">
+          <td rowspan="2" class="start scrollable-first-col" />
+          <td rowspan="2" class="pane-header blank scrollable-first-col">
             ${%Role}
           </td>
-          <td rowspan="2" class="pane-header blank">
+          <td rowspan="2" class="pane-header blank scrollable-first-col">
             ${%Pattern}
           </td>
           <j:forEach var="g" items="${projectGroups}">

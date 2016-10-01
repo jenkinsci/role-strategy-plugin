@@ -33,6 +33,7 @@
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table-scrollable.js" />
 
           <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
           <j:set var="projectGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
@@ -48,19 +49,19 @@
 
           <d:taglib uri="local">
             <d:tag name="userRow">
-              <td class="start">
-                <a href="#">
+              <td class="start scrollable-first-col">
+                <a href="#" class="scrollable-bind-click">
                   <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
                 </a>
               </td>
-              <td class="left-most">${title}</td>
+              <td class="left-most scrollable-first-col">${title}</td>
               <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
                 <td width="*">
                   <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
                 </td>
               </j:forEach>
               <td class="stop">
-                <a href="#">
+                <a href="#" class="scrollable-bind-click">
                   <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
                 </a>
               </td>

@@ -34,6 +34,7 @@
           <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table-scrollable.js" />
 
           <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
@@ -41,14 +42,14 @@
 
           <d:taglib uri="local">
             <d:tag name="roleRow">
-              <td class="start">
-                <a href="#">
+              <td class="start scrollable-first-col">
+                <a href="#" class="scrollable-bind-click">
                   <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
                 </a>
               </td>
-              <td class="left-most">${title}</td>
+              <td class="left-most scrollable-first-col">${title}</td>
               <j:if test="${!attrs.global}">
-                <td width="*" class="in-place-edit">
+                <td width="*" class="in-place-edit scrollable-first-col">
                   ${h.escape(attrs.role.pattern.toString())}
                   <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
@@ -65,7 +66,7 @@
                 </j:forEach>
               </j:forEach>
               <td class="stop">
-                <a href="#">
+                <a href="#" class="scrollable-bind-click">
                   <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
                 </a>
               </td>
