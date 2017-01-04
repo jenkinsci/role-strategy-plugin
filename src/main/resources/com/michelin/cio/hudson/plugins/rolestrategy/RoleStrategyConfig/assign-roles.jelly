@@ -53,11 +53,25 @@
                   <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
                 </a>
               </td>
-              <td class="left-most">${title}</td>
+              <j:set var="colIndexCount" value="${0}" />
               <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
+                <j:set var="colIndexCountTemp" value="${colIndexCount}" />
+                <!-- Display the header -->
+                <j:if test="${colIndexCount == 0}">
+                  <td class="left-most">${title}</td>
+                </j:if>
+                <!-- Increment colIndexCount until 9+1 entries -->
+                <j:if test="${colIndexCount lt 9}">
+                  <j:set var="colIndexCountTemp" value="${colIndexCountTemp+1}" />
+                </j:if>
+                <!-- Reset colIndexCount when 9+1 entries -->
+                <j:if test="${colIndexCount ge 9}">
+                  <j:set var="colIndexCountTemp" value="${0}" />
+                </j:if>
                 <td width="*">
                   <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
                 </td>
+                <j:set var="colIndexCount" value="${colIndexCountTemp}" />
               </j:forEach>
               <td class="stop">
                 <a href="#">

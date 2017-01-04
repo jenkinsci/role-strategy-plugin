@@ -29,26 +29,49 @@
   <j:set var="id" value="${h.generateId()}"/>
 
   <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
-
-      <!-- The first row will show grouping -->
-      <tr class="group-row">
-        <td class="start" />
-        <td class="pane-header blank">
-          ${%User/group}
-        </td>
-        <j:forEach var="role" items="${projectGrantedRoles}">
-          <td class="pane-header">
-            ${role.key.name}
-          </td>
-        </j:forEach>
-        <td class="stop" />
-      </tr>
       <j:set var="nbAssignedProjectsRoles" value="${0}" />
+      <j:set var="rowIndexCount" value="${0}" />
+
       <j:forEach var="sid" items="${projectSIDs}">
+        <j:set var="rowIndexCountTemp" value="${rowIndexCount}" />
+        <!-- Display the GROUPING header row -->
+        <j:if test="${rowIndexCount == 0}">
+          <tr class="group-row">
+            <td class="start" />
+            <j:set var="colIndexCount" value="${0}" />
+            <j:forEach var="role" items="${projectGrantedRoles}">
+              <j:set var="colIndexCountTemp" value="${colIndexCount}" />
+              <!-- Display the header -->
+              <j:if test="${colIndexCount == 0}">
+                <td class="pane-header blank">${%User/group}</td>
+              </j:if>
+              <!-- Increment colIndexCount until 9+1 entries -->
+              <j:if test="${colIndexCount lt 9}">
+                <j:set var="colIndexCountTemp" value="${colIndexCountTemp+1}" />
+              </j:if>
+              <!-- Reset colIndexCount when 9+1 entries -->
+              <j:if test="${colIndexCount ge 9}">
+                <j:set var="colIndexCountTemp" value="${0}" />
+              </j:if>
+              <td class="pane-header">${role.key.name}</td>
+              <j:set var="colIndexCount" value="${colIndexCountTemp}" />
+            </j:forEach>
+            <td class="stop" />
+          </tr>
+        </j:if>
+        <!-- Increment rowIndexCount until 19+1 entries -->
+        <j:if test="${rowIndexCount lt 19}">
+          <j:set var="rowIndexCountTemp" value="${rowIndexCountTemp+1}" />
+        </j:if>
+        <!-- Reset rowIndexCount and display the header when 19+1 entries -->
+        <j:if test="${rowIndexCount ge 19}">
+          <j:set var="rowIndexCountTemp" value="${0}" />
+        </j:if>
         <tr name="[${sid}]" class="permission-row">
           <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
         </tr>
         <j:set var="nbAssignedProjectsRoles" value="${nbAssignedProjectsRoles+1}" />
+        <j:set var="rowIndexCount" value="${rowIndexCountTemp}" />
       </j:forEach>
       <tr name="anonymous">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
@@ -56,21 +79,6 @@
       <tr id="${id}" style="display:none" class="permission-row">
         <local:userRow global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
-      <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
-      <j:if test="${nbAssignedProjectsRoles ge 19}">
-        <tr class="group-row">
-          <td class="start" />
-          <td class="pane-header blank">
-            ${%User/group}
-          </td>
-          <j:forEach var="role" items="${projectGrantedRoles}">
-            <td class="pane-header">
-              ${role.key.name}
-            </td>
-          </j:forEach>
-          <td class="stop" />
-        </tr>
-      </j:if>
     </table>
 
     <br /><br />
