@@ -1,11 +1,7 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2013, Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
-  -
-  - OriginalFile: manage-project-roles.jelly
-  - Thomas Maurel & Romain Seguy, Manufacture Française des Pneumatiques Michelin,
-  - 
+  - Copyright (c) 2013, Oleg Nenashev, Synopsys Inc.
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +21,7 @@
   - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   - THE SOFTWARE.
   -->
-
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
@@ -75,7 +71,7 @@
                         <td>${macroExt.IsApplicable(it.globalRoleType)}</td>
                         <td>${macroExt.IsApplicable(it.projectRoleType)}</td>
                         <td>${macroExt.IsApplicable(it.slaveRoleType)}</td>
-                        <td>${macroExt.getDescription()}</td> 
+                        <td><j:out value="${macroExt.getDescription()}"/></td> 
                         <td class="stop" />
                     </tr>
                 </j:forEach>

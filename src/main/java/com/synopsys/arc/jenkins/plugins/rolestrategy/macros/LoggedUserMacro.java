@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * Copyright 2013 Oleg Nenashev, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -33,7 +34,7 @@ import hudson.security.Permission;
 /**
  * Demo macro for the Role-Based plugin.
  * Allows to set specific rights for the logged users
- * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @author Oleg Nenashev
  * @since 2.1.0
  * @deprecated Not supported at current version
  */
@@ -45,6 +46,8 @@ public class LoggedUserMacro extends UserMacroExtension {
         return "Logged";
     }
 
+    //TODO: fix naming conventions
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
     @Override
     public boolean IsApplicable(RoleType roleType) {
         return true;

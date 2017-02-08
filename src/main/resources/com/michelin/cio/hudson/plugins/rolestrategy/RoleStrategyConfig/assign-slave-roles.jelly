@@ -1,7 +1,7 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2013, Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+  - Copyright (c) 2013, Oleg Nenashev, Synopsys Inc.
   -
   - Original file: manage-project-roles.jelly
   - Thomas Maurel & Romain Seguy, Manufacture Française des Pneumatiques Michelin
@@ -24,7 +24,7 @@
   - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   - THE SOFTWARE.
   -->
-
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
@@ -76,7 +76,7 @@
     </table>
 
     <br /><br />
-    <f:entry title="${%User/group to add}">
+    <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
       <f:textbox type="text" id="${id}text" />
     </f:entry>
     <f:entry>
