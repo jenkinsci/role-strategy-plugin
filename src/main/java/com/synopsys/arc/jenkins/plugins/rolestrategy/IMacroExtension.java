@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * Copyright 2013 Oleg Nenashev, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
  */
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
@@ -30,7 +31,7 @@ import hudson.security.Permission;
  * Interface for Role-based plug-in Macro extensions.
  * @see RoleMacroExtension
  * @see UserMacroExtension
- * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @author Oleg Nenashev
  * @since 2.1.0
  */
 public interface IMacroExtension {
@@ -42,9 +43,12 @@ public interface IMacroExtension {
     String getName();      
     
     /**
-     * Check if role is applicable to specified role type
+     * Check if the macro extension is applicable to specified role type
      * @param roleType Type to be checked
+     * @return {@code true} if the macro is applicable to the specified role type
      */
+    //TODO: fix naming conventions
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
     boolean IsApplicable(RoleType roleType);
     
     /**
@@ -55,7 +59,8 @@ public interface IMacroExtension {
     
     /**
      * Check if user belongs to specified Macro
-     * @param user User to be checked
+     * @param sid SID to be checked
+     * @param p Permission
      * @param type Type of the role to be checked
      * @param item Item
      * @param macro Macro with parameters

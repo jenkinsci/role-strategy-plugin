@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * Copyright 2013 Oleg Nenashev, Synopsys Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,23 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Arrays;
+import javax.annotation.Nonnull;
 
 /**
  * Macro representation for roles and users.
  * Implements following format:
- *  @macroId[:index][(parameter1, parameter2, ...)], 
- *     macroId - name of the macro. Supports alphanumeric symbols
- *     index   - optional integer, which allow to duplicate macro calls 
- *     parameters - optional set of strings. each parameter should be string without quotes
+ *  {@code @macroId[:index][(parameter1, parameter2, ...)]}, 
+ * <ul>
+ *    <li>macroId - name of the macro. Supports alphanumeric symbols</li>
+ *    <li>index   - optional integer, which allow to duplicate macro calls</li> 
+ *    <li>parameters - optional set of strings. each parameter should be string without quotes</li>
+ * </ul>
  * 
- * @todo Macro parameters (ex, multiple usage of macro)
+ * TODO: Macro parameters (ex, multiple usage of macro)
  * @since 2.1.0
- * @author Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+ * @author Oleg Nenashev, Synopsys Inc.
  */
 public class Macro {
     public final static String MACRO_PREFIX = "@";
@@ -48,13 +53,16 @@ public class Macro {
     private final String name;
     private final String dispName;
     private final int index;
+    
+    //TODO: rework to list/set?
+    @Nonnull
     private final String[] parameters; 
     
     public Macro(String name, Integer index, String[] parameters) {
         this.name = name;
         this.dispName = MACRO_PREFIX + name;
         this.index = (index == null) ? DEFAULT_MACRO_ID : index;
-        this.parameters = parameters;
+        this.parameters = parameters != null ? Arrays.copyOf(parameters, parameters.length) : new String[0];
     }
     
     /**
@@ -78,29 +86,32 @@ public class Macro {
     }
 
     public String[] getParameters() {
-        return parameters;
+        return Arrays.copyOf(parameters, parameters.length);
     }
     
     public boolean hasParameters() {
-        return parameters!=null && parameters.length!=0;
+        return parameters.length != 0;
     }
     
     @Override
     public String toString() {
-        String str = dispName;
+        StringBuilder bldr = new StringBuilder(dispName);
         if (hasIndex()) {
-            str += ":"+index;
+            bldr.append(":");
+            bldr.append(index);
         }
         
         if (hasParameters()) {
-            str+="("+parameters[0];
+            bldr.append("(");
+            bldr.append(parameters[0]);
             for (int i=1;i<parameters.length;i++) {
-                str+=","+parameters[i];
+                bldr.append(",");
+                bldr.append(parameters[i]);
             }
-            str+=")";
+            bldr.append(")");
         }
         
-        return str;
+        return bldr.toString();
     }
    
     /**
@@ -117,13 +128,22 @@ public class Macro {
     }
 
     /**
+     * @deprecated Use {@link #parse(java.lang.String)}
+     */
+    @Deprecated
+    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "deprecated, just for API compatibility")
+    public static Macro Parse(String macroString) throws MacroException {
+        return parse(macroString);
+    }
+    
+    /**
      * Parse macro from string
      * @param macroString - macro string
      * @return Macro instance
      * @throws MacroException - Parse error 
+     * @since TODO
      */
-    public static Macro Parse(String macroString)
-            throws MacroException {
+    public static Macro parse(String macroString) throws MacroException {
         if (!isMacro(macroString)) {
             throw new MacroException(MacroExceptionCode.Not_Macro,
                     "Can't parse macro: Macro String should start from " + MACRO_PREFIX);
@@ -199,11 +219,11 @@ public class Macro {
         }
         
         // Check quatas
-        if (macroStr.indexOf("\"")!=-1) {
+        if (macroStr.contains("\"")) {
             throw new MacroException(MacroExceptionCode.WrongFormat, 
                     "Double quotes aren't supported");
         }
-        if (macroStr.indexOf("'")!=-1) {
+        if (macroStr.contains("'")) {
             throw new MacroException(MacroExceptionCode.WrongFormat, 
                     "Single quotes aren't supported");
         }

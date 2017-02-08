@@ -24,9 +24,13 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.MapMaker;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -40,8 +44,18 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import jenkins.model.Jenkins;
+import org.acegisecurity.BadCredentialsException;
+import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
+import org.acegisecurity.userdetails.UserDetails;
+import org.jenkinsci.plugins.rolestrategy.Settings;
+import org.springframework.dao.DataAccessException;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating
@@ -52,6 +66,14 @@ public class RoleMap {
 
   /** Map associating each {@link Role} with the concerned {@link User}s/groups. */
   private final SortedMap <Role,Set<String>> grantedRoles;
+
+  private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
+  
+  private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
+          .softValues()
+          .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
+          .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
+          .build();
 
   RoleMap() {
     this.grantedRoles = new TreeMap<Role, Set<String>>();
@@ -66,9 +88,9 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
-    for(Role role : getRolesHavingPermission(p)) {     
+    for(Role role : getRolesHavingPermission(p)) {
         
-        if(this.grantedRoles.get(role).contains(sid)) {            
+        if(this.grantedRoles.get(role).contains(sid)) {
             // Handle roles macro
             if (Macro.isMacro(role)) {
                 Macro macro = RoleMacroExtension.getMacro(role.getName());
@@ -76,14 +98,35 @@ public class RoleMap {
                     RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
                     if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
                         return true;
-                    }          
+                    }
                 }
             } // Default handling
             else {
                 return true;
             }
+        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+            try {
+                UserDetails userDetails = cache.getIfPresent(sid);
+                if (userDetails == null) {
+                    userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                    cache.put(sid, userDetails);
+                }
+                for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+                    if (grantedAuthority.getAuthority().equals(role.getName())) {
+                        return true;
+                    }
+                }
+            } catch (BadCredentialsException e) {
+                LOGGER.log(Level.FINE, "Bad credentials", e);
+            } catch (DataAccessException e) {
+                LOGGER.log(Level.FINE, "failed to access the data", e);
+            } catch (RuntimeException ex) {
+                // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
+                // So we want to ensure this method does not fail horribly in such case
+                LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
+            }
         }
-                    
+
         // TODO: Handle users macro
     }
     return false;
@@ -297,6 +340,7 @@ public class RoleMap {
      * @param permission The permission to check
      * @return True if the sid has the given permission
      */
+    @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
     protected Boolean hasPermission(Sid p, Permission permission) {
       if(RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {

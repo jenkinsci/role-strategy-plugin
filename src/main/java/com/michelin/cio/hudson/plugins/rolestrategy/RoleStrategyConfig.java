@@ -78,6 +78,7 @@ public class RoleStrategyConfig extends ManagementLink {
    * Text displayed in the Manage Hudson panel.
    * @return Link text in the Admin panel
    */
+  @Override
   public String getDisplayName() {
     return Messages.RoleBasedAuthorizationStrategy_ManageAndAssign();
   }
@@ -157,6 +158,10 @@ public class RoleStrategyConfig extends ManagementLink {
         return RoleMacroExtension.all();
     }
 
+    /**
+     * @deprecated The extension is not implemented 
+     */
+    @Deprecated
     public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
         return UserMacroExtension.all();
     }
