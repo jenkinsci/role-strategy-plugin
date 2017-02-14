@@ -603,6 +603,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     public boolean showPermission(String type, Permission p) {
       if(type.equals(GLOBAL)) {
+        // TODO remove when matrix-auth 1.5 can be made an explicit dependency, then we'll also reuse the system property
+        if (RoleMap.DANGEROUS_PERMISSIONS.contains(p) && !RoleMap.ENABLE_DANGEROUS_PERMISSIONS) {
+          return false;
+        }
         return showPermission(p);
       }
       else if(type.equals(PROJECT)) {

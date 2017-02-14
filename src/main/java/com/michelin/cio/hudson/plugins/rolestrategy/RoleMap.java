@@ -31,13 +31,17 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.PluginManager;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -55,6 +59,8 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
 import org.jenkinsci.plugins.rolestrategy.Settings;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.springframework.dao.DataAccessException;
 
 /**
@@ -75,6 +81,13 @@ public class RoleMap {
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
 
+  @Restricted(NoExternalUse.class)
+  public static final List<Permission> DANGEROUS_PERMISSIONS = Arrays.asList(
+          Jenkins.RUN_SCRIPTS,
+          PluginManager.CONFIGURE_UPDATECENTER,
+          PluginManager.UPLOAD_PLUGINS
+  );
+
   RoleMap() {
     this.grantedRoles = new TreeMap<Role, Set<String>>();
   }
@@ -88,6 +101,11 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
+    if (DANGEROUS_PERMISSIONS.contains(p) && !ENABLE_DANGEROUS_PERMISSIONS) {
+      /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
+      p = Jenkins.ADMINISTER;
+    }
+
     for(Role role : getRolesHavingPermission(p)) {
         
         if(this.grantedRoles.get(role).contains(sid)) {
@@ -378,4 +396,12 @@ public class RoleMap {
     abstract public void perform(Role current);
   }
 
+  /**
+   * Backwards compatibility: Enable granting dangerous permissions independently of Administer access.
+   *
+   * @since TODO
+   */
+  // TODO Remove once Matrix Auth 1.5+ is an explicit dependency
+  @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Groovy script console access")
+  public static /* allow script access */ boolean ENABLE_DANGEROUS_PERMISSIONS = Boolean.getBoolean(RoleMap.class.getName() + ".dangerousPermissions");
 }
