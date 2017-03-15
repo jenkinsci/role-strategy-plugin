@@ -53,12 +53,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import javax.annotation.CheckForNull;
 import jenkins.model.Jenkins;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.Settings;
+import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
+import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.springframework.dao.DataAccessException;
@@ -81,12 +85,6 @@ public class RoleMap {
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
 
-  @Restricted(NoExternalUse.class)
-  public static final List<Permission> DANGEROUS_PERMISSIONS = Arrays.asList(
-          Jenkins.RUN_SCRIPTS,
-          PluginManager.CONFIGURE_UPDATECENTER,
-          PluginManager.UPLOAD_PLUGINS
-  );
 
   RoleMap() {
     this.grantedRoles = new TreeMap<Role, Set<String>>();
@@ -101,7 +99,7 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
-    if (DANGEROUS_PERMISSIONS.contains(p) && !ENABLE_DANGEROUS_PERMISSIONS) {
+    if (DangerousPermissionHelper.isDangerous(p)) {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
       p = Jenkins.ADMINISTER;
     }
@@ -395,13 +393,4 @@ public class RoleMap {
      */
     abstract public void perform(Role current);
   }
-
-  /**
-   * Backwards compatibility: Enable granting dangerous permissions independently of Administer access.
-   *
-   * @since TODO
-   */
-  // TODO Remove once Matrix Auth 1.5+ is an explicit dependency
-  @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Groovy script console access")
-  public static /* allow script access */ boolean ENABLE_DANGEROUS_PERMISSIONS = Boolean.getBoolean(RoleMap.class.getName() + ".dangerousPermissions");
 }
