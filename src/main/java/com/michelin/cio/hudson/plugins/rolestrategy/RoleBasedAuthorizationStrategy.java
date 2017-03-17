@@ -541,6 +541,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       AuthorizationStrategy oldStrategy = Hudson.getInstance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
+      
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
       if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
@@ -587,6 +588,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.addRole(GLOBAL, adminRole);
         strategy.assignRole(GLOBAL, adminRole, getCurrentUser());
       }
+      
+      // Show dangerous permissions
+      strategy.showDangerousPermissionsEnabled = formData.optBoolean("showDangerousPermissionsEnabled", false);
+      
       strategy.renewMacroRoles();
       return strategy;
     }
