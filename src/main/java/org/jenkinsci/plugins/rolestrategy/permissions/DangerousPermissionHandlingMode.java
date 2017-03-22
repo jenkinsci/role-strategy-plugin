@@ -58,7 +58,7 @@ public enum DangerousPermissionHandlingMode {
     UNDEFINED;
     
     @Restricted(NoExternalUse.class)
-    public static final String PROPERTY_NAME = DangerousPermissionHandlingMode.class.getName() + ".value";
+    public static final String PROPERTY_NAME = DangerousPermissionHandlingMode.class.getName() + ".enableDangerousPermissions";
     
     @Nonnull
     @Restricted(NoExternalUse.class)

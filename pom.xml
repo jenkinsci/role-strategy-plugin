@@ -74,7 +74,6 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>matrix-auth</artifactId>
             <version>1.0</version>
-            <type>jar</type>
         </dependency>
     </dependencies>
 </project>  

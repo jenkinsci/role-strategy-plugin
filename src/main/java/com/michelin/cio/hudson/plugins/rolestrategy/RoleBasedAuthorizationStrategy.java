@@ -90,18 +90,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String MACRO_ROLE = "roleMacros";
   public final static String MACRO_USER  = "userMacros";
   
+  private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
 
   /**
    * If enabled, forces Jenkins to show the dangerous permissions.
    * @since TODO
    */
-  private boolean showDangerousPermissionsEnabled;
+  private boolean dangerousPermissionsVisible;
   
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles = new HashMap < String, RoleMap >();
 
-  private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
-  
   /**
    * Get the root ACL.
    * @return The global ACL
@@ -199,8 +198,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return {@code true} if the dangerous permissions should be displayed
    * @since TODO
    */
-  public boolean isShowDangerousPermissionsEnabled() {
-    return showDangerousPermissionsEnabled;
+  public boolean isDangerousPermissionsVisible() {
+    return dangerousPermissionsVisible;
   }
   
   /**
@@ -283,7 +282,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         
         // showDangerousPermissionsEnabled
         writer.startNode("showDangerousPermissionsEnabled");
-        writer.setValue(Boolean.toString(strategy.isShowDangerousPermissionsEnabled()));
+        writer.setValue(Boolean.toString(strategy.isDangerousPermissionsVisible()));
         writer.endNode();
         
         // Role maps
@@ -331,10 +330,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           reader.moveDown();
           
           // showDangerousPermissionsEnabled
-          if (reader.getNodeName().equals("showDangerousPermissionsEnabled")) {
+          if (reader.getNodeName().equals("dangerousPermissionsVisible")) {
               showDangerousPermissionsDefined = true;
-              strategy.showDangerousPermissionsEnabled = Boolean.parseBoolean(reader.getValue());
-              if (strategy.showDangerousPermissionsEnabled && DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.ENABLED) {
+              strategy.dangerousPermissionsVisible = Boolean.parseBoolean(reader.getValue());
+              if (strategy.dangerousPermissionsVisible && DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.ENABLED) {
                   LOGGER.log(Level.WARNING, "Visualization of Dangerous permissions is enabled, but the -D{0} is not set to 'true'." +
                           "All specified dangerous permissionswill be ignored.", DangerousPermissionHandlingMode.PROPERTY_NAME);
               }
@@ -405,7 +404,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         if (DangerousPermissionHandlingMode.getCurrent() == DangerousPermissionHandlingMode.ENABLED) {
             LOGGER.log(Level.WARNING, "Dangerous permissions are explicitly enabled by the -D{0} property. The permissions won't be migrated", 
                     DangerousPermissionHandlingMode.PROPERTY_NAME);
-            this.showDangerousPermissionsEnabled = true;
+            this.dangerousPermissionsVisible = true;
             return;
         }
         
@@ -418,11 +417,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         if (report == null) {
             // Everything is fine, no need to show dangerous permissions
             LOGGER.log(Level.INFO, "Dangerous permissions do not affect the setup. Suppressing them in the UI");
-            this.showDangerousPermissionsEnabled = false;
+            this.dangerousPermissionsVisible = false;
         } else {
             LOGGER.log(Level.WARNING, "{0}. They will be suppressed, but disabled by default due to SECURITY-410. Set {1} to true in order to ENABLE them on your own risk.", 
                     new Object[] {report, DangerousPermissionHandlingMode.PROPERTY_NAME});
-            this.showDangerousPermissionsEnabled = true;
+            this.dangerousPermissionsVisible = true;
         }
     }
     
@@ -590,7 +589,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
       
       // Show dangerous permissions
-      strategy.showDangerousPermissionsEnabled = formData.optBoolean("showDangerousPermissionsEnabled", false);
+      strategy.dangerousPermissionsVisible = formData.optBoolean("dangerousPermissionsVisible", false);
       
       strategy.renewMacroRoles();
       return strategy;
@@ -711,7 +710,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 // Should never happen
                 return false;
             }
-            return instance.isShowDangerousPermissionsEnabled();
+            return instance.isDangerousPermissionsVisible();
         }
         return showPermission(p);
       }

@@ -82,7 +82,7 @@ public class DangerousPermissionHelper {
      * @param r Role
      * @return {@code true} if the role contains a dangerous permission without {@link Jenkins#ADMINISTER}.
      */
-    public static boolean hasPotentionallyDangerousPermissions(@Nonnull Role r) {
+    public static boolean hasPotentiallyDangerousPermissions(@Nonnull Role r) {
         // We do not care about permissions for Jenkins admins, otherwise we report the issue
         return !r.hasPermission(Jenkins.ADMINISTER) && r.hasAnyPermission(DANGEROUS_PERMISSIONS);
     }
@@ -109,7 +109,7 @@ public class DangerousPermissionHelper {
     public static String reportDangerousPermissions(@Nonnull Iterable<Role> roles) {
        final ArrayList<String> dangerousRoleNames = new ArrayList<String>();
        for (Role role : roles) {
-           if (hasPotentionallyDangerousPermissions(role)) {
+           if (hasPotentiallyDangerousPermissions(role)) {
                dangerousRoleNames.add(role.getName());
            }
        }
