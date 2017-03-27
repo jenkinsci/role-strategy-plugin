@@ -91,12 +91,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String MACRO_USER  = "userMacros";
   
   private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
-
-  /**
-   * If enabled, forces Jenkins to show the dangerous permissions.
-   * @since TODO
-   */
-  private boolean dangerousPermissionsVisible;
   
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles = new HashMap < String, RoleMap >();
@@ -192,15 +186,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
     return null;
   }
-
-  /**
-   * Check if the flag is set in the global UI.
-   * @return {@code true} if the dangerous permissions should be displayed
-   * @since TODO
-   */
-  public boolean isDangerousPermissionsVisible() {
-    return dangerousPermissionsVisible;
-  }
   
   /**
    * Get the {@link RoleMap} associated to the given class.
@@ -280,11 +265,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
         
-        // showDangerousPermissionsEnabled
-        writer.startNode("showDangerousPermissionsEnabled");
-        writer.setValue(Boolean.toString(strategy.isDangerousPermissionsVisible()));
-        writer.endNode();
-        
         // Role maps
         Map<String, RoleMap> maps = strategy.getRoleMaps();
         for(Map.Entry<String, RoleMap> map : maps.entrySet()) {
@@ -328,16 +308,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         
         while(reader.hasMoreChildren()) {
           reader.moveDown();
-          
-          // showDangerousPermissionsEnabled
-          if (reader.getNodeName().equals("dangerousPermissionsVisible")) {
-              showDangerousPermissionsDefined = true;
-              strategy.dangerousPermissionsVisible = Boolean.parseBoolean(reader.getValue());
-              if (strategy.dangerousPermissionsVisible && DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.ENABLED) {
-                  LOGGER.log(Level.WARNING, "Visualization of Dangerous permissions is enabled, but the -D{0} is not set to 'true'." +
-                          "All specified dangerous permissionswill be ignored.", DangerousPermissionHandlingMode.PROPERTY_NAME);
-              }
-          }
           
           // roleMaps
           if(reader.getNodeName().equals("roleMap")) {
@@ -383,11 +353,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           reader.moveUp();
         }
         
-        // readResolve() replacement
-        if (!showDangerousPermissionsDefined) {
-            strategy.migrateDangerousPermissions();
-        }
-        
         return strategy;
       }
 
@@ -395,35 +360,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           return new RoleBasedAuthorizationStrategy();
       }
   } 
-  
-    /**
-     * Migrates the legacy permissions according to SECURITY-410.
-     */
-    /*package*/ void migrateDangerousPermissions() {
-        
-        if (DangerousPermissionHandlingMode.getCurrent() == DangerousPermissionHandlingMode.ENABLED) {
-            LOGGER.log(Level.WARNING, "Dangerous permissions are explicitly enabled by the -D{0} property. The permissions won't be migrated", 
-                    DangerousPermissionHandlingMode.PROPERTY_NAME);
-            this.dangerousPermissionsVisible = true;
-            return;
-        }
-        
-        LOGGER.log(Level.INFO, "Migrating the permission settings to the new pluginversion with the SECURITY-410 fix");
-        
-        // Check if there are dangerous permissions
-        final RoleMap roleMap = getRoleMap(GLOBAL);
-        String report = DangerousPermissionHelper.reportDangerousPermissions(roleMap.getRoles());
-        
-        if (report == null) {
-            // Everything is fine, no need to show dangerous permissions
-            LOGGER.log(Level.INFO, "Dangerous permissions do not affect the setup. Suppressing them in the UI");
-            this.dangerousPermissionsVisible = false;
-        } else {
-            LOGGER.log(Level.WARNING, "{0}. They will be suppressed, but disabled by default due to SECURITY-410. Set {1} to true in order to ENABLE them on your own risk.", 
-                    new Object[] {report, DangerousPermissionHandlingMode.PROPERTY_NAME});
-            this.dangerousPermissionsVisible = true;
-        }
-    }
     
     /**
      * Retrieves instance of the strategy.
@@ -588,9 +524,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.assignRole(GLOBAL, adminRole, getCurrentUser());
       }
       
-      // Show dangerous permissions
-      strategy.dangerousPermissionsVisible = formData.optBoolean("dangerousPermissionsVisible", false);
-      
       strategy.renewMacroRoles();
       return strategy;
     }
@@ -696,12 +629,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return groups;
     }
 
+    @Restricted(NoExternalUse.class)
+    public boolean hasDangerousPermissions() {
+        RoleBasedAuthorizationStrategy instance = RoleBasedAuthorizationStrategy.getInstance();
+        if (instance == null) {
+            // Should never happen
+            return false;
+        }
+        return DangerousPermissionHelper.hasDangerousPermissions(instance);
+    }
+    
+    @Restricted(NoExternalUse.class)
+    public boolean showPermission(String type, Permission p) {
+        return showPermission(type, p, false);
+    }
+    
     /**
      * Check if the permission should be displayed.
      * For Stapler only.
      */
     @Restricted(NoExternalUse.class)
-    public boolean showPermission(String type, Permission p) {
+    public boolean showPermission(String type, Permission p, boolean showDangerous) {
       if(type.equals(GLOBAL)) {
         if (DangerousPermissionHelper.isDangerous(p)) {
             // Consult with the Security strategy
@@ -710,7 +658,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 // Should never happen
                 return false;
             }
-            return instance.isDangerousPermissionsVisible();
+            return showDangerous;
         }
         return showPermission(p);
       }

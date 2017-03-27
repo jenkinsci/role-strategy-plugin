@@ -27,6 +27,8 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="id" value="${h.generateId()}"/>
+  <j:set var="hasDangerous" value="${it.strategy.descriptor.hasDangerousPermissions()}"/>
+  <!-- TODO: add warning to the UI for versions which have no administrative monitors? -->
 
   <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
@@ -39,7 +41,7 @@
         <j:forEach var="g" items="${globalGroups}">
           <j:set var="cnt" value="${0}" />
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
               <j:set var="cnt" value="${cnt+1}"/>
             </j:if>
           </j:forEach>
@@ -54,7 +56,7 @@
       <tr class="caption-row">
         <j:forEach var="g" items="${globalGroups}">
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
               <th class="pane" tooltip="${p.description}">
                 ${p.name}
               </th>
@@ -81,7 +83,7 @@
           </td>
           <j:forEach var="g" items="${globalGroups}">
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
                 <th class="pane" tooltip="${p.description}">
                   ${p.name}
                 </th>
@@ -94,7 +96,7 @@
           <j:forEach var="g" items="${globalGroups}">
             <j:set var="cnt" value="${0}" />
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
                 <j:set var="cnt" value="${cnt+1}"/>
               </j:if>
             </j:forEach>

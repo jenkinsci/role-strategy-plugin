@@ -125,4 +125,20 @@ public class DangerousPermissionHelper {
        report.append(StringUtils.join(DANGEROUS_PERMISSIONS, ","));
        return report.toString();
     }
+    
+    @CheckForNull
+    public static boolean hasDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
+        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        return hasDangerousPermissions(grantedRoles.keySet());
+    }
+    
+    @CheckForNull
+    public static boolean hasDangerousPermissions(@Nonnull Iterable<Role> roles) {
+       for (Role role : roles) {
+           if (hasPotentiallyDangerousPermissions(role)) {
+               return true;
+           }
+       } 
+       return false;
+    }
 }
