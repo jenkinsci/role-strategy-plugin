@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2017 Oleg Nenashev.
+ * Copyright (c) 2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -120,16 +120,57 @@ public class DangerousPermissionsTest {
             assertThat(report, containsString(PluginManager.UPLOAD_PLUGINS.toString()));
             assertThat(report, containsString("FakeAdmins"));
 
-            // Ensure that fakeAdmin does not get the dangerous permission by default
+            // Ensure that fakeAdmin has DangerousPermissions
             assertHasPermission("fakeAdmin", PluginManager.CONFIGURE_UPDATECENTER);
             assertHasNoPermission("fakeAdmin", PluginManager.UPLOAD_PLUGINS);
             assertHasPermission("fakeAdmin", Jenkins.RUN_SCRIPTS);
             assertHasNoPermission("fakeAdmin", Jenkins.ADMINISTER);
+            
+            // Ensure that the permissions will be still shown
+            RoleBasedAuthorizationStrategy.DescriptorImpl d = (RoleBasedAuthorizationStrategy.DescriptorImpl) strategy.getDescriptor();
+            Assert.assertTrue(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.CONFIGURE_UPDATECENTER, true));
+            Assert.assertTrue(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.UPLOAD_PLUGINS, true));
+            Assert.assertTrue(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, Jenkins.RUN_SCRIPTS, true));    
         } finally {
-            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.DISABLED;
+            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.UNDEFINED;
         }
     }
     
+    
+    @Test
+    @Issue("SECURITY-410")
+    @LocalData
+    public void shouldNotShowDangerousPermissionsWhenDisabled() throws Exception {
+        try {
+            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.DISABLED;
+            assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
+            RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
+
+            String report = DangerousPermissionHelper.reportDangerousPermissions(strategy);
+            Assert.assertTrue("There should be dangerous permissions detected", DangerousPermissionHelper.hasDangerousPermissions(strategy));
+            Assert.assertNotNull("Dangerous permission report should be not empty", report);
+            assertThat(report, containsString(hudson.model.Hudson.RUN_SCRIPTS.toString()));
+            assertThat(report, containsString(PluginManager.CONFIGURE_UPDATECENTER.toString()));
+            assertThat(report, containsString(PluginManager.UPLOAD_PLUGINS.toString()));
+            assertThat(report, containsString("FakeAdmins"));
+
+            // Ensure that fakeAdmin does not get the dangerous permission by default
+            assertHasNoPermission("fakeAdmin", PluginManager.CONFIGURE_UPDATECENTER);
+            assertHasNoPermission("fakeAdmin", PluginManager.UPLOAD_PLUGINS);
+            assertHasNoPermission("fakeAdmin", Jenkins.RUN_SCRIPTS);
+            assertHasNoPermission("fakeAdmin", Jenkins.ADMINISTER);
+            
+            // Ensure that the permissions are mnot shown even if we ask for that
+            RoleBasedAuthorizationStrategy.DescriptorImpl d = (RoleBasedAuthorizationStrategy.DescriptorImpl) strategy.getDescriptor();
+            Assert.assertFalse(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.CONFIGURE_UPDATECENTER, true));
+            Assert.assertFalse(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.UPLOAD_PLUGINS, true));
+            Assert.assertFalse(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, Jenkins.RUN_SCRIPTS, true));    
+        } finally {
+            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.UNDEFINED;
+        }
+    }
+            
+            
     @Test
     @Issue("SECURITY-410")
     @LocalData

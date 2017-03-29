@@ -658,7 +658,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 // Should never happen
                 return false;
             }
-            return showDangerous;
+            
+            // When disabled, never show the permissions
+            return showDangerous && DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.DISABLED;
         }
         return showPermission(p);
       }
