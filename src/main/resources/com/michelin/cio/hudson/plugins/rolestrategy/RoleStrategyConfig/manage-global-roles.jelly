@@ -27,7 +27,6 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="id" value="${h.generateId()}"/>
-  <j:set var="hasDangerous" value="${it.strategy.descriptor.hasDangerousPermissions()}"/>
   <!-- TODO: add warning to the UI for versions which have no administrative monitors? -->
 
   <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
@@ -67,12 +66,12 @@
       <j:set var="nbGlobalRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" />
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" showDangerous="${hasDangerous}"/>
         </tr>
         <j:set var="nbGlobalRoles" value="${nbGlobalRoles+1}"/>
       </j:forEach>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${true}" type="${it.strategy.GLOBAL}"/>
+        <local:roleRow role="${null}" global="${true}" type="${it.strategy.GLOBAL}" showDangerous="${hasDangerous}"/>
       </tr>
       <!-- The last two rows are used to repeat the header if necessary (if more than 20 lines) -->
       <j:if test="${nbGlobalRoles ge 20}">
