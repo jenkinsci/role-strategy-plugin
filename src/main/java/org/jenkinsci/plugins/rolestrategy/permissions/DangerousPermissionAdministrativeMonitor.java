@@ -27,6 +27,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrate
 import hudson.Extension;
 import hudson.model.AdministrativeMonitor;
 import javax.annotation.CheckForNull;
+import jenkins.model.Jenkins;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -41,7 +42,7 @@ public class DangerousPermissionAdministrativeMonitor extends AdministrativeMoni
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return DangerousPermissionHandlingMode.getCurrent() == DangerousPermissionHandlingMode.UNDEFINED;
     }
  
     @Override
@@ -77,4 +78,12 @@ public class DangerousPermissionAdministrativeMonitor extends AdministrativeMoni
         return DangerousPermissionHelper.reportDangerousPermissions(roleStrategy);
     }
     
+    @CheckForNull
+    public static DangerousPermissionAdministrativeMonitor getInstance() {
+        Jenkins j = Jenkins.getInstance();
+        if (j == null) {
+            return null;
+        }
+        return j.getExtensionList(AdministrativeMonitor.class).get(DangerousPermissionAdministrativeMonitor.class);
+    }
 }

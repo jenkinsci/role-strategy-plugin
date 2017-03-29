@@ -52,7 +52,7 @@ public enum DangerousPermissionHandlingMode {
     ENABLED,
     /**
      * The behavior is up to the global settings and the migration logic.
-     * By default the permissions won't be blocked, but there will be an administrative warning if any permission is set.
+     * By default the permissions will be blocked, but there will be an administrative warning if any permission is set.
      * 
      */
     UNDEFINED;

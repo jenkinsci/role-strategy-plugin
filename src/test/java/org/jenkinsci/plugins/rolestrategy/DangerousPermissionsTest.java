@@ -31,6 +31,7 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
 import static org.hamcrest.Matchers.*;
+import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionAdministrativeMonitor;
 import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
 import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHelper;
 import org.junit.Assert;
@@ -71,6 +72,11 @@ public class DangerousPermissionsTest {
         assertHasPermission("admin", Jenkins.RUN_SCRIPTS);
         assertHasPermission("admin", Jenkins.ADMINISTER);
         
+        // Monitor is disabled
+        DangerousPermissionAdministrativeMonitor m = DangerousPermissionAdministrativeMonitor.getInstance();
+        Assert.assertTrue("DangerousPermissionAdministrativeMonitor should be enabled", m.isEnabled());
+        Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be deactivated", m.isActivated());
+        
         /* TODO: Add UI tests, they are failing now (JavaScript error)
         JenkinsRule.WebClient wc = j.createWebClient();
         wc.login(admin.getId());
@@ -100,6 +106,12 @@ public class DangerousPermissionsTest {
         assertHasNoPermission("fakeAdmin", PluginManager.UPLOAD_PLUGINS);
         assertHasNoPermission("fakeAdmin", Jenkins.RUN_SCRIPTS);
         assertHasNoPermission("fakeAdmin", Jenkins.ADMINISTER);
+        
+        // Monitor is enabled
+        DangerousPermissionAdministrativeMonitor m = DangerousPermissionAdministrativeMonitor.getInstance();
+        Assert.assertTrue("DangerousPermissionAdministrativeMonitor should be enabled", m.isEnabled());
+        Assert.assertTrue("DangerousPermissionAdministrativeMonitor should be activated", m.isActivated());
+        
     }
     
     @Test
@@ -130,7 +142,12 @@ public class DangerousPermissionsTest {
             RoleBasedAuthorizationStrategy.DescriptorImpl d = (RoleBasedAuthorizationStrategy.DescriptorImpl) strategy.getDescriptor();
             Assert.assertTrue(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.CONFIGURE_UPDATECENTER, true));
             Assert.assertTrue(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.UPLOAD_PLUGINS, true));
-            Assert.assertTrue(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, Jenkins.RUN_SCRIPTS, true));    
+            Assert.assertTrue(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, Jenkins.RUN_SCRIPTS, true)); 
+            
+            // Monitor is disabled
+            DangerousPermissionAdministrativeMonitor m = DangerousPermissionAdministrativeMonitor.getInstance();
+            Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be disabled", m.isEnabled());
+            Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be deactivated", m.isActivated());
         } finally {
             DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.UNDEFINED;
         }
@@ -164,7 +181,12 @@ public class DangerousPermissionsTest {
             RoleBasedAuthorizationStrategy.DescriptorImpl d = (RoleBasedAuthorizationStrategy.DescriptorImpl) strategy.getDescriptor();
             Assert.assertFalse(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.CONFIGURE_UPDATECENTER, true));
             Assert.assertFalse(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, PluginManager.UPLOAD_PLUGINS, true));
-            Assert.assertFalse(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, Jenkins.RUN_SCRIPTS, true));    
+            Assert.assertFalse(d.showPermission(RoleBasedAuthorizationStrategy.GLOBAL, Jenkins.RUN_SCRIPTS, true)); 
+            
+            // Monitor is disabled
+            DangerousPermissionAdministrativeMonitor m = DangerousPermissionAdministrativeMonitor.getInstance();
+            Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be disabled", m.isEnabled());
+            Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be deactivated", m.isActivated());
         } finally {
             DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.UNDEFINED;
         }
@@ -186,6 +208,11 @@ public class DangerousPermissionsTest {
         assertHasPermission("admin", PluginManager.UPLOAD_PLUGINS);
         assertHasPermission("admin", Jenkins.RUN_SCRIPTS);
         assertHasPermission("admin", Jenkins.ADMINISTER);
+        
+        // Monitor is disabled
+        DangerousPermissionAdministrativeMonitor m = DangerousPermissionAdministrativeMonitor.getInstance();
+        Assert.assertTrue("DangerousPermissionAdministrativeMonitor should be enabled", m.isEnabled());
+        Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be deactivated", m.isActivated());
     }
     
     private void assertHasNoPermission(String user, Permission p) throws AssertionError {
