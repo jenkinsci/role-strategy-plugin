@@ -252,7 +252,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *    roleName
    *    permissionsIds
    *    overwrite (true, false)
-   * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&roleName=ADM&permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&overwrite=true"
+   * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"
    * @param response
    * @throws IOException
    */
@@ -304,7 +304,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param request has to contain the following parameters
    *    type (globalRoles, projectRoles)
    *    roleNames
-   * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&roleNames=ADM,DEV"
+   * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;roleNames=ADM,DEV"
    * @param response
    * @throws IOException
    */
@@ -335,7 +335,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *    type (globalRoles, projectRoles)
    *    roleName
    *    sid
-   * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&roleName=ADM&sid=username"
+   * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM&amp;sid=username"
    * @param response
    * @throws IOException
    */
@@ -364,7 +364,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param request has to contain the following parameters
    *    type (globalRoles, projectRoles)
    *    sid
-   * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&sid=username"
+   * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
    * @param response
    * @throws IOException
    */
