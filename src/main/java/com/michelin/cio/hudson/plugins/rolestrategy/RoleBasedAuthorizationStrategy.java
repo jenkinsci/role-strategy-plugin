@@ -355,11 +355,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
     private static void persistChanges() throws IOException {
-        Hudson.getInstance().save();
+        instance().save();
+    }
+
+    private static Jenkins instance() {
+        return Jenkins.getInstance();
     }
 
     private static void checkAdminPerm() {
-        Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
+        instance().checkPermission(Jenkins.ADMINISTER);
     }
 
 
@@ -561,7 +565,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
       AuthorizationStrategy strategy = this.newInstance(req, json);
-      Hudson.getInstance().setAuthorizationStrategy(strategy);
+      instance().setAuthorizationStrategy(strategy);
       // Persist the data
         persistChanges();
     }
@@ -574,7 +578,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
-      AuthorizationStrategy oldStrategy = Hudson.getInstance().getAuthorizationStrategy();
+      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       
       if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
@@ -612,7 +616,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @Override
     public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) throws FormException {
-      AuthorizationStrategy oldStrategy = Hudson.getInstance().getAuthorizationStrategy();
+      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
       
