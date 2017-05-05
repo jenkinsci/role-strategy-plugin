@@ -293,7 +293,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
     }
     addRole(type, role);
-    Hudson.getInstance().save();
+      persistChanges();
   }
 
   /**
@@ -310,9 +310,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doRemoveRoles(@QueryParameter(required = true) String type,
                             @QueryParameter(required = true) String roleNames) throws IOException {
-    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
+      checkAdminPerm();
 
-    RoleMap roleMap = this.grantedRoles.get(type);
+      RoleMap roleMap = this.grantedRoles.get(type);
     if (roleMap != null) {
       String[] split = roleNames.split(",");
       for (int i=0; i<split.length; i++) {
@@ -322,7 +322,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
       }
     }
-    Hudson.getInstance().save();
+      persistChanges();
   }
     
     
@@ -342,20 +342,28 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doAssignRole(@QueryParameter(required = true) String type,
                            @QueryParameter(required = true) String roleName,
                            @QueryParameter(required = true) String sid) throws IOException {
-    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-    RoleMap roleMap = this.grantedRoles.get(type);
+      checkAdminPerm();
+      RoleMap roleMap = this.grantedRoles.get(type);
     if (roleMap != null) {
       Role role = roleMap.getRole(roleName);
 
       if (role!=null) {
           assignRole(type, role, sid);
       }
-      Hudson.getInstance().save();
+        persistChanges();
     }
   }
-  
-    
-  /**
+
+    private static void persistChanges() throws IOException {
+        Hudson.getInstance().save();
+    }
+
+    private static void checkAdminPerm() {
+        Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
+    }
+
+
+    /**
    * API method to delete a SID
    *
    * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
@@ -368,12 +376,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doDeleteSid(@QueryParameter(required = true) String type,
                           @QueryParameter(required = true) String sid) throws IOException {
-    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-    RoleMap roleMap = this.grantedRoles.get(type);
+      checkAdminPerm();
+      RoleMap roleMap = this.grantedRoles.get(type);
     if (roleMap != null) {
       roleMap.deleteSids(sid);
     }
-    Hudson.getInstance().save();
+      persistChanges();
   }
 
   @Extension
@@ -548,23 +556,23 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Called on role management form's submission.
      */
     public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
-      Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-      
-      req.setCharacterEncoding("UTF-8");
+        checkAdminPerm();
+
+        req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
       AuthorizationStrategy strategy = this.newInstance(req, json);
       Hudson.getInstance().setAuthorizationStrategy(strategy);
       // Persist the data
-      Hudson.getInstance().save();
+        persistChanges();
     }
 
     /**
      * Called on role assignment form's submission.
      */
     public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
-      Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-      
-      req.setCharacterEncoding("UTF-8");
+        checkAdminPerm();
+
+        req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
       AuthorizationStrategy oldStrategy = Hudson.getInstance().getAuthorizationStrategy();
       
@@ -594,7 +602,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
         // Persist the data
-        Hudson.getInstance().save();
+          persistChanges();
       }
     }
 
