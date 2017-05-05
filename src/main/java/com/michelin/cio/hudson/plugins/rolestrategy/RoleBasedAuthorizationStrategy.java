@@ -239,113 +239,113 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap.assignRole(role, sid);
     }
   }
-  
-  /**
-   * API method to add roles
-   *
-   * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
-   * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"
-   *
-   * @param type (globalRoles, projectRoles)
-   * @param roleName name of role
-   * @param permissionIds comma separated list of IDs for given roleName
-   * @param overwrite overwrite existing role
-   * @since 2.4.1
-   * @throws IOException in case saving changes fails
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doAddRole(@QueryParameter(required = true) String type,
-                        @QueryParameter(required = true) String roleName,
-                        @QueryParameter(required = true) String permissionIds,
-                        @QueryParameter(required = true) String overwrite,
-                        @QueryParameter(required = false) String pattern) throws IOException {
-    Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
 
-    boolean overwriteb = Boolean.parseBoolean(overwrite);
-    String pttrn = ".*";
+    /**
+     * API method to add roles
+     * <p>
+     * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
+     * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"
+     *
+     * @param type          (globalRoles, projectRoles)
+     * @param roleName      name of role
+     * @param permissionIds comma separated list of IDs for given roleName
+     * @param overwrite     overwrite existing role
+     * @throws IOException in case saving changes fails
+     * @since 2.4.1
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doAddRole(@QueryParameter(required = true) String type,
+                          @QueryParameter(required = true) String roleName,
+                          @QueryParameter(required = true) String permissionIds,
+                          @QueryParameter(required = true) String overwrite,
+                          @QueryParameter(required = false) String pattern) throws IOException {
+        Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
 
-    if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL) && pattern != null) {
-        pttrn = pattern;
-    }
+        boolean overwriteb = Boolean.parseBoolean(overwrite);
+        String pttrn = ".*";
 
-    ArrayList<String> permissionList = new ArrayList<String>();
-    permissionList.addAll(Arrays.asList(permissionIds.split(",")));
+        if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL) && pattern != null) {
+            pttrn = pattern;
+        }
 
-    Set<Permission> permissionSet = new HashSet<Permission>();
-    for (String p: permissionList) {
-      permissionSet.add(Permission.fromId(p));
-    }
-    Role role = new Role(roleName, pttrn, permissionSet);
-    if (overwriteb) {
-      Role role2 = this.grantedRoles.get(type).getRole(roleName);
-      if (role2!=null) {
-          this.grantedRoles.get(type).removeRole(role2);
-      }
-    }
-    addRole(type, role);
-      persistChanges();
-  }
+        ArrayList<String> permissionList = new ArrayList<String>();
+        permissionList.addAll(Arrays.asList(permissionIds.split(",")));
 
-  /**
-   * API method to remove roles
-   *
-   * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
-   * roleNames=ADM,DEV"
-   *
-   * @param type (globalRoles, projectRoles)
-   * @param roleNames comma separated list of roles to remove from type
-   * @since 2.4.1
-   * @throws IOException in case saving changes fails
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doRemoveRoles(@QueryParameter(required = true) String type,
-                            @QueryParameter(required = true) String roleNames) throws IOException {
-      checkAdminPerm();
-
-      RoleMap roleMap = this.grantedRoles.get(type);
-    if (roleMap != null) {
-      String[] split = roleNames.split(",");
-        for (String aSplit : split) {
-            Role role = roleMap.getRole(aSplit);
-            if (role != null) {
-                roleMap.removeRole(role);
+        Set<Permission> permissionSet = new HashSet<Permission>();
+        for (String p : permissionList) {
+            permissionSet.add(Permission.fromId(p));
+        }
+        Role role = new Role(roleName, pttrn, permissionSet);
+        if (overwriteb) {
+            Role role2 = this.grantedRoles.get(type).getRole(roleName);
+            if (role2 != null) {
+                this.grantedRoles.get(type).removeRole(role2);
             }
         }
-    }
-      persistChanges();
-  }
-    
-    
-  /**
-   * API method to assign SID to role
-   *
-   * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
-   * &amp;sid=username"
-   *
-   * @param type (globalRoles, projectRoles)
-   * @param roleName name of role (single, no list)
-   * @param sid user ID (single, no list)
-   * @since 2.4.1
-   * @throws IOException in case saving changes fails
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doAssignRole(@QueryParameter(required = true) String type,
-                           @QueryParameter(required = true) String roleName,
-                           @QueryParameter(required = true) String sid) throws IOException {
-      checkAdminPerm();
-      RoleMap roleMap = this.grantedRoles.get(type);
-    if (roleMap != null) {
-      Role role = roleMap.getRole(roleName);
-
-      if (role!=null) {
-          assignRole(type, role, sid);
-      }
+        addRole(type, role);
         persistChanges();
     }
-  }
+
+    /**
+     * API method to remove roles
+     * <p>
+     * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
+     * roleNames=ADM,DEV"
+     *
+     * @param type      (globalRoles, projectRoles)
+     * @param roleNames comma separated list of roles to remove from type
+     * @throws IOException in case saving changes fails
+     * @since 2.4.1
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doRemoveRoles(@QueryParameter(required = true) String type,
+                              @QueryParameter(required = true) String roleNames) throws IOException {
+        checkAdminPerm();
+
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null) {
+            String[] split = roleNames.split(",");
+            for (String aSplit : split) {
+                Role role = roleMap.getRole(aSplit);
+                if (role != null) {
+                    roleMap.removeRole(role);
+                }
+            }
+        }
+        persistChanges();
+    }
+
+
+    /**
+     * API method to assign SID to role
+     * <p>
+     * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
+     * &amp;sid=username"
+     *
+     * @param type     (globalRoles, projectRoles)
+     * @param roleName name of role (single, no list)
+     * @param sid      user ID (single, no list)
+     * @throws IOException in case saving changes fails
+     * @since 2.4.1
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doAssignRole(@QueryParameter(required = true) String type,
+                             @QueryParameter(required = true) String roleName,
+                             @QueryParameter(required = true) String sid) throws IOException {
+        checkAdminPerm();
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null) {
+            Role role = roleMap.getRole(roleName);
+
+            if (role != null) {
+                assignRole(type, role, sid);
+            }
+            persistChanges();
+        }
+    }
 
     private static void persistChanges() throws IOException {
         instance().save();
@@ -361,25 +361,25 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to delete a SID
-     *
+     * <p>
      * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
      *
      * @param type (globalRoles, projectRoles)
-     * @param sid user ID to remove
-     * @since 2.4.1
+     * @param sid  user ID to remove
      * @throws IOException in case saving changes fails
+     * @since 2.4.1
      */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doDeleteSid(@QueryParameter(required = true) String type,
-                          @QueryParameter(required = true) String sid) throws IOException {
-      checkAdminPerm();
-      RoleMap roleMap = this.grantedRoles.get(type);
-    if (roleMap != null) {
-      roleMap.deleteSids(sid);
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doDeleteSid(@QueryParameter(required = true) String type,
+                            @QueryParameter(required = true) String sid) throws IOException {
+        checkAdminPerm();
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null) {
+            roleMap.deleteSids(sid);
+        }
+        persistChanges();
     }
-      persistChanges();
-  }
 
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
