@@ -257,6 +257,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param roleName name of role
    * @param permissionIds comma separated list of IDs for given roleName
    * @param overwrite overwrite existing role
+   * @since 2.4.1
    * @throws IOException in case saving changes fails
    */
   @RequirePOST
@@ -304,6 +305,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * @param type (globalRoles, projectRoles)
    * @param roleNames comma separated list of roles to remove from type
+   * @since 2.4.1
    * @throws IOException in case saving changes fails
    */
   @RequirePOST
@@ -335,6 +337,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param type (globalRoles, projectRoles)
    * @param roleName name of role (single, no list)
    * @param sid user ID (single, no list)
+   * @since 2.4.1
    * @throws IOException in case saving changes fails
    */
   @RequirePOST
@@ -366,16 +369,16 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         instance().checkPermission(Jenkins.ADMINISTER);
     }
 
-
     /**
-   * API method to delete a SID
-   *
-   * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
-   *
-   * @param type (globalRoles, projectRoles)
-   * @param sid user ID to remove
-   * @throws IOException in case saving changes fails
-   */
+     * API method to delete a SID
+     *
+     * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
+     *
+     * @param type (globalRoles, projectRoles)
+     * @param sid user ID to remove
+     * @since 2.4.1
+     * @throws IOException in case saving changes fails
+     */
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doDeleteSid(@QueryParameter(required = true) String type,
