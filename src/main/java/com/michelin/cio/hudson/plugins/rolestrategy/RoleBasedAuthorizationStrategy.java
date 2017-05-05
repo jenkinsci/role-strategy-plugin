@@ -54,14 +54,7 @@ import hudson.security.PermissionGroup;
 import hudson.security.SidACL;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
+import java.util.*;
 import javax.servlet.ServletException;
 
 import hudson.util.VersionNumber;
@@ -277,10 +270,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     ArrayList<String> permissionList = new ArrayList<String>();
-    String[] split = permissionIds.split(",");
-    for (int i=0; i<split.length; i++) {
-        permissionList.add(split[i]);
-    }
+    permissionList.addAll(Arrays.asList(permissionIds.split(",")));
 
     Set<Permission> permissionSet = new HashSet<Permission>();
     for (String p: permissionList) {
@@ -317,12 +307,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       RoleMap roleMap = this.grantedRoles.get(type);
     if (roleMap != null) {
       String[] split = roleNames.split(",");
-      for (int i=0; i<split.length; i++) {
-          Role role = roleMap.getRole(split[i]);
-          if (role != null) {
-            roleMap.removeRole(role);
-          }
-      }
+        for (String aSplit : split) {
+            Role role = roleMap.getRole(aSplit);
+            if (role != null) {
+                roleMap.removeRole(role);
+            }
+        }
     }
       persistChanges();
   }
