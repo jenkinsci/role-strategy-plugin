@@ -77,6 +77,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Role-based authorization strategy.
@@ -256,6 +257,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param response
    * @throws IOException
    */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
   public void doAddRole(StaplerRequest request, StaplerResponse response) throws IOException {
     Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
     String type = request.getParameter("type");
@@ -308,6 +311,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param response
    * @throws IOException
    */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
   public void doRemoveRoles(StaplerRequest request, StaplerResponse response) throws IOException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     String type = request.getParameter("type");
@@ -339,6 +344,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param response
    * @throws IOException
    */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
   public void doAssignRole(StaplerRequest request, StaplerResponse response) throws IOException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     String type = request.getParameter("type");
@@ -368,6 +375,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param response
    * @throws IOException
    */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
   public void doDeleteSid(StaplerRequest request, StaplerResponse response) throws IOException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     String type = request.getParameter("type");
