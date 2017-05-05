@@ -75,6 +75,7 @@ import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlin
 import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -248,147 +249,131 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   
   /**
    * API method to add roles
-   * @param request has to contain following parameters 
-   *    type (globalRoles, projectRoles)
-   *    roleName
-   *    permissionsIds
-   *    overwrite (true, false)
-   * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"
-   * @param response
-   * @throws IOException
+   *
+   * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
+   * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"
+   *
+   * @param type (globalRoles, projectRoles)
+   * @param roleName name of role
+   * @param permissionIds comma separated list of IDs for given roleName
+   * @param overwrite overwrite existing role
+   * @throws IOException in case saving changes fails
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doAddRole(StaplerRequest request, StaplerResponse response) throws IOException {
+  public void doAddRole(@QueryParameter(required = true) String type,
+                        @QueryParameter(required = true) String roleName,
+                        @QueryParameter(required = true) String permissionIds,
+                        @QueryParameter(required = true) String overwrite,
+                        @QueryParameter(required = false) String pattern) throws IOException {
     Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
-    String type = request.getParameter("type");
-    String roleName = request.getParameter("roleName");
-    String permissions = request.getParameter("permissionIds");
-    String overwrite = request.getParameter("overwrite");
-    
-    if (type != null && roleName != null && permissions != null) {
-        boolean overwriteb = false;
-        String pattern = ".*";
 
-        if (type != RoleBasedAuthorizationStrategy.GLOBAL && request.getParameter("pattern") != null) {
-            pattern = request.getParameter("pattern");
-        }
-        
-        if (overwrite != null) {
-            if (overwrite.equals("true")) {
-                overwriteb = true;
-            }
-        }
-        
-        ArrayList<String> permissionList = new ArrayList<String>(); 
-        String[] split = permissions.split(",");
-        for (int i=0; i<split.length; i++) {
-            permissionList.add(split[i]);
-        }
-        
-        Set<Permission> permissionSet = new HashSet<Permission>();    
-        for (String p: permissionList) {
-          permissionSet.add(Permission.fromId(p));
-        }
-        Role role = new Role(roleName, pattern, permissionSet);
-        if (overwriteb) {
-          Role role2 = this.grantedRoles.get(type).getRole(roleName);
-          if (role2!=null) {
-              this.grantedRoles.get(type).removeRole(role2);
-          }
-        }
-        addRole(type, role); 
-        Hudson.getInstance().save();
-    }   
+    boolean overwriteb = Boolean.parseBoolean(overwrite);
+    String pttrn = ".*";
+
+    if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL) && pattern != null) {
+        pttrn = pattern;
+    }
+
+    ArrayList<String> permissionList = new ArrayList<String>();
+    String[] split = permissionIds.split(",");
+    for (int i=0; i<split.length; i++) {
+        permissionList.add(split[i]);
+    }
+
+    Set<Permission> permissionSet = new HashSet<Permission>();
+    for (String p: permissionList) {
+      permissionSet.add(Permission.fromId(p));
+    }
+    Role role = new Role(roleName, pttrn, permissionSet);
+    if (overwriteb) {
+      Role role2 = this.grantedRoles.get(type).getRole(roleName);
+      if (role2!=null) {
+          this.grantedRoles.get(type).removeRole(role2);
+      }
+    }
+    addRole(type, role);
+    Hudson.getInstance().save();
   }
-    
+
   /**
    * API method to remove roles
-   * @param request has to contain the following parameters
-   *    type (globalRoles, projectRoles)
-   *    roleNames
-   * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;roleNames=ADM,DEV"
-   * @param response
-   * @throws IOException
+   *
+   * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
+   * roleNames=ADM,DEV"
+   *
+   * @param type (globalRoles, projectRoles)
+   * @param roleNames comma separated list of roles to remove from type
+   * @throws IOException in case saving changes fails
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doRemoveRoles(StaplerRequest request, StaplerResponse response) throws IOException {
+  public void doRemoveRoles(@QueryParameter(required = true) String type,
+                            @QueryParameter(required = true) String roleNames) throws IOException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-    String type = request.getParameter("type");
-    String roleNames = request.getParameter("roleNames");
-    
-    if (type != null && roleNames != null) {
-        RoleMap roleMap = this.grantedRoles.get(type);
-        if (roleMap != null) {
-          String[] split = roleNames.split(",");
-          for (int i=0; i<split.length; i++) {
-              Role role = roleMap.getRole(split[i]);
-              if (role != null) {
-                roleMap.removeRole(role); 
-              }
+
+    RoleMap roleMap = this.grantedRoles.get(type);
+    if (roleMap != null) {
+      String[] split = roleNames.split(",");
+      for (int i=0; i<split.length; i++) {
+          Role role = roleMap.getRole(split[i]);
+          if (role != null) {
+            roleMap.removeRole(role);
           }
-        }
-        Hudson.getInstance().save();
+      }
     }
+    Hudson.getInstance().save();
   }
     
     
   /**
-   * API method to assign SIDs to roles
-   * @param request has to contain the following parameters
-   *    type (globalRoles, projectRoles)
-   *    roleName
-   *    sid
-   * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM&amp;sid=username"
-   * @param response
-   * @throws IOException
+   * API method to assign SID to role
+   *
+   * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
+   * &amp;sid=username"
+   *
+   * @param type (globalRoles, projectRoles)
+   * @param roleName name of role (single, no list)
+   * @param sid user ID (single, no list)
+   * @throws IOException in case saving changes fails
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doAssignRole(StaplerRequest request, StaplerResponse response) throws IOException {
+  public void doAssignRole(@QueryParameter(required = true) String type,
+                           @QueryParameter(required = true) String roleName,
+                           @QueryParameter(required = true) String sid) throws IOException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-    String type = request.getParameter("type");
-    String roleName = request.getParameter("roleName");
-    String sid = request.getParameter("sid");
-        
-    if (type != null && roleName != null && sid != null) {
-        RoleMap roleMap = this.grantedRoles.get(type);
-        if (roleMap != null) {
-          Role role = roleMap.getRole(roleName);
-                  
-          if (role!=null) {
-              assignRole(type, role, sid);
-          }
-          Hudson.getInstance().save();
-        }
-    }   
+    RoleMap roleMap = this.grantedRoles.get(type);
+    if (roleMap != null) {
+      Role role = roleMap.getRole(roleName);
+
+      if (role!=null) {
+          assignRole(type, role, sid);
+      }
+      Hudson.getInstance().save();
+    }
   }
   
     
   /**
-   * method to delete a SID
-   * @param request has to contain the following parameters
-   *    type (globalRoles, projectRoles)
-   *    sid
+   * API method to delete a SID
+   *
    * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
-   * @param response
-   * @throws IOException
+   *
+   * @param type (globalRoles, projectRoles)
+   * @param sid user ID to remove
+   * @throws IOException in case saving changes fails
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doDeleteSid(StaplerRequest request, StaplerResponse response) throws IOException {
+  public void doDeleteSid(@QueryParameter(required = true) String type,
+                          @QueryParameter(required = true) String sid) throws IOException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-    String type = request.getParameter("type");
-    String sid = request.getParameter("sid");
-        
-    if (type != null && sid != null) {
-        RoleMap roleMap = this.grantedRoles.get(type);
-        if (roleMap != null) {
-          roleMap.deleteSids(sid);
-        }
-        Hudson.getInstance().save();
+    RoleMap roleMap = this.grantedRoles.get(type);
+    if (roleMap != null) {
+      roleMap.deleteSids(sid);
     }
+    Hudson.getInstance().save();
   }
 
   @Extension
