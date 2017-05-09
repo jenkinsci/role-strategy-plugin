@@ -80,12 +80,12 @@
                 <f:block><st:include page="assign-global-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-            <f:section title="${%Project roles}">
+            <f:section title="${%Item roles}">
               <f:rowSet name="projectRoles">
                 <f:block><st:include page="assign-project-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-             <f:section title="${%Slave roles}">
+             <f:section title="${%Node roles}">
               <f:rowSet name="slaveRoles">
                 <f:block><st:include page="assign-slave-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
