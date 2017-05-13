@@ -1,7 +1,7 @@
 <!--
   - The MIT License
   -
-  - Copyright (c) 2010, Manufacture Française des Pneumatiques Michelin, Thomas Maurel
+  - Copyright (c) 2010-17, Manufacture Française des Pneumatiques Michelin, Thomas Maurel, Oleg Nenashev and Jenkins contributors
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -23,5 +23,6 @@
   -->
 <?jelly escape-by-default='true'?>
 <div>
-  Enables authorization using a role-based strategy.
+  Enables user authorization using a Role-Based strategy.
+  Roles can be defined globally or for particular jobs or nodes selected by regular expressions.
 </div>
