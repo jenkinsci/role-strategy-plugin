@@ -245,19 +245,20 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap.assignRole(role, sid);
     }
   }
-
+  
     /**
      * API method to add roles
      * <p>
-     * example: curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
-     * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"
+     * example: {@code curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
+     * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"}
      *
      * @param type          (globalRoles, projectRoles)
-     * @param roleName      name of role
-     * @param permissionIds comma separated list of IDs for given roleName
-     * @param overwrite     overwrite existing role
-     * @throws IOException in case saving changes fails
-     * @since 2.4.1
+     * @param roleName      Name of role
+     * @param permissionIds Comma separated list of IDs for given roleName
+     * @param overwrite     Overwrite existing role
+     * @param pattern       Role pattern       
+     * @throws IOException  In case saving changes fails
+     * @since 2.5.0
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
@@ -294,15 +295,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * API method to remove roles
-     * <p>
-     * example: curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
-     * roleNames=ADM,DEV"
+     * API method to remove roles.
+     * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
+     * roleNames=ADM,DEV"}
      *
-     * @param type      (globalRoles, projectRoles)
+     * @param type      (globalRoles, projectRoles, slaveRoles)
      * @param roleNames comma separated list of roles to remove from type
      * @throws IOException in case saving changes fails
-     * @since 2.4.1
+     * @since 2.5.0
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
@@ -325,16 +325,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
 
     /**
-     * API method to assign SID to role
-     * <p>
-     * example: curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
-     * &amp;sid=username"
+     * API method to assign SID to role.
+     * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
+     * &amp;sid=username"}
      *
-     * @param type     (globalRoles, projectRoles)
+     * @param type     (globalRoles, projectRoles, slaveRoles)
      * @param roleName name of role (single, no list)
      * @param sid      user ID (single, no list)
      * @throws IOException in case saving changes fails
-     * @since 2.4.1
+     * @since 2.5.0
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
@@ -366,11 +365,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * API method to delete a SID
-     * <p>
-     * example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
+     * API method to delete a SID from all granted roles.
+     * Example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
      *
-     * @param type (globalRoles, projectRoles)
+     * @param type (globalRoles, projectRoles, slaveRoles)
      * @param sid  user ID to remove
      * @throws IOException in case saving changes fails
      * @since 2.4.1
