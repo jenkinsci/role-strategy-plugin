@@ -53,6 +53,8 @@ public final class Role implements Comparable {
    */
   private final Set < Permission > permissions = new HashSet < Permission > ();
 
+  private transient Integer cachedHashCode = null;
+
   /**
    * Constructor for a global role with no pattern (which is then defaulted to
    * {@code .*}).
@@ -143,6 +145,13 @@ public final class Role implements Comparable {
 
     @Override
     public int hashCode() {
+        if (cachedHashCode == null) {
+            cachedHashCode = _hashCode();
+        }
+        return cachedHashCode;
+    }
+
+    private int _hashCode() {
         int hash = 7;
         hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
         hash = 53 * hash + (this.pattern != null ? this.pattern.hashCode() : 0);
