@@ -556,6 +556,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     /** 
      * Called on role management form's submission.
      */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
     public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
         checkAdminPerm();
 
@@ -570,6 +572,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     /**
      * Called on role assignment form's submission.
      */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
     public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
         checkAdminPerm();
 

@@ -45,6 +45,9 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import static hudson.util.FormApply.success;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Add the role management link to the Manage Hudson page.
@@ -128,6 +131,8 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Called on roles management form submission.
    */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
   public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
@@ -149,6 +154,8 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Called on role's assignment form submission.
    */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
   public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
     Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
