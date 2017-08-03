@@ -413,9 +413,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to get all groups/users with their role in globalRoles
-     * Example: curl -X POST localhost:8080/role-strategy/strategy/getAllRoles
+     * Example: curl -X localhost:8080/role-strategy/strategy/getAllRoles
      *
-     * @throws IOException in case saving changes fails
+     * @throws IOException in case data fails
      * @since 2.4.1
      */
     @Restricted(NoExternalUse.class)
