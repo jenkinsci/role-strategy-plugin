@@ -55,6 +55,7 @@ import javax.servlet.ServletException;
 
 import hudson.util.VersionNumber;
 
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -323,7 +324,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         persistChanges();
     }
 
-
     /**
      * API method to assign SID to role.
      * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
@@ -384,6 +384,53 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         persistChanges();
     }
+
+    /**
+     * API method to unassign group/user with a role
+     * Example: curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD&amp;sid=username"
+     *
+     * @param type (globalRoles, projectRoles, slaveRoles)
+     * @param roleName unassign role with sid
+     * @param sid  user ID to remove
+     * @throws IOException in case saving changes fails
+     * @since 2.4.1
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doUnassignRole(@QueryParameter(required = true) String type,
+                            @QueryParameter(required = true) String roleName,
+                            @QueryParameter(required = true) String sid) throws IOException {
+        checkAdminPerm();
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null) {
+          Role role = roleMap.getRole(roleName);
+          if (role != null) {
+            roleMap.deleteRoleSid(sid, role.getName());
+          }
+        }
+        persistChanges();
+    }
+
+    /**
+     * API method to get all groups/users with their role in globalRoles
+     * Example: curl -X localhost:8080/role-strategy/strategy/getAllRoles
+     *
+     * @throws IOException in case data fails
+     * @since 2.4.1
+     */
+    @Restricted(NoExternalUse.class)
+    public void doGetAllRoles(StaplerRequest req, StaplerResponse rsp) throws IOException {
+        checkAdminPerm();
+        req.setCharacterEncoding("UTF-8");
+        OutputStream os = rsp.getOutputStream();
+        JSONObject json = new JSONObject();
+        RoleMap roleMap = this.grantedRoles.get(GLOBAL);
+        for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+          json.put(grantedRole.getKey().getName(), grantedRole.getValue());
+        }
+        os.write(json.toString().getBytes("UTF-8"));
+    }
+
 
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();

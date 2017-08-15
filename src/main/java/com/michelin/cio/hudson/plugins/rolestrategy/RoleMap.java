@@ -186,6 +186,19 @@ public class RoleMap {
   }
 
   /**
+   * unAssign the sid to the given {@link Role}.
+   * @param role The {@link Role} to unassign the sid to
+   * @param sid The sid to assign
+   */
+  public void unAssignRole(Role role, String sid) {
+    if (this.hasRole(role)) {
+      if (this.grantedRoles.get(role).contains(sid)) {
+        this.grantedRoles.get(role).remove(sid);
+      }
+    }
+  }
+
+  /**
    * Clear all the sids associated to the given {@link Role}.
    * @param role The {@link Role} for which you want to clear the sids
    */
@@ -205,6 +218,21 @@ public class RoleMap {
          Set<String> sids = entry.getValue();
          if (sids.contains(sid)) {
              sids.remove(sid);
+         }
+     }
+  }
+
+  /**
+   * Clear specific role associated to the given sid
+   * @param sid The sid for thwich you want to clear the {@link Role}s
+   * @param rolename The role for thwich you want to clear the {@link Role}s
+   */
+  public void deleteRoleSid(String sid, String rolename){
+     for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
+         Role role = entry.getKey();
+         if (role.getName().equals(rolename)) {
+            unAssignRole(role, sid);
+            break;
          }
      }
   }
