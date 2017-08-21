@@ -393,7 +393,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @param roleName unassign role with sid
      * @param sid  user ID to remove
      * @throws IOException in case saving changes fails
-     * @since 2.4.1
+     * @since 2.6.0
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
@@ -416,7 +416,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Example: curl -X localhost:8080/role-strategy/strategy/getAllRoles
      *
      * @throws IOException in case data fails
-     * @since 2.4.1
+     * @since 2.6.0
      */
     @Restricted(NoExternalUse.class)
     public void doGetAllRoles(StaplerRequest req, StaplerResponse rsp) throws IOException {

@@ -189,6 +189,7 @@ public class RoleMap {
    * unAssign the sid to the given {@link Role}.
    * @param role The {@link Role} to unassign the sid to
    * @param sid The sid to assign
+   * @since 2.6.0
    */
   public void unAssignRole(Role role, String sid) {
     if (this.hasRole(role)) {
@@ -226,6 +227,7 @@ public class RoleMap {
    * Clear specific role associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
    * @param rolename The role for thwich you want to clear the {@link Role}s
+   * @since 2.6.0
    */
   public void deleteRoleSid(String sid, String rolename){
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
