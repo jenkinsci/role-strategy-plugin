@@ -68,6 +68,7 @@ import java.util.SortedMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -166,8 +167,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * Get the roles from the global {@link RoleMap}.
    * <p>The returned sorted map is unmodifiable.</p>
    * @param type The object type controlled by the {@link RoleMap}
-   * @return All roles from the global {@link RoleMap}
+   * @return All roles from the global {@link RoleMap}.
+   *         May return {@code} if a non-supported type is defined.
    */
+  @Nullable
   public SortedMap<Role, Set<String>> getGrantedRoles(String type) {
     RoleMap roleMap = this.getRoleMap(type);
     if (roleMap != null) {
@@ -181,6 +184,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param type The object type controlled by the {@link RoleMap}
    * @return All SIDs from the specified {@link RoleMap}.
    */
+  @CheckForNull
   public Set<String> getSIDs(String type) {
     RoleMap roleMap = this.getRoleMap(type);
     if (roleMap != null) {

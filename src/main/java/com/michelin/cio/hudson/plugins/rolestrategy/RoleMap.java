@@ -54,6 +54,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -150,9 +151,11 @@ public class RoleMap {
 
   /**
    * Check if the {@link RoleMap} contains the given {@link Role}.
-   * @return True if the {@link RoleMap} contains the given role
+   * 
+   * @param role Role to be checked
+   * @return {@code true} if the {@link RoleMap} contains the given role
    */
-  public boolean hasRole(Role role) {
+  public boolean hasRole(@Nonnull Role role) {
     return this.grantedRoles.containsKey(role);
   }
 
@@ -252,8 +255,10 @@ public class RoleMap {
   /**
    * Get the {@link Role} object named after the given param.
    * @param name The name of the {@link Role}
-   * @return The {@link Role} named after the given param
+   * @return The {@link Role} named after the given param.
+   *         {@code null} if the role is missing.
    */
+  @CheckForNull
   public Role getRole(String name) {
     for (Role role : this.getRoles()) {
       if (role.getName().equals(name)) {
@@ -316,8 +321,10 @@ public class RoleMap {
   /**
    * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
    * @param roleName The name of the role
-   * @return A sorted set containing all the sids
+   * @return A sorted set containing all the sids.
+   *         {@code null} if the role is missing.
    */
+  @CheckForNull
   public Set<String> getSidsForRole(String roleName) {
     Role role = this.getRole(roleName);
     if (role != null) {
@@ -411,6 +418,7 @@ public class RoleMap {
      */
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
+    @CheckForNull
     protected Boolean hasPermission(Sid p, Permission permission) {
       if (RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
         return true;

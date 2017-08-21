@@ -96,7 +96,7 @@ public class DangerousPermissionHelper {
     @CheckForNull
     public static String reportDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
         SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
-        return reportDangerousPermissions(grantedRoles.keySet());
+        return grantedRoles != null ? reportDangerousPermissions(grantedRoles.keySet()) : null;
     }
     
     /**
@@ -129,6 +129,10 @@ public class DangerousPermissionHelper {
     @CheckForNull
     public static boolean hasDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
         SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        if (grantedRoles == null) {
+            // Undefined
+            return false;
+        }
         return hasDangerousPermissions(grantedRoles.keySet());
     }
     

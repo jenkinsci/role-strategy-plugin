@@ -45,6 +45,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import static hudson.util.FormApply.success;
+import javax.annotation.CheckForNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -116,10 +117,12 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Retrieve the {@link RoleBasedAuthorizationStrategy} object from the Hudson instance.
    * <p>Used by the views to build matrix.</p>
-   * @return The {@link RoleBasedAuthorizationStrategy} object
+   * @return The {@link RoleBasedAuthorizationStrategy} object.
+   *         {@code null} if the strategy is not used.
    */
+  @CheckForNull
   public AuthorizationStrategy getStrategy() {
-    AuthorizationStrategy strategy = Hudson.getInstance().getAuthorizationStrategy();
+    AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy) {
       return strategy;
     }

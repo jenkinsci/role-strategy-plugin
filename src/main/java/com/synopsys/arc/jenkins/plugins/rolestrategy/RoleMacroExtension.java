@@ -29,6 +29,7 @@ import hudson.ExtensionPoint;
 import hudson.model.Hudson;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.CheckForNull;
 
 /**
  * Extension for macro roles (automatic membership handling).
@@ -49,10 +50,11 @@ public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtens
         }
     }
 
+    @CheckForNull
     public static Macro getMacro(String unparsedMacroString) {
         //TODO: add macro cache
         try {
-            return Macro.Parse(unparsedMacroString);
+            return Macro.parse(unparsedMacroString);
         } catch (MacroException ex) {
             return null;
         }
