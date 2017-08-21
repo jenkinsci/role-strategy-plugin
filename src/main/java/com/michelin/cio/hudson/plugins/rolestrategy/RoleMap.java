@@ -125,7 +125,7 @@ public class RoleMap {
             try {
                 UserDetails userDetails = cache.getIfPresent(sid);
                 if (userDetails == null) {
-                    userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                    userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
                     cache.put(sid, userDetails);
                 }
                 for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
@@ -307,9 +307,9 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = new TreeSet<String>();
-    for (Map.Entry entry : this.grantedRoles.entrySet()) {
-      sids.addAll((Set)entry.getValue());
+    TreeSet<String> sids = new TreeSet<>();
+    for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
+      sids.addAll(entry.getValue());
     }
     // Remove the anonymous sid if asked to
     if (!includeAnonymous) {
@@ -341,7 +341,7 @@ public class RoleMap {
    */
   public RoleMap newMatchingRoleMap(String namePattern) {
     Set<Role> roles = getMatchingRoles(namePattern);
-    SortedMap<Role, Set<String>> roleMap = new TreeMap<Role, Set<String>>();
+    SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     for (Role role : roles) {
       roleMap.put(role, this.grantedRoles.get(role));
     }
@@ -354,8 +354,8 @@ public class RoleMap {
    * @return A Set of Roles holding the given permission
    */
   private Set<Role> getRolesHavingPermission(final Permission permission) {
-    final Set<Role> roles = new HashSet<Role>();
-    final Set<Permission> permissions = new HashSet<Permission>();
+    final Set<Role> roles = new HashSet<>();
+    final Set<Permission> permissions = new HashSet<>();
     Permission p = permission;
 
     // Get the implying permissions
@@ -381,7 +381,7 @@ public class RoleMap {
    * @return A Set of Roles matching the given name
    */
   private Set<Role> getMatchingRoles(final String namePattern) {
-    final Set<Role> roles = new HashSet<Role>();
+    final Set<Role> roles = new HashSet<>();
 
     // Walk through the roles and only add the Roles whose pattern matches the given string
     new RoleWalker() {
@@ -442,9 +442,9 @@ public class RoleMap {
      */
     public void walk() {
       Set<Role> roles = RoleMap.this.getRoles();
-      Iterator iter = roles.iterator();
+      Iterator<Role> iter = roles.iterator();
       while (iter.hasNext()) {
-        Role current = (Role) iter.next();
+        Role current = iter.next();
         perform(current);
       }
     }

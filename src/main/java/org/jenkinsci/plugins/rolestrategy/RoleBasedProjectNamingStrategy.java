@@ -37,7 +37,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     public void checkName(String name) throws Failure {
         boolean matches = false;
         ArrayList<String> badList = null;
-        AuthorizationStrategy auth = Jenkins.getInstance().getAuthorizationStrategy();
+        AuthorizationStrategy auth = Jenkins.getActiveInstance().getAuthorizationStrategy();
         if (auth instanceof RoleBasedAuthorizationStrategy){
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             //firstly check global role
@@ -48,7 +48,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             }
             // check project role with pattern
             SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
-            badList = new ArrayList<String>(roles.size());
+            badList = new ArrayList<>(roles.size());
             for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
                 Role key = entry.getKey();
                 if (key.hasPermission(Item.CREATE)) {

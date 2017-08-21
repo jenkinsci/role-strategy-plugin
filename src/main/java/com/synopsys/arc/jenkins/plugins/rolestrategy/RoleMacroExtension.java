@@ -75,6 +75,6 @@ public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtens
      * @return List of {@link UserMacroExtension}s.
      */
     public static ExtensionList<RoleMacroExtension> all() {
-        return Hudson.getInstance().getExtensionList(RoleMacroExtension.class);
+        return ExtensionList.lookup(RoleMacroExtension.class);
     }
 }

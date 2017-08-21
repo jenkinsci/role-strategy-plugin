@@ -68,6 +68,7 @@ import java.util.SortedMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
@@ -272,7 +273,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                           @QueryParameter(required = true) String permissionIds,
                           @QueryParameter(required = true) String overwrite,
                           @QueryParameter(required = false) String pattern) throws IOException {
-        Jenkins.getInstance().checkPermission(Jenkins.ADMINISTER);
+        Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
 
         boolean overwriteb = Boolean.parseBoolean(overwrite);
         String pttrn = ".*";
@@ -281,10 +282,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             pttrn = pattern;
         }
 
-        ArrayList<String> permissionList = new ArrayList<String>();
+        ArrayList<String> permissionList = new ArrayList<>();
         permissionList.addAll(Arrays.asList(permissionIds.split(",")));
 
-        Set<Permission> permissionSet = new HashSet<Permission>();
+        Set<Permission> permissionSet = new HashSet<>();
         for (String p : permissionList) {
             permissionSet.add(Permission.fromId(p));
         }
@@ -508,7 +509,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               reader.moveDown();
               String name = reader.getAttribute("name");
               String pattern = reader.getAttribute("pattern");
-              Set<Permission> permissions = new HashSet<Permission>();
+              Set<Permission> permissions = new HashSet<>();
 
               String next = reader.peekNextChild();
               if (next != null && next.equals("permissions")) {
@@ -663,7 +664,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * Method called on Hudson Manage panel submission, and plugin specific forms
+     * Method called on Jenkins Manage panel submission, and plugin specific forms
      * to create the {@link AuthorizationStrategy} object.
      */
     @Override
@@ -738,7 +739,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         
         for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)projectRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<Permission>();
+          Set<Permission> permissions = new HashSet<>();
           String pattern = r.getValue().getString("pattern");
           if (pattern != null) {
             r.getValue().remove("pattern");
@@ -772,7 +773,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Create an admin role.
      */
     private Role createAdminRole() {
-      Set<Permission> permissions = new HashSet<Permission>();
+      Set<Permission> permissions = new HashSet<>();
       for (PermissionGroup group : getGroups(GLOBAL)) {
         for (Permission permission : group) {
           permissions.add(permission);
@@ -793,22 +794,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * Get the needed permissions groups.
+     * 
+     * @param type Role type
+     * @return Groups, which should be displayed for a specific role type.
+     *         {@code null} if an unsupported type is defined.
      */
-    public List<PermissionGroup> getGroups(String type) {
+    @Nullable
+    public List<PermissionGroup> getGroups(@Nonnull String type) {
         List<PermissionGroup> groups;
         if (type.equals(GLOBAL)) {
-            groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            groups = new ArrayList<>(PermissionGroup.getAll());
             groups.remove(PermissionGroup.get(Permission.class));
         }
         else if (type.equals(PROJECT)) {
-            groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            groups = new ArrayList<>(PermissionGroup.getAll());
             groups.remove(PermissionGroup.get(Permission.class));
             groups.remove(PermissionGroup.get(Hudson.class));
             groups.remove(PermissionGroup.get(Computer.class));
             groups.remove(PermissionGroup.get(View.class));
         }
         else if (type.equals(SLAVE)) {
-            groups = new ArrayList<PermissionGroup>(PermissionGroup.getAll());
+            groups = new ArrayList<>(PermissionGroup.getAll());
             groups.remove(PermissionGroup.get(Permission.class));
             groups.remove(PermissionGroup.get(Hudson.class));
             groups.remove(PermissionGroup.get(View.class));

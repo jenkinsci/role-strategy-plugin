@@ -40,6 +40,6 @@ public abstract class UserMacroExtension implements ExtensionPoint, IMacroExtens
      * @return List of {@link UserMacroExtension}s.
      */
     public static ExtensionList<UserMacroExtension> all() {
-        return Hudson.getInstance().getExtensionList(UserMacroExtension.class);
+        return ExtensionList.lookup(UserMacroExtension.class);
     }
 }

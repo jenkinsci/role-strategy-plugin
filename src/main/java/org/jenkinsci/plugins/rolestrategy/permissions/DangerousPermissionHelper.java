@@ -107,7 +107,7 @@ public class DangerousPermissionHelper {
      */
     @CheckForNull
     public static String reportDangerousPermissions(@Nonnull Iterable<Role> roles) {
-       final ArrayList<String> dangerousRoleNames = new ArrayList<String>();
+       final ArrayList<String> dangerousRoleNames = new ArrayList<>();
        for (Role role : roles) {
            if (hasPotentiallyDangerousPermissions(role)) {
                dangerousRoleNames.add(role.getName());
