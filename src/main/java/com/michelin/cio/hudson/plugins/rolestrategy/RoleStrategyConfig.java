@@ -45,6 +45,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
 import static hudson.util.FormApply.success;
+import javax.annotation.CheckForNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -64,7 +65,7 @@ public class RoleStrategyConfig extends ManagementLink {
   public String getIconFileName() {
     String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
-    if (Hudson.getInstance().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
+    if (Jenkins.getActiveInstance().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
       icon = "secure.gif";
     }
     return icon;
@@ -116,10 +117,12 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Retrieve the {@link RoleBasedAuthorizationStrategy} object from the Hudson instance.
    * <p>Used by the views to build matrix.</p>
-   * @return The {@link RoleBasedAuthorizationStrategy} object
+   * @return The {@link RoleBasedAuthorizationStrategy} object.
+   *         {@code null} if the strategy is not used.
    */
+  @CheckForNull
   public AuthorizationStrategy getStrategy() {
-    AuthorizationStrategy strategy = Hudson.getInstance().getAuthorizationStrategy();
+    AuthorizationStrategy strategy = Jenkins.getActiveInstance().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy) {
       return strategy;
     }
@@ -134,7 +137,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -157,7 +160,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
     FormApply.success(".").generateResponse(req, rsp, this);

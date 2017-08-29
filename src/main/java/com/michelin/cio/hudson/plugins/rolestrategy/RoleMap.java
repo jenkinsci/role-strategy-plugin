@@ -54,6 +54,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -124,7 +125,7 @@ public class RoleMap {
             try {
                 UserDetails userDetails = cache.getIfPresent(sid);
                 if (userDetails == null) {
-                    userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                    userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
                     cache.put(sid, userDetails);
                 }
                 for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
@@ -150,9 +151,11 @@ public class RoleMap {
 
   /**
    * Check if the {@link RoleMap} contains the given {@link Role}.
-   * @return True if the {@link RoleMap} contains the given role
+   * 
+   * @param role Role to be checked
+   * @return {@code true} if the {@link RoleMap} contains the given role
    */
-  public boolean hasRole(Role role) {
+  public boolean hasRole(@Nonnull Role role) {
     return this.grantedRoles.containsKey(role);
   }
 
@@ -189,6 +192,7 @@ public class RoleMap {
    * unAssign the sid to the given {@link Role}.
    * @param role The {@link Role} to unassign the sid to
    * @param sid The sid to assign
+   * @since 2.6.0
    */
   public void unAssignRole(Role role, String sid) {
     if (this.hasRole(role)) {
@@ -226,6 +230,7 @@ public class RoleMap {
    * Clear specific role associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
    * @param rolename The role for thwich you want to clear the {@link Role}s
+   * @since 2.6.0
    */
   public void deleteRoleSid(String sid, String rolename){
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
@@ -250,8 +255,10 @@ public class RoleMap {
   /**
    * Get the {@link Role} object named after the given param.
    * @param name The name of the {@link Role}
-   * @return The {@link Role} named after the given param
+   * @return The {@link Role} named after the given param.
+   *         {@code null} if the role is missing.
    */
+  @CheckForNull
   public Role getRole(String name) {
     for (Role role : this.getRoles()) {
       if (role.getName().equals(name)) {
@@ -300,9 +307,9 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = new TreeSet<String>();
-    for (Map.Entry entry : this.grantedRoles.entrySet()) {
-      sids.addAll((Set)entry.getValue());
+    TreeSet<String> sids = new TreeSet<>();
+    for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
+      sids.addAll(entry.getValue());
     }
     // Remove the anonymous sid if asked to
     if (!includeAnonymous) {
@@ -314,8 +321,10 @@ public class RoleMap {
   /**
    * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
    * @param roleName The name of the role
-   * @return A sorted set containing all the sids
+   * @return A sorted set containing all the sids.
+   *         {@code null} if the role is missing.
    */
+  @CheckForNull
   public Set<String> getSidsForRole(String roleName) {
     Role role = this.getRole(roleName);
     if (role != null) {
@@ -332,7 +341,7 @@ public class RoleMap {
    */
   public RoleMap newMatchingRoleMap(String namePattern) {
     Set<Role> roles = getMatchingRoles(namePattern);
-    SortedMap<Role, Set<String>> roleMap = new TreeMap<Role, Set<String>>();
+    SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     for (Role role : roles) {
       roleMap.put(role, this.grantedRoles.get(role));
     }
@@ -345,8 +354,8 @@ public class RoleMap {
    * @return A Set of Roles holding the given permission
    */
   private Set<Role> getRolesHavingPermission(final Permission permission) {
-    final Set<Role> roles = new HashSet<Role>();
-    final Set<Permission> permissions = new HashSet<Permission>();
+    final Set<Role> roles = new HashSet<>();
+    final Set<Permission> permissions = new HashSet<>();
     Permission p = permission;
 
     // Get the implying permissions
@@ -372,7 +381,7 @@ public class RoleMap {
    * @return A Set of Roles matching the given name
    */
   private Set<Role> getMatchingRoles(final String namePattern) {
-    final Set<Role> roles = new HashSet<Role>();
+    final Set<Role> roles = new HashSet<>();
 
     // Walk through the roles and only add the Roles whose pattern matches the given string
     new RoleWalker() {
@@ -409,6 +418,7 @@ public class RoleMap {
      */
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
+    @CheckForNull
     protected Boolean hasPermission(Sid p, Permission permission) {
       if (RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
         return true;
@@ -432,9 +442,9 @@ public class RoleMap {
      */
     public void walk() {
       Set<Role> roles = RoleMap.this.getRoles();
-      Iterator iter = roles.iterator();
+      Iterator<Role> iter = roles.iterator();
       while (iter.hasNext()) {
-        Role current = (Role) iter.next();
+        Role current = iter.next();
         perform(current);
       }
     }

@@ -96,7 +96,7 @@ public class DangerousPermissionHelper {
     @CheckForNull
     public static String reportDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
         SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
-        return reportDangerousPermissions(grantedRoles.keySet());
+        return grantedRoles != null ? reportDangerousPermissions(grantedRoles.keySet()) : null;
     }
     
     /**
@@ -107,7 +107,7 @@ public class DangerousPermissionHelper {
      */
     @CheckForNull
     public static String reportDangerousPermissions(@Nonnull Iterable<Role> roles) {
-       final ArrayList<String> dangerousRoleNames = new ArrayList<String>();
+       final ArrayList<String> dangerousRoleNames = new ArrayList<>();
        for (Role role : roles) {
            if (hasPotentiallyDangerousPermissions(role)) {
                dangerousRoleNames.add(role.getName());
@@ -129,6 +129,10 @@ public class DangerousPermissionHelper {
     @CheckForNull
     public static boolean hasDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
         SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        if (grantedRoles == null) {
+            // Undefined
+            return false;
+        }
         return hasDangerousPermissions(grantedRoles.keySet());
     }
     
