@@ -330,9 +330,26 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
+    * Use by doAssignRole to add many sid from one query
+    *
+    * @param type (globalRoles, projectRoles, slaveRoles)
+    * @param roleName unassign role with sid
+    * @param sid  user ID to remove
+    */
+    private void assignRoleFn(String type, String roleName, String sid){
+      RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null) {
+            Role role = roleMap.getRole(roleName);
+            if (role != null) {
+                assignRole(type, role, sid);
+            }
+        }
+    }
+
+    /**
      * API method to assign SID to role.
      * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
-     * &amp;sid=username"}
+     * &amp;sid=username1,username2,group1"}
      *
      * @param type     (globalRoles, projectRoles, slaveRoles)
      * @param roleName name of role (single, no list)
@@ -346,15 +363,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                              @QueryParameter(required = true) String roleName,
                              @QueryParameter(required = true) String sid) throws IOException {
         checkAdminPerm();
-        RoleMap roleMap = this.grantedRoles.get(type);
-        if (roleMap != null) {
-            Role role = roleMap.getRole(roleName);
-
-            if (role != null) {
-                assignRole(type, role, sid);
-            }
-            persistChanges();
+        String[] sidlist = sid.split(',')
+        for (String sidOne : sidlist){
+          assignRoleFn(type, roleName, sidOne);
         }
+        persistChanges();
     }
 
     private static void persistChanges() throws IOException {
@@ -391,8 +404,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
+    * Use by doUnassignRole to remove many sid from one query
+    *
+    * @param type (globalRoles, projectRoles, slaveRoles)
+    * @param roleName unassign role with sid
+    * @param sid  user ID to remove
+    */
+    private void unassignRoleFn(String type, String roleName, String sid){
+      RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null) {
+          Role role = roleMap.getRole(roleName);
+          if (role != null) {
+            roleMap.deleteRoleSid(sid, role.getName());
+          }
+        }
+    }
+
+    /**
      * API method to unassign group/user with a role
-     * Example: curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD&amp;sid=username"
+     *
+     * Example: curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD
+     * &amp;sid=username1,username2,group1"}
      *
      * @param type (globalRoles, projectRoles, slaveRoles)
      * @param roleName unassign role with sid
@@ -406,20 +438,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                             @QueryParameter(required = true) String roleName,
                             @QueryParameter(required = true) String sid) throws IOException {
         checkAdminPerm();
-        RoleMap roleMap = this.grantedRoles.get(type);
-        if (roleMap != null) {
-          Role role = roleMap.getRole(roleName);
-          if (role != null) {
-            roleMap.deleteRoleSid(sid, role.getName());
-          }
+        String[] sidlist = sid.split(',')
+        for (String sidOne : sidlist){
+          unassignRoleFn(type, roleName, sidOne);
         }
         persistChanges();
     }
 
     /**
      * API method to get all groups/users with their role in globalRoles
-     * Example: curl -X localhost:8080/role-strategy/strategy/getAllRoles
+     * Example: curl -X localhost:8080/role-strategy/strategy/getAllRoles --data "type=globalRoles"
      *
+     * @param type (globalRoles, projectRoles, slaveRoles)
      * @throws IOException in case data fails
      * @since 2.6.0
      */
@@ -429,9 +459,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         req.setCharacterEncoding("UTF-8");
         OutputStream os = rsp.getOutputStream();
         JSONObject json = new JSONObject();
-        RoleMap roleMap = this.grantedRoles.get(GLOBAL);
-        for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
-          json.put(grantedRole.getKey().getName(), grantedRole.getValue());
+        type = req.getParameter("type")
+        if (type != null || (!type.equals(GLOBAL) && !type.equals(PROJECT) && !type.equals(SLAVE))){
+          RoleMap roleMap = this.grantedRoles.get(req.getParameter("type"));
+          for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+            json.put(grantedRole.getKey().getName(), grantedRole.getValue());
+          }
+        }else{
+          json.put("None", "None");
         }
         os.write(json.toString().getBytes("UTF-8"));
     }
