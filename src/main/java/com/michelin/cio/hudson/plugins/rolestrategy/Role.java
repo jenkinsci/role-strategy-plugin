@@ -86,10 +86,13 @@ public final class Role implements Comparable {
   Role(String name, Pattern pattern, Set < Permission > permissions) {
     this.name = name;
     this.pattern = pattern;
-    if (permissions.remove(null)) {
-        LOGGER.warning("Found some null permission(s)");
+    for(Permission perm : permissions) {
+        if(perm == null ){
+            LOGGER.warning("Found some null permission(s)");
+        } else {
+            this.permissions.add(perm);
+        }
     }
-    this.permissions.addAll(permissions);
   }
 
   /**
