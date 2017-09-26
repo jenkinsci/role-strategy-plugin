@@ -1,14 +1,16 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import hudson.security.Permission;
-import hudson.security.PermissionGroup;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -34,8 +36,13 @@ public class RoleTest {
         Permission nullPerm = null;
 
         Set<Permission> perms = new HashSet<Permission>(Arrays.asList(aRealPerm, nullPerm));
+        
+        // Test with modifiable collections
         Role role = new Role("name", perms);
+        assertThat("With modifiable set", role.getPermissions(), not( hasItem( nullPerm ) ) );
 
-        assertThat(role.getPermissions(), not( hasItem( nullPerm ) ) );
+        // Test with unmodifiable collections
+        role = new Role("name", Collections.unmodifiableSet(perms));
+        assertThat("With unmodifiable set", role.getPermissions(), not( hasItem( nullPerm ) ) );
     }
 }
