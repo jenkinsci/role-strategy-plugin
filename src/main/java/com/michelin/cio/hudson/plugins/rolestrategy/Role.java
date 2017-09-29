@@ -88,7 +88,14 @@ public final class Role implements Comparable {
     this.pattern = pattern;
     for(Permission perm : permissions) {
         if(perm == null ){
-            LOGGER.warning("Found some null permission(s)");
+            StringBuilder stack = new StringBuilder("Found some null permission(s)");
+            StackTraceElement[] stElements = Thread.currentThread().getStackTrace();
+            for(StackTraceElement el : stElements) {
+                stack.append(System.lineSeparator())
+                     .append("    at ")
+                     .append(el);
+            }
+            LOGGER.warning(stack.toString());
         } else {
             this.permissions.add(perm);
         }
