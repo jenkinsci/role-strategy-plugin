@@ -82,14 +82,15 @@ public final class Role implements Comparable {
   /**
    * @param name The role name
    * @param pattern The pattern matching {@link AccessControlled} objects names
-   * @param permissions The {@link Permission}s associated to the role
+   * @param permissions The {@link Permission}s associated to the role.
+   *                    {@code null} permissions will be ignored.
    */
   Role(String name, Pattern pattern, Set < Permission > permissions) {
     this.name = name;
     this.pattern = pattern;
     for(Permission perm : permissions) {
         if(perm == null ){
-           LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalStateException());
+           LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
         } else {
             this.permissions.add(perm);
         }
