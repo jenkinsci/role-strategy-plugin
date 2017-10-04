@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.33</version>
+        <version>2.36</version>
     </parent>
     
     <artifactId>role-strategy</artifactId>
@@ -70,12 +70,18 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>matrix-auth</artifactId>
-            <version>1.0</version>
+            <version>1.7</version>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-junit</artifactId>
             <version>2.0.0.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>cloudbees-folder</artifactId>
+            <version>5.18</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
