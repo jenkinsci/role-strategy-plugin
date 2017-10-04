@@ -29,6 +29,8 @@ import hudson.security.Permission;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.collections.CollectionUtils;
 
 /** 
@@ -37,6 +39,8 @@ import org.apache.commons.collections.CollectionUtils;
  */
 public final class Role implements Comparable {
   public static final String GLOBAL_ROLE_PATTERN = ".*";
+
+  private static final Logger LOGGER = Logger.getLogger(Role.class.getName());  
       
   /**
    * Name of the role.
@@ -83,7 +87,13 @@ public final class Role implements Comparable {
   Role(String name, Pattern pattern, Set < Permission > permissions) {
     this.name = name;
     this.pattern = pattern;
-    this.permissions.addAll(permissions);
+    for(Permission perm : permissions) {
+        if(perm == null ){
+           LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalStateException());
+        } else {
+            this.permissions.add(perm);
+        }
+    }
   }
 
   /**
