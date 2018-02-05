@@ -32,6 +32,11 @@ import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.collections.CollectionUtils;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.stapler.DataBoundConstructor;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /** 
  * Class representing a role, which holds a set of {@link Permission}s.
@@ -51,6 +56,12 @@ public final class Role implements Comparable {
    * Pattern to match the {@link AccessControlled} object name.
    */
   private final Pattern pattern;
+
+  /**
+   * Role description (optional).
+   */
+  @CheckForNull
+  private final String description;
 
   /**
    * {@link Permission}s hold by the role.
@@ -76,7 +87,16 @@ public final class Role implements Comparable {
    * @param permissions The {@link Permission}s associated to the role
    */
   Role(String name, String pattern, Set < Permission > permissions) {
-    this(name, Pattern.compile(pattern), permissions);
+    this(name, Pattern.compile(pattern), permissions, null);
+  }
+
+  //TODO: comment is used for erasure cleanup only
+  @DataBoundConstructor
+  public Role(@Nonnull String name, @CheckForNull String pattern, @CheckForNull Set <String> permissionIds, @CheckForNull String description) {
+      this(name,
+           Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN),
+           PermissionHelper.fromStrings(permissionIds),
+           description);
   }
 
   /**
@@ -85,9 +105,10 @@ public final class Role implements Comparable {
    * @param permissions The {@link Permission}s associated to the role.
    *                    {@code null} permissions will be ignored.
    */
-  Role(String name, Pattern pattern, Set < Permission > permissions) {
+  Role(String name, Pattern pattern, Set < Permission > permissions, @CheckForNull String description) {
     this.name = name;
     this.pattern = pattern;
+    this.description = description;
     for(Permission perm : permissions) {
         if(perm == null ){
            LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
@@ -121,7 +142,16 @@ public final class Role implements Comparable {
     return permissions;
   }
 
-  /**
+    /**
+     * Gets the role description.
+     * @return Role description. {@code null} if not set
+     */
+    @CheckForNull
+    public String getDescription() {
+        return description;
+    }
+
+    /**
    * Checks if the role holds the given {@link Permission}.
    * @param permission The permission you want to check
    * @return True if the role holds this permission

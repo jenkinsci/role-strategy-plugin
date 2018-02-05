@@ -38,7 +38,6 @@ import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
-import hudson.model.Project;
 import hudson.model.Run;
 import hudson.model.View;
 import hudson.scm.SCM;
@@ -65,7 +64,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -74,7 +72,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
-import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHelper;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.QueryParameter;
@@ -97,9 +95,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
   
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
-  private final Map <String, RoleMap> grantedRoles = new HashMap < String, RoleMap >();
+  private final Map <String, RoleMap> grantedRoles;
 
-  /**
+  public RoleBasedAuthorizationStrategy() {
+      this.grantedRoles = new HashMap<>();
+  }
+
+  public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
+      this.grantedRoles = new HashMap<>(grantedRoles);
+  }
+
+    /**
    * Get the root ACL.
    * @return The global ACL
    */
@@ -837,7 +843,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             // Should never happen
             return false;
         }
-        return DangerousPermissionHelper.hasDangerousPermissions(instance);
+        return PermissionHelper.hasDangerousPermissions(instance);
     }
     
     @Restricted(NoExternalUse.class)
@@ -852,7 +858,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Restricted(NoExternalUse.class)
     public boolean showPermission(String type, Permission p, boolean showDangerous) {
       if(type.equals(GLOBAL)) {
-        if (DangerousPermissionHelper.isDangerous(p)) {
+        if (PermissionHelper.isDangerous(p)) {
             // Consult with the Security strategy
             RoleBasedAuthorizationStrategy instance = RoleBasedAuthorizationStrategy.getInstance();
             if (instance == null) {

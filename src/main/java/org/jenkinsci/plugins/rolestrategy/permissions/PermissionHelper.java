@@ -29,10 +29,12 @@ import hudson.PluginManager;
 import hudson.security.Permission;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
@@ -45,7 +47,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @author Oleg Nenashev
  */
 @Restricted(NoExternalUse.class)
-public class DangerousPermissionHelper {
+public class PermissionHelper {
     
     /**
      * List of the dangerous permissions, which need to be suppressed by the plugin.
@@ -56,8 +58,36 @@ public class DangerousPermissionHelper {
             PluginManager.CONFIGURE_UPDATECENTER,
             PluginManager.UPLOAD_PLUGINS)));
     
-    private DangerousPermissionHelper() {
+    private PermissionHelper() {
         // Cannot be constructed
+    }
+
+    /**
+     * Convert a set of string to a collection of permissions.
+     * Dangerous permissions will be checked.
+     * @param permissionIds Permission IDs
+     * @throws SecurityException Permission is rejected, because it is dangerous.
+     * @return Created set of permissions
+     */
+    @Nonnull
+    public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds) throws SecurityException {
+        if (permissionIds == null) {
+            return Collections.emptySet();
+        }
+
+        HashSet<Permission> res = new HashSet<>(permissionIds.size());
+        for (String permission : permissionIds) {
+            final Permission p = Permission.fromId(permission);
+            if (p == null) {
+                // throw IllegalArgumentException?
+                continue;
+            }
+            if (isDangerous(p)) {
+                throw new SecurityException("Rejected dangerous permission: " + permission);
+            }
+            res.add(p);
+        }
+        return res;
     }
     
     /**
