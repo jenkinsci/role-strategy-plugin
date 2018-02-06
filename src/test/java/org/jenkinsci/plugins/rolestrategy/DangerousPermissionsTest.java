@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.plugins.rolestrategy;
 
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import hudson.PluginManager;
 import hudson.model.User;
@@ -33,7 +32,7 @@ import jenkins.model.Jenkins;
 import static org.hamcrest.Matchers.*;
 import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionAdministrativeMonitor;
 import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
-import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHelper;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.junit.Assert;
 import static org.junit.Assert.assertThat;
 import org.junit.Before;
@@ -64,8 +63,8 @@ public class DangerousPermissionsTest {
         assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
         
-        Assert.assertFalse("There should be no dangerous permissions detected", DangerousPermissionHelper.hasDangerousPermissions(strategy));
-        Assert.assertNull("Dangerous permission report should be empty", DangerousPermissionHelper.reportDangerousPermissions(strategy));
+        Assert.assertFalse("There should be no dangerous permissions detected", PermissionHelper.hasDangerousPermissions(strategy));
+        Assert.assertNull("Dangerous permission report should be empty", PermissionHelper.reportDangerousPermissions(strategy));
         
         assertHasPermission("admin", PluginManager.CONFIGURE_UPDATECENTER);
         assertHasPermission("admin", PluginManager.UPLOAD_PLUGINS);
@@ -93,8 +92,8 @@ public class DangerousPermissionsTest {
         assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
         
-        String report = DangerousPermissionHelper.reportDangerousPermissions(strategy);
-        Assert.assertTrue("There should be dangerous permissions detected", DangerousPermissionHelper.hasDangerousPermissions(strategy));
+        String report = PermissionHelper.reportDangerousPermissions(strategy);
+        Assert.assertTrue("There should be dangerous permissions detected", PermissionHelper.hasDangerousPermissions(strategy));
         Assert.assertNotNull("Dangerous permission report should be not empty", report);
         assertThat(report, containsString(hudson.model.Hudson.RUN_SCRIPTS.toString()));
         assertThat(report, containsString(PluginManager.CONFIGURE_UPDATECENTER.toString()));
@@ -124,8 +123,8 @@ public class DangerousPermissionsTest {
             assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
             RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
 
-            String report = DangerousPermissionHelper.reportDangerousPermissions(strategy);
-            Assert.assertTrue("There should be dangerous permissions detected", DangerousPermissionHelper.hasDangerousPermissions(strategy));
+            String report = PermissionHelper.reportDangerousPermissions(strategy);
+            Assert.assertTrue("There should be dangerous permissions detected", PermissionHelper.hasDangerousPermissions(strategy));
             Assert.assertNotNull("Dangerous permission report should be not empty", report);
             assertThat(report, containsString(hudson.model.Hudson.RUN_SCRIPTS.toString()));
             assertThat(report, containsString(PluginManager.CONFIGURE_UPDATECENTER.toString()));
@@ -163,8 +162,8 @@ public class DangerousPermissionsTest {
             assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
             RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
 
-            String report = DangerousPermissionHelper.reportDangerousPermissions(strategy);
-            Assert.assertTrue("There should be dangerous permissions detected", DangerousPermissionHelper.hasDangerousPermissions(strategy));
+            String report = PermissionHelper.reportDangerousPermissions(strategy);
+            Assert.assertTrue("There should be dangerous permissions detected", PermissionHelper.hasDangerousPermissions(strategy));
             Assert.assertNotNull("Dangerous permission report should be not empty", report);
             assertThat(report, containsString(hudson.model.Hudson.RUN_SCRIPTS.toString()));
             assertThat(report, containsString(PluginManager.CONFIGURE_UPDATECENTER.toString()));
@@ -200,8 +199,8 @@ public class DangerousPermissionsTest {
         assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
         
-        Assert.assertFalse("There should be no dangerous permissions detected", DangerousPermissionHelper.hasDangerousPermissions(strategy));
-        Assert.assertNull("Dangerous permission report should be empty", DangerousPermissionHelper.reportDangerousPermissions(strategy));
+        Assert.assertFalse("There should be no dangerous permissions detected", PermissionHelper.hasDangerousPermissions(strategy));
+        Assert.assertNull("Dangerous permission report should be empty", PermissionHelper.reportDangerousPermissions(strategy));
         
         // Ensure that admin gets the permissions
         assertHasPermission("admin", PluginManager.CONFIGURE_UPDATECENTER);

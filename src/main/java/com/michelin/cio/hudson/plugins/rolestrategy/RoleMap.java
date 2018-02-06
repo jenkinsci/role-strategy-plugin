@@ -26,29 +26,24 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.MapMaker;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.PluginManager;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,12 +55,9 @@ import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.Settings;
-import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
-import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHelper;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
 
 /**
@@ -91,16 +83,21 @@ public class RoleMap {
     this.grantedRoles = new TreeMap<Role, Set<String>>();
   }
 
-  RoleMap(SortedMap<Role,Set<String>> grantedRoles) {
-    this.grantedRoles = grantedRoles;
-  }
+    /**
+     * Constructor.
+     * @param grantedRoles Roles to be granted.
+     */
+    @DataBoundConstructor
+    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
+        this.grantedRoles = grantedRoles;
+    }
 
   /**
    * Check if the given sid has the provided {@link Permission}.
    * @return True if the sid's granted permission
    */
   private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
-    if (DangerousPermissionHelper.isDangerous(p)) {
+    if (PermissionHelper.isDangerous(p)) {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
       p = Jenkins.ADMINISTER;
     }

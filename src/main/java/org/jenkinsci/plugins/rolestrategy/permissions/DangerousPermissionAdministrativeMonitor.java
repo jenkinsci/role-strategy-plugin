@@ -59,7 +59,7 @@ public class DangerousPermissionAdministrativeMonitor extends AdministrativeMoni
             return false;
         }
         
-        final String report = DangerousPermissionHelper.reportDangerousPermissions(roleStrategy);
+        final String report = PermissionHelper.reportDangerousPermissions(roleStrategy);
         return report != null;
     }
 
@@ -75,7 +75,7 @@ public class DangerousPermissionAdministrativeMonitor extends AdministrativeMoni
             // Disabled, nothing to do here
             return null;
         }
-        return DangerousPermissionHelper.reportDangerousPermissions(roleStrategy);
+        return PermissionHelper.reportDangerousPermissions(roleStrategy);
     }
     
     @CheckForNull
