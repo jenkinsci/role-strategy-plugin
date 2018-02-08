@@ -58,8 +58,6 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             // The current user
             String userName = Jenkins.getAuthentication().getName().trim();
-            LOGGER.debug("Current username " + userName);
-
             /*
              * In Jenkins it seems there is a bug. If you only have the Job
              * Create Permission (and do not have the Global Create Permission),
@@ -101,7 +99,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
                 // The user has only Global Project Permission, he does not need
                 // to respect a pattern
             } else if (hasGlobalPermissions) {
-                LOGGER.debug("The user: " + userName + " has only global permissions ");
+                LOGGER.debug("The user: " + userName + " has only global permissions.");
                 matches = true;
             }
 
@@ -135,12 +133,9 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         for (SortedMap.Entry<Role, Set<String>> userPerRole : roles.entrySet()) {
             role = userPerRole.getKey();
             if (role.hasPermission(permission) && roles.get(role).contains(userName)) {
-                LOGGER.debug("The user " + userName + " has the permission " + permission + " from the role " + role);
                 return true;
             }
         }
-        LOGGER.debug("The user " + userName + " does not have the permission " + permission);
-
         return false;
     }
 
