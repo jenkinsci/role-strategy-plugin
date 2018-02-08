@@ -53,7 +53,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     public void checkName(String name) throws Failure {
         boolean matches = false;
         ArrayList<String> badList = new ArrayList<String>();
-        AuthorizationStrategy auth = Jenkins.getInstance().getAuthorizationStrategy();
+        AuthorizationStrategy auth = Jenkins.getActiveInstance().getAuthorizationStrategy();
         if (auth instanceof RoleBasedAuthorizationStrategy) {
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             // The current user
@@ -151,7 +151,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
     @Override
     public DescriptorImpl getDescriptor() {
-        return (DescriptorImpl) Jenkins.getInstance().getDescriptor(RoleBasedProjectNamingStrategy.class);
+        return (DescriptorImpl) Jenkins.getActiveInstance().getDescriptor(RoleBasedProjectNamingStrategy.class);
     }
 
     @Extension
