@@ -57,8 +57,8 @@
               <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
-                  <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-                    <td width="*">                     
+                  <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p, attrs.showDangerous)}">
+                    <td width="*">                   
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>
@@ -77,6 +77,8 @@
               <img src="${imagesURL}/48x48/fingerprint.gif" alt="${it.displayName}" />
               ${it.displayName}
             </h1>
+
+            <j:set var="hasDangerous" value="${it.strategy.descriptor.hasDangerousPermissions()}"/>
 
             <f:section title="${%Global roles}">
               <f:rowSet name="globalRoles">

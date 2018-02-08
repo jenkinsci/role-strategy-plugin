@@ -43,7 +43,7 @@
         <j:forEach var="g" items="${slaveGroups}">
           <j:set var="cnt" value="${0}" />
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p, hasDangerous)}">
               <j:set var="cnt" value="${cnt+1}"/>
             </j:if>
           </j:forEach>
@@ -58,7 +58,7 @@
       <tr class="caption-row">
         <j:forEach var="g" items="${slaveGroups}">
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p, hasDangerous)}">
               <th class="pane" tooltip="${p.description}">
                 ${p.name}
               </th>
@@ -69,13 +69,13 @@
       <j:set var="nbSlaveRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"/>
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"  showDangerous="${hasDangerous}"/>
         </tr>
         <j:set var="nbSlaveRoles" value="${nbSlaveRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${false}" type="${it.strategy.SLAVE}"/>
+        <local:roleRow role="${null}" global="${false}" type="${it.strategy.SLAVE}" showDangerous="${hasDangerous}"/>
       </tr>
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
       <j:if test="${nbSlaveRoles ge 20}">
@@ -89,7 +89,7 @@
           </td>
           <j:forEach var="g" items="${slaveGroups}">
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p, hasDangerous)}">
                 <th class="pane" tooltip="${p.description}">
                   ${p.name}
                 </th>
@@ -101,7 +101,7 @@
           <j:forEach var="g" items="${slaveGroups}">
             <j:set var="cnt" value="${0}" />
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p, hasDangerous)}">
                 <j:set var="cnt" value="${cnt+1}"/>
               </j:if>
             </j:forEach>
