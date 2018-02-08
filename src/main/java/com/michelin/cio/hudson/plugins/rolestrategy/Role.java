@@ -29,6 +29,8 @@ import hudson.security.Permission;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.commons.collections.CollectionUtils;
 
 /** 
@@ -37,6 +39,8 @@ import org.apache.commons.collections.CollectionUtils;
  */
 public final class Role implements Comparable {
   public static final String GLOBAL_ROLE_PATTERN = ".*";
+
+  private static final Logger LOGGER = Logger.getLogger(Role.class.getName());  
       
   /**
    * Name of the role.
@@ -52,6 +56,8 @@ public final class Role implements Comparable {
    * {@link Permission}s hold by the role.
    */
   private final Set < Permission > permissions = new HashSet < Permission > ();
+
+  private transient Integer cachedHashCode = null;
 
   /**
    * Constructor for a global role with no pattern (which is then defaulted to
@@ -76,12 +82,19 @@ public final class Role implements Comparable {
   /**
    * @param name The role name
    * @param pattern The pattern matching {@link AccessControlled} objects names
-   * @param permissions The {@link Permission}s associated to the role
+   * @param permissions The {@link Permission}s associated to the role.
+   *                    {@code null} permissions will be ignored.
    */
   Role(String name, Pattern pattern, Set < Permission > permissions) {
     this.name = name;
     this.pattern = pattern;
-    this.permissions.addAll(permissions);
+    for(Permission perm : permissions) {
+        if(perm == null ){
+           LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
+        } else {
+            this.permissions.add(perm);
+        }
+    }
   }
 
   /**
@@ -143,6 +156,13 @@ public final class Role implements Comparable {
 
     @Override
     public int hashCode() {
+        if (cachedHashCode == null) {
+            cachedHashCode = _hashCode();
+        }
+        return cachedHashCode;
+    }
+
+    private int _hashCode() {
         int hash = 7;
         hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
         hash = 53 * hash + (this.pattern != null ? this.pattern.hashCode() : 0);

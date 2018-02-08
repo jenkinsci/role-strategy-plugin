@@ -36,7 +36,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrate
  * jobs. In fact, the "New View" link to create a job is not even displayed.
  * 
  * */
-public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implements Serializable {
+public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implements Serializable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RoleBasedProjectNamingStrategy.class);
 
@@ -61,7 +61,7 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
             LOGGER.debug("Current username " + userName);
 
             /*
-             * In jenkins it seems there is a bug. If you only have the Job
+             * In Jenkins it seems there is a bug. If you only have the Job
              * Create Permission (and do not have the Global Create Permission),
              * you actually cannot create a job because the button 'New Item'
              * does not appear. So a user needs both to create a job.
@@ -74,7 +74,6 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
             boolean hasProjectPermissions = hasProjectPermission(userName, Item.CREATE, rbas);
             if (hasGlobalPermissions && hasProjectPermissions) {
                 LOGGER.debug("The user: " + userName + " has global and project permissions");
-
                 // Get all the project roles
                 final SortedMap<Role, Set<String>> projectRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
                 Role userRole = null;
@@ -93,6 +92,7 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
                                 LOGGER.info("The project name " + name + " does not respect " + namePattern + " of the role " + userRole.getName());
                                 badList.add(namePattern);
                             }
+
                         }
                     }
 
@@ -109,8 +109,8 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
                 String error;
                 if (badList != null && !badList.isEmpty()) {
                     // TODO beatify long outputs?
-                    LOGGER.error("The name: " + name + " project does not match the pattern(s) " + toString(badList));
-                    error = jenkins.model.Messages.Hudson_JobNameConventionNotApplyed(name, toString(badList));
+                    LOGGER.error("The name: " + name + " project does not match the pattern(s) " + StringUtils.join(badList.toArray()));
+                    error = jenkins.model.Messages.Hudson_JobNameConventionNotApplyed(name, StringUtils.join(badList.toArray()));
                 }
                 else {
                     LOGGER.error("The user:" + userName + " does not have create permission.");
@@ -121,27 +121,12 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
         }
     }
 
-    private String toString(ArrayList<String> badList) {
-        String toReturn = "";
-        for (int i = 0; i < badList.size(); i++) {
-            if (i == 0) {
-                toReturn += badList.get(i);
-            } else {
-                toReturn += " or " + badList.get(i);
-
-            }
-        }
-        return toReturn;
-    }
 
     private boolean hasGlobalPermission(String userName, Permission permission, RoleBasedAuthorizationStrategy rbas) {
-        LOGGER.debug("Check the global permission of the user " + userName + " " + rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));
-
         return hasPermission(userName, permission, rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));
     }
 
     private boolean hasProjectPermission(String userName, Permission permission, RoleBasedAuthorizationStrategy rbas) {
-        LOGGER.debug("Check the project permission of the user " + userName + " " + rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT));
         return hasPermission(userName, permission, rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT));
     }
 
@@ -154,7 +139,7 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
                 return true;
             }
         }
-        LOGGER.debug("The user " + userName + " doesn not have the permission " + permission);
+        LOGGER.debug("The user " + userName + " does not have the permission " + permission);
 
         return false;
     }
@@ -167,7 +152,6 @@ public final class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy 
     @Override
     public DescriptorImpl getDescriptor() {
         return (DescriptorImpl) Jenkins.getInstance().getDescriptor(RoleBasedProjectNamingStrategy.class);
-
     }
 
     @Extension

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node {
    def mvnHome
    stage('Preparation') { // for display purposes
@@ -42,3 +43,7 @@ node {
     failFast: false
   
 }
+=======
+// Builds a module using https://github.com/jenkins-infra/pipeline-library
+buildPlugin()
+>>>>>>> refs/remotes/origin/master
