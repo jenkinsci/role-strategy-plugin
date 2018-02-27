@@ -424,7 +424,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to get all groups/users with their role in globalRoles
-     * Example: curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=globalRoles
+     * Example: curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=projectRoles
      *
      * @param type (globalRoles by default, projectRoles, slaveRoles)
      *
@@ -444,6 +444,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return json;
     }
 
+    
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
