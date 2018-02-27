@@ -428,7 +428,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      *
      * @param type (globalRoles by default, projectRoles, slaveRoles)
      *
-     * @since 2.8.0
+     * @since 2.6.0
      */
     @Restricted(NoExternalUse.class)
     public JSONObject doGetAllRoles(@QueryParameter(fixEmpty = true) String type) {
