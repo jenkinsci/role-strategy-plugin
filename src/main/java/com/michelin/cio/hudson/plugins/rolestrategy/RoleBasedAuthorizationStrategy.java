@@ -424,24 +424,25 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to get all groups/users with their role in globalRoles
-     * Example: curl -X localhost:8080/role-strategy/strategy/getAllRoles
+     * Example: curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=globalRoles
      *
-     * @throws IOException in case data fails
-     * @since 2.6.0
+     * @param type (globalRoles by default, projectRoles, slaveRoles)
+     *
+     * @since 2.8.0
      */
     @Restricted(NoExternalUse.class)
-    public void doGetAllRoles(StaplerRequest req, StaplerResponse rsp) throws IOException {
+    public JSONObject doGetAllRoles(@QueryParameter(fixEmpty = true) String type) {
         checkAdminPerm();
-        req.setCharacterEncoding("UTF-8");
-        OutputStream os = rsp.getOutputStream();
         JSONObject json = new JSONObject();
         RoleMap roleMap = this.grantedRoles.get(GLOBAL);
+        if (type != null) {
+            roleMap = this.grantedRoles.get(type);
+        }
         for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
           json.put(grantedRole.getKey().getName(), grantedRole.getValue());
         }
-        os.write(json.toString().getBytes("UTF-8"));
+        return json;
     }
-
 
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
