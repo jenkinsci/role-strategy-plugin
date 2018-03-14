@@ -54,7 +54,6 @@ import javax.servlet.ServletException;
 
 import hudson.util.VersionNumber;
 
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -76,6 +75,7 @@ import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -423,7 +423,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * API method to get all groups/users with their role in globalRoles
+     * API method to get all groups/users with their role in any role type
      * Example: curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=projectRoles
      *
      * @param type (globalRoles by default, projectRoles, slaveRoles)
@@ -431,17 +431,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @since 2.6.0
      */
     @Restricted(NoExternalUse.class)
-    public JSONObject doGetAllRoles(@QueryParameter(fixEmpty = true) String type) {
+    public void doGetAllRoles(@QueryParameter(fixEmpty = true) String type) throws IOException {
         checkAdminPerm();
-        JSONObject json = new JSONObject();
+        JSONObject responseJson = new JSONObject();
         RoleMap roleMap = this.grantedRoles.get(GLOBAL);
         if (type != null) {
             roleMap = this.grantedRoles.get(type);
         }
         for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
-          json.put(grantedRole.getKey().getName(), grantedRole.getValue());
+            responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
         }
-        return json;
+        Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
+        responseJson.write(Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest()));
     }
 
     
