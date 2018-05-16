@@ -72,6 +72,13 @@
             <version>2.2</version>
         </dependency>
         <dependency>
+            <groupId>io.jenkins</groupId>
+            <artifactId>configuration-as-code</artifactId>
+            <version>1.0-20180516.160229-4</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-junit</artifactId>
             <version>2.0.0.0</version>
