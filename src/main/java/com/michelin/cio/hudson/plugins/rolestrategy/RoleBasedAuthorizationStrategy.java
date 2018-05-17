@@ -279,7 +279,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                           @QueryParameter(required = true) String permissionIds,
                           @QueryParameter(required = true) String overwrite,
                           @QueryParameter(required = false) String pattern) throws IOException {
-        Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
+        checkAdminPerm();
 
         boolean overwriteb = Boolean.parseBoolean(overwrite);
         String pttrn = ".*";
