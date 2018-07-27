@@ -441,8 +441,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         if (type != null) {
             roleMap = this.grantedRoles.get(type);
         }
-        for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
-            responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
+        if (roleMap != null) {
+            for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+                responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
+            }
         }
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
         responseJson.write(Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest()));
