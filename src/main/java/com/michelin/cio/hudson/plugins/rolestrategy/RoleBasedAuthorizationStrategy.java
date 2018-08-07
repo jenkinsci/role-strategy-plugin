@@ -54,6 +54,7 @@ import javax.servlet.ServletException;
 
 import hudson.util.VersionNumber;
 
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -447,7 +448,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             }
         }
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
-        responseJson.write(Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest()));
+        Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+        responseJson.write(writer);
+        writer.close();
     }
 
     
