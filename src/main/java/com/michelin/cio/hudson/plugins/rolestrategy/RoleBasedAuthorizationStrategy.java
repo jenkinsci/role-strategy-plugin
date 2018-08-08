@@ -311,6 +311,41 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
+     * API method to get role.
+     * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getRole
+     * ?type=globalRoles&roleName=admin'}
+     *
+     * @param type (globalRoles, projectRoles, slaveRoles)
+     * @param roleName name of role (single, no list)
+     * @throws IOException
+     */
+    @Restricted(NoExternalUse.class)
+    public void doGetRole(@QueryParameter(required = true) String type,
+                          @QueryParameter(required = true) String roleName) throws IOException{
+        checkAdminPerm();
+        JSONObject responseJson = new JSONObject();
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null){
+            Role role = roleMap.getRole(roleName);
+            if (role != null){
+                Set<Permission> permissions = role.getPermissions();
+                Map<String,Boolean> permissionsMap = new HashMap<String, Boolean>();
+                for (Permission permission : permissions) {
+                    permissionsMap.put(permission.getId(),permission.getEnabled());
+                }
+                responseJson.put("permissionIds",permissionsMap);
+                if (type.equals(RoleBasedAuthorizationStrategy.PROJECT)){
+                    responseJson.put("pattern",role.getPattern().pattern());
+                }
+            }
+        }
+        Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
+        Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+        responseJson.write(writer);
+        writer.close();
+    }
+
+    /**
      * API method to remove roles.
      * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
      * roleNames=ADM,DEV"}
