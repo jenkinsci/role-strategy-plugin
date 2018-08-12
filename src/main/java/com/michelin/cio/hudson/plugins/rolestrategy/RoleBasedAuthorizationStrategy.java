@@ -317,7 +317,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      *
      * @param type (globalRoles, projectRoles, slaveRoles)
      * @param roleName name of role (single, no list)
-     * @throws IOException
+     * @throws IOException In case write response failed
+     * @since 2.8.3
      */
     @Restricted(NoExternalUse.class)
     public void doGetRole(@QueryParameter(required = true) String type,
@@ -334,7 +335,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                     permissionsMap.put(permission.getId(),permission.getEnabled());
                 }
                 responseJson.put("permissionIds",permissionsMap);
-                if (type.equals(RoleBasedAuthorizationStrategy.PROJECT)){
+                if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)){
                     responseJson.put("pattern",role.getPattern().pattern());
                 }
             }
