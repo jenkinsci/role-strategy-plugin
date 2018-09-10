@@ -223,11 +223,8 @@ public final class Role implements Comparable {
         }
         return true;
     }
-  public String toString() {
-        StringBuilder bldr = new StringBuilder("Role:");
-        bldr.append(name);
-        bldr.append(':');
-        bldr.append(pattern);
-        return bldr.toString();
-  }
+
+    public String toString() {
+        return String.format("Role:%s:%s", name, pattern);
+    }
 }
