@@ -56,7 +56,12 @@
               <td class="left-most">${title}</td>
               <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
                 <td width="*">
-                  <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
+                  <j:if test="${attrs.sid == null}">
+                    <f:checkbox name="[${r.key.name}]" checked="false"/>
+                  </j:if>
+                  <j:if test="${attrs.sid != null}">
+                    <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
+                  </j:if>
                 </td>
               </j:forEach>
               <td class="stop">
