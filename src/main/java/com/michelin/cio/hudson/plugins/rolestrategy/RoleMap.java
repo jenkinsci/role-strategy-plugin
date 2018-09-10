@@ -78,8 +78,10 @@ public class RoleMap {
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
 
+  private final transient boolean caseInsensitiveUser;
 
-  RoleMap() {
+  RoleMap(boolean caseInsensitiveUser) {
+    this.caseInsensitiveUser = caseInsensitiveUser;
     this.grantedRoles = new TreeMap<Role, Set<String>>();
   }
 
@@ -88,7 +90,8 @@ public class RoleMap {
      * @param grantedRoles Roles to be granted.
      */
     @DataBoundConstructor
-    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
+    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles, boolean caseInsensitiveUser) {
+        this.caseInsensitiveUser = caseInsensitiveUser;
         this.grantedRoles = grantedRoles;
     }
 
@@ -170,7 +173,7 @@ public class RoleMap {
    */
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
-      this.grantedRoles.put(role, new TreeSet<String>(String.CASE_INSENSITIVE_ORDER));
+      this.grantedRoles.put(role, caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>());
     }
   }
 
@@ -304,7 +307,7 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    TreeSet<String> sids = caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>();
     for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
       sids.addAll(entry.getValue());
     }
@@ -342,7 +345,7 @@ public class RoleMap {
     for (Role role : roles) {
       roleMap.put(role, this.grantedRoles.get(role));
     }
-    return new RoleMap(roleMap);
+    return new RoleMap(roleMap, caseInsensitiveUser);
   }
 
   /**

@@ -94,9 +94,19 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String MACRO_USER  = "userMacros";
   
   private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
-  
+      
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles;
+
+  private boolean caseInsensitiveUser = true;
+
+  public final boolean isCaseInsensitiveUser() {
+    return this.caseInsensitiveUser;
+  }
+
+  public final void setCaseInsensitiveUser(boolean caseInsensitiveUser) {
+    this.caseInsensitiveUser = caseInsensitiveUser;
+  }
 
   public RoleBasedAuthorizationStrategy() {
       this.grantedRoles = new HashMap<>();
@@ -213,7 +223,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
     else {
       // Create it if it doesn't exist
-      map = new RoleMap();
+      map = new RoleMap(caseInsensitiveUser);
       grantedRoles.put(type, map);
     }
     return map;
@@ -240,7 +250,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap.addRole(role);
     } else {
       // Create the RoleMap if it doesnt exist
-      roleMap = new RoleMap();
+      roleMap = new RoleMap(caseInsensitiveUser);
       roleMap.addRole(role);
       grantedRoles.put(type, roleMap);
     }
@@ -473,6 +483,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
+
+        writer.startNode("caseInsensitiveUser");
+        writer.setValue(Boolean.toString(strategy.isCaseInsensitiveUser()));
+        writer.endNode();
         
         // Role maps
         Map<String, RoleMap> maps = strategy.getRoleMaps();
@@ -517,11 +531,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         
         while(reader.hasMoreChildren()) {
           reader.moveDown();
-
-          // roleMaps
-          if(reader.getNodeName().equals("roleMap")) {
+          if(reader.getNodeName().equals("caseInsensitiveUser")) {
+              boolean caseInsensitiveUser = Boolean.valueOf(reader.getValue());
+              strategy.setCaseInsensitiveUser(caseInsensitiveUser);
+          } else if(reader.getNodeName().equals("roleMap")) {
+            // roleMaps
             String type = reader.getAttribute("type");
-            RoleMap map = new RoleMap();
+            RoleMap map = new RoleMap(strategy.isCaseInsensitiveUser());
             while(reader.hasMoreChildren()) {
               reader.moveDown();
               String name = reader.getAttribute("name");
@@ -652,6 +668,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       
       if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
+
+        boolean caseInsensitiveUser = json.getBoolean("caseInsensitiveUser");
+        strategy.setCaseInsensitiveUser(caseInsensitiveUser);
+      
         Map<String, RoleMap> maps = strategy.getRoleMaps();
 
         for (Map.Entry<String, RoleMap> map : maps.entrySet()) {        
