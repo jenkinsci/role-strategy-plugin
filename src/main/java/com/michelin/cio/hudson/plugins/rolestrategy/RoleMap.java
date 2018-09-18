@@ -48,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
@@ -79,8 +80,26 @@ public class RoleMap {
           .build();
 
   private final transient boolean caseInsensitiveUser;
-
-  RoleMap(boolean caseInsensitiveUser) {
+  
+    /**
+     * Constructor.
+     * @param copy RoleMap to copy. 
+     * @param caseInsensitiveUser this will determinte the comparator for the ids
+     */
+  public RoleMap(RoleMap copy, boolean caseInsensitiveUser) {
+    LOGGER.log(Level.FINE, "RoleMap() caseInsensitiveUser " + caseInsensitiveUser);
+    this.caseInsensitiveUser = caseInsensitiveUser;
+    this.grantedRoles = new TreeMap<Role, Set<String>>();
+    copy.grantedRoles.forEach((k, v) -> this.grantedRoles.put(k, sidTreeSet(v)));
+    LOGGER.log(Level.FINE, "RoleMap() copy " + copy+ " grantedRoles "+this.grantedRoles);
+  }
+  
+    /**
+     * Constructor.
+     * @param caseInsensitiveUser this will determinte the comparator for the ids
+     */
+  public RoleMap(boolean caseInsensitiveUser) {
+    LOGGER.log(Level.FINE, "RoleMap() caseInsensitiveUser " + caseInsensitiveUser);
     this.caseInsensitiveUser = caseInsensitiveUser;
     this.grantedRoles = new TreeMap<Role, Set<String>>();
   }
@@ -88,9 +107,12 @@ public class RoleMap {
     /**
      * Constructor.
      * @param grantedRoles Roles to be granted.
+     * @param caseInsensitiveUser this will determinte the comparator for the ids
      */
     @DataBoundConstructor
     public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles, boolean caseInsensitiveUser) {
+        LOGGER.log(Level.FINE, "RoleMap() caseInsensitiveUser " + caseInsensitiveUser);
+        LOGGER.log(Level.FINE, "RoleMap() grantedRoles" + grantedRoles);
         this.caseInsensitiveUser = caseInsensitiveUser;
         this.grantedRoles = grantedRoles;
     }
@@ -106,7 +128,8 @@ public class RoleMap {
     }
 
     for(Role role : getRolesHavingPermission(p)) {
-        
+        final TreeSet<String> users = (TreeSet<String>)this.grantedRoles.get(role);
+        LOGGER.log(Level.FINE, "hasPermission sid: "+sid+" comparator: "+users.comparator()+" users: "+users+" role: "+role);
         if(this.grantedRoles.get(role).contains(sid)) {
             // Handle roles macro
             if (Macro.isMacro(role)) {
@@ -167,13 +190,21 @@ public class RoleMap {
     return new AclImpl(roleType, controlledItem);
   }
 
+  public Set<String> sidTreeSet( Set<String> set) {
+      TreeSet<String> newset = caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>();
+      newset.addAll(set);
+      return newset;
+  } 
+  public TreeSet<String> sidTreeSet() {
+      return caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>();
+  } 
   /**
    * Add the given role to this {@link RoleMap}.
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
-      this.grantedRoles.put(role, caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>());
+      this.grantedRoles.put(role, sidTreeSet());
     }
   }
 
@@ -307,7 +338,7 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>();
+    TreeSet<String> sids = sidTreeSet();
     for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
       sids.addAll(entry.getValue());
     }
@@ -454,4 +485,11 @@ public class RoleMap {
      */
     abstract public void perform(Role current);
   }
+ 
+  public String toString() {
+      return String.format("RoleMap:%s:%s", caseInsensitiveUser, grantedRoles.entrySet().stream()
+                    .map(e -> String.format("%s=%s:%s", e.getKey(), ((TreeSet)e.getValue()).comparator(), e.getValue()) )
+                    .collect(Collectors.joining(", ")));
+  }
+
 }

@@ -76,10 +76,6 @@
 
           <f:form method="post" name="config" action="assignSubmit">
 
-          <f:entry title="${%Case Insensitive User IDs}" help="${rootURL}/plugin/role-strategy/help/help-case-insensitive-user.html">
-            <f:checkbox field="caseInsensitiveUser" checked="${it.strategy.isCaseInsensitiveUser()}" />
-          </f:entry>
-
             <h1>
                 <img src="${imagesURL}/48x48/user.gif" alt="${it.assignRolesName}" />
                 ${it.assignRolesName}
