@@ -21,9 +21,10 @@
   - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   - THE SOFTWARE.
   -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
           <f:entry title="${%Case Insensitive User IDs}" help="${rootURL}/plugin/role-strategy/help/help-case-insensitive-user.html">
             <f:checkbox field="caseInsensitiveUser" checked="${it.strategy.isCaseInsensitiveUser()}" />
