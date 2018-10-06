@@ -52,8 +52,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
-import hudson.util.VersionNumber;
-
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -614,7 +612,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @CheckForNull
     public static RoleBasedAuthorizationStrategy getInstance() {
-        final Jenkins jenkins = Jenkins.getInstance();
+        final Jenkins jenkins = Jenkins.getInstanceOrNull();
         final AuthorizationStrategy authStrategy= jenkins != null ? jenkins.getAuthorizationStrategy() : null;
         if (authStrategy instanceof RoleBasedAuthorizationStrategy) {
             return (RoleBasedAuthorizationStrategy)authStrategy;
@@ -645,9 +643,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     /**
      * Control job create using {@link org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy}.
      * @since 2.2.0
+     * @deprecated Always available since 1.566
      */
+    @Deprecated
     public static boolean isCreateAllowed(){
-        return Jenkins.getVersion().isNewerThan(new VersionNumber("1.566"));
+        return true;
     }
 
   /**
@@ -921,7 +921,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return p.getEnabled();
       }
       else if (type.equals(PROJECT)) {
-        return p == Item.CREATE && isCreateAllowed() && p.getEnabled() || p != Item.CREATE && p.getEnabled();
+        return p == Item.CREATE && p.getEnabled() || p != Item.CREATE && p.getEnabled();
       }
       else if (type.equals(SLAVE)) {
           return p!=Computer.CREATE && p.getEnabled();
