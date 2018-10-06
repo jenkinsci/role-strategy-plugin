@@ -67,7 +67,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             String error;
             if (badList != null && !badList.isEmpty())
                 //TODO beatify long outputs?
-                error = jenkins.model.Messages.Hudson_JobNameConventionNotApplyed(name, badList.toString());
+                error = Messages.RoleBasedProjectNamingStrategy_JobNameConventionNotApplyed(name, badList.toString());
             else
                 error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();
             throw new Failure(error);
@@ -84,10 +84,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
         @Override
         public String getDisplayName() {
-            String name = Messages.RoleBasedAuthorizationStrategy_DisplayName();
-            if (!RoleBasedAuthorizationStrategy.isCreateAllowed())
-                name += " (<font color=\"red\">(Require >1.565 core)</font>";
-            return name;
+            return Messages.RoleBasedAuthorizationStrategy_DisplayName();
         }
 
     }
