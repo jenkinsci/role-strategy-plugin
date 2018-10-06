@@ -338,6 +338,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)){
                     responseJson.put("pattern",role.getPattern().pattern());
                 }
+                Map<Role,Set<String>> grantedRoleMap = roleMap.getGrantedRoles();
+                responseJson.put("sids", grantedRoleMap.get(role));
             }
         }
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
