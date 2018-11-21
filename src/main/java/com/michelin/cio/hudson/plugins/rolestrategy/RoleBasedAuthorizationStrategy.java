@@ -52,8 +52,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
-import hudson.util.VersionNumber;
-
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -341,6 +339,44 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
+     * API method to get role.
+     * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getRole
+     * ?type=globalRoles&roleName=admin'}
+     *
+     * @param type (globalRoles, projectRoles, slaveRoles)
+     * @param roleName name of role (single, no list)
+     * @throws IOException In case write response failed
+     * @since 2.8.3
+     */
+    @Restricted(NoExternalUse.class)
+    public void doGetRole(@QueryParameter(required = true) String type,
+                          @QueryParameter(required = true) String roleName) throws IOException{
+        checkAdminPerm();
+        JSONObject responseJson = new JSONObject();
+        RoleMap roleMap = this.grantedRoles.get(type);
+        if (roleMap != null){
+            Role role = roleMap.getRole(roleName);
+            if (role != null){
+                Set<Permission> permissions = role.getPermissions();
+                Map<String,Boolean> permissionsMap = new HashMap<String, Boolean>();
+                for (Permission permission : permissions) {
+                    permissionsMap.put(permission.getId(),permission.getEnabled());
+                }
+                responseJson.put("permissionIds",permissionsMap);
+                if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)){
+                    responseJson.put("pattern",role.getPattern().pattern());
+                }
+                Map<Role,Set<String>> grantedRoleMap = roleMap.getGrantedRoles();
+                responseJson.put("sids", grantedRoleMap.get(role));
+            }
+        }
+        Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
+        Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+        responseJson.write(writer);
+        writer.close();
+    }
+
+    /**
      * API method to remove roles.
      * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
      * roleNames=ADM,DEV"}
@@ -614,7 +650,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @CheckForNull
     public static RoleBasedAuthorizationStrategy getInstance() {
-        final Jenkins jenkins = Jenkins.getInstance();
+        final Jenkins jenkins = Jenkins.getInstanceOrNull();
         final AuthorizationStrategy authStrategy= jenkins != null ? jenkins.getAuthorizationStrategy() : null;
         if (authStrategy instanceof RoleBasedAuthorizationStrategy) {
             return (RoleBasedAuthorizationStrategy)authStrategy;
@@ -645,9 +681,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     /**
      * Control job create using {@link org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy}.
      * @since 2.2.0
+     * @deprecated Always available since 1.566
      */
+    @Deprecated
     public static boolean isCreateAllowed(){
-        return Jenkins.getVersion().isNewerThan(new VersionNumber("1.566"));
+        return true;
     }
 
   /**
@@ -933,7 +971,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return p.getEnabled();
       }
       else if (type.equals(PROJECT)) {
-        return p == Item.CREATE && isCreateAllowed() && p.getEnabled() || p != Item.CREATE && p.getEnabled();
+        return p == Item.CREATE && p.getEnabled() || p != Item.CREATE && p.getEnabled();
       }
       else if (type.equals(SLAVE)) {
           return p!=Computer.CREATE && p.getEnabled();
