@@ -44,6 +44,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -80,7 +82,7 @@ public class RoleMap {
 
 
   RoleMap() {
-    this.grantedRoles = new TreeMap<Role, Set<String>>();
+    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
     /**
@@ -89,7 +91,7 @@ public class RoleMap {
      */
     @DataBoundConstructor
     public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
-        this.grantedRoles = grantedRoles;
+        this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
     }
 
   /**
@@ -169,9 +171,10 @@ public class RoleMap {
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
-    if (this.getRole(role.getName()) == null) {
-      this.grantedRoles.put(role, new HashSet<String>());
-    }
+      if (this.getRole(role.getName()) == null) {
+          this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
+      }
+
   }
 
   /**
