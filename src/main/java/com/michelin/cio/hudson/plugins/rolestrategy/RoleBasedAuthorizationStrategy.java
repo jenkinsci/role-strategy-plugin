@@ -526,9 +526,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
               writer.startNode("permissions");
               for (Permission permission : role.getPermissions()) {
-                writer.startNode("permission");
-                writer.setValue(permission.getId());
-                writer.endNode();
+               if(permission!=null) {
+				  writer.startNode("permission");
+				  writer.setValue(permission.getId());
+				  writer.endNode();
+				}
+			   else
+			   	throw new NullPointerException("Cannot process the permissions as they have been incorrectly configured in the script");
               }
               writer.endNode();
 
