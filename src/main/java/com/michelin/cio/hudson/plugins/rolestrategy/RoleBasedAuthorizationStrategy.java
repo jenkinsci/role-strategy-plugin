@@ -292,7 +292,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         Set<Permission> permissionSet = new HashSet<>();
         for (String p : permissionList) {
-            permissionSet.add(Permission.fromId(p));
+        	if(Permission.fromId(p)==null)
+        		throw new NullPointerException("Null permission was discovered with respect to id="+p+" role name="+roleName+" role type="+type);
+        	else
+            	permissionSet.add(Permission.fromId(p));
         }
         Role role = new Role(roleName, pttrn, permissionSet);
         if (overwriteb) {
@@ -526,14 +529,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
               writer.startNode("permissions");
               for (Permission permission : role.getPermissions()) {
-               if(permission!=null) {
-				  writer.startNode("permission");
-				  writer.setValue(permission.getId());
-				  writer.endNode();
-				}
-			   else{
-			   	throw new NullPointerException("Cannot process the permissions as they have been incorrectly configured in the script");
-			   }
+                writer.startNode("permission");
+                writer.setValue(permission.getId());
+                writer.endNode();
               }
               writer.endNode();
 
