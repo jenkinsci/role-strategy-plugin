@@ -292,10 +292,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         Set<Permission> permissionSet = new HashSet<>();
         for (String p : permissionList) {
-        	if(Permission.fromId(p)==null)
+          String temp=Permission.fromId(p);
+        	if(temp==null)
         		throw new NullPointerException("Null permission was discovered with respect to id="+p+" role name="+roleName+" role type="+type);
         	else
-            	permissionSet.add(Permission.fromId(p));
+            	permissionSet.add(temp);
         }
         Role role = new Role(roleName, pttrn, permissionSet);
         if (overwriteb) {
