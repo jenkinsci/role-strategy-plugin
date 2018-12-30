@@ -292,7 +292,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         Set<Permission> permissionSet = new HashSet<>();
         for (String p : permissionList) {
-            permissionSet.add(Permission.fromId(p));
+            Permission temp=Permission.fromId(p);
+            if (temp == null) {
+                throw new IOException("Cannot find permission for id=" + p + ", role name=" + roleName + " role type=" + type);
+            } else {
+                permissionSet.add(temp);
+            }
         }
         Role role = new Role(roleName, pttrn, permissionSet);
         if (overwriteb) {
