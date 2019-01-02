@@ -158,8 +158,9 @@
           copy.removeAttribute("style");
 
           var child = copy.childNodes[1];
+          var doubleQuote = '"';
           child.innerHTML = name;
-          child.next().innerHTML = pattern;
+          child.next().innerHTML = doubleQuote + pattern + doubleQuote;
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
