@@ -49,7 +49,7 @@
               <td class="left-most">${title}</td>
               <j:if test="${!attrs.global}">
                 <td width="*" class="in-place-edit">
-                  "${h.escape(attrs.role.pattern.toString())}"
+                  &quot;${h.escape(attrs.role.pattern.toString())}&quot;
                   <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
               </j:if>
