@@ -34,6 +34,7 @@ import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
+import hudson.model.Job;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
@@ -391,6 +393,25 @@ public class RoleMap {
     };
 
     return roles;
+  }
+
+    /**
+     * Get all job names matching the given pattern
+     * @param pattern Pattern to match against
+     * @return List of matching job names
+     */
+  public static List<String> getMatchingJobNames(Pattern pattern) {
+      List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
+      List<String> matchingJobNames = new ArrayList<>();
+
+      for(Job job : jobs) {
+          Matcher m = pattern.matcher(job.getDisplayName());
+          if(m.matches()) {
+              matchingJobNames.add(job.getDisplayName());
+          }
+      }
+
+      return matchingJobNames;
   }
 
   /**

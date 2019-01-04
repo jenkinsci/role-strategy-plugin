@@ -63,6 +63,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -494,6 +495,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         writer.close();
     }
 
+    /**
+     * API method to get a list of jobs matching a pattern
+     * Example: curl -X GET localhost:8080/role-strategy/strategy/getMatchingJobs?pattern=^staging.*
+     *
+     * @param pattern
+     * @throws IOException
+     */
+    @Restricted(NoExternalUse.class)
+    public void doGetMatchingJobs(@QueryParameter(required = true) String pattern) throws IOException {
+        List<String> matchingJobs = RoleMap.getMatchingJobNames(Pattern.compile(pattern));
+        JSONObject responseJson = new JSONObject();
+        responseJson.put("matchingJobs", matchingJobs);
+        Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+        responseJson.write(writer);
+        writer.close();
+    }
     
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
