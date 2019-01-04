@@ -36,3 +36,7 @@
 .highlighted {
   background-color: #FFF9C9;
 }
+
+#matchingJobsForPattern ul {
+  list-style: none;
+}

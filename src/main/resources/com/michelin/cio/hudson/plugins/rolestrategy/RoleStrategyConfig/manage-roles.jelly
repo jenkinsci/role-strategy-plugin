@@ -33,7 +33,16 @@
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
+          <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+          <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js" />
+          <script type="text/javascript">
+            <!--To avoid conflicts with other instances of jQuery in the namespace-->
+            $.noConflict();
+          </script>
+          <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
+          integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
+          crossorigin="anonymous" />
 
           <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
@@ -49,7 +58,13 @@
               <td class="left-most">${title}</td>
               <j:if test="${!attrs.global}">
                 <td width="*" class="in-place-edit">
-                  &quot;${h.escape(attrs.role.pattern.toString())}&quot;
+                  <!--Make the pattern cell a link for project roles-->
+                  <j:if test="${attrs.project}">
+                    <a href="#" class="patternAnchor">&quot;${h.escape(attrs.role.pattern.toString())}&quot;</a>
+                  </j:if>
+                  <j:if test="${!attrs.project}">
+                    &quot;${h.escape(attrs.role.pattern.toString())}&quot;
+                  </j:if>
                   <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
               </j:if>
