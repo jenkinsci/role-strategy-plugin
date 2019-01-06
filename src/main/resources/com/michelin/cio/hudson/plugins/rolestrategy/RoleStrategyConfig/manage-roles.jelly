@@ -35,14 +35,22 @@
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
-          <script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js" />
           <script type="text/javascript">
-            <!--To avoid conflicts with other instances of jQuery in the namespace-->
-            $.noConflict();
+              <!--Fix for dialog widget's incompatibility with the included version of jQuery UI->
+            jQuery.browser = {};
+            (function () {
+                jQuery.browser.msie = false;
+                jQuery.browser.version = 0;
+                if (navigator.userAgent.match(/MSIE ([0-9]+)\./)) {
+                    jQuery.browser.msie = true;
+                    jQuery.browser.version = RegExp.$1;
+                }
+            })();
+
+            jQuery.curCSS = function(element, prop, val) {
+              return jQuery(element).css(prop, val);
+            };
           </script>
-          <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
-          integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
-          crossorigin="anonymous" />
 
           <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>

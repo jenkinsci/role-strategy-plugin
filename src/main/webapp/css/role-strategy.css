@@ -40,3 +40,8 @@
 #matchingJobsForPattern ul {
   list-style: none;
 }
+
+.matchingJobsDialog {
+  top: 50vh !important;
+  left: 50vw !important;
+}
