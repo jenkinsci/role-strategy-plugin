@@ -408,7 +408,6 @@ public class RoleMap {
       Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
       List<String> matchingJobNames = new ArrayList<>();
 
-
       while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
           Job job = jobs.next();
           Matcher m = pattern.matcher(job.getDisplayName());
