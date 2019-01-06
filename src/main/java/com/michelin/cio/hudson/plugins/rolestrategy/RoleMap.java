@@ -30,13 +30,24 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
 import hudson.model.Job;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -388,15 +399,18 @@ public class RoleMap {
   }
 
     /**
-     * Get all job names matching the given pattern
+     * Get all job names matching the given pattern, viewable to the requesting user
      * @param pattern Pattern to match against
+     * @param maxJobs Max matching jobs to look for
      * @return List of matching job names
      */
-  public static List<String> getMatchingJobNames(Pattern pattern) {
-      List<Job> jobs = Jenkins.getInstance().getAllItems(Job.class);
+  public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
+      Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
       List<String> matchingJobNames = new ArrayList<>();
 
-      for(Job job : jobs) {
+
+      while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
+          Job job = jobs.next();
           Matcher m = pattern.matcher(job.getDisplayName());
           if(m.matches()) {
               matchingJobNames.add(job.getDisplayName());
