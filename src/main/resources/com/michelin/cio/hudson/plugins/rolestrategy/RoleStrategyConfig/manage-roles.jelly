@@ -36,7 +36,6 @@
           <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
           <script type="text/javascript">
-              <!--Fix for dialog widget's incompatibility with the included version of jQuery UI->
             jQuery.browser = {};
             (function () {
                 jQuery.browser.msie = false;
@@ -66,7 +65,6 @@
               <td class="left-most">${title}</td>
               <j:if test="${!attrs.global}">
                 <td width="*" class="in-place-edit">
-                  <!--Make the pattern cell a link for project roles-->
                   <j:if test="${attrs.project}">
                     <a href="#" class="patternAnchor">&quot;${h.escape(attrs.role.pattern.toString())}&quot;</a>
                   </j:if>
@@ -118,8 +116,6 @@
                 <f:block><st:include page="manage-slave-roles.jelly" 
                                     optional="true" />
                 </f:block>
-                <!--  class="com.synopsys.arc.jenkins.plugins.rolestrategy.RoleStrategyConfigExtension"
-                                    -->
               </f:rowSet>
             </f:section>
             <f:block>
