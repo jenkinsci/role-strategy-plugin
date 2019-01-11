@@ -410,9 +410,11 @@ public class RoleMap {
 
       while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
           Job job = jobs.next();
-          Matcher m = pattern.matcher(job.getDisplayName());
+          String jobName = job.getFullName();
+
+          Matcher m = pattern.matcher(jobName);
           if(m.matches()) {
-              matchingJobNames.add(job.getDisplayName());
+              matchingJobNames.add(jobName);
           }
       }
 

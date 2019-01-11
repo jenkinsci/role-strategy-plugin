@@ -33,7 +33,6 @@
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
-          <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
           <script type="text/javascript">
             jQuery.browser = {};
