@@ -205,7 +205,7 @@ public class RoleMap {
    */
   public void clearSidsForRole(Role role) {
     if (this.hasRole(role)) {
-      this.grantedRoles.get(role).clear();
+      this.grantedRoles.put(role, new HashSet<>());
     }
   }
   
