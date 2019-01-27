@@ -371,27 +371,6 @@ public class RoleMap {
   }
 
   /**
-   * Get all the roles whose pattern match the given pattern.
-   * @param namePattern The string to match
-   * @return A Set of Roles matching the given name
-   */
-  private Set<Role> getMatchingRoles(final String namePattern) {
-    final Set<Role> roles = new HashSet<>();
-
-    // Walk through the roles and only add the Roles whose pattern matches the given string
-    new RoleWalker() {
-      public void perform(Role current) {
-        Matcher m = current.getPattern().matcher(namePattern);
-        if (m.matches()) {
-          roles.add(current);
-        }
-      }
-    };
-
-    return roles;
-  }
-
-  /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
   private final class AclImpl extends SidACL {
