@@ -368,33 +368,6 @@ public class RoleMap {
   }
 
   /**
-   * Get all the roles holding the given permission.
-   * @param permission The permission you want to check
-   * @return A Set of Roles holding the given permission
-   */
-  private Set<Role> getRolesHavingPermission(final Permission permission) {
-    final Set<Role> roles = new HashSet<>();
-    final Set<Permission> permissions = new HashSet<>();
-    Permission p = permission;
-
-    // Get the implying permissions
-    for (; p!=null; p=p.impliedBy) {
-      permissions.add(p);
-    }
-    // Walk through the roles, and only add the roles having the given permission,
-    // or a permission implying the given permission
-    new RoleWalker() {
-      public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
-          roles.add(current);
-        }
-      }
-    };
-
-    return roles;
-  }
-
-  /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
   private final class AclImpl extends SidACL {
