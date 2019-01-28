@@ -339,8 +339,7 @@ public class RoleMap {
 
   public RoleMap newMatchingRoleMap(String namePattern) {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
-    new RoleWalker()
-    {
+    new RoleWalker() {
       public void perform(Role current) {
         Matcher m = current.getPattern().matcher(namePattern);
           if (m.matches()) {
