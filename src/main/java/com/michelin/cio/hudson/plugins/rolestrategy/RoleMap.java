@@ -342,9 +342,9 @@ public class RoleMap {
     new RoleWalker() {
       public void perform(Role current) {
         Matcher m = current.getPattern().matcher(namePattern);
-          if (m.matches()) {
-            roleMap.put(current, grantedRoles.get(current));
-          }
+        if (m.matches()) {
+          roleMap.put(current, grantedRoles.get(current));
+        }
       }
     };
     return new RoleMap(roleMap);
