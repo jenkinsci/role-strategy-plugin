@@ -34,7 +34,18 @@ import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
+import jenkins.model.Jenkins;
+import org.acegisecurity.BadCredentialsException;
+import org.acegisecurity.GrantedAuthority;
+import org.acegisecurity.acls.sid.Sid;
+import org.acegisecurity.userdetails.UserDetails;
+import org.jenkinsci.plugins.rolestrategy.Settings;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.springframework.dao.DataAccessException;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,17 +59,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import jenkins.model.Jenkins;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.acls.sid.Sid;
-import org.acegisecurity.userdetails.UserDetails;
-import org.jenkinsci.plugins.rolestrategy.Settings;
-import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.springframework.dao.DataAccessException;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating
@@ -336,12 +336,17 @@ public class RoleMap {
    * @param namePattern The pattern to match
    * @return A {@link RoleMap} containing only {@link Role}s matching the given name
    */
+
   public RoleMap newMatchingRoleMap(String namePattern) {
-    Set<Role> roles = getMatchingRoles(namePattern);
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
-    for (Role role : roles) {
-      roleMap.put(role, this.grantedRoles.get(role));
-    }
+    new RoleWalker() {
+      public void perform(Role current) {
+        Matcher m = current.getPattern().matcher(namePattern);
+        if (m.matches()) {
+          roleMap.put(current, grantedRoles.get(current));
+        }
+      }
+    };
     return new RoleMap(roleMap);
   }
 
@@ -364,27 +369,6 @@ public class RoleMap {
     new RoleWalker() {
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
-          roles.add(current);
-        }
-      }
-    };
-
-    return roles;
-  }
-
-  /**
-   * Get all the roles whose pattern match the given pattern.
-   * @param namePattern The string to match
-   * @return A Set of Roles matching the given name
-   */
-  private Set<Role> getMatchingRoles(final String namePattern) {
-    final Set<Role> roles = new HashSet<>();
-
-    // Walk through the roles and only add the Roles whose pattern matches the given string
-    new RoleWalker() {
-      public void perform(Role current) {
-        Matcher m = current.getPattern().matcher(namePattern);
-        if (m.matches()) {
           roles.add(current);
         }
       }
