@@ -124,39 +124,36 @@ public class RoleMap {
                   return ;
                 }
               }
-            } // Default handling
-            else {
-              temp[0] =true;
-              return ;
-            }
-          } 
-          else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
-            try {
-              UserDetails userDetails = cache.getIfPresent(sid);
-              if (userDetails == null) {
-                userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
-                cache.put(sid, userDetails);
+            } else {
+                temp[0] =true;
+                return ;
               }
-              for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-                if (grantedAuthority.getAuthority().equals(current.getName())) {
-                  temp[0] =true;
-                  return ;
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+              try {
+                UserDetails userDetails = cache.getIfPresent(sid);
+                if (userDetails == null) {
+                  userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
+                  cache.put(sid, userDetails);
                 }
+                for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+                  if (grantedAuthority.getAuthority().equals(current.getName())) {
+                    temp[0] =true;
+                    return ;
+                  }
+                }
+              } 
+              catch (BadCredentialsException e) {
+                LOGGER.log(Level.FINE, "Bad credentials", e);
               }
-            } 
-            catch (BadCredentialsException e) {
-              LOGGER.log(Level.FINE, "Bad credentials", e);
+              catch (DataAccessException e) {
+                LOGGER.log(Level.FINE, "failed to access the data", e);
+              }
+              catch (RuntimeException ex) {
+                // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
+                // So we want to ensure this method does not fail horribly in such case
+                LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
+              }
             }
-            catch (DataAccessException e) {
-              LOGGER.log(Level.FINE, "failed to access the data", e);
-            }
-            catch (RuntimeException ex) {
-              // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
-              // So we want to ensure this method does not fail horribly in such case
-              LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
-            }
-          }
-
         }
       }
     };
