@@ -111,6 +111,7 @@ public class RoleMap {
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
     new RoleWalker() {
+      @Override
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
           if(grantedRoles.get(current).contains(sid)) {
@@ -354,6 +355,7 @@ public class RoleMap {
   public RoleMap newMatchingRoleMap(String namePattern) {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     new RoleWalker() {
+      @Override
       public void perform(Role current) {
         Matcher m = current.getPattern().matcher(namePattern);
         if (m.matches()) {
