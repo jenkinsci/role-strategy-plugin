@@ -110,54 +110,54 @@ public class RoleMap {
     }
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
-    new RoleWalker() {
-      @Override
-      public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
-          if(grantedRoles.get(current).contains(sid)) {
-            // Handle roles macro
-            if (Macro.isMacro(current)) {
-              Macro macro = RoleMacroExtension.getMacro(current.getName());
-              if (macro != null) {
-                RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
-                  temp[0] =true;
-                  return ;
-                }
-              }
-            } else {
+    Set<Role> roles = RoleMap.this.getRoles();
+    Iterator<Role> iter = roles.iterator();
+    while (iter.hasNext()) {
+      Role current =iter.next();
+      if (current.hasAnyPermission(permissions)) {
+        if(grantedRoles.get(current).contains(sid)) {
+          // Handle roles macro
+          if (Macro.isMacro(current)) {
+            Macro macro = RoleMacroExtension.getMacro(current.getName());
+            if (macro != null) {
+              RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
+              if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
                 temp[0] =true;
-                return ;
-              }
-          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
-              try {
-                UserDetails userDetails = cache.getIfPresent(sid);
-                if (userDetails == null) {
-                  userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
-                  cache.put(sid, userDetails);
-                }
-                for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-                  if (grantedAuthority.getAuthority().equals(current.getName())) {
-                    temp[0] =true;
-                    return ;
-                  }
-                }
-              } 
-              catch (BadCredentialsException e) {
-                LOGGER.log(Level.FINE, "Bad credentials", e);
-              }
-              catch (DataAccessException e) {
-                LOGGER.log(Level.FINE, "failed to access the data", e);
-              }
-              catch (RuntimeException ex) {
-                // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
-                // So we want to ensure this method does not fail horribly in such case
-                LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
+                break;
               }
             }
+          } else {
+            temp[0] =true;
+            break;
+          }
+        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+          try {
+            UserDetails userDetails = cache.getIfPresent(sid);
+            if (userDetails == null) {
+              userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
+              cache.put(sid, userDetails);
+            }
+            for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+              if (grantedAuthority.getAuthority().equals(current.getName())) {
+                temp[0] =true;
+                break;
+              }
+            }
+          }
+          catch (BadCredentialsException e) {
+            LOGGER.log(Level.FINE, "Bad credentials", e);
+          }
+          catch (DataAccessException e) {
+            LOGGER.log(Level.FINE, "failed to access the data", e);
+          }
+          catch (RuntimeException ex) {
+            // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
+            // So we want to ensure this method does not fail horribly in such case
+            LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
+          }
         }
       }
-    };
+    }
     return temp[0];
   }
 
