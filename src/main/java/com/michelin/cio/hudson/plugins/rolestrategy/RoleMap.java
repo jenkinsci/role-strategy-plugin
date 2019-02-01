@@ -410,7 +410,7 @@ public class RoleMap {
     RoleWalker() {
       walk();
     }
-    boolean abort=false;
+    boolean abort=false;// should be set to true from within perform to break the loop
     /**
      * Walk through the roles.
      */
@@ -419,8 +419,9 @@ public class RoleMap {
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
-        if(abort)
+        if(abort) {
           break;
+        }
       }
     }
 
