@@ -70,8 +70,10 @@ public class RoleMap {
   /** Map associating each {@link Role} with the concerned {@link User}s/groups. */
   private final SortedMap <Role,Set<String>> grantedRoles;
 
+  Set<Role> roles = RoleMap.this.getRoles();
+
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
-  
+
   private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
           .softValues()
           .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
@@ -83,14 +85,14 @@ public class RoleMap {
     this.grantedRoles = new TreeMap<Role, Set<String>>();
   }
 
-    /**
-     * Constructor.
-     * @param grantedRoles Roles to be granted.
-     */
-    @DataBoundConstructor
-    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
-        this.grantedRoles = grantedRoles;
-    }
+  /**
+   * Constructor.
+   * @param grantedRoles Roles to be granted.
+   */
+  @DataBoundConstructor
+  public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
+    this.grantedRoles = grantedRoles;
+  }
 
   /**
    * Check if the given sid has the provided {@link Permission}.
@@ -110,60 +112,62 @@ public class RoleMap {
     }
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
-    Set<Role> roles = RoleMap.this.getRoles();
-    Iterator<Role> iter = roles.iterator();
-    while (iter.hasNext()) {
-      Role current =iter.next();
-      if (current.hasAnyPermission(permissions)) {
-        if(grantedRoles.get(current).contains(sid)) {
-          // Handle roles macro
-          if (Macro.isMacro(current)) {
-            Macro macro = RoleMacroExtension.getMacro(current.getName());
-            if (macro != null) {
-              RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-              if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
-                temp[0] =true;
-                break;
+    new RoleWalker() {
+      public void perform(Role current) {
+        if (current.hasAnyPermission(permissions)) {
+          if(grantedRoles.get(current).contains(sid)) {
+            // Handle roles macro
+            if (Macro.isMacro(current)) {
+              Macro macro = RoleMacroExtension.getMacro(current.getName());
+              if (macro != null) {
+                RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
+                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
+                  temp[0] =true;
+                  this.abort=true;
+                  return ;
+                }
+              }
+            } else {
+              temp[0] =true;
+              this.abort=true;
+              return ;
+            }
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+            try {
+              UserDetails userDetails = cache.getIfPresent(sid);
+              if (userDetails == null) {
+                userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
+                cache.put(sid, userDetails);
+              }
+              for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+                if (grantedAuthority.getAuthority().equals(current.getName())) {
+                  temp[0] =true;
+                  this.abort=true;
+                  return ;
+                }
               }
             }
-          } else {
-            temp[0] =true;
-            break;
-          }
-        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
-          try {
-            UserDetails userDetails = cache.getIfPresent(sid);
-            if (userDetails == null) {
-              userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
-              cache.put(sid, userDetails);
+            catch (BadCredentialsException e) {
+              LOGGER.log(Level.FINE, "Bad credentials", e);
             }
-            for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-              if (grantedAuthority.getAuthority().equals(current.getName())) {
-                temp[0] =true;
-                break;
-              }
+            catch (DataAccessException e) {
+              LOGGER.log(Level.FINE, "failed to access the data", e);
             }
-          }
-          catch (BadCredentialsException e) {
-            LOGGER.log(Level.FINE, "Bad credentials", e);
-          }
-          catch (DataAccessException e) {
-            LOGGER.log(Level.FINE, "failed to access the data", e);
-          }
-          catch (RuntimeException ex) {
-            // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
-            // So we want to ensure this method does not fail horribly in such case
-            LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
+            catch (RuntimeException ex) {
+              // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
+              // So we want to ensure this method does not fail horribly in such case
+              LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
+            }
           }
         }
       }
-    }
+    };
     return temp[0];
   }
 
   /**
    * Check if the {@link RoleMap} contains the given {@link Role}.
-   * 
+   *
    * @param role Role to be checked
    * @return {@code true} if the {@link RoleMap} contains the given role
    */
@@ -223,19 +227,19 @@ public class RoleMap {
       this.grantedRoles.get(role).clear();
     }
   }
-  
+
   /**
    * Clear all the roles associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
    */
   public void deleteSids(String sid){
-     for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
-         Role role = entry.getKey();
-         Set<String> sids = entry.getValue();
-         if (sids.contains(sid)) {
-             sids.remove(sid);
-         }
-     }
+    for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
+      Role role = entry.getKey();
+      Set<String> sids = entry.getValue();
+      if (sids.contains(sid)) {
+        sids.remove(sid);
+      }
+    }
   }
 
   /**
@@ -245,13 +249,13 @@ public class RoleMap {
    * @since 2.6.0
    */
   public void deleteRoleSid(String sid, String rolename){
-     for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
-         Role role = entry.getKey();
-         if (role.getName().equals(rolename)) {
-            unAssignRole(role, sid);
-            break;
-         }
-     }
+    for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
+      Role role = entry.getKey();
+      if (role.getName().equals(rolename)) {
+        unAssignRole(role, sid);
+        break;
+      }
+    }
   }
 
   /**
@@ -279,15 +283,15 @@ public class RoleMap {
     }
     return null;
   }
-  
+
   /**
    * Removes a {@link Role}
    * @param role The {@link Role} which shall be removed
    */
   public void removeRole(Role role){
-      this.grantedRoles.remove(role);
+    this.grantedRoles.remove(role);
   }
-  
+
 
   /**
    * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
@@ -355,7 +359,6 @@ public class RoleMap {
   public RoleMap newMatchingRoleMap(String namePattern) {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     new RoleWalker() {
-      @Override
       public void perform(Role current) {
         Matcher m = current.getPattern().matcher(namePattern);
         if (m.matches()) {
@@ -375,10 +378,10 @@ public class RoleMap {
     RoleType roleType;
 
     public AclImpl(RoleType roleType, AccessControlled item) {
-        this.item = item;
-        this.roleType = roleType;
+      this.item = item;
+      this.roleType = roleType;
     }
-      
+
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
@@ -397,6 +400,7 @@ public class RoleMap {
     }
   }
 
+
   /**
    * A class to walk through all the {@link RoleMap}'s roles and perform an
    * action on each one.
@@ -406,16 +410,17 @@ public class RoleMap {
     RoleWalker() {
       walk();
     }
-
+    boolean abort=false;
     /**
      * Walk through the roles.
      */
     public void walk() {
-      Set<Role> roles = RoleMap.this.getRoles();
       Iterator<Role> iter = roles.iterator();
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
+        if(abort)
+          break;
       }
     }
 
