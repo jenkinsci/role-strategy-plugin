@@ -1,5 +1,4 @@
 import hudson.model.User
-import hudson.model.UserProperty
 import jenkins.model.Jenkins
 import jenkins.security.QueueItemAuthenticatorConfiguration
 import org.jenkinsci.plugins.authorizeproject.GlobalQueueItemAuthenticator

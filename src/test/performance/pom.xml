@@ -6,8 +6,8 @@
   
   <groupId>io.jenkins.systemgroovy.demo</groupId>
   <artifactId>parent</artifactId>
-  <name>Jenkins Configuration-as-Code Demo</name>
-  <description>Parent POM of the Jenkins Configuration-as-code Demo</description>
+  <name>role-strategy-plugin-slowdown-config</name>
+  <description>Configuration to view slowdown in the plugin</description>
   <version>1.0-SNAPSHOT</version>
 
   <developers>
