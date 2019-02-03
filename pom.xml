@@ -83,13 +83,11 @@
             <version>6.1.0</version>
             <scope>test</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.jenkins-ci.plugins/jquery -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>jquery</artifactId>
             <version>1.11.2-0</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/org.jenkins-ci.plugins/jquery-ui -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>jquery-ui</artifactId>
