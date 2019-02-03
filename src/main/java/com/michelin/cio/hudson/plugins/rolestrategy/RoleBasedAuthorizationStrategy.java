@@ -66,6 +66,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -97,11 +98,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final Map <String, RoleMap> grantedRoles;
 
   public RoleBasedAuthorizationStrategy() {
-      this.grantedRoles = new HashMap<>();
+      this.grantedRoles = new CopyOnWriteMap.Hash<>();
   }
 
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
-      this.grantedRoles = new HashMap<>(grantedRoles);
+      this.grantedRoles = new CopyOnWriteMap.Hash<>(grantedRoles);
   }
 
     /**
