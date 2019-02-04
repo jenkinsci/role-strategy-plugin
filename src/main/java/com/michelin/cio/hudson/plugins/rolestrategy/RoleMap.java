@@ -434,8 +434,9 @@ public class RoleMap {
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
-        if(a)
-          break;
+        if(a) {
+            break;
+        }
       }
     }
 
@@ -444,5 +445,5 @@ public class RoleMap {
      */
     abstract public void perform(Role current);
   }
-  Set<Role> roles = RoleMap.this.getRoles();
+  private Set<Role> roles = RoleMap.this.getRoles();
 }
