@@ -430,6 +430,7 @@ public class RoleMap {
      * Walk through the roles.
      */
     public void walk() {
+      Set<Role> roles = RoleMap.this.getRoles();
       Iterator<Role> iter = roles.iterator();
       while (iter.hasNext()) {
         Role current = iter.next();
@@ -445,5 +446,4 @@ public class RoleMap {
      */
     abstract public void perform(Role current);
   }
-  private Set<Role> roles = RoleMap.this.getRoles();
 }
