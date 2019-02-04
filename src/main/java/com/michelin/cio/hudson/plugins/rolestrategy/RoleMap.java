@@ -416,20 +416,26 @@ public class RoleMap {
    * action on each one.
    */
   private abstract class RoleWalker {
-
+    boolean a=false;
     RoleWalker() {
       walk();
+    }
+    /**to abort or break the loop*/
+    public void abort()
+    {
+      this.a=true;
     }
 
     /**
      * Walk through the roles.
      */
     public void walk() {
-      Set<Role> roles = RoleMap.this.getRoles();
       Iterator<Role> iter = roles.iterator();
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
+        if(a)
+          break;
       }
     }
 
@@ -438,4 +444,5 @@ public class RoleMap {
      */
     abstract public void perform(Role current);
   }
+  Set<Role> roles = RoleMap.this.getRoles();
 }
