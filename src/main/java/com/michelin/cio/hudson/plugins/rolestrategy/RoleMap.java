@@ -439,7 +439,7 @@ public class RoleMap {
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
-        if(a) {
+        if (a) {
             break;
         }
       }
