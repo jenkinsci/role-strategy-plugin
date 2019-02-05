@@ -66,7 +66,8 @@
       <j:set var="nbProjectRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}" showDangerous="${hasDangerous}"/>
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}"
+                         showDangerous="${hasDangerous}" project="${true}"/>
         </tr>
         <j:set var="nbProjectRoles" value="${nbProjectRoles+1}"/>
       </j:forEach>
@@ -121,7 +122,7 @@
     <f:entry>
       <input type="button" value="${%Add}" id="${id}button"/>
     </f:entry>
-    
+    <div id="matchingJobsForPattern"></div>
     <script>
       var tableHighlighter;
       (function() {
@@ -146,7 +147,6 @@
             alert("Entry for '"+name+"' already exists");
             return;
           }
-
           if(document.importNode!=null)
             copy = document.importNode(master,true);
           else
@@ -155,8 +155,11 @@
           copy.removeAttribute("style");
 
           var child = copy.childNodes[1];
+          var doubleQuote = '"';
           child.innerHTML = name;
-          child.next().innerHTML = pattern;
+          var patternString = doubleQuote + pattern + doubleQuote;
+          child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
+          bindListenerToPattern(child.next().children[0]);
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
@@ -176,8 +179,93 @@
         });
       })();
 
+      var bindListenerToPattern = function(elem) {
+        elem.addEventListener('click', showMatchingProjects);
+      }
+
+      var showMatchingProjects = function() {
+        var pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
+        var maxJobs = 10;    // Maximum jobs to search for
+        var url = 'strategy/getMatchingJobs';
+        reqParams = {
+          'pattern' : pattern,
+          'maxJobs' : maxJobs
+        }
+
+        new Ajax.Request(url, {
+          method: 'get',
+          parameters: reqParams,
+          onSuccess: function(req) {
+            var matchingJobs = JSON.parse(req.responseText).matchingJobs;
+
+            if(matchingJobs != null) {
+              showJobsModal(matchingJobs);
+            } else {
+              showErrorMessageModal();
+            }
+          },
+          onFailure: showErrorMessageModal
+        });
+      }
+
+      var showJobsModal = function(jobs) {
+        var modal = getModalDiv();
+
+        if(jobs.length > 0) {
+          var jobsList = document.createElement('ul');
+
+          for(var i = 0; i != jobs.length; i++) {
+            var item = document.createElement('li');
+            item.appendChild(document.createTextNode(jobs[i]));
+            jobsList.appendChild(item);
+          }
+          modal.appendChild(jobsList);
+        } else {
+          modal.innerHTML = '<p>No matching Projects found.</p>';
+        }
+
+        renderJobModal(modal);
+      }
+
+      var showErrorMessageModal = function() {
+        var modal = getModalDiv();
+        modal.innerHTML = '<p>Unable to fetch matching Jobs.</p>';
+        renderJobModal(modal);
+      }
+
+      var getModalDiv = function() {
+        var modal = document.getElementById('matchingJobsForPattern');
+        modal.innerHTML = '';
+        return modal;
+      }
+
+      var renderJobModal = function(modal) {
+        Q(modal).dialog('open');
+
+        // Fix misplaced text on the modal close button
+        var closeButton = document.getElementsByClassName('ui-button ui-corner-all ui-widget ui-button-icon-only ui-dialog-titlebar-close')[0];
+        if(closeButton != null) {
+          closeButton.innerText = 'X';
+          closeButton.style['font-weight'] = 'bold';
+        }
+      }
+
       Event.observe(window, 'load', function(event) {
          projecttableHighlighter = new TableHighlighter('projectRoles', 3, 2);
+
+         // Show jobs matching a pattern on click
+         var patterns = document.getElementsByClassName('patternAnchor');
+         for(var i = 0; i != patterns.length; i++) {
+           bindListenerToPattern(patterns[i]);
+         }
+
+         // Initialize the dialog which renders the matching jobs for a pattern
+         Q('#matchingJobsForPattern').dialog({
+           modal: true,
+           autoOpen: false,
+           title: 'Matching Project(s)',
+           dialogClass: 'matchingJobsDialog'
+           });
       });
 
       var deleteProjectRole = function(e) {

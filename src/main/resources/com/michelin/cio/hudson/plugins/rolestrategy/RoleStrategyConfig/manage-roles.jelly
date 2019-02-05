@@ -34,6 +34,21 @@
           <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+          <script type="text/javascript">
+            jQuery.browser = {};
+            (function () {
+                jQuery.browser.msie = false;
+                jQuery.browser.version = 0;
+                if (navigator.userAgent.match(/MSIE ([0-9]+)\./)) {
+                    jQuery.browser.msie = true;
+                    jQuery.browser.version = RegExp.$1;
+                }
+            })();
+
+            jQuery.curCSS = function(element, prop, val) {
+              return jQuery(element).css(prop, val);
+            };
+          </script>
 
           <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
@@ -49,7 +64,12 @@
               <td class="left-most">${title}</td>
               <j:if test="${!attrs.global}">
                 <td width="*" class="in-place-edit">
-                  ${h.escape(attrs.role.pattern.toString())}
+                  <j:if test="${attrs.project}">
+                    <a href="#" class="patternAnchor">&quot;${h.escape(attrs.role.pattern.toString())}&quot;</a>
+                  </j:if>
+                  <j:if test="${!attrs.project}">
+                    &quot;${h.escape(attrs.role.pattern.toString())}&quot;
+                  </j:if>
                   <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
               </j:if>
@@ -95,8 +115,6 @@
                 <f:block><st:include page="manage-slave-roles.jelly" 
                                     optional="true" />
                 </f:block>
-                <!--  class="com.synopsys.arc.jenkins.plugins.rolestrategy.RoleStrategyConfigExtension"
-                                    -->
               </f:rowSet>
             </f:section>
             <f:block>
