@@ -416,7 +416,7 @@ public class RoleMap {
    * action on each one.
    */
   private abstract class RoleWalker {
-    boolean a=false;
+    boolean shouldAbort=false;
     RoleWalker() {
       walk();
     }
@@ -425,9 +425,8 @@ public class RoleMap {
      * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
      * @since TODO 
      */
-    public void abort()
-    {
-      this.a=true;
+    public void abort() {
+      this.shouldAbort=true;
     }
 
     /**
@@ -439,7 +438,7 @@ public class RoleMap {
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
-        if (a) {
+        if (shouldAbort) {
             break;
         }
       }
