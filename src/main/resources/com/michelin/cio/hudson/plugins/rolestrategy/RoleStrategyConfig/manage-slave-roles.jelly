@@ -69,7 +69,8 @@
       <j:set var="nbSlaveRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"  showDangerous="${hasDangerous}"/>
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"
+                         showDangerous="${hasDangerous}" project="${false}"/>
         </tr>
         <j:set var="nbSlaveRoles" value="${nbSlaveRoles+1}"/>
       </j:forEach>
@@ -158,8 +159,9 @@
           copy.removeAttribute("style");
 
           var child = copy.childNodes[1];
+          var doubleQuote = '"';
           child.innerHTML = name;
-          child.next().innerHTML = pattern;
+          child.next().innerHTML = doubleQuote + pattern + doubleQuote;
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
