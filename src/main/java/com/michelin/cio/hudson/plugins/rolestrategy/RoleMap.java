@@ -420,7 +420,11 @@ public class RoleMap {
     RoleWalker() {
       walk();
     }
-    /**to abort or break the loop*/
+    /**
+     * Aborts the iterations.
+     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
+     * @since TODO 
+     */
     public void abort()
     {
       this.a=true;
