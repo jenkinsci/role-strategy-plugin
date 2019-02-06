@@ -146,8 +146,7 @@ public class RoleMap {
                   return ;
                 }
               }
-            }
-            catch (BadCredentialsException e) {
+            } catch (BadCredentialsException e) {
               LOGGER.log(Level.FINE, "Bad credentials", e);
             } catch (DataAccessException e) {
               LOGGER.log(Level.FINE, "failed to access the data", e);
