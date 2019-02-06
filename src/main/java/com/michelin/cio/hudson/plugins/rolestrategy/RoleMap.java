@@ -30,10 +30,12 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
+import hudson.model.Job;
 import jenkins.model.Jenkins;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -46,9 +48,11 @@ import org.springframework.dao.DataAccessException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -61,6 +65,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating
@@ -392,6 +397,28 @@ public class RoleMap {
     };
 
     return roles;
+  }
+  /**
+   * Get all job names matching the given pattern, viewable to the requesting user
+   * @param pattern Pattern to match against
+   * @param maxJobs Max matching jobs to look for
+   * @return List of matching job names
+   */
+  public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
+    Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
+    List<String> matchingJobNames = new ArrayList<>();
+
+    while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
+      Job job = jobs.next();
+      String jobName = job.getFullName();
+
+      Matcher m = pattern.matcher(jobName);
+      if(m.matches()) {
+        matchingJobNames.add(jobName);
+      }
+    }
+
+    return matchingJobNames;
   }
 
   /**
