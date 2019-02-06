@@ -30,14 +30,11 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
-import hudson.model.Job;
 import jenkins.model.Jenkins;
-
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
@@ -49,11 +46,9 @@ import org.springframework.dao.DataAccessException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -66,7 +61,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating
@@ -77,8 +71,6 @@ public class RoleMap {
 
   /** Map associating each {@link Role} with the concerned {@link User}s/groups. */
   private final SortedMap <Role,Set<String>> grantedRoles;
-
-  Set<Role> roles = RoleMap.this.getRoles();
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
@@ -93,25 +85,14 @@ public class RoleMap {
     this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
-<<<<<<< HEAD
-    /**
-     * Constructor.
-     * @param grantedRoles Roles to be granted.
-     */
-    @DataBoundConstructor
-    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
-        this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
-    }
-=======
   /**
    * Constructor.
    * @param grantedRoles Roles to be granted.
    */
   @DataBoundConstructor
   public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
-    this.grantedRoles = grantedRoles;
+    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
   }
->>>>>>> 32efae25d92119676a3ceba7cfc1e50eca278b04
 
   /**
    * Check if the given sid has the provided {@link Permission}.
@@ -142,13 +123,13 @@ public class RoleMap {
                 RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
                 if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
                   temp[0] =true;
-                  this.abort=true;
+                  abort();
                   return ;
                 }
               }
             } else {
               temp[0] =true;
-              this.abort=true;
+              abort();
               return ;
             }
           } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
@@ -161,7 +142,7 @@ public class RoleMap {
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
                 if (grantedAuthority.getAuthority().equals(current.getName())) {
                   temp[0] =true;
-                  this.abort=true;
+                  abort();
                   return ;
                 }
               }
@@ -207,9 +188,9 @@ public class RoleMap {
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
-      if (this.getRole(role.getName()) == null) {
-          this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
-      }
+    if (this.getRole(role.getName()) == null) {
+      this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
+    }
 
   }
 
@@ -390,8 +371,6 @@ public class RoleMap {
   }
 
   /**
-<<<<<<< HEAD
-=======
    * Get all the roles holding the given permission.
    * @param permission The permission you want to check
    * @return A Set of Roles holding the given permission
@@ -419,30 +398,6 @@ public class RoleMap {
   }
 
   /**
-   * Get all job names matching the given pattern, viewable to the requesting user
-   * @param pattern Pattern to match against
-   * @param maxJobs Max matching jobs to look for
-   * @return List of matching job names
-   */
-  public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
-      Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
-      List<String> matchingJobNames = new ArrayList<>();
-
-      while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
-          Job job = jobs.next();
-          String jobName = job.getFullName();
-
-          Matcher m = pattern.matcher(jobName);
-          if(m.matches()) {
-              matchingJobNames.add(jobName);
-          }
-      }
-
-      return matchingJobNames;
-  }
-
-  /**
->>>>>>> upstream/master
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
   private final class AclImpl extends SidACL {
@@ -473,26 +428,34 @@ public class RoleMap {
     }
   }
 
-
   /**
    * A class to walk through all the {@link RoleMap}'s roles and perform an
    * action on each one.
    */
   private abstract class RoleWalker {
-
+    boolean shouldAbort=false;
     RoleWalker() {
       walk();
     }
-    boolean abort=false;// should be set to true from within perform to break the loop
+    /**
+     * Aborts the iterations.
+     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions.
+     * @since TODO
+     */
+    public void abort() {
+      this.shouldAbort=true;
+    }
+
     /**
      * Walk through the roles.
      */
     public void walk() {
+      Set<Role> roles = RoleMap.this.getRoles();
       Iterator<Role> iter = roles.iterator();
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
-        if(abort) {
+        if (shouldAbort) {
           break;
         }
       }
