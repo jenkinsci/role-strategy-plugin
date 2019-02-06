@@ -115,7 +115,7 @@ public class RoleMap {
     new RoleWalker() {
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
-          if(grantedRoles.get(current).contains(sid)) {
+          if (grantedRoles.get(current).contains(sid)) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
@@ -149,11 +149,9 @@ public class RoleMap {
             }
             catch (BadCredentialsException e) {
               LOGGER.log(Level.FINE, "Bad credentials", e);
-            }
-            catch (DataAccessException e) {
+            } catch (DataAccessException e) {
               LOGGER.log(Level.FINE, "failed to access the data", e);
-            }
-            catch (RuntimeException ex) {
+            } catch (RuntimeException ex) {
               // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
               // So we want to ensure this method does not fail horribly in such case
               LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
