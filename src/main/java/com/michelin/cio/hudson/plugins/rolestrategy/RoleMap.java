@@ -109,35 +109,49 @@ public class RoleMap {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
       p = Jenkins.ADMINISTER;
     }
-
-    for(Role role : getRolesHavingPermission(p)) {
-        
-        if(this.grantedRoles.get(role).contains(sid)) {
+    final Set<Permission> permissions = new HashSet<>();
+    final Permission per = p;
+    final boolean[] temp = {false};
+    // Get the implying permissions
+    for (; p!=null; p=p.impliedBy) {
+      permissions.add(p);
+    }
+    // Walk through the roles, and only add the roles having the given permission,
+    // or a permission implying the given permission
+    new RoleWalker() {
+      public void perform(Role current) {
+        if (current.hasAnyPermission(permissions)) {
+          if (grantedRoles.get(current).contains(sid)) {
             // Handle roles macro
-            if (Macro.isMacro(role)) {
-                Macro macro = RoleMacroExtension.getMacro(role.getName());
-                if (macro != null) {
-                    RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                    if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
-                        return true;
-                    }
+            if (Macro.isMacro(current)) {
+              Macro macro = RoleMacroExtension.getMacro(current.getName());
+              if (macro != null) {
+                RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
+                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
+                  temp[0] =true;
+                  abort();
+                  return ;
                 }
-            } // Default handling
-            else {
-                return true;
+              }
+            } else {
+              temp[0] =true;
+              abort();
+              return ;
             }
-        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
             try {
-                UserDetails userDetails = cache.getIfPresent(sid);
-                if (userDetails == null) {
-                    userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
-                    cache.put(sid, userDetails);
+              UserDetails userDetails = cache.getIfPresent(sid);
+              if (userDetails == null) {
+                userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
+                cache.put(sid, userDetails);
+              }
+              for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+                if (grantedAuthority.getAuthority().equals(current.getName())) {
+                  temp[0] =true;
+                  abort();
+                  return ;
                 }
-                for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-                    if (grantedAuthority.getAuthority().equals(role.getName())) {
-                        return true;
-                    }
-                }
+              }
             } catch (BadCredentialsException e) {
                 LOGGER.log(Level.FINE, "Bad credentials", e);
             } catch (DataAccessException e) {
@@ -147,11 +161,11 @@ public class RoleMap {
                 // So we want to ensure this method does not fail horribly in such case
                 LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
             }
+          }
         }
-
-        // TODO: Handle users macro
-    }
-    return false;
+      }
+    };
+    return temp[0];
   }
 
   /**
@@ -408,7 +422,7 @@ public class RoleMap {
 
       return matchingJobNames;
   }
-
+   
   /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
@@ -421,7 +435,7 @@ public class RoleMap {
         this.item = item;
         this.roleType = roleType;
     }
-      
+     
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
