@@ -170,7 +170,7 @@ public class RoleMap {
 
   /**
    * Check if the {@link RoleMap} contains the given {@link Role}.
-   *
+   * 
    * @param role Role to be checked
    * @return {@code true} if the {@link RoleMap} contains the given role
    */
@@ -287,7 +287,7 @@ public class RoleMap {
     }
     return null;
   }
-
+  
   /**
    * Removes a {@link Role}
    * @param role The {@link Role} which shall be removed
@@ -422,7 +422,7 @@ public class RoleMap {
 
       return matchingJobNames;
   }
-
+   
   /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
@@ -465,8 +465,8 @@ public class RoleMap {
     }
     /**
      * Aborts the iterations.
-     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions.
-     * @since TODO
+     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
+     * @since TODO 
      */
     public void abort() {
       this.shouldAbort=true;
