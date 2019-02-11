@@ -9,7 +9,7 @@ of roles. Based on [oleg-nenashev/demo-jenkins-config-as-code](https://github.co
 Run image:
 
 ```shell
-docker run --rm --name ci-jenkins-io-dev -v maven-repo:/root/.m2 -e DEV_HOST=${CURRENT_HOST} -p 8080:8080 -p 50000:50000 onenashev/demo-jenkins-config-as-code
+docker run --rm --name ci-jenkins-io-dev -v maven-repo:/root/.m2 -e DEV_HOST=${CURRENT_HOST} -p 8080:8080 -p 50000:50000 abhyudaya/jenkins-role-strategy-slowdown-config
 ```
 
 Jenkins will need to connect to the Docker host to run agents.
@@ -30,5 +30,5 @@ you will be also able to debug initialization Groovy scripts.
 ### Building image
 
 ```shell
-docker build -t onenashev/demo-jenkins-config-as-code .
+docker build -t abhyudaya/jenkins-role-strategy-slowdown-config .
 ```
