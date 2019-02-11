@@ -92,9 +92,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String SLAVE     = "slaveRoles";
   public final static String MACRO_ROLE = "roleMacros";
   public final static String MACRO_USER  = "userMacros";
+<<<<<<< HEAD
   
   private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
   
+=======
+   
+  private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
+   
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
   private final Map <String, RoleMap> grantedRoles;
 
@@ -116,7 +122,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     return root.getACL(RoleType.Global, null);
   }
 
+<<<<<<< HEAD
   
+=======
+   
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
   /**
    * Universal function for getting ACL for different 
    * @param roleMapName Name of the role map section
@@ -134,9 +144,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
        // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
        acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL());
      }
+<<<<<<< HEAD
      return acl;   
    }
   
+=======
+     return acl;  
+   }
+     
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
    /**
    * Get the specific ACL for projects.
    * @param project The access-controlled project
@@ -156,7 +172,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public ACL getACL(Computer computer) {
        return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
     }
+<<<<<<< HEAD
   
+=======
+   
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
   /**
    * Used by the container realm.
    * @return All the sids referenced by the strategy
@@ -200,7 +220,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
     return null;
   }
+<<<<<<< HEAD
   
+=======
+   
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
   /**
    * Get the {@link RoleMap} associated to the given class.
    * @param type The object type controlled by the {@link RoleMap}
@@ -269,7 +293,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @param roleName      Name of role
      * @param permissionIds Comma separated list of IDs for given roleName
      * @param overwrite     Overwrite existing role
+<<<<<<< HEAD
      * @param pattern       Role pattern       
+=======
+     * @param pattern       Role pattern    
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
      * @throws IOException  In case saving changes fails
      * @since 2.5.0
      */
@@ -631,7 +659,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           return new RoleBasedAuthorizationStrategy();
       }
   } 
+<<<<<<< HEAD
     
+=======
+   
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
     /**
      * Retrieves instance of the strategy.
      * @return Strategy instance or {@code null} if it is disabled.
@@ -718,7 +750,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
         Map<String, RoleMap> maps = strategy.getRoleMaps();
 
+<<<<<<< HEAD
         for (Map.Entry<String, RoleMap> map : maps.entrySet()) {        
+=======
+        for (Map.Entry<String, RoleMap> map : maps.entrySet()) {    
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
           // Get roles and skip non-existent role entries (backward-comp)
           RoleMap roleMap = map.getValue();
           roleMap.clearSids();
@@ -807,7 +843,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     private void ReadRoles(JSONObject formData, String roleType,
             RoleBasedAuthorizationStrategy targetStrategy, RoleBasedAuthorizationStrategy oldStrategy)
+<<<<<<< HEAD
     {     
+=======
+    {   
+>>>>>>> 1face1cd85d37c95eccad69e96c1b525550599a2
         if (!formData.has(roleType)) {
             assert false : "Unexistent Role type " + roleType;
             return;
