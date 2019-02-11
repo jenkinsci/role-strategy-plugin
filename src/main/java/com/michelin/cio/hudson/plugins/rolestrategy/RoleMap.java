@@ -79,7 +79,7 @@ public class RoleMap {
   private final SortedMap <Role,Set<String>> grantedRoles;
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
-
+  
   private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
           .softValues()
           .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
