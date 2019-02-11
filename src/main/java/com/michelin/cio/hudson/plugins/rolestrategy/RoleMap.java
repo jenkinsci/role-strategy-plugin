@@ -231,7 +231,7 @@ public class RoleMap {
       this.grantedRoles.get(role).clear();
     }
   }
-
+  
   /**
    * Clear all the roles associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
@@ -295,7 +295,7 @@ public class RoleMap {
   public void removeRole(Role role){
       this.grantedRoles.remove(role);
   }
-
+  
 
   /**
    * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
@@ -435,7 +435,7 @@ public class RoleMap {
         this.item = item;
         this.roleType = roleType;
     }
-
+     
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
