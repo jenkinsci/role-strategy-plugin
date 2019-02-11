@@ -37,6 +37,7 @@ import hudson.security.Permission;
 import hudson.security.SidACL;
 import hudson.model.Job;
 import jenkins.model.Jenkins;
+
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
@@ -90,14 +91,14 @@ public class RoleMap {
     this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
-  /**
-   * Constructor.
-   * @param grantedRoles Roles to be granted.
-   */
-  @DataBoundConstructor
-  public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
-    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
-  }
+    /**
+     * Constructor.
+     * @param grantedRoles Roles to be granted.
+     */
+    @DataBoundConstructor
+    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
+        this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
+    }
 
   /**
    * Check if the given sid has the provided {@link Permission}.
@@ -190,9 +191,9 @@ public class RoleMap {
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
-    if (this.getRole(role.getName()) == null) {
-      this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
-    }
+      if (this.getRole(role.getName()) == null) {
+          this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
+      }
 
   }
 
@@ -236,13 +237,13 @@ public class RoleMap {
    * @param sid The sid for thwich you want to clear the {@link Role}s
    */
   public void deleteSids(String sid){
-    for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
-      Role role = entry.getKey();
-      Set<String> sids = entry.getValue();
-      if (sids.contains(sid)) {
-        sids.remove(sid);
-      }
-    }
+     for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
+         Role role = entry.getKey();
+         Set<String> sids = entry.getValue();
+         if (sids.contains(sid)) {
+             sids.remove(sid);
+         }
+     }
   }
 
   /**
@@ -252,13 +253,13 @@ public class RoleMap {
    * @since 2.6.0
    */
   public void deleteRoleSid(String sid, String rolename){
-    for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
-      Role role = entry.getKey();
-      if (role.getName().equals(rolename)) {
-        unAssignRole(role, sid);
-        break;
-      }
-    }
+     for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
+         Role role = entry.getKey();
+         if (role.getName().equals(rolename)) {
+            unAssignRole(role, sid);
+            break;
+         }
+     }
   }
 
   /**
@@ -292,7 +293,7 @@ public class RoleMap {
    * @param role The {@link Role} which shall be removed
    */
   public void removeRole(Role role){
-    this.grantedRoles.remove(role);
+      this.grantedRoles.remove(role);
   }
 
 
@@ -398,6 +399,7 @@ public class RoleMap {
 
     return roles;
   }
+
   /**
    * Get all job names matching the given pattern, viewable to the requesting user
    * @param pattern Pattern to match against
@@ -405,20 +407,20 @@ public class RoleMap {
    * @return List of matching job names
    */
   public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
-    Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
-    List<String> matchingJobNames = new ArrayList<>();
+      Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
+      List<String> matchingJobNames = new ArrayList<>();
 
-    while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
-      Job job = jobs.next();
-      String jobName = job.getFullName();
+      while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
+          Job job = jobs.next();
+          String jobName = job.getFullName();
 
-      Matcher m = pattern.matcher(jobName);
-      if(m.matches()) {
-        matchingJobNames.add(jobName);
+          Matcher m = pattern.matcher(jobName);
+          if(m.matches()) {
+              matchingJobNames.add(jobName);
+          }
       }
-    }
 
-    return matchingJobNames;
+      return matchingJobNames;
   }
 
   /**
@@ -430,8 +432,8 @@ public class RoleMap {
     RoleType roleType;
 
     public AclImpl(RoleType roleType, AccessControlled item) {
-      this.item = item;
-      this.roleType = roleType;
+        this.item = item;
+        this.roleType = roleType;
     }
 
     /**
@@ -463,8 +465,8 @@ public class RoleMap {
     }
     /**
      * Aborts the iterations.
-     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
-     * @since TODO 
+     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions.
+     * @since TODO
      */
     public void abort() {
       this.shouldAbort=true;
@@ -480,7 +482,7 @@ public class RoleMap {
         Role current = iter.next();
         perform(current);
         if (shouldAbort) {
-          break;
+            break;
         }
       }
     }
