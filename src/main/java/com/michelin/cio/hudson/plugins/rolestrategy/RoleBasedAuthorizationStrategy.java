@@ -38,6 +38,7 @@ import hudson.model.Computer;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.View;
 import hudson.scm.SCM;
@@ -150,6 +151,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     public ACL getACL(AbstractItem project) {
       return getACL(PROJECT, project.getFullName(), RoleType.Project, project);
+    }
+
+
+    @Override
+    public ACL getACL(Node node) {
+       return getACL(SLAVE, node.getNodeName(), RoleType.Slave, node);
     }
 
     @Override
