@@ -34,9 +34,11 @@ import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
+import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import hudson.model.Job;
 import jenkins.model.Jenkins;
+import jenkins.model.IdStrategy;
 
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
@@ -91,6 +93,13 @@ public class RoleMap {
     this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
+	private String userIdKey(String origSid) {
+    final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
+		final IdStrategy userIdStrategy = securityRealm.getUserIdStrategy();
+		final String sid = userIdStrategy.keyFor(origSid);
+		LOGGER.info("userIdKey "+origSid+" -> "+sid);
+    return sid;
+	}
     /**
      * Constructor.
      * @param grantedRoles Roles to be granted.
@@ -104,7 +113,9 @@ public class RoleMap {
    * Check if the given sid has the provided {@link Permission}.
    * @return True if the sid's granted permission
    */
-  private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
+  private boolean hasPermission(String origSid, Permission p, RoleType roleType, AccessControlled controlledItem) {
+		String sid = userIdKey(origSid);
+    
     if (PermissionHelper.isDangerous(p)) {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
       p = Jenkins.ADMINISTER;
@@ -202,7 +213,8 @@ public class RoleMap {
    * @param role The {@link Role} to assign the sid to
    * @param sid The sid to assign
    */
-  public void assignRole(Role role, String sid) {
+  public void assignRole(Role role, String origSid) {
+		String sid = userIdKey(origSid);
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
     }
@@ -214,7 +226,8 @@ public class RoleMap {
    * @param sid The sid to assign
    * @since 2.6.0
    */
-  public void unAssignRole(Role role, String sid) {
+  public void unAssignRole(Role role, String origSid) {
+		String sid = userIdKey(origSid);
     if (this.hasRole(role)) {
       if (this.grantedRoles.get(role).contains(sid)) {
         this.grantedRoles.get(role).remove(sid);
@@ -236,7 +249,8 @@ public class RoleMap {
    * Clear all the roles associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
    */
-  public void deleteSids(String sid){
+  public void deleteSids(String origSid) {
+		 String sid = userIdKey(origSid);
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
          Role role = entry.getKey();
          Set<String> sids = entry.getValue();
@@ -252,7 +266,8 @@ public class RoleMap {
    * @param rolename The role for thwich you want to clear the {@link Role}s
    * @since 2.6.0
    */
-  public void deleteRoleSid(String sid, String rolename){
+  public void deleteRoleSid(String origSid, String rolename){
+		String sid = userIdKey(origSid);
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
          Role role = entry.getKey();
          if (role.getName().equals(rolename)) {
