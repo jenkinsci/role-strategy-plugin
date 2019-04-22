@@ -97,7 +97,6 @@ public class RoleMap {
     final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
 		final IdStrategy userIdStrategy = securityRealm.getUserIdStrategy();
 		final String sid = userIdStrategy.keyFor(origSid);
-		LOGGER.info("userIdKey "+origSid+" -> "+sid);
     return sid;
 	}
     /**
