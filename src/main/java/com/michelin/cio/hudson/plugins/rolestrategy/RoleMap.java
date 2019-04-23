@@ -341,7 +341,7 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    TreeSet<String> sids = new TreeSet<>();
     for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
       sids.addAll(entry.getValue());
     }
