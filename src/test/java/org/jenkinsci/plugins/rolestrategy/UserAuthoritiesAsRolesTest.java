@@ -35,27 +35,10 @@ public class UserAuthoritiesAsRolesTest {
     public void disableUserAuthorities() {
         Settings.TREAT_USER_AUTHORITIES_AS_ROLES = false;
     }
-    
+
     @LocalData
     @Test public void testRoleAuthority() throws Exception {
-        j.jenkins.setSecurityRealm(new AbstractPasswordBasedSecurityRealm() {
-
-            @Override
-            protected UserDetails authenticate(String username, String password) throws AuthenticationException {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
-                return new org.acegisecurity.userdetails.User(username, "", true, true, true, true, new GrantedAuthority[] {new GrantedAuthorityImpl("USERS")});
-            }
-
-            @Override
-            public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
-                throw new UnsupportedOperationException();
-            }
-
-        });
+        j.jenkins.setSecurityRealm(new MockSecurityRealm());
 
         SecurityContext seccon = SecurityContextHolder.getContext();
         Authentication orig = seccon.getAuthentication();
@@ -65,6 +48,25 @@ public class UserAuthoritiesAsRolesTest {
         } finally {
             seccon.setAuthentication(orig);
         }
+    }
+
+    private static class MockSecurityRealm extends AbstractPasswordBasedSecurityRealm {
+
+        @Override
+        protected UserDetails authenticate(String username, String password) throws AuthenticationException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException, DataAccessException {
+            return new org.acegisecurity.userdetails.User(username, "", true, true, true, true, new GrantedAuthority[] {new GrantedAuthorityImpl("USERS")});
+        }
+
+        @Override
+        public GroupDetails loadGroupByGroupname(String groupname) throws UsernameNotFoundException, DataAccessException {
+            throw new UnsupportedOperationException();
+        }
+
     }
 
 }

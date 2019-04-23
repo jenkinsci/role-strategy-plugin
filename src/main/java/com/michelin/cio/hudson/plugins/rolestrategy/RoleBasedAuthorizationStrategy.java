@@ -52,8 +52,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
-import hudson.util.VersionNumber;
-
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,9 +63,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -99,11 +99,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final Map <String, RoleMap> grantedRoles;
 
   public RoleBasedAuthorizationStrategy() {
-      this.grantedRoles = new HashMap<>();
+      this.grantedRoles = new CopyOnWriteMap.Hash<>();
   }
 
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
-      this.grantedRoles = new HashMap<>(grantedRoles);
+      this.grantedRoles = new CopyOnWriteMap.Hash<>(grantedRoles);
   }
 
     /**
@@ -294,7 +294,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         Set<Permission> permissionSet = new HashSet<>();
         for (String p : permissionList) {
-            permissionSet.add(Permission.fromId(p));
+            Permission temp=Permission.fromId(p);
+            if (temp == null) {
+                throw new IOException("Cannot find permission for id=" + p + ", role name=" + roleName + " role type=" + type);
+            } else {
+                permissionSet.add(temp);
+            }
         }
         Role role = new Role(roleName, pttrn, permissionSet);
         if (overwriteb) {
@@ -338,6 +343,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)){
                     responseJson.put("pattern",role.getPattern().pattern());
                 }
+                Map<Role,Set<String>> grantedRoleMap = roleMap.getGrantedRoles();
+                responseJson.put("sids", grantedRoleMap.get(role));
             }
         }
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
@@ -489,6 +496,25 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         writer.close();
     }
 
+    /**
+     * API method to get a list of jobs matching a pattern
+     * Example: curl -X GET localhost:8080/role-strategy/strategy/getMatchingJobs?pattern=^staging.*
+     *
+     * @param pattern Pattern to match against
+     * @param maxJobs Maximum matching jobs to search for
+     * @throws IOException
+     */
+    @Restricted(NoExternalUse.class)
+    public void doGetMatchingJobs(@QueryParameter(required = true) String pattern,
+                                  @QueryParameter() int maxJobs) throws IOException {
+        checkAdminPerm();
+        List<String> matchingJobs = RoleMap.getMatchingJobNames(Pattern.compile(pattern), maxJobs);
+        JSONObject responseJson = new JSONObject();
+        responseJson.put("matchingJobs", matchingJobs);
+        Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+        responseJson.write(writer);
+        writer.close();
+    }
     
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
@@ -612,7 +638,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @CheckForNull
     public static RoleBasedAuthorizationStrategy getInstance() {
-        final Jenkins jenkins = Jenkins.getInstance();
+        final Jenkins jenkins = Jenkins.getInstanceOrNull();
         final AuthorizationStrategy authStrategy= jenkins != null ? jenkins.getAuthorizationStrategy() : null;
         if (authStrategy instanceof RoleBasedAuthorizationStrategy) {
             return (RoleBasedAuthorizationStrategy)authStrategy;
@@ -643,9 +669,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     /**
      * Control job create using {@link org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy}.
      * @since 2.2.0
+     * @deprecated Always available since 1.566
      */
+    @Deprecated
     public static boolean isCreateAllowed(){
-        return Jenkins.getVersion().isNewerThan(new VersionNumber("1.566"));
+        return true;
     }
 
   /**
@@ -919,7 +947,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return p.getEnabled();
       }
       else if (type.equals(PROJECT)) {
-        return p == Item.CREATE && isCreateAllowed() && p.getEnabled() || p != Item.CREATE && p.getEnabled();
+        return p == Item.CREATE && p.getEnabled() || p != Item.CREATE && p.getEnabled();
       }
       else if (type.equals(SLAVE)) {
           return p!=Computer.CREATE && p.getEnabled();

@@ -30,27 +30,16 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
+import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import hudson.model.Job;
 import jenkins.model.Jenkins;
+import jenkins.model.IdStrategy;
+
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
@@ -59,6 +48,27 @@ import org.jenkinsci.plugins.rolestrategy.Settings;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating
@@ -80,56 +90,78 @@ public class RoleMap {
 
 
   RoleMap() {
-    this.grantedRoles = new TreeMap<Role, Set<String>>();
+    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
+	private String userIdKey(String origSid) {
+    final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
+		final IdStrategy userIdStrategy = securityRealm.getUserIdStrategy();
+		final String sid = userIdStrategy.keyFor(origSid);
+    return sid;
+	}
     /**
      * Constructor.
      * @param grantedRoles Roles to be granted.
      */
     @DataBoundConstructor
     public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
-        this.grantedRoles = grantedRoles;
+        this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
     }
 
   /**
    * Check if the given sid has the provided {@link Permission}.
    * @return True if the sid's granted permission
    */
-  private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
+  private boolean hasPermission(String origSid, Permission p, RoleType roleType, AccessControlled controlledItem) {
+		String sid = userIdKey(origSid);
+    
     if (PermissionHelper.isDangerous(p)) {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
       p = Jenkins.ADMINISTER;
     }
-
-    for(Role role : getRolesHavingPermission(p)) {
-        
-        if(this.grantedRoles.get(role).contains(sid)) {
+    final Set<Permission> permissions = new HashSet<>();
+    final Permission per = p;
+    final boolean[] temp = {false};
+    // Get the implying permissions
+    for (; p!=null; p=p.impliedBy) {
+      permissions.add(p);
+    }
+    // Walk through the roles, and only add the roles having the given permission,
+    // or a permission implying the given permission
+    new RoleWalker() {
+      public void perform(Role current) {
+        if (current.hasAnyPermission(permissions)) {
+          if (grantedRoles.get(current).contains(sid)) {
             // Handle roles macro
-            if (Macro.isMacro(role)) {
-                Macro macro = RoleMacroExtension.getMacro(role.getName());
-                if (macro != null) {
-                    RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                    if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, p, roleType, controlledItem, macro)) {
-                        return true;
-                    }
+            if (Macro.isMacro(current)) {
+              Macro macro = RoleMacroExtension.getMacro(current.getName());
+              if (macro != null) {
+                RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
+                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
+                  temp[0] =true;
+                  abort();
+                  return ;
                 }
-            } // Default handling
-            else {
-                return true;
+              }
+            } else {
+              temp[0] =true;
+              abort();
+              return ;
             }
-        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
             try {
-                UserDetails userDetails = cache.getIfPresent(sid);
-                if (userDetails == null) {
-                    userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
-                    cache.put(sid, userDetails);
+              UserDetails userDetails = cache.getIfPresent(sid);
+              if (userDetails == null) {
+                userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
+                cache.put(sid, userDetails);
+              }
+              for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+                if (grantedAuthority.getAuthority().equals(current.getName())) {
+                  temp[0] =true;
+                  abort();
+                  return ;
                 }
-                for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-                    if (grantedAuthority.getAuthority().equals(role.getName())) {
-                        return true;
-                    }
-                }
+              }
             } catch (BadCredentialsException e) {
                 LOGGER.log(Level.FINE, "Bad credentials", e);
             } catch (DataAccessException e) {
@@ -139,11 +171,11 @@ public class RoleMap {
                 // So we want to ensure this method does not fail horribly in such case
                 LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
             }
+          }
         }
-
-        // TODO: Handle users macro
-    }
-    return false;
+      }
+    };
+    return temp[0];
   }
 
   /**
@@ -169,9 +201,10 @@ public class RoleMap {
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
-    if (this.getRole(role.getName()) == null) {
-      this.grantedRoles.put(role, new TreeSet<String>(String.CASE_INSENSITIVE_ORDER));
-    }
+      if (this.getRole(role.getName()) == null) {
+          this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
+      }
+
   }
 
   /**
@@ -179,7 +212,8 @@ public class RoleMap {
    * @param role The {@link Role} to assign the sid to
    * @param sid The sid to assign
    */
-  public void assignRole(Role role, String sid) {
+  public void assignRole(Role role, String origSid) {
+		String sid = userIdKey(origSid);
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
     }
@@ -191,7 +225,8 @@ public class RoleMap {
    * @param sid The sid to assign
    * @since 2.6.0
    */
-  public void unAssignRole(Role role, String sid) {
+  public void unAssignRole(Role role, String origSid) {
+		String sid = userIdKey(origSid);
     if (this.hasRole(role)) {
       if (this.grantedRoles.get(role).contains(sid)) {
         this.grantedRoles.get(role).remove(sid);
@@ -213,7 +248,8 @@ public class RoleMap {
    * Clear all the roles associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
    */
-  public void deleteSids(String sid){
+  public void deleteSids(String origSid) {
+		 String sid = userIdKey(origSid);
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
          Role role = entry.getKey();
          Set<String> sids = entry.getValue();
@@ -229,7 +265,8 @@ public class RoleMap {
    * @param rolename The role for thwich you want to clear the {@link Role}s
    * @since 2.6.0
    */
-  public void deleteRoleSid(String sid, String rolename){
+  public void deleteRoleSid(String origSid, String rolename){
+		String sid = userIdKey(origSid);
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
          Role role = entry.getKey();
          if (role.getName().equals(rolename)) {
@@ -336,12 +373,17 @@ public class RoleMap {
    * @param namePattern The pattern to match
    * @return A {@link RoleMap} containing only {@link Role}s matching the given name
    */
+
   public RoleMap newMatchingRoleMap(String namePattern) {
-    Set<Role> roles = getMatchingRoles(namePattern);
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
-    for (Role role : roles) {
-      roleMap.put(role, this.grantedRoles.get(role));
-    }
+    new RoleWalker() {
+      public void perform(Role current) {
+        Matcher m = current.getPattern().matcher(namePattern);
+        if (m.matches()) {
+          roleMap.put(current, grantedRoles.get(current));
+        }
+      }
+    };
     return new RoleMap(roleMap);
   }
 
@@ -373,26 +415,28 @@ public class RoleMap {
   }
 
   /**
-   * Get all the roles whose pattern match the given pattern.
-   * @param namePattern The string to match
-   * @return A Set of Roles matching the given name
+   * Get all job names matching the given pattern, viewable to the requesting user
+   * @param pattern Pattern to match against
+   * @param maxJobs Max matching jobs to look for
+   * @return List of matching job names
    */
-  private Set<Role> getMatchingRoles(final String namePattern) {
-    final Set<Role> roles = new HashSet<>();
+  public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
+      Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
+      List<String> matchingJobNames = new ArrayList<>();
 
-    // Walk through the roles and only add the Roles whose pattern matches the given string
-    new RoleWalker() {
-      public void perform(Role current) {
-        Matcher m = current.getPattern().matcher(namePattern);
-        if (m.matches()) {
-          roles.add(current);
-        }
+      while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
+          Job job = jobs.next();
+          String jobName = job.getFullName();
+
+          Matcher m = pattern.matcher(jobName);
+          if(m.matches()) {
+              matchingJobNames.add(jobName);
+          }
       }
-    };
 
-    return roles;
+      return matchingJobNames;
   }
-
+   
   /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
@@ -405,7 +449,7 @@ public class RoleMap {
         this.item = item;
         this.roleType = roleType;
     }
-      
+     
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
@@ -429,9 +473,17 @@ public class RoleMap {
    * action on each one.
    */
   private abstract class RoleWalker {
-
+    boolean shouldAbort=false;
     RoleWalker() {
       walk();
+    }
+    /**
+     * Aborts the iterations.
+     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
+     * @since TODO 
+     */
+    public void abort() {
+      this.shouldAbort=true;
     }
 
     /**
@@ -443,6 +495,9 @@ public class RoleMap {
       while (iter.hasNext()) {
         Role current = iter.next();
         perform(current);
+        if (shouldAbort) {
+            break;
+        }
       }
     }
 

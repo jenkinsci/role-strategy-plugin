@@ -1,11 +1,14 @@
 Role Strategy plugin
 ====================
-Copyright &copy; 2010-2011, Manufacture Française des Pneumatiques Michelin, Thomas Maurel, Romain Seguy, and other contributors. Licensed under MIT License.
+
+[![Join the chat at https://gitter.im/jenkinsci/role-strategy-plugin](https://badges.gitter.im/jenkinsci/role-strategy-plugin.svg)](https://gitter.im/jenkinsci/role-strategy-plugin?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
+Copyright &copy; 2010-2019, Manufacture Française des Pneumatiques Michelin, Thomas Maurel, Romain Seguy, and other contributors. Licensed under MIT License.
 
 
 About this plugin
 -----------------
-The Role Strategy plugin is meant to be used from [Hudson][1] or [Jenkins][2] to add a new role-based mechanism to manager users' permissions. Please take a look at [Jenkins' wiki][3] to get detailed information.
+The Role Strategy plugin is meant to be used from [Jenkins][2] to add a new role-based mechanism to manager users' permissions. Please take a look at [Jenkins' wiki][3] to get detailed information.
 
 Maintainers
 -----------
@@ -15,14 +18,8 @@ Maintainers
 
 Installation
 ------------
-The Role Strategy plugin can be installed from any Hudson or Jenkins installation connected to the Internet using the **Plugin Manager** screen.
+The Role Strategy plugin can be installed from any Jenkins installation connected to the Internet using the **Plugin Manager** screen.
 
-Source code
------------
-The initial location for the source code of this plugin was on [Jenkins' SVN repository][4]. 
-Now we use [GitHub][5] as a primary repository.
-
-[1]: http://hudson-ci.org/
 [2]: http://jenkins-ci.org/
 [3]: http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin
 [4]: https://svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/
