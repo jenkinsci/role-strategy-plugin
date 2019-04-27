@@ -68,18 +68,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import jenkins.model.Jenkins;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
-import org.acegisecurity.acls.sid.Sid;
-import org.acegisecurity.userdetails.UserDetails;
-import org.jenkinsci.plugins.rolestrategy.Settings;
-import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.springframework.dao.DataAccessException;
+import java.util.regex.Pattern;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating
@@ -99,29 +88,9 @@ public class RoleMap {
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
 
-  private final transient boolean caseInsensitiveUser;
   
-    /**
-     * Constructor.
-     * @param copy RoleMap to copy. 
-     * @param caseInsensitiveUser this will determinte the comparator for the ids
-     */
-  public RoleMap(RoleMap copy, boolean caseInsensitiveUser) {
-    LOGGER.log(Level.FINE, "RoleMap() caseInsensitiveUser " + caseInsensitiveUser);
-    this.caseInsensitiveUser = caseInsensitiveUser;
-    this.grantedRoles = new TreeMap<Role, Set<String>>();
-    copy.grantedRoles.forEach((k, v) -> this.grantedRoles.put(k, sidTreeSet(v)));
-    LOGGER.log(Level.FINE, "RoleMap() copy " + copy+ " grantedRoles "+this.grantedRoles);
-  }
-  
-    /**
-     * Constructor.
-     * @param caseInsensitiveUser this will determinte the comparator for the ids
-     */
-  public RoleMap(boolean caseInsensitiveUser) {
-    LOGGER.log(Level.FINE, "RoleMap() caseInsensitiveUser " + caseInsensitiveUser);
-    this.caseInsensitiveUser = caseInsensitiveUser;
-    this.grantedRoles = new TreeMap<Role, Set<String>>();
+  RoleMap() {
+    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
 	private String userIdKey(String origSid) {
@@ -133,14 +102,10 @@ public class RoleMap {
     /**
      * Constructor.
      * @param grantedRoles Roles to be granted.
-     * @param caseInsensitiveUser this will determinte the comparator for the ids
      */
     @DataBoundConstructor
-    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles, boolean caseInsensitiveUser) {
-        LOGGER.log(Level.FINE, "RoleMap() caseInsensitiveUser " + caseInsensitiveUser);
-        LOGGER.log(Level.FINE, "RoleMap() grantedRoles" + grantedRoles);
-        this.caseInsensitiveUser = caseInsensitiveUser;
-        this.grantedRoles = grantedRoles;
+    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
+        this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
     }
 
   /**
@@ -154,11 +119,19 @@ public class RoleMap {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
       p = Jenkins.ADMINISTER;
     }
-
-    for(Role role : getRolesHavingPermission(p)) {
-        final TreeSet<String> users = (TreeSet<String>)this.grantedRoles.get(role);
-        LOGGER.log(Level.FINE, "hasPermission sid: "+sid+" comparator: "+users.comparator()+" users: "+users+" role: "+role);
-        if(this.grantedRoles.get(role).contains(sid)) {
+    final Set<Permission> permissions = new HashSet<>();
+    final Permission per = p;
+    final boolean[] temp = {false};
+    // Get the implying permissions
+    for (; p!=null; p=p.impliedBy) {
+      permissions.add(p);
+    }
+    // Walk through the roles, and only add the roles having the given permission,
+    // or a permission implying the given permission
+    new RoleWalker() {
+      public void perform(Role current) {
+        if (current.hasAnyPermission(permissions)) {
+          if (grantedRoles.get(current).contains(sid)) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
@@ -223,22 +196,15 @@ public class RoleMap {
     return new AclImpl(roleType, controlledItem);
   }
 
-  public Set<String> sidTreeSet( Set<String> set) {
-      TreeSet<String> newset = caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>();
-      newset.addAll(set);
-      return newset;
-  } 
-  public TreeSet<String> sidTreeSet() {
-      return caseInsensitiveUser ? new TreeSet<String>(String.CASE_INSENSITIVE_ORDER): new TreeSet<String>();
-  } 
   /**
    * Add the given role to this {@link RoleMap}.
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
-      this.grantedRoles.put(role, sidTreeSet());
+          this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
     }
+
   }
 
   /**
@@ -375,7 +341,7 @@ public class RoleMap {
    * @return A sorted set containing all the sids
    */
   public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = sidTreeSet();
+    TreeSet<String> sids = new TreeSet<>();
     for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
       sids.addAll(entry.getValue());
     }
@@ -410,10 +376,15 @@ public class RoleMap {
 
   public RoleMap newMatchingRoleMap(String namePattern) {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
-    for (Role role : roles) {
-      roleMap.put(role, this.grantedRoles.get(role));
+    new RoleWalker() {
+      public void perform(Role current) {
+        Matcher m = current.getPattern().matcher(namePattern);
+        if (m.matches()) {
+          roleMap.put(current, grantedRoles.get(current));
     }
-    return new RoleMap(roleMap, caseInsensitiveUser);
+      }
+    };
+    return new RoleMap(roleMap);
   }
 
   /**
@@ -535,11 +506,4 @@ public class RoleMap {
      */
     abstract public void perform(Role current);
   }
- 
-  public String toString() {
-      return String.format("RoleMap:%s:%s", caseInsensitiveUser, grantedRoles.entrySet().stream()
-                    .map(e -> String.format("%s=%s:%s", e.getKey(), ((TreeSet)e.getValue()).comparator(), e.getValue()) )
-                    .collect(Collectors.joining(", ")));
-  }
-
 }

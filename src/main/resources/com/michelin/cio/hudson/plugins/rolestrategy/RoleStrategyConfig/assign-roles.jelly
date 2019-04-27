@@ -56,12 +56,7 @@
               <td class="left-most">${title}</td>
               <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
                 <td width="*">
-                  <j:if test="${attrs.sid == null}">
-                    <f:checkbox name="[${r.key.name}]" checked="false"/>
-                  </j:if>
-                  <j:if test="${attrs.sid != null}">
                     <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
-                  </j:if>
                 </td>
               </j:forEach>
               <td class="stop">
@@ -75,7 +70,6 @@
           <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
 
           <f:form method="post" name="config" action="assignSubmit">
-
             <h1>
                 <img src="${imagesURL}/48x48/user.gif" alt="${it.assignRolesName}" />
                 ${it.assignRolesName}
