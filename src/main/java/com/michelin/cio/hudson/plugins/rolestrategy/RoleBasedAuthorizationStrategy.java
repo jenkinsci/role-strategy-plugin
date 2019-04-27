@@ -63,7 +63,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -80,6 +81,7 @@ import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Role-based authorization strategy.
@@ -94,10 +96,35 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String MACRO_USER  = "userMacros";
   
   private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
-  
+      
   /** {@link RoleMap}s associated to each {@link AccessControlled} class */
-  private final Map <String, RoleMap> grantedRoles;
+  private Map <String, RoleMap> grantedRoles;
 
+  private boolean caseInsensitiveUser = true;
+
+  public final boolean isCaseInsensitiveUser() {
+    LOGGER.log(Level.FINE, "isCaseInsensitiveUser " + caseInsensitiveUser);
+    return this.caseInsensitiveUser;
+  }
+
+  @DataBoundSetter
+  public final void setCaseInsensitiveUser(boolean caseInsensitiveUser) {
+    LOGGER.log(Level.FINE, "setCaseInsensitiveUser " + caseInsensitiveUser);
+    boolean reloadGrantedRoles = this.caseInsensitiveUser != caseInsensitiveUser;
+    this.caseInsensitiveUser = caseInsensitiveUser;
+    LOGGER.log(Level.FINE, "reloadGrantedRoles " + reloadGrantedRoles);
+    if (reloadGrantedRoles) {
+      reloadGrantedRoles();
+    }
+    
+  }
+  public void reloadGrantedRoles() {
+    LOGGER.log(Level.FINE, "reloadGrantedRoles");
+    Map<String, RoleMap> copy = this.grantedRoles.entrySet().stream()
+    .collect(Collectors.toMap(Map.Entry::getKey, e -> new RoleMap(e.getValue(), isCaseInsensitiveUser())));
+    this.grantedRoles = copy;
+    LOGGER.log(Level.FINE, "reloadGrantedRoles " + this.grantedRoles);
+  }
   public RoleBasedAuthorizationStrategy() {
       this.grantedRoles = new CopyOnWriteMap.Hash<>();
   }
@@ -213,7 +240,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
     else {
       // Create it if it doesn't exist
-      map = new RoleMap();
+      LOGGER.log(Level.FINE, "RoleMap caseInsensitiveUser " + caseInsensitiveUser);
+      map = new RoleMap(caseInsensitiveUser);
       grantedRoles.put(type, map);
     }
     return map;
@@ -240,7 +268,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap.addRole(role);
     } else {
       // Create the RoleMap if it doesnt exist
-      roleMap = new RoleMap();
+      LOGGER.log(Level.FINE, "RoleMap caseInsensitiveUser " + caseInsensitiveUser);
+      roleMap = new RoleMap(caseInsensitiveUser);
       roleMap.addRole(role);
       grantedRoles.put(type, roleMap);
     }
@@ -535,6 +564,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
+
+        writer.startNode("caseInsensitiveUser");
+        LOGGER.log(Level.FINE, "marshalling caseInsensitiveUser " + strategy.isCaseInsensitiveUser());
+        writer.setValue(Boolean.toString(strategy.isCaseInsensitiveUser()));
+        writer.endNode();
         
         // Role maps
         Map<String, RoleMap> maps = strategy.getRoleMaps();
@@ -579,11 +613,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         
         while(reader.hasMoreChildren()) {
           reader.moveDown();
-
-          // roleMaps
-          if(reader.getNodeName().equals("roleMap")) {
+          if(reader.getNodeName().equals("caseInsensitiveUser")) {
+              boolean caseInsensitiveUser = Boolean.valueOf(reader.getValue());
+              strategy.setCaseInsensitiveUser(caseInsensitiveUser);
+              LOGGER.log(Level.FINE, "unmarshalling caseInsensitiveUser " + strategy.isCaseInsensitiveUser());
+          } else if(reader.getNodeName().equals("roleMap")) {
+            // roleMaps
             String type = reader.getAttribute("type");
-            RoleMap map = new RoleMap();
+            RoleMap map = new RoleMap(strategy.isCaseInsensitiveUser());
             while(reader.hasMoreChildren()) {
               reader.moveDown();
               String name = reader.getAttribute("name");
@@ -716,6 +753,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       
       if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
+
         Map<String, RoleMap> maps = strategy.getRoleMaps();
 
         for (Map.Entry<String, RoleMap> map : maps.entrySet()) {        
@@ -759,6 +797,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
 
+        boolean caseInsensitiveUser = formData.getBoolean("caseInsensitiveUser");
+        LOGGER.log(Level.FINE, "newInstance1 caseInsensitiveUser " + caseInsensitiveUser);
+        strategy.setCaseInsensitiveUser(caseInsensitiveUser);
+      
+
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
         for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)globalRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
@@ -790,6 +833,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       else if (oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         // Do nothing, keep the same strategy
         strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
+        boolean caseInsensitiveUser = formData.getBoolean("caseInsensitiveUser");
+        LOGGER.log(Level.FINE, "newInstance2 RoleBasedAuthorizationStrategy caseInsensitiveUser " + caseInsensitiveUser);
+        strategy.setCaseInsensitiveUser(caseInsensitiveUser);
       }
       // When called from Hudson Manage panel, but when the previous strategy wasn't
       // role-based, it means we need to create an admin role, and assign it to the
@@ -799,6 +845,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         Role adminRole = createAdminRole();
         strategy.addRole(GLOBAL, adminRole);
         strategy.assignRole(GLOBAL, adminRole, getCurrentUser());
+        boolean caseInsensitiveUser = formData.getBoolean("caseInsensitiveUser");
+        LOGGER.log(Level.FINE, "newInstance3 caseInsensitiveUser " + caseInsensitiveUser);
+        strategy.setCaseInsensitiveUser(caseInsensitiveUser);
       }
       
       strategy.renewMacroRoles();

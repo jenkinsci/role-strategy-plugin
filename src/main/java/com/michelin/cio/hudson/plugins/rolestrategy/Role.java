@@ -223,4 +223,8 @@ public final class Role implements Comparable {
         }
         return true;
     }
+
+    public String toString() {
+        return String.format("Role:%s:%s", name, pattern);
+    }
 }
