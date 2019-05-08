@@ -8,58 +8,53 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.AuthorizationStrategy;
+import io.jenkins.plugins.casc.Configurator;
+import io.jenkins.plugins.casc.ConfiguratorRegistry;
+import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
+import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import java.util.Map;
+import java.util.Set;
 import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.casc.ConfigurationAsCode;
-import org.jenkinsci.plugins.casc.Configurator;
-import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.*;
+import org.jenkinsci.plugins.rolestrategy.casc.RoleBasedAuthorizationStrategyConfigurator;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.JenkinsRule;
-
-import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
+import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 /**
  * @author Oleg Nenashev
- * @since TODO
+ * @since 2.11
  */
 public class RoleStrategyTest {
 
     @Rule
-    public JenkinsRule j = new JenkinsRule();
+    public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
 
     @Test
     public void shouldReturnCustomConfigurator() {
-        Configurator c = Configurator.lookup(RoleBasedAuthorizationStrategy.class);
+        ConfiguratorRegistry registry = ConfiguratorRegistry.get();
+        Configurator c = registry.lookup(RoleBasedAuthorizationStrategy.class);
         assertNotNull("Failed to find configurator for RoleBasedAuthorizationStrategy", c);
         assertEquals("Retrieved wrong configurator", RoleBasedAuthorizationStrategyConfigurator.class, c.getClass());
     }
 
     @Test
-    @Issue("Issue #59")
-    public void shouldReturnCustomConfiguratorForBaseType() {
-        Configurator c = Configurator.lookupForBaseType(AuthorizationStrategy.class, "roleStrategy");
-        assertNotNull("Failed to find configurator for RoleBasedAuthorizationStrategy", c);
-
-        Configurator.lookup(RoleBasedAuthorizationStrategy.class);
-    }
-
-    @Test
     @Issue("Issue #48")
+    @ConfiguredWithCode("Configuration-as-Code.yml")
     public void shouldReadRolesCorrectly() throws Exception {
-        ConfigurationAsCode.get().configure(getClass().getResource("Configuration-as-Code.yml").toExternalForm());
-
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-        User admin = User.get("admin");
-        User user1 = User.get("user1");
-        User user2 = User.get("user2");
+        User admin = User.getById("admin", false);
+        User user1 = User.getById("user1", false);
+        User user2 = User.getById("user2", true);
+        assertNotNull(admin);
+        assertNotNull(user1);
         Computer agent1 = j.jenkins.getComputer("agent1");
         Computer agent2 = j.jenkins.getComputer("agent2");
         Folder folderA = j.jenkins.createProject(Folder.class, "A");
@@ -69,7 +64,7 @@ public class RoleStrategyTest {
 
         AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
         assertThat("Authorization Strategy has been read incorrectly",
-                s, instanceOf(RoleBasedAuthorizationStrategy.class));
+            s, instanceOf(RoleBasedAuthorizationStrategy.class));
         RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
         Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
@@ -79,6 +74,7 @@ public class RoleStrategyTest {
         assertHasPermission(admin, j.jenkins, Jenkins.ADMINISTER, Jenkins.READ);
         assertHasPermission(user1, j.jenkins, Jenkins.READ);
         assertHasNoPermission(user1, j.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
+        assertHasNoPermission(user2, j.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
 
         // Folder A is restricted to admin
         assertHasPermission(admin, folderA, Item.CONFIGURE);
@@ -103,5 +99,18 @@ public class RoleStrategyTest {
 
         // Same user still cannot build on agent2
         assertHasNoPermission(user1, agent2, Computer.BUILD);
+    }
+
+    @Test
+    @Issue("Issue #214")
+    @ConfiguredWithCode("Configuration-as-Code2.yml")
+    public void shouldHandleNullItemsAndAgentsCorrectly() throws Exception {
+        AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
+        assertThat("Authorization Strategy has been read incorrectly",
+            s, instanceOf(RoleBasedAuthorizationStrategy.class));
+        RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+
+        Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        assertThat(globalRoles.size(), equalTo(2));
     }
 }

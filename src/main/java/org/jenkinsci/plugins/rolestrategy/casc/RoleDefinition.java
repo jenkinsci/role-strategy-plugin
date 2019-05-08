@@ -1,30 +1,29 @@
-package org.jenkinsci.plugins.rolestrategy;
+package org.jenkinsci.plugins.rolestrategy.casc;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
-import org.jenkinsci.plugins.casc.util.PermissionFinder;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Role definition.
  * Used for custom formatting
  * @author Oleg Nenashev
- * @since TODO
+ * @since 2.11
  */
 @Restricted(NoExternalUse.class)
 public class RoleDefinition {
 
     private transient Role role;
 
-    @Nonnull
+    @NonNull
     private final String name;
     @CheckForNull
     private final String description;
@@ -38,8 +37,8 @@ public class RoleDefinition {
         this.name = name;
         this.description = description;
         this.pattern = pattern;
-        this.permissions = permissions != null ? new HashSet<>(permissions) : Collections.<String>emptySet();
-        this.assignments = assignments != null ? new HashSet<>(assignments) : Collections.<String>emptySet();
+        this.permissions = permissions != null ? new HashSet<>(permissions) : Collections.emptySet();
+        this.assignments = assignments != null ? new HashSet<>(assignments) : Collections.emptySet();
         this.role = getRole();
     }
 
@@ -59,6 +58,7 @@ public class RoleDefinition {
         return role;
     }
 
+    @NonNull
     public String getName() {
         return name;
     }
