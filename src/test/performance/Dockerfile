@@ -1,6 +1,5 @@
-FROM jenkins/jenkins:2.138.2
-MAINTAINER Oleg Nenashev <o.v.nenashev@gmail.com>
-LABEL Description="This demo shows how to setup Jenkins Config-as-Code with Docker, Pipeline, and Groovy Hook Scripts" Vendor="Oleg Nenashev" Version="0.2"
+FROM jenkins/jenkins:2.138.4
+LABEL Description="Sample slowdown configuration for the Role Strategy Plugin" Version="0.1"
 
 ENV JENKINS_UC_EXPERIMENTAL=https://updates.jenkins.io/experimental
 COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
