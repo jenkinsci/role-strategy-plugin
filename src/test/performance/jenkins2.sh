@@ -9,11 +9,5 @@ extra_java_opts=( \
   '-Dhudson.model.LoadStatistics.clock=1000' \
 )
 
-if [[ "$DEBUG" ]] ; then
-  extra_java_opts+=( \
-    '-Xdebug'
-  )
-fi
-
 export JAVA_OPTS="$JAVA_OPTS ${extra_java_opts[@]}"
 exec /usr/local/bin/jenkins.sh "$@"
