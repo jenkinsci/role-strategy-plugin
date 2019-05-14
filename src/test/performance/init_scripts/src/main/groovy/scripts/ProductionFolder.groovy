@@ -18,7 +18,7 @@ if (Jenkins.instance.getItem("Production") != null) {
 // Create multiple projects
 GitSCM source1 = new GitSCM("https://gist.github.com/AbhyudayaSharma/1bccbb2e760ca0706907f451347d5727.git")
 for (int i = 0; i < 500; i++) {
-    def myFolder = Jenkins.getInstance().createProject(Folder.class, "Foooooolder" + i)
+    def myFolder = Jenkins.getInstance().createProject(Folder.class, "Foooooooolder" + i)
     WorkflowJob project4 = myFolder.createProject(WorkflowJob.class, "test" + i)
     project4.setDefinition(new CpsScmFlowDefinition(source1, "Jenkinsfile"))
     JobOwnerHelper.setOwnership(project4, new OwnershipDescription(false, "admin", Arrays.asList("user")))
