@@ -54,6 +54,7 @@ public abstract class JmhBenchmarkState {
     public void tearDown() throws Exception {
         if (jenkins != null && server != null) {
             server.stop();
+            jenkins.cleanUp();
             jenkins = null;
             server = null;
         }
