@@ -1,6 +1,5 @@
-FROM jenkins/jenkins:2.138.2
-MAINTAINER Oleg Nenashev <o.v.nenashev@gmail.com>
-LABEL Description="This demo shows how to setup Jenkins Config-as-Code with Docker, Pipeline, and Groovy Hook Scripts" Vendor="Oleg Nenashev" Version="0.2"
+FROM jenkins/jenkins:2.138.4
+LABEL Description="Sample slowdown configuration for the Role Strategy Plugin" Version="0.1"
 
 ENV JENKINS_UC_EXPERIMENTAL=https://updates.jenkins.io/experimental
 COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
@@ -8,9 +7,8 @@ RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/ref/plugins.txt
 
 COPY init_scripts/src/main/groovy/ /usr/share/jenkins/ref/init.groovy.d/
 
-# TODO: It should be configurable in "docker run"
-ARG DEV_HOST=192.168.101.57
 ARG CREATE_ADMIN=true
+
 # If false, only few runs can be actually executed on the master
 # See JobRestrictions settings
 ARG ALLOW_RUNS_ON_MASTER=false
