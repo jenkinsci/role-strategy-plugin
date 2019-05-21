@@ -13,6 +13,7 @@ public final class BenchmarkRunner {
     public void runJmhBenchmarks() throws Exception {
         Options options = new OptionsBuilder()
                 .include(SampleBenchmark.class.getName() + ".*") // benchmark all methods of SampleBenchmark
+                .include(PermissionBenchmark.class.getName() + ".*")
                 .mode(Mode.AverageTime)
                 .warmupIterations(2)
                 .timeUnit(TimeUnit.MICROSECONDS)

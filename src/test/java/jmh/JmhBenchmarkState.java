@@ -47,11 +47,13 @@ public abstract class JmhBenchmarkState {
     @Setup(org.openjdk.jmh.annotations.Level.Trial)
     public final void setupJenkins() throws Exception {
         jenkins = launchInstance();
+        setup(jenkins);
     }
 
     // Run the tearDown for each individual fork of the JVM
     @TearDown(org.openjdk.jmh.annotations.Level.Trial)
-    public void tearDown() throws Exception {
+    public final void terminateJenkins() throws Exception {
+        tearDown(jenkins);
         if (jenkins != null && server != null) {
             server.stop();
             jenkins.cleanUp();
@@ -131,5 +133,26 @@ public abstract class JmhBenchmarkState {
 
     public Jenkins getJenkins() {
         return jenkins;
+    }
+
+    /**
+     * Override to setup resources required for the benchmark.
+     * <p>
+     * Runs before the benchmarks are run. At this state, the Jenkins
+     * is ready to be worked upon.
+     *
+     * @param jenkins The Jenkins instance created
+     */
+    public void setup(Jenkins jenkins) {
+    }
+
+    /**
+     * Override to perform cleanup of resource initialized during setup.
+     * <p>
+     * Run before the Jenkins instance is terminated.
+     *
+     * @param jenkins The Jenkins instance that will be destroyed
+     */
+    public void tearDown(Jenkins jenkins) {
     }
 }
