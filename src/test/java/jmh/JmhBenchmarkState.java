@@ -50,7 +50,6 @@ public abstract class JmhBenchmarkState implements RootAction {
     private static final String contextPath = "/jenkins";
 
     private final File baseTempDirectory = new File(System.getProperty("java.io.tmpdir"));
-    private final boolean withoutSpace = Boolean.getBoolean("jenkins.test.noSpaceInTmpDirs");
 
     private Jenkins jenkins = null;
     private Server server = null;
@@ -64,13 +63,13 @@ public abstract class JmhBenchmarkState implements RootAction {
         // security setup as in a default installation.
         System.setProperty("jenkins.install.state", "TEST");
         launchInstance();
-        setup(jenkins);
+        setup();
     }
 
     // Run the tearDown for each individual fork of the JVM
     @TearDown(org.openjdk.jmh.annotations.Level.Trial)
     public final void terminateJenkins() throws Exception {
-        tearDown(jenkins);
+        tearDown();
         if (jenkins != null && server != null) {
             server.stop();
             jenkins.cleanUp();
@@ -161,7 +160,7 @@ public abstract class JmhBenchmarkState implements RootAction {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private synchronized File newTemporaryJenkinsHome() throws IOException {
         try {
-            File f = File.createTempFile((withoutSpace ? "jkh" : "j h"), "", baseTempDirectory);
+            File f = File.createTempFile("jkh", "", baseTempDirectory);
             f.delete();
             f.mkdirs();
             f.deleteOnExit();
@@ -180,20 +179,16 @@ public abstract class JmhBenchmarkState implements RootAction {
      * <p>
      * Runs before the benchmarks are run. At this state, the Jenkins
      * is ready to be worked upon.
-     *
-     * @param jenkins The Jenkins instance created
      */
-    public void setup(Jenkins jenkins) {
+    public void setup() {
     }
 
     /**
      * Override to perform cleanup of resource initialized during setup.
      * <p>
      * Run before the Jenkins instance is terminated.
-     *
-     * @param jenkins The Jenkins instance that will be destroyed
      */
-    public void tearDown(Jenkins jenkins) {
+    public void tearDown() {
     }
 
     @CheckForNull
