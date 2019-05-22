@@ -1,7 +1,14 @@
 package jmh;
 
+import hudson.WebAppMain;
+import hudson.model.DownloadService;
 import hudson.model.Hudson;
+import hudson.model.JDK;
+import hudson.model.RootAction;
+import hudson.model.UpdateSite;
+import hudson.util.PersistedList;
 import jenkins.model.Jenkins;
+import jenkins.model.JenkinsLocationConfiguration;
 import org.eclipse.jetty.http.MimeTypes;
 import org.eclipse.jetty.security.HashLoginService;
 import org.eclipse.jetty.security.LoginService;
@@ -14,7 +21,9 @@ import org.eclipse.jetty.util.security.Password;
 import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.webapp.WebXmlConfiguration;
+import org.jvnet.hudson.test.JavaNetReverseProxy;
 import org.jvnet.hudson.test.NoListenerConfiguration;
+import org.jvnet.hudson.test.TestCrumbIssuer;
 import org.jvnet.hudson.test.ThreadPoolImpl;
 import org.jvnet.hudson.test.WarExploder;
 import org.openjdk.jmh.annotations.Scope;
@@ -22,10 +31,13 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 
+import javax.annotation.CheckForNull;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Objects;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +45,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @State(Scope.Benchmark)
-public abstract class JmhBenchmarkState {
+public abstract class JmhBenchmarkState implements RootAction {
     private static final Logger LOGGER = Logger.getLogger(JmhBenchmarkState.class.getName());
     private static final String contextPath = "/jenkins";
 
@@ -42,11 +54,16 @@ public abstract class JmhBenchmarkState {
 
     private Jenkins jenkins = null;
     private Server server = null;
+    private URL jenkinsURL = null;
 
     // Run the setup for each individual fork of the JVM
     @Setup(org.openjdk.jmh.annotations.Level.Trial)
     public final void setupJenkins() throws Exception {
-        jenkins = launchInstance();
+        // Set the jenkins.install.InstallState TEST to emulate
+        // org.jvnet.hudson.test.JenkinsRule behaviour and avoid manual
+        // security setup as in a default installation.
+        System.setProperty("jenkins.install.state", "TEST");
+        launchInstance();
         setup(jenkins);
     }
 
@@ -59,13 +76,36 @@ public abstract class JmhBenchmarkState {
             jenkins.cleanUp();
             jenkins = null;
             server = null;
+            jenkinsURL = null;
         }
     }
 
-    private Jenkins launchInstance() throws Exception {
+    private void launchInstance() throws Exception {
         ServletContext webServer = createServer();
         File jenkinsHome = newTemporaryJenkinsHome();
-        return new Hudson(jenkinsHome, webServer);
+        jenkins = new Hudson(jenkinsHome, webServer);
+        jenkins.setNoUsageStatistics(true);
+        jenkins.setCrumbIssuer(new TestCrumbIssuer());
+
+        webServer.setAttribute("app", jenkins);
+        webServer.setAttribute("version", "?");
+
+        // configure Jelly views
+        WebAppMain.installExpressionFactory(new ServletContextEvent(webServer));
+        jenkins.getJDKs().add(new JDK("default", System.getProperty("java.home")));
+
+        PersistedList<UpdateSite> sites = jenkins.getUpdateCenter().getSites();
+        sites.clear();
+        sites.add(new UpdateSite("default", "http://localhost:" +
+                JavaNetReverseProxy.getInstance().localPort + "/update-center.json"));
+
+        DownloadService.neverUpdate = true;
+        UpdateSite.neverUpdate = true;
+
+        jenkins.getActions().add(this);
+        jenkins.getSetupWizard().doCompleteInstall();
+
+        Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(jenkinsURL.toString());
     }
 
     private ServletContext createServer() throws Exception {
@@ -101,7 +141,7 @@ public abstract class JmhBenchmarkState {
         server.start();
 
         int localPort = connector.getLocalPort();
-        URL jenkinsURL = new URL("http://localhost:" + localPort + contextPath + "/");
+        jenkinsURL = new URL("http://localhost:" + localPort + contextPath + "/");
         LOGGER.log(Level.INFO, "Running on {0}", jenkinsURL);
 
         return context.getServletContext();
@@ -154,5 +194,23 @@ public abstract class JmhBenchmarkState {
      * @param jenkins The Jenkins instance that will be destroyed
      */
     public void tearDown(Jenkins jenkins) {
+    }
+
+    @CheckForNull
+    @Override
+    public String getIconFileName() {
+        return null;
+    }
+
+    @CheckForNull
+    @Override
+    public String getDisplayName() {
+        return null;
+    }
+
+    @CheckForNull
+    @Override
+    public String getUrlName() {
+        return "self";
     }
 }
