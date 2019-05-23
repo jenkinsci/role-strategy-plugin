@@ -1,25 +1,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
         <version>3.43</version>
     </parent>
-    
+
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
     <version>2.11-SNAPSHOT</version>
     <name>Role-based Authorization Strategy</name>
     <url>https://wiki.jenkins.io/display/JENKINS/Role+Strategy+Plugin</url>
-        
+
     <scm>
         <connection>scm:git:ssh://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
       <tag>HEAD</tag>
   </scm>
-    
+
     <developers>
         <developer>
             <id>tmaurel</id>
@@ -37,12 +37,12 @@
             <email>o.v.nenashev@gmail.com</email>
         </developer>
     </developers>
-    
+
     <properties>
         <jenkins.version>2.60.3</jenkins.version>
         <java.level>8</java.level>
     </properties>
-    
+
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
@@ -56,7 +56,7 @@
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
-    
+
     <licenses>
         <license>
             <name>MIT License</name>
@@ -64,7 +64,7 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -103,6 +103,18 @@
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-generator-annprocess</artifactId>
             <version>1.21</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jenkins</groupId>
+            <artifactId>configuration-as-code</artifactId>
+            <version>1.15</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jenkins.configuration-as-code</groupId>
+            <artifactId>configuration-as-code-support</artifactId>
+            <version>1.15</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

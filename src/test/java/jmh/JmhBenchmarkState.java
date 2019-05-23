@@ -6,6 +6,7 @@ import hudson.model.Hudson;
 import hudson.model.JDK;
 import hudson.model.RootAction;
 import hudson.model.UpdateSite;
+import hudson.security.ACL;
 import hudson.util.PersistedList;
 import jenkins.model.Jenkins;
 import jenkins.model.JenkinsLocationConfiguration;
@@ -63,19 +64,29 @@ public abstract class JmhBenchmarkState implements RootAction {
         // security setup as in a default installation.
         System.setProperty("jenkins.install.state", "TEST");
         launchInstance();
+        ACL.impersonate(ACL.SYSTEM);
         setup();
     }
 
     // Run the tearDown for each individual fork of the JVM
     @TearDown(org.openjdk.jmh.annotations.Level.Trial)
-    public final void terminateJenkins() throws Exception {
-        tearDown();
-        if (jenkins != null && server != null) {
-            server.stop();
-            jenkins.cleanUp();
-            jenkins = null;
-            server = null;
-            jenkinsURL = null;
+    public final void terminateJenkins() {
+        try {
+            tearDown();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Exception occurred during tearDown of Jenkins instance", e);
+        } finally {
+            if (jenkins != null && server != null) {
+                try {
+                    server.stop();
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Exception occurred when shutting down server.", e);
+                }
+                jenkins.cleanUp();
+                jenkins = null;
+                server = null;
+                jenkinsURL = null;
+            }
         }
     }
 
@@ -102,7 +113,6 @@ public abstract class JmhBenchmarkState implements RootAction {
         UpdateSite.neverUpdate = true;
 
         jenkins.getActions().add(this);
-        jenkins.getSetupWizard().doCompleteInstall();
 
         Objects.requireNonNull(JenkinsLocationConfiguration.get()).setUrl(jenkinsURL.toString());
     }
@@ -180,7 +190,7 @@ public abstract class JmhBenchmarkState implements RootAction {
      * Runs before the benchmarks are run. At this state, the Jenkins
      * is ready to be worked upon.
      */
-    public void setup() {
+    public void setup() throws Exception {
     }
 
     /**

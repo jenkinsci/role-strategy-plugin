@@ -1,6 +1,7 @@
-package jmh;
+package jmh.benchmarks;
 
 import jenkins.model.Jenkins;
+import jmh.JmhBenchmarkState;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;

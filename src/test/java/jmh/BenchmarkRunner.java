@@ -1,5 +1,8 @@
 package jmh;
 
+import jmh.benchmarks.CascBenchmark;
+import jmh.benchmarks.PermissionBenchmark;
+import jmh.benchmarks.SampleBenchmark;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.runner.Runner;
@@ -14,6 +17,7 @@ public final class BenchmarkRunner {
         Options options = new OptionsBuilder()
                 .include(SampleBenchmark.class.getName() + ".*") // benchmark all methods of SampleBenchmark
                 .include(PermissionBenchmark.class.getName() + ".*")
+                .include(CascBenchmark.class.getName() + ".*")
                 .mode(Mode.AverageTime)
                 .warmupIterations(2)
                 .timeUnit(TimeUnit.MICROSECONDS)
