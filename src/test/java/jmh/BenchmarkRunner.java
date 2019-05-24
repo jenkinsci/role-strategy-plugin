@@ -5,6 +5,7 @@ import jmh.benchmarks.PermissionBenchmark;
 import jmh.benchmarks.SampleBenchmark;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
@@ -25,6 +26,8 @@ public final class BenchmarkRunner {
                 .forks(2)
                 .shouldFailOnError(true)
                 .shouldDoGC(true)
+                .resultFormat(ResultFormatType.JSON)
+                .result("jmh-report.json")
                 .build();
 
         new Runner(options).run();
