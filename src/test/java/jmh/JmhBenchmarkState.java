@@ -95,7 +95,6 @@ public abstract class JmhBenchmarkState implements RootAction {
         File jenkinsHome = newTemporaryJenkinsHome();
         jenkins = new Hudson(jenkinsHome, webServer);
         jenkins.setNoUsageStatistics(true);
-        jenkins.setCrumbIssuer(new TestCrumbIssuer());
 
         webServer.setAttribute("app", jenkins);
         webServer.setAttribute("version", "?");
