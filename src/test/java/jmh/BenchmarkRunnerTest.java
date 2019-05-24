@@ -2,7 +2,6 @@ package jmh;
 
 import jmh.benchmarks.CascBenchmark;
 import jmh.benchmarks.PermissionBenchmark;
-import jmh.benchmarks.SampleBenchmark;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
@@ -12,11 +11,10 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.concurrent.TimeUnit;
 
-public final class BenchmarkRunner {
+public final class BenchmarkRunnerTest {
     @Test
     public void runJmhBenchmarks() throws Exception {
         Options options = new OptionsBuilder()
-                .include(SampleBenchmark.class.getName() + ".*") // benchmark all methods of SampleBenchmark
                 .include(PermissionBenchmark.class.getName() + ".*")
                 .include(CascBenchmark.class.getName() + ".*")
                 .mode(Mode.AverageTime)
