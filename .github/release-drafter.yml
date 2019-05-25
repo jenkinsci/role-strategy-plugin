@@ -1,2 +1,2 @@
 _extends: .github
-tag-template: role-strategy-$NEXT_PATCH_VERSION
+tag-template: role-strategy-$NEXT_MINOR_VERSION
