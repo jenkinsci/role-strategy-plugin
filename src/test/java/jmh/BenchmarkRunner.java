@@ -11,7 +11,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.concurrent.TimeUnit;
 
-public final class BenchmarkRunnerTest {
+public final class BenchmarkRunner {
     @Test
     public void runJmhBenchmarks() throws Exception {
         Options options = new OptionsBuilder()
