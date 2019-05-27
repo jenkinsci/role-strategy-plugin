@@ -121,18 +121,6 @@
             <version>1.21</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.jenkins</groupId>
-            <artifactId>configuration-as-code</artifactId>
-            <version>1.15</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jenkins.configuration-as-code</groupId>
-            <artifactId>configuration-as-code-support</artifactId>
-            <version>1.15</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <profiles>
