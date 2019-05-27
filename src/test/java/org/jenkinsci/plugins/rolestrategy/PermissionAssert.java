@@ -22,6 +22,8 @@
 package org.jenkinsci.plugins.rolestrategy;
 
 import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
@@ -69,7 +71,8 @@ public class PermissionAssert {
     }
 
     private static boolean hasPermission(User user, final AccessControlled item, final Permission p) {
-        user.impersonate();
-        return item.hasPermission(p);
+        try (ACLContext c = ACL.as(user)) {
+            return item.hasPermission(p);
+        }
     }
 }
