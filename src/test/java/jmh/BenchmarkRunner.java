@@ -2,6 +2,7 @@ package jmh;
 
 import jmh.benchmarks.CascBenchmark;
 import jmh.benchmarks.PermissionBenchmark;
+import jmh.benchmarks.RoleMapBenchmark;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
@@ -17,6 +18,7 @@ public final class BenchmarkRunner {
         Options options = new OptionsBuilder()
                 .include(PermissionBenchmark.class.getName() + ".*")
                 .include(CascBenchmark.class.getName() + ".*")
+                .include(RoleMapBenchmark.class.getName() + ".*")
                 .mode(Mode.AverageTime)
                 .warmupIterations(2)
                 .timeUnit(TimeUnit.MICROSECONDS)
