@@ -10,9 +10,13 @@ import hudson.model.User;
 import hudson.security.AuthorizationStrategy;
 import jenkins.model.Jenkins;
 import jmh.casc.CascJmhBenchmarkState;
+import org.acegisecurity.context.SecurityContext;
+import org.acegisecurity.context.SecurityContextHolder;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.Level;
 import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -30,6 +34,9 @@ import static org.junit.Assert.assertThat;
 public class CascBenchmark {
     @State(Scope.Benchmark)
     public static class CascJenkinsState extends CascJmhBenchmarkState {
+        RoleBasedAuthorizationStrategy rbas = null;
+        Folder folder = null;
+
         @Override
         public void setup() throws Exception {
             super.setup();
@@ -48,7 +55,7 @@ public class CascBenchmark {
             AuthorizationStrategy s = jenkins.getAuthorizationStrategy();
             assertThat("Authorization Strategy has been read incorrectly",
                     s, instanceOf(RoleBasedAuthorizationStrategy.class));
-            RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+            rbas = (RoleBasedAuthorizationStrategy) s;
 
             Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
             assertThat(Objects.requireNonNull(globalRoles).size(), equalTo(2));
@@ -81,6 +88,8 @@ public class CascBenchmark {
 
             // Same user still cannot build on agent2
             assertHasNoPermission(user1, agent2, Computer.BUILD);
+
+            folder = folderB;
         }
 
         @Nonnull
@@ -90,9 +99,20 @@ public class CascBenchmark {
         }
     }
 
+    @State(Scope.Thread)
+    public static class AuthenticationThreadState {
+        @Setup(Level.Invocation)
+        public void setup() {
+            SecurityContext securityContext = SecurityContextHolder.getContext();
+            securityContext.setAuthentication(User.get("user2").impersonate());
+        }
+    }
+
+    /**
+     * Benchmark time to get the ACL object for a {@link Folder}
+     */
     @Benchmark
     public void benchmark(CascJenkinsState state, Blackhole blackhole) {
-        Objects.requireNonNull(Jenkins.getInstanceOrNull());
-        blackhole.consume(state.getJenkins());
+        blackhole.consume(state.rbas.getACL(state.folder));
     }
 }
