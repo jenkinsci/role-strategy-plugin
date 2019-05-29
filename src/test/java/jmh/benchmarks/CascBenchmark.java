@@ -9,6 +9,7 @@ import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.AuthorizationStrategy;
 import jenkins.model.Jenkins;
+import jmh.JmhBenchmark;
 import jmh.casc.CascJmhBenchmarkState;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
@@ -31,6 +32,7 @@ import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPer
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.junit.Assert.assertThat;
 
+@JmhBenchmark
 public class CascBenchmark {
     @State(Scope.Benchmark)
     public static class CascJenkinsState extends CascJmhBenchmarkState {

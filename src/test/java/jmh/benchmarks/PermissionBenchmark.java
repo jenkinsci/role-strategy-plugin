@@ -6,6 +6,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import hudson.model.User;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
+import jmh.JmhBenchmark;
 import jmh.JmhBenchmarkState;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContext;
@@ -24,6 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
+@JmhBenchmark
 public class PermissionBenchmark {
     @State(Scope.Benchmark)
     public static class JenkinsState extends JmhBenchmarkState {
