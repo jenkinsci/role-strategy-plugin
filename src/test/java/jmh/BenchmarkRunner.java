@@ -1,13 +1,10 @@
 package jmh;
 
-import jmh.benchmarks.CascBenchmark;
-import jmh.benchmarks.PermissionBenchmark;
-import jmh.benchmarks.RoleMapBenchmark;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
 import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.ChainedOptionsBuilder;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.concurrent.TimeUnit;
@@ -15,10 +12,7 @@ import java.util.concurrent.TimeUnit;
 public final class BenchmarkRunner {
     @Test
     public void runJmhBenchmarks() throws Exception {
-        Options options = new OptionsBuilder()
-                .include(PermissionBenchmark.class.getName() + ".*")
-                .include(CascBenchmark.class.getName() + ".*")
-                .include(RoleMapBenchmark.class.getName() + ".*")
+        ChainedOptionsBuilder options = new OptionsBuilder()
                 .mode(Mode.AverageTime)
                 .warmupIterations(2)
                 .timeUnit(TimeUnit.MICROSECONDS)
@@ -27,9 +21,10 @@ public final class BenchmarkRunner {
                 .shouldFailOnError(true)
                 .shouldDoGC(true)
                 .resultFormat(ResultFormatType.JSON)
-                .result("jmh-report.json")
-                .build();
+                .result("jmh-report.json");
 
-        new Runner(options).run();
+        BenchmarkFinder bf = new BenchmarkFinder(this.getClass().getPackage().getName());
+        bf.findBenchmarks(options);
+        new Runner(options.build()).run();
     }
 }
