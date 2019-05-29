@@ -25,10 +25,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static jmh.PermissionAssert.assertHasNoPermission;
-import static jmh.PermissionAssert.assertHasPermission;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
+import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.junit.Assert.assertThat;
 
 public class CascBenchmark {
