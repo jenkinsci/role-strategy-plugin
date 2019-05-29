@@ -28,7 +28,6 @@ public class PermissionBenchmark {
     @State(Scope.Benchmark)
     public static class JenkinsState extends JmhBenchmarkState {
         @Override
-        @Setup
         public void setup() {
             Jenkins jenkins = Objects.requireNonNull(Jenkins.getInstanceOrNull());
             Set<String> permissionSet = Collections.singleton("hudson.model.Hudson.Administer");
