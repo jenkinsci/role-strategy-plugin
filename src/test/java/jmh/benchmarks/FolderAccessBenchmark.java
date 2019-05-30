@@ -5,9 +5,11 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import hudson.model.FreeStyleProject;
+import hudson.model.TopLevelItem;
 import hudson.model.User;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
+import jmh.JmhBenchmark;
 import jmh.JmhBenchmarkState;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
@@ -19,6 +21,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,11 +35,13 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+@JmhBenchmark
 public class FolderAccessBenchmark {
     @State(Scope.Benchmark)
     public static class JenkinsState extends JmhBenchmarkState {
         List<Folder> topFolders = new ArrayList<>();
         FreeStyleProject testProject = null;
+        Map<String, TopLevelItem> items = null;
 
         @Override
         public void setup() throws Exception {
@@ -87,7 +92,6 @@ public class FolderAccessBenchmark {
                         }
                     }
 
-
                     Role userRole = new Role(String.format("user%d-%d", i, j),
                             "TopFolder" + i + "(/BottomFolder" + j + "/.*)?",
                             userPermissions, "");
@@ -120,6 +124,9 @@ public class FolderAccessBenchmark {
             rbasMap.put(RoleBasedAuthorizationStrategy.PROJECT, projectRoleMap);
             RoleBasedAuthorizationStrategy rbas = new RoleBasedAuthorizationStrategy(rbasMap);
             jenkins.setAuthorizationStrategy(rbas);
+            Field itemField = Jenkins.class.getDeclaredField("items");
+            itemField.setAccessible(true);
+            items = (Map<String, TopLevelItem>) itemField.get(jenkins);
         }
     }
 
@@ -128,12 +135,22 @@ public class FolderAccessBenchmark {
         @Setup(Level.Iteration)
         public void setup() {
             SecurityContext securityContext = SecurityContextHolder.getContext();
-            securityContext.setAuthentication(User.get("user53").impersonate());
+            securityContext.setAuthentication(User.get("user33").impersonate());
         }
     }
 
     @Benchmark
-    public void benchmark(JenkinsState state, Blackhole blackhole) {
+    public void benchmark(JenkinsState state, ThreadState threadState, Blackhole blackhole) {
         state.testProject.hasPermission(Permission.CREATE);
+    }
+
+    @Benchmark
+    public void renderViewSimulation(JenkinsState state, ThreadState threadState, Blackhole blackhole) {
+        List<TopLevelItem> viewableItems = new ArrayList<>();
+        for (TopLevelItem item : state.items.values()) {
+            if (item.hasPermission(Permission.WRITE))
+                viewableItems.add(item);
+        }
+        blackhole.consume(viewableItems);
     }
 }
