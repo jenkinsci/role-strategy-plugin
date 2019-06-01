@@ -103,7 +103,7 @@ public class CascBenchmark {
 
     @State(Scope.Thread)
     public static class AuthenticationThreadState {
-        @Setup(Level.Invocation)
+        @Setup(Level.Iteration)
         public void setup() {
             SecurityContext securityContext = SecurityContextHolder.getContext();
             securityContext.setAuthentication(User.get("user2").impersonate());
