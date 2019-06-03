@@ -1,37 +1,48 @@
 package jmh.benchmarks;
 
+import jmh.JmhBenchmark;
 import jmh.JmhBenchmarkState;
 import jmh.JmhJenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
+import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
 
+@JmhBenchmark
 public class WebClientBenchmark {
     public static class JenkinsState extends JmhBenchmarkState {
+    }
+
+    // WebClient is not thread-safe, so use a different WebClient for each thread
+    @State(Scope.Thread)
+    public static class ThreadState {
         JenkinsRule.WebClient webClient = null;
 
-        @Override
+        @Setup(Level.Iteration)
+        public void setup() throws Exception {
+            // JQuery UI is 404 from these tests so disable stopping benchmark when it is used.
+            JmhJenkinsRule j = new JmhJenkinsRule();
+            webClient = j.createWebClient();
+            webClient.setJavaScriptEnabled(false); // have to disable JavaScript since it cannot find jQuery
+            webClient.setThrowExceptionOnFailingStatusCode(false);
+            webClient.getOptions().setPrintContentOnFailingStatusCode(false); // reduce 404 noise
+
+            webClient.login("user33", "user33");
+        }
+
+        @TearDown(Level.Iteration)
         public void tearDown() {
             webClient.close();
-        }
-
-        @Override
-        public void setup() {
-            JmhJenkinsRule jenkinsRule = new JmhJenkinsRule();
-            webClient = jenkinsRule.createWebClient();
-        }
-
-        @Setup(Level.Iteration)
-        public void login() throws Exception {
-            webClient.login("user33", "user33");
         }
     }
 
     @Benchmark
-    public void viewRenderBenchmark(JenkinsState state, Blackhole blackhole)
+    public void viewRenderBenchmark(JenkinsState state, ThreadState threadState, Blackhole blackhole)
             throws Exception {
-        blackhole.consume(state.webClient.goTo("jenkins"));
+        blackhole.consume(threadState.webClient.goTo(""));
     }
 }
