@@ -36,7 +36,7 @@ import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
-import hudson.model.Job;
+import hudson.model.Item;
 import jenkins.model.Jenkins;
 import jenkins.model.IdStrategy;
 
@@ -421,11 +421,11 @@ public class RoleMap {
    * @return List of matching job names
    */
   public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
-      Iterator<Job> jobs = Items.allItems(Jenkins.getInstance(), Job.class).iterator();
+      Iterator<Item> jobs = Items.allItems(Jenkins.getInstance(), Item.class).iterator();
       List<String> matchingJobNames = new ArrayList<>();
 
       while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
-          Job job = jobs.next();
+          Item job = jobs.next();
           String jobName = job.getFullName();
 
           Matcher m = pattern.matcher(jobName);

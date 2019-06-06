@@ -1,25 +1,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
+
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.18</version>
+        <version>3.43</version>
     </parent>
-    
+
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>2.11-SNAPSHOT</version>
+    <version>${revision}${changelist}</version>
     <name>Role-based Authorization Strategy</name>
     <url>https://wiki.jenkins.io/display/JENKINS/Role+Strategy+Plugin</url>
-        
+
     <scm>
         <connection>scm:git:ssh://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-      <tag>HEAD</tag>
+      <tag>${scmTag}</tag>
   </scm>
-    
+
     <developers>
         <developer>
             <id>tmaurel</id>
@@ -37,12 +37,15 @@
             <email>o.v.nenashev@gmail.com</email>
         </developer>
     </developers>
-    
+
     <properties>
+        <revision>2.12</revision>
+        <changelist>-SNAPSHOT</changelist>
         <jenkins.version>2.60.3</jenkins.version>
         <java.level>8</java.level>
+        <configuration-as-code.version>1.17</configuration-as-code.version>
     </properties>
-    
+
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
@@ -56,7 +59,7 @@
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
-    
+
     <licenses>
         <license>
             <name>MIT License</name>
@@ -64,7 +67,7 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -93,7 +96,64 @@
             <artifactId>jquery-ui</artifactId>
             <version>1.0.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-core</artifactId>
+            <version>1.21</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmh</groupId>
+            <artifactId>jmh-generator-annprocess</artifactId>
+            <version>1.21</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jenkins</groupId>
+            <artifactId>configuration-as-code</artifactId>
+            <version>${configuration-as-code.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.jenkins</groupId>
+            <artifactId>configuration-as-code</artifactId>
+            <version>${configuration-as-code.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.9.11</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
-</project>  
-  
+
+    <profiles>
+        <!-- Profile to run benchmarks when the `benchmark` property is set -->
+        <profile>
+            <id>jmh-benchmark</id>
+            <activation>
+                <property>
+                    <name>benchmark</name>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <includes>
+                                <include>**/*Benchmark.java</include>
+                                <include>**/Benchmark*.java</include>
+                            </includes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
+
 

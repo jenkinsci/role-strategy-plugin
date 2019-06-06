@@ -9,18 +9,5 @@ extra_java_opts=( \
   '-Dhudson.model.LoadStatistics.clock=1000' \
 )
 
-if [ -z "$DEV_HOST" ] ; then
-  echo "WARNING: DEV_HOST is undefined, localhost will be used. Some logic like Docker Cloud may work incorrectly."
-else
-  extra_java_opts+=( "-Dio.jenkins.dev.host=${DEV_HOST}" )
-fi
-
-if [[ "$DEBUG" ]] ; then
-  extra_java_opts+=( \
-    '-Xdebug' \
-    '-Xrunjdwp:server=y,transport=dt_socket,address=5005,suspend=y' \
-  )
-fi
-
 export JAVA_OPTS="$JAVA_OPTS ${extra_java_opts[@]}"
 exec /usr/local/bin/jenkins.sh "$@"

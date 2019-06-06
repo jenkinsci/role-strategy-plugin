@@ -1,0 +1,2 @@
+_extends: .github
+tag-template: role-strategy-$NEXT_MINOR_VERSION
