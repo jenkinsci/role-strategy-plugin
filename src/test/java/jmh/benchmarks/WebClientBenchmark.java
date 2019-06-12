@@ -31,7 +31,7 @@ public class WebClientBenchmark {
             webClient.setThrowExceptionOnFailingStatusCode(false);
             webClient.getOptions().setPrintContentOnFailingStatusCode(false); // reduce 404 noise
 
-            webClient.login("user33", "user33");
+            webClient.login("mockUser", "mockUser");
         }
 
         @TearDown(Level.Iteration)
