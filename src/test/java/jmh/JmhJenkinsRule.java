@@ -1,5 +1,6 @@
 package jmh;
 
+import com.gargoylesoftware.htmlunit.Cache;
 import jenkins.model.Jenkins;
 import org.jvnet.hudson.test.JenkinsRule;
 
@@ -25,5 +26,22 @@ public class JmhJenkinsRule extends JenkinsRule {
     public URL getURL() throws MalformedURLException {
         // the rootURL should not be null as it should've been set by JmhBenchmarkState
         return new URL(Objects.requireNonNull(jenkins.getRootUrl()));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public WebClient createWebClient() {
+        WebClient webClient = super.createWebClient();
+        Cache cache = new Cache();
+        cache.setMaxSize(0);
+        webClient.setCache(cache); // benchmarks should not rely on cached content
+
+        webClient.setJavaScriptEnabled(false); // TODO enable JavaScript when we can find jQuery
+        webClient.setThrowExceptionOnFailingStatusCode(false);
+        webClient.getOptions().setPrintContentOnFailingStatusCode(false); // reduce 404 noise
+
+        return webClient;
     }
 }

@@ -27,9 +27,6 @@ public class WebClientBenchmark {
             // JQuery UI is 404 from these tests so disable stopping benchmark when it is used.
             JmhJenkinsRule j = new JmhJenkinsRule();
             webClient = j.createWebClient();
-            webClient.setJavaScriptEnabled(false); // TODO enable JavaScript when we can find jQuery
-            webClient.setThrowExceptionOnFailingStatusCode(false);
-            webClient.getOptions().setPrintContentOnFailingStatusCode(false); // reduce 404 noise
 
             webClient.login("mockUser", "mockUser");
         }
