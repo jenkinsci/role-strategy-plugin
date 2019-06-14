@@ -1,5 +1,6 @@
 package jmh;
 
+import jenkins.benchmark.jmh.BenchmarkFinder;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;

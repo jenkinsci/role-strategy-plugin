@@ -5,9 +5,9 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrate
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import hudson.model.User;
 import hudson.security.Permission;
+import jenkins.benchmark.jmh.JmhBenchmark;
+import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
-import jmh.JmhBenchmark;
-import jmh.JmhBenchmarkState;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;

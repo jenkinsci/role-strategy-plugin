@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.43</version>
+        <version>3.45</version>
     </parent>
 
     <artifactId>role-strategy</artifactId>
@@ -97,18 +97,6 @@
             <version>1.0.1</version>
         </dependency>
         <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-core</artifactId>
-            <version>1.21</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.openjdk.jmh</groupId>
-            <artifactId>jmh-generator-annprocess</artifactId>
-            <version>1.21</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.jenkins</groupId>
             <artifactId>configuration-as-code</artifactId>
             <version>${configuration-as-code.version}</version>
@@ -121,39 +109,7 @@
             <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.reflections</groupId>
-            <artifactId>reflections</artifactId>
-            <version>0.9.11</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
-
-    <profiles>
-        <!-- Profile to run benchmarks when the `benchmark` property is set -->
-        <profile>
-            <id>jmh-benchmark</id>
-            <activation>
-                <property>
-                    <name>benchmark</name>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <includes>
-                                <include>**/*Benchmark.java</include>
-                                <include>**/Benchmark*.java</include>
-                            </includes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>
 
 
