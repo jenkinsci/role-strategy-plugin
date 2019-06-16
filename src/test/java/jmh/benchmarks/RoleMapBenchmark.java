@@ -5,8 +5,8 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
-import jmh.JmhBenchmark;
-import jmh.JmhBenchmarkState;
+import jenkins.benchmark.jmh.JmhBenchmark;
+import jenkins.benchmark.jmh.JmhBenchmarkState;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.infra.Blackhole;
 

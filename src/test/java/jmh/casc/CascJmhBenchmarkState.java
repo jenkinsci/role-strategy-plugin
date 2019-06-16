@@ -2,7 +2,7 @@ package jmh.casc;
 
 import io.jenkins.plugins.casc.ConfigurationAsCode;
 import io.jenkins.plugins.casc.ConfiguratorException;
-import jmh.JmhBenchmarkState;
+import jenkins.benchmark.jmh.JmhBenchmarkState;
 
 import javax.annotation.Nonnull;
 import java.util.Objects;

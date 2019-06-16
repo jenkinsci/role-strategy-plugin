@@ -1,7 +1,7 @@
 package jmh.benchmarks;
 
-import jmh.JmhBenchmark;
-import jmh.JmhBenchmarkState;
+import jenkins.benchmark.jmh.JmhBenchmark;
+import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jmh.JmhJenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
