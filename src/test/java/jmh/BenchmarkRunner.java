@@ -24,7 +24,7 @@ public final class BenchmarkRunner {
                 .resultFormat(ResultFormatType.JSON)
                 .result("jmh-report.json");
 
-        BenchmarkFinder bf = new BenchmarkFinder(this.getClass().getPackage().getName());
+        BenchmarkFinder bf = new BenchmarkFinder(getClass());
         bf.findBenchmarks(options);
         new Runner(options.build()).run();
     }
