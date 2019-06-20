@@ -86,6 +86,16 @@ public class RoleMap {
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
 
+  /**
+   * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)}
+   * for different permissions for the same {@code itemName}, so cache them and avoid wasting time
+   * matching regular expressions.
+   */
+  private final Cache<String, RoleMap> matchingRoleMapCache = CacheBuilder.newBuilder()
+          .softValues()
+          .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
+          .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
+          .build();
 
   RoleMap() {
     this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
@@ -359,8 +369,12 @@ public class RoleMap {
    * @param namePattern The pattern to match
    * @return A {@link RoleMap} containing only {@link Role}s matching the given name
    */
-
   public RoleMap newMatchingRoleMap(String namePattern) {
+    RoleMap cachedRoleMap = matchingRoleMapCache.getIfPresent(namePattern);
+    if (cachedRoleMap != null) {
+      return cachedRoleMap;
+    }
+
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     new RoleWalker() {
       public void perform(Role current) {
