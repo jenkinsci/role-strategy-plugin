@@ -384,7 +384,9 @@ public class RoleMap {
         }
       }
     };
-    return new RoleMap(roleMap);
+    RoleMap newMatchingRoleMap = new RoleMap(roleMap);
+    matchingRoleMapCache.put(namePattern, newMatchingRoleMap);
+    return newMatchingRoleMap;
   }
 
   /**
