@@ -88,7 +88,7 @@ public class RoleMap {
 
   /**
    * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)}
-   * for different permissions for the same {@code itemName}, so cache them and avoid wasting time
+   * for different permissions for the same {@code itemNamePrefix}, so cache them and avoid wasting time
    * matching regular expressions.
    */
   private final Cache<String, RoleMap> matchingRoleMapCache = CacheBuilder.newBuilder()
@@ -365,13 +365,13 @@ public class RoleMap {
 
   /**
    * Create a sub-map of this {@link RoleMap} containing {@link Role}s that are applicable
-   * on the given {@code itemName}.
+   * on the given {@code itemNamePrefix}.
    *
-   * @param itemName the name of the {@link hudson.model.AbstractItem} or {@link hudson.model.Computer}
-   * @return A {@link RoleMap} containing roles that are applicable on the itemName
+   * @param itemNamePrefix the name of the {@link hudson.model.AbstractItem} or {@link hudson.model.Computer}
+   * @return A {@link RoleMap} containing roles that are applicable on the itemNamePrefix
    */
-  public RoleMap newMatchingRoleMap(String itemName) {
-    RoleMap cachedRoleMap = matchingRoleMapCache.getIfPresent(itemName);
+  public RoleMap newMatchingRoleMap(String itemNamePrefix) {
+    RoleMap cachedRoleMap = matchingRoleMapCache.getIfPresent(itemNamePrefix);
     if (cachedRoleMap != null) {
       return cachedRoleMap;
     }
@@ -379,7 +379,7 @@ public class RoleMap {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     new RoleWalker() {
       public void perform(Role current) {
-        Matcher m = current.getPattern().matcher(itemName);
+        Matcher m = current.getPattern().matcher(itemNamePrefix);
         if (m.matches()) {
           roleMap.put(current, grantedRoles.get(current));
         }
@@ -387,7 +387,7 @@ public class RoleMap {
     };
 
     RoleMap newMatchingRoleMap = new RoleMap(roleMap);
-    matchingRoleMapCache.put(itemName, newMatchingRoleMap);
+    matchingRoleMapCache.put(itemNamePrefix, newMatchingRoleMap);
     return newMatchingRoleMap;
   }
 
