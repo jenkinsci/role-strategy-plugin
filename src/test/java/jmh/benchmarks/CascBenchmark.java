@@ -8,9 +8,9 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
 import hudson.security.AuthorizationStrategy;
+import io.jenkins.plugins.casc.misc.jmh.CascJmhBenchmarkState;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.model.Jenkins;
-import jmh.casc.CascJmhBenchmarkState;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -98,6 +98,12 @@ public class CascBenchmark {
         @Override
         protected String getResourcePath() {
             return "sample-casc.yml";
+        }
+
+        @Nonnull
+        @Override
+        protected Class<?> getEnclosingClass() {
+            return CascBenchmark.class;
         }
     }
 
