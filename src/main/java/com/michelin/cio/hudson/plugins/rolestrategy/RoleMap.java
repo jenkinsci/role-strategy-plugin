@@ -60,6 +60,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -79,6 +81,12 @@ public class RoleMap {
   private final SortedMap <Role,Set<String>> grantedRoles;
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
+
+  private static final ConcurrentMap<Permission, Set<Permission>> implyingPermissionCache = new ConcurrentHashMap<>();
+
+  static {
+    Permission.getAll().forEach(RoleMap::cacheImplyingPermissions);
+  }
   
   private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
           .softValues()
@@ -104,18 +112,10 @@ public class RoleMap {
    * Check if the given sid has the provided {@link Permission}.
    * @return True if the sid's granted permission
    */
-  private boolean hasPermission(String sid, Permission p, RoleType roleType, AccessControlled controlledItem) {
-    if (PermissionHelper.isDangerous(p)) {
-      /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
-      p = Jenkins.ADMINISTER;
-    }
-    final Set<Permission> permissions = new HashSet<>();
-    final Permission per = p;
-    final boolean[] temp = {false};
-    // Get the implying permissions
-    for (; p!=null; p=p.impliedBy) {
-      permissions.add(p);
-    }
+  private boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
+    final Set<Permission> permissions = getImplyingPermissions(permission);
+    final boolean[] hasPermission = { false };
+
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
     new RoleWalker() {
@@ -127,29 +127,27 @@ public class RoleMap {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
               if (macro != null) {
                 RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
-                  temp[0] =true;
+                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, permission, roleType, controlledItem, macro)) {
+                  hasPermission[0] = true;
                   abort();
-                  return ;
                 }
               }
             } else {
-              temp[0] =true;
+              hasPermission[0] = true;
               abort();
-              return ;
             }
           } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
             try {
               UserDetails userDetails = cache.getIfPresent(sid);
               if (userDetails == null) {
-                userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
+                userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
                 cache.put(sid, userDetails);
               }
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
                 if (grantedAuthority.getAuthority().equals(current.getName())) {
-                  temp[0] =true;
+                  hasPermission[0] = true;
                   abort();
-                  return ;
+                  return;
                 }
               }
             } catch (BadCredentialsException e) {
@@ -165,7 +163,44 @@ public class RoleMap {
         }
       }
     };
-    return temp[0];
+    return hasPermission[0];
+  }
+
+  /**
+   * Get the set of permissions which imply the permission {@code p}
+   *
+   * @param p find permissions that imply this permission
+   * @return set of permissions which imply {@code p}
+   */
+  private static Set<Permission> getImplyingPermissions(Permission p) {
+    Set<Permission> implyingPermissions = implyingPermissionCache.get(p);
+    if (implyingPermissions != null) {
+      return implyingPermissions;
+    } else {
+      return cacheImplyingPermissions(p);
+    }
+  }
+
+  /**
+   * Finds the implying permissions and caches them for future use.
+   *
+   * @param permission the permission for which to cache implying permissions
+   * @return a set of permissions that imply this permission (including itself)
+   */
+  private static Set<Permission> cacheImplyingPermissions(Permission permission) {
+    if (PermissionHelper.isDangerous(permission)) {
+      /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
+      permission = Jenkins.ADMINISTER;
+    }
+
+    Set<Permission> implyingPermissions = new HashSet<>();
+    // Get the implying permissions
+    for (Permission p = permission; p != null; p = p.impliedBy) {
+      implyingPermissions.add(p);
+    }
+
+    implyingPermissionCache.put(permission, implyingPermissions);
+    return implyingPermissions;
   }
 
   /**
