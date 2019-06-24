@@ -93,7 +93,7 @@ public class RoleMap {
    */
   private final Cache<String, RoleMap> matchingRoleMapCache = CacheBuilder.newBuilder()
           .softValues()
-          .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
+          .maximumSize(2048)
           .expireAfterWrite(1, TimeUnit.HOURS)
           .build();
 
