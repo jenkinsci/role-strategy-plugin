@@ -98,7 +98,7 @@ public class PermissionHelper {
      *         Always {@code false} in the {@link DangerousPermissionHandlingMode#ENABLED} mode.
      */
     public static boolean isDangerous(@Nonnull Permission p) {
-        if (DangerousPermissionHandlingMode.CURRENT == DangerousPermissionHandlingMode.ENABLED) {
+        if (DangerousPermissionHandlingMode.getCurrent() == DangerousPermissionHandlingMode.ENABLED) {
             // all permissions are fine
             return false;
         }

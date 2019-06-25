@@ -30,20 +30,22 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.model.Item;
 import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
-import hudson.model.Item;
 import jenkins.model.Jenkins;
-
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
 import org.jenkinsci.plugins.rolestrategy.Settings;
+import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
 
@@ -107,6 +109,14 @@ public class RoleMap {
     public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
         this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
     }
+
+  /**
+   * Invalidate the dangerous permissions from the cache when the {@link DangerousPermissionHandlingMode} changes.
+   */
+  @Restricted(NoExternalUse.class)
+  public static void invalidateDangerousPermissions() {
+    PermissionHelper.DANGEROUS_PERMISSIONS.forEach(implyingPermissionCache::remove);
+  }
 
   /**
    * Check if the given sid has the provided {@link Permission}.
@@ -188,15 +198,17 @@ public class RoleMap {
    * @return a set of permissions that imply this permission (including itself)
    */
   private static Set<Permission> cacheImplyingPermissions(Permission permission) {
+    Set<Permission> implyingPermissions;
     if (PermissionHelper.isDangerous(permission)) {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
-      permission = Jenkins.ADMINISTER;
-    }
+      implyingPermissions = getImplyingPermissions(Jenkins.ADMINISTER);
+    } else {
+      implyingPermissions = new HashSet<>();
 
-    Set<Permission> implyingPermissions = new HashSet<>();
-    // Get the implying permissions
-    for (Permission p = permission; p != null; p = p.impliedBy) {
-      implyingPermissions.add(p);
+      // Get the implying permissions
+      for (Permission p = permission; p != null; p = p.impliedBy) {
+        implyingPermissions.add(p);
+      }
     }
 
     implyingPermissionCache.put(permission, implyingPermissions);
