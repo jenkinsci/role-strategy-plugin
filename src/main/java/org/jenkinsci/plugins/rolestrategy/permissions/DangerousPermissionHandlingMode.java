@@ -83,7 +83,7 @@ public enum DangerousPermissionHandlingMode {
     }
 
     /**
-     * Set the {@link DangerousPermissionHandlingMode
+     * Set the {@link DangerousPermissionHandlingMode}
      *
      * @param mode the {@code DangerousPermissionHandlingMode} to be set
      */
