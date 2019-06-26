@@ -111,61 +111,54 @@ public class RoleMap {
     }
     final Set<Permission> permissions = new HashSet<>();
     final Permission per = p;
-    final boolean[] temp = {false};
     // Get the implying permissions
     for (; p!=null; p=p.impliedBy) {
       permissions.add(p);
     }
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
-    new RoleWalker() {
-      public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
-          if (grantedRoles.get(current).contains(sid)) {
-            // Handle roles macro
-            if (Macro.isMacro(current)) {
-              Macro macro = RoleMacroExtension.getMacro(current.getName());
-              if (macro != null) {
-                RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
-                  temp[0] =true;
-                  abort();
-                  return ;
-                }
+    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
+      Role role = entry.getKey();
+      Set<String> sids = entry.getValue();
+      if (role.hasAnyPermission(permissions)) {
+        if (sids.contains(sid)) {
+          // Handle roles macro
+          if (Macro.isMacro(role)) {
+            Macro macro = RoleMacroExtension.getMacro(role.getName());
+            if (macro != null) {
+              RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
+              if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, per, roleType, controlledItem, macro)) {
+                return true;
               }
-            } else {
-              temp[0] =true;
-              abort();
-              return ;
             }
-          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
-            try {
-              UserDetails userDetails = cache.getIfPresent(sid);
-              if (userDetails == null) {
-                userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
-                cache.put(sid, userDetails);
-              }
-              for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-                if (grantedAuthority.getAuthority().equals(current.getName())) {
-                  temp[0] =true;
-                  abort();
-                  return ;
-                }
-              }
-            } catch (BadCredentialsException e) {
-                LOGGER.log(Level.FINE, "Bad credentials", e);
-            } catch (DataAccessException e) {
-                LOGGER.log(Level.FINE, "failed to access the data", e);
-            } catch (RuntimeException ex) {
-                // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
-                // So we want to ensure this method does not fail horribly in such case
-                LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
+          } else {
+            return true;
+          }
+        } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+          try {
+            UserDetails userDetails = cache.getIfPresent(sid);
+            if (userDetails == null) {
+              userDetails = Jenkins.getActiveInstance().getSecurityRealm().loadUserByUsername(sid);
+              cache.put(sid, userDetails);
             }
+            for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
+              if (grantedAuthority.getAuthority().equals(role.getName())) {
+                return true;
+              }
+            }
+          } catch (BadCredentialsException e) {
+            LOGGER.log(Level.FINE, "Bad credentials", e);
+          } catch (DataAccessException e) {
+            LOGGER.log(Level.FINE, "failed to access the data", e);
+          } catch (RuntimeException ex) {
+            // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
+            // So we want to ensure this method does not fail horribly in such case
+            LOGGER.log(Level.WARNING, "Unhandled exception during user authorities processing", ex);
           }
         }
       }
-    };
-    return temp[0];
+    }
+    return false;
   }
 
   /**
@@ -362,42 +355,13 @@ public class RoleMap {
 
   public RoleMap newMatchingRoleMap(String namePattern) {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
-    new RoleWalker() {
-      public void perform(Role current) {
-        Matcher m = current.getPattern().matcher(namePattern);
-        if (m.matches()) {
-          roleMap.put(current, grantedRoles.get(current));
-        }
+    grantedRoles.forEach((role, sids) -> {
+      Matcher m = role.getPattern().matcher(namePattern);
+      if (m.matches()) {
+        roleMap.put(role, sids);
       }
-    };
+    });
     return new RoleMap(roleMap);
-  }
-
-  /**
-   * Get all the roles holding the given permission.
-   * @param permission The permission you want to check
-   * @return A Set of Roles holding the given permission
-   */
-  private Set<Role> getRolesHavingPermission(final Permission permission) {
-    final Set<Role> roles = new HashSet<>();
-    final Set<Permission> permissions = new HashSet<>();
-    Permission p = permission;
-
-    // Get the implying permissions
-    for (; p!=null; p=p.impliedBy) {
-      permissions.add(p);
-    }
-    // Walk through the roles, and only add the roles having the given permission,
-    // or a permission implying the given permission
-    new RoleWalker() {
-      public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
-          roles.add(current);
-        }
-      }
-    };
-
-    return roles;
   }
 
   /**
@@ -452,44 +416,5 @@ public class RoleMap {
       }
       return null;
     }
-  }
-
-  /**
-   * A class to walk through all the {@link RoleMap}'s roles and perform an
-   * action on each one.
-   */
-  private abstract class RoleWalker {
-    boolean shouldAbort=false;
-    RoleWalker() {
-      walk();
-    }
-    /**
-     * Aborts the iterations.
-     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
-     * @since TODO 
-     */
-    public void abort() {
-      this.shouldAbort=true;
-    }
-
-    /**
-     * Walk through the roles.
-     */
-    public void walk() {
-      Set<Role> roles = RoleMap.this.getRoles();
-      Iterator<Role> iter = roles.iterator();
-      while (iter.hasNext()) {
-        Role current = iter.next();
-        perform(current);
-        if (shouldAbort) {
-            break;
-        }
-      }
-    }
-
-    /**
-     * The method to implement which will be called on each {@link Role}.
-     */
-    abstract public void perform(Role current);
   }
 }
