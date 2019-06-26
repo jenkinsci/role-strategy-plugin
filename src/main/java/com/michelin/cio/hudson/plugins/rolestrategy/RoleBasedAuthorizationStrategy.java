@@ -43,7 +43,6 @@ import hudson.model.Run;
 import hudson.model.View;
 import hudson.scm.SCM;
 import hudson.security.ACL;
-import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
@@ -147,38 +146,30 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
   }
 
-  /**
-   * Utility function for getting PROJECT and SLAVE ACLs
-   *
-   * @param itemName Name of the item for patterns
-   * @param roleType The type of the Role
-   * @param item     the item for which to get the ACL
-   * @return ACL
-   */
-   private ACL getACL(String itemName, RoleType roleType, AccessControlled item) {
-     RoleMap roleMap = getRoleMap(roleType);
-     // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
-     return roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL());
-   }
-  
-   /**
-   * Get the specific ACL for projects.
-   * @param project The access-controlled project
-   * @return The project specific ACL
-   */
+    /**
+     * Get the specific ACL for projects.
+     *
+     * @param project The access-controlled project
+     * @return The project specific ACL
+     */
     @Override
-    public ACL getACL(Job<?,?> project) {
+    @Nonnull
+    public ACL getACL(@Nonnull Job<?,?> project) {
       return getACL((AbstractItem) project);
     }
 
     @Override
-    public ACL getACL(AbstractItem project) {
-      return getACL(project.getFullName(), RoleType.Project, project);
+    @Nonnull
+    public ACL getACL(@Nonnull AbstractItem project) {
+        return projectRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project)
+                .newInheritingACL(getRootACL());
     }
 
     @Override
-    public ACL getACL(Computer computer) {
-       return getACL(computer.getName(), RoleType.Slave, computer);
+    @Nonnull
+    public ACL getACL(@Nonnull Computer computer) {
+        return slaveRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
+                .newInheritingACL(getRootACL());
     }
   
   /**
