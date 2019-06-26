@@ -91,14 +91,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String MACRO_ROLE = "roleMacros";
   public final static String MACRO_USER  = "userMacros";
 
-  private final RoleMap slaveRoles;
+  private final RoleMap agentRoles;
   private final RoleMap globalRoles;
-  private final RoleMap projectRoles;
+  private final RoleMap itemRoles;
 
   public RoleBasedAuthorizationStrategy() {
-      slaveRoles = new RoleMap();
+      agentRoles = new RoleMap();
       globalRoles = new RoleMap();
-      projectRoles = new RoleMap();
+      itemRoles = new RoleMap();
   }
 
   /**
@@ -108,13 +108,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
       RoleMap map = grantedRoles.get(SLAVE);
-      slaveRoles = map == null ? new RoleMap() : map;
+      agentRoles = map == null ? new RoleMap() : map;
 
       map = grantedRoles.get(GLOBAL);
       globalRoles = map == null ? new RoleMap() : map;
 
       map = grantedRoles.get(PROJECT);
-      projectRoles = map == null ? new RoleMap() : map;
+      itemRoles = map == null ? new RoleMap() : map;
   }
 
   /**
@@ -132,15 +132,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * @param roleType the type of the role
    * @return the {@link RoleMap} corresponding to the {@code roleType}
+   * @throws IllegalArgumentException for an invalid {@code roleType}
    */
+  @Nonnull
   private RoleMap getRoleMap(RoleType roleType) {
       switch (roleType) {
           case Global:
               return globalRoles;
           case Project:
-              return projectRoles;
+              return itemRoles;
           case Slave:
-              return slaveRoles;
+              return agentRoles;
           default:
               throw new IllegalArgumentException("Unknown RoleType: " + roleType);
       }
@@ -161,14 +163,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     @Nonnull
     public ACL getACL(@Nonnull AbstractItem project) {
-        return projectRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project)
+        return itemRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project)
                 .newInheritingACL(getRootACL());
     }
 
     @Override
     @Nonnull
     public ACL getACL(@Nonnull Computer computer) {
-        return slaveRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
+        return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
                 .newInheritingACL(getRootACL());
     }
   
@@ -181,8 +183,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public Collection<String> getGroups() {
     Set<String> sids = new HashSet<>();
     sids.addAll(globalRoles.getSids(true));
-    sids.addAll(projectRoles.getSids(true));
-    sids.addAll(slaveRoles.getSids(true));
+    sids.addAll(itemRoles.getSids(true));
+    sids.addAll(agentRoles.getSids(true));
     return sids;
   }
 
@@ -225,11 +227,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * a look at the {@link ConverterImpl}) and, as such, must remain private
    * since it exposes all the security config.</p>
    */
+  @Nonnull
   private Map<RoleType, RoleMap> getRoleMaps() {
     return ImmutableMap.of(
             RoleType.Global, globalRoles,
-            RoleType.Slave, slaveRoles,
-            RoleType.Project, projectRoles);
+            RoleType.Slave, agentRoles,
+            RoleType.Project, itemRoles);
   }
 
   /**
@@ -484,7 +487,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      *
      * @param pattern Pattern to match against
      * @param maxJobs Maximum matching jobs to search for
-     * @throws IOException
+     * @throws IOException when unable to write response
      */
     @Restricted(NoExternalUse.class)
     public void doGetMatchingJobs(@QueryParameter(required = true) String pattern,
@@ -662,6 +665,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final class DescriptorImpl extends GlobalMatrixAuthorizationStrategy.DescriptorImpl {
 
     @Override
+    @Nonnull
     public  String getDisplayName() {
       return Messages.RoleBasedAuthorizationStrategy_DisplayName();
     }
