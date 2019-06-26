@@ -62,7 +62,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -92,18 +91,36 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String SLAVE     = "slaveRoles";
   public final static String MACRO_ROLE = "roleMacros";
   public final static String MACRO_USER  = "userMacros";
-  
-  private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
-  
-  /** {@link RoleMap}s associated to each {@link AccessControlled} class */
-  private final Map <String, RoleMap> grantedRoles;
+
+  /**
+   * {@link RoleMap}s for each {@link RoleType}
+   */
+  private final Map<RoleType, RoleMap> roleMaps = new CopyOnWriteMap.Hash<>();
 
   public RoleBasedAuthorizationStrategy() {
-      this.grantedRoles = new CopyOnWriteMap.Hash<>();
+    Arrays.stream(RoleType.values()).forEach(roleType -> roleMaps.put(roleType, new RoleMap()));
   }
 
+  /**
+   * Creates a new {@link RoleBasedAuthorizationStrategy}
+   *
+   * @param grantedRoles the roles in the strategy
+   * @deprecated Use {@link RoleBasedAuthorizationStrategy#RoleBasedAuthorizationStrategy(HashMap)}
+   */
+  @Deprecated
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
-      this.grantedRoles = new CopyOnWriteMap.Hash<>(grantedRoles);
+    this();
+    grantedRoles.forEach((type, roleMap) -> roleMaps.put(RoleType.fromString(type), roleMap));
+  }
+
+  /**
+   * Creates a new {@link RoleBasedAuthorizationStrategy}
+   *
+   * @param roleMaps a subset of the the role
+   */
+  public RoleBasedAuthorizationStrategy(HashMap<RoleType, RoleMap> roleMaps) {
+    this();
+    roleMaps.forEach(this.roleMaps::put);
   }
 
     /**
@@ -111,30 +128,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return The global ACL
    */
   @Override
+  @Nonnull
   public SidACL getRootACL() {
-    RoleMap root = getRoleMap(GLOBAL);
-    return root.getACL(RoleType.Global, null);
+    return roleMaps.get(RoleType.Global).getACL(RoleType.Global, null);
   }
 
   
   /**
-   * Universal function for getting ACL for different 
-   * @param roleMapName Name of the role map section
+   * Utility function for getting PROJECT and SLAVE ACLs
+   *
    * @param itemName Name of the item for patterns
+   * @param roleType The type of the Role
+   * @param item     the item for which to get the ACL
    * @return ACL
    */
-   private ACL getACL(String roleMapName, String itemName, RoleType roleType, AccessControlled item)
-   {
-     SidACL acl;
-     RoleMap roleMap = grantedRoles.get(roleMapName);
-     if (roleMap == null) {
-       acl = getRootACL();
-     }
-     else {
-       // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
-       acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL());
-     }
-     return acl;   
+   private ACL getACL(String itemName, RoleType roleType, AccessControlled item) {
+     RoleMap roleMap = roleMaps.get(roleType);
+     // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
+     return roleMap.newMatchingRoleMap(itemName).getACL(roleType, item).newInheritingACL(getRootACL());
    }
   
    /**
@@ -149,12 +160,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     @Override
     public ACL getACL(AbstractItem project) {
-      return getACL(PROJECT, project.getFullName(), RoleType.Project, project);
+      return getACL(project.getFullName(), RoleType.Project, project);
     }
 
     @Override
     public ACL getACL(Computer computer) {
-       return getACL(SLAVE, computer.getName(), RoleType.Slave, computer);
+       return getACL(computer.getName(), RoleType.Slave, computer);
     }
   
   /**
@@ -163,11 +174,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @Override
   public Collection<String> getGroups() {
-    Set<String> sids = new HashSet<String>();
-    for (Map.Entry entry : this.grantedRoles.entrySet()) {
-      RoleMap roleMap = (RoleMap) entry.getValue();
-      sids.addAll(roleMap.getSids(true));
-    }
+    Set<String> sids = new HashSet<>();
+    roleMaps.values().forEach((roleMap -> sids.addAll(roleMap.getSids(true))));
     return sids;
   }
 
@@ -176,15 +184,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * <p>The returned sorted map is unmodifiable.</p>
    * @param type The object type controlled by the {@link RoleMap}
    * @return All roles from the global {@link RoleMap}.
-   *         May return {@code} if a non-supported type is defined.
+   * @deprecated Use {@link RoleBasedAuthorizationStrategy#getGrantedRoles(RoleType)}
    */
   @Nullable
+  @Deprecated
   public SortedMap<Role, Set<String>> getGrantedRoles(String type) {
-    RoleMap roleMap = this.getRoleMap(type);
-    if (roleMap != null) {
-      return roleMap.getGrantedRoles();
-    }
-    return null;
+    return getGrantedRoles(RoleType.fromString(type));
+  }
+
+  /**
+   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}
+   * @param type the type of the role
+   * @return roles mapped to the set of user sids assigned to that role
+   * @since TODO
+   */
+  public SortedMap<Role, Set<String>> getGrantedRoles(@Nonnull RoleType type) {
+    return roleMaps.get(type).getGrantedRoles();
   }
 
   /**
@@ -194,56 +209,26 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @CheckForNull
   public Set<String> getSIDs(String type) {
-    RoleMap roleMap = this.getRoleMap(type);
-    if (roleMap != null) {
-      return roleMap.getSids();
-    }
-    return null;
-  }
-  
-  /**
-   * Get the {@link RoleMap} associated to the given class.
-   * @param type The object type controlled by the {@link RoleMap}
-   * @return The associated {@link RoleMap}
-   */
-  private RoleMap getRoleMap(String type) {
-    RoleMap map;
-    if (grantedRoles.containsKey(type)) {
-       map = grantedRoles.get(type);
-    }
-    else {
-      // Create it if it doesn't exist
-      map = new RoleMap();
-      grantedRoles.put(type, map);
-    }
-    return map;
+    return roleMaps.get(RoleType.fromString(type)).getSids();
   }
 
   /**
-   * Returns a map associating a string representation with each {@link RoleMap}.
+   * Returns a map associating a {@link RoleType} with each {@link RoleMap}.
    * <p>This method is intended to be used for XML serialization purposes (take
    * a look at the {@link ConverterImpl}) and, as such, must remain private
    * since it exposes all the security config.</p>
    */
-  private Map<String, RoleMap> getRoleMaps() {
-    return grantedRoles;
+  private Map<RoleType, RoleMap> getRoleMaps() {
+    return roleMaps;
   }
 
   /**
    * Add the given {@link Role} to the {@link RoleMap} associated to the provided class.
-   * @param type The {@link AccessControlled} class referencing the {@link RoleMap}
+   * @param roleType The type of the {@link Role} to be added
    * @param role The {@link Role} to add
    */
-  private void addRole(String type, Role role) {
-    RoleMap roleMap = this.grantedRoles.get(type);
-    if (roleMap != null) {
-      roleMap.addRole(role);
-    } else {
-      // Create the RoleMap if it doesnt exist
-      roleMap = new RoleMap();
-      roleMap.addRole(role);
-      grantedRoles.put(type, roleMap);
-    }
+  private void addRole(RoleType roleType, Role role) {
+    roleMaps.get(roleType).addRole(role);
   }
 
   /**
@@ -252,8 +237,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param role The role to assign
    * @param sid The sid to assign to
    */
-  private void assignRole(String type, Role role, String sid) {
-    RoleMap roleMap = this.grantedRoles.get(type);
+  private void assignRole(RoleType type, Role role, String sid) {
+    RoleMap roleMap = this.roleMaps.get(type);
     if (roleMap != null && roleMap.hasRole(role)) {
       roleMap.assignRole(role, sid);
     }
@@ -302,8 +287,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             }
         }
         Role role = new Role(roleName, pttrn, permissionSet);
+        RoleType roleType = RoleType.fromString(type);
         if (overwriteb) {
-            RoleMap roleMap = this.grantedRoles.get(type);
+            RoleMap roleMap = this.roleMaps.get(roleType);
             if (roleMap != null) {
                 Role role2 = roleMap.getRole(roleName);
                 if (role2 != null) {
@@ -311,7 +297,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 }
             }
         }
-        addRole(type, role);
+        addRole(roleType, role);
         persistChanges();
     }
 
@@ -330,7 +316,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                           @QueryParameter(required = true) String roleName) throws IOException{
         checkAdminPerm();
         JSONObject responseJson = new JSONObject();
-        RoleMap roleMap = this.grantedRoles.get(type);
+        RoleMap roleMap = this.roleMaps.get(RoleType.fromString(type));
         if (roleMap != null){
             Role role = roleMap.getRole(roleName);
             if (role != null){
@@ -369,7 +355,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                               @QueryParameter(required = true) String roleNames) throws IOException {
         checkAdminPerm();
 
-        RoleMap roleMap = this.grantedRoles.get(type);
+        RoleMap roleMap = this.roleMaps.get(RoleType.fromString(type));
         if (roleMap != null) {
             String[] split = roleNames.split(",");
             for (String aSplit : split) {
@@ -399,12 +385,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                              @QueryParameter(required = true) String roleName,
                              @QueryParameter(required = true) String sid) throws IOException {
         checkAdminPerm();
-        RoleMap roleMap = this.grantedRoles.get(type);
+        final RoleType roleType = RoleType.fromString(type);
+        RoleMap roleMap = this.roleMaps.get(roleType);
         if (roleMap != null) {
             Role role = roleMap.getRole(roleName);
 
             if (role != null) {
-                assignRole(type, role, sid);
+                assignRole(roleType, role, sid);
             }
             persistChanges();
         }
@@ -436,7 +423,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void doDeleteSid(@QueryParameter(required = true) String type,
                             @QueryParameter(required = true) String sid) throws IOException {
         checkAdminPerm();
-        RoleMap roleMap = this.grantedRoles.get(type);
+        RoleMap roleMap = this.roleMaps.get(RoleType.fromString(type));
         if (roleMap != null) {
             roleMap.deleteSids(sid);
         }
@@ -459,7 +446,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                             @QueryParameter(required = true) String roleName,
                             @QueryParameter(required = true) String sid) throws IOException {
         checkAdminPerm();
-        RoleMap roleMap = this.grantedRoles.get(type);
+        RoleMap roleMap = this.roleMaps.get(RoleType.fromString(type));
         if (roleMap != null) {
           Role role = roleMap.getRole(roleName);
           if (role != null) {
@@ -481,9 +468,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void doGetAllRoles(@QueryParameter(fixEmpty = true) String type) throws IOException {
         checkAdminPerm();
         JSONObject responseJson = new JSONObject();
-        RoleMap roleMap = this.grantedRoles.get(GLOBAL);
+        RoleMap roleMap = roleMaps.get(RoleType.Global);
         if (type != null) {
-            roleMap = this.grantedRoles.get(type);
+            roleMap = roleMaps.get(RoleType.fromString(type));
         }
         if (roleMap != null) {
             for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
@@ -537,11 +524,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
         
         // Role maps
-        Map<String, RoleMap> maps = strategy.getRoleMaps();
-        for (Map.Entry<String, RoleMap> map : maps.entrySet()) {
+        Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
+        for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
           RoleMap roleMap = map.getValue();
           writer.startNode("roleMap");
-          writer.addAttribute("type", map.getKey());
+          writer.addAttribute("type", map.getKey().getStringType());
 
           for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
             Role role = grantedRole.getKey();
@@ -575,8 +562,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
         final RoleBasedAuthorizationStrategy strategy = create();
-        boolean showDangerousPermissionsDefined = false;
-        
+
         while(reader.hasMoreChildren()) {
           reader.moveDown();
 
@@ -619,7 +605,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               }
               reader.moveUp();
             }
-            strategy.grantedRoles.put(type, map);
+            strategy.roleMaps.put(RoleType.fromString(type), map);
           }
           reader.moveUp();
         }
@@ -661,7 +647,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         {
             if (userExt.IsApplicable(RoleType.Global))
             {
-                getRoleMap(GLOBAL).getSids().contains(userExt.getName());
+                roleMaps.get(RoleType.Global).getSids().contains(userExt.getName());
             }
         }
     }
@@ -716,13 +702,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       
       if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
-        Map<String, RoleMap> maps = strategy.getRoleMaps();
+        Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
 
-        for (Map.Entry<String, RoleMap> map : maps.entrySet()) {        
+        for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
           // Get roles and skip non-existent role entries (backward-comp)
           RoleMap roleMap = map.getValue();
           roleMap.clearSids();
-          JSONObject roles = json.getJSONObject(map.getKey());
+          JSONObject roles = json.getJSONObject(map.getKey().getStringType());
           if (roles.isNullObject()) {
               continue;
           }
@@ -771,20 +757,20 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
 
           Role role = new Role(roleName, permissions);
-          strategy.addRole(GLOBAL, role);
-          RoleMap roleMap = ((RoleBasedAuthorizationStrategy) oldStrategy).getRoleMap(GLOBAL);
+          strategy.addRole(RoleType.Global, role);
+          RoleMap roleMap = ((RoleBasedAuthorizationStrategy) oldStrategy).roleMaps.get(RoleType.Global);
           if (roleMap != null) {
             Set<String> sids = roleMap.getSidsForRole(roleName);
             if (sids != null) {
               for (String sid : sids) {
-                strategy.assignRole(GLOBAL, role, sid);
+                strategy.assignRole(RoleType.Global, role, sid);
               }
             }
           }
         }
 
-        ReadRoles(formData, PROJECT, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
-        ReadRoles(formData, SLAVE, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
+        readRoles(formData, RoleType.Project, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
+        readRoles(formData, RoleType.Slave, strategy, (RoleBasedAuthorizationStrategy)oldStrategy);
       }
       // When called from Hudson Manage panel, but was already on a role-based strategy
       else if (oldStrategy instanceof RoleBasedAuthorizationStrategy) {
@@ -797,22 +783,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       else {
         strategy = new RoleBasedAuthorizationStrategy();
         Role adminRole = createAdminRole();
-        strategy.addRole(GLOBAL, adminRole);
-        strategy.assignRole(GLOBAL, adminRole, getCurrentUser());
+        strategy.addRole(RoleType.Global, adminRole);
+        strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
       }
       
       strategy.renewMacroRoles();
       return strategy;
     }
 
-    private void ReadRoles(JSONObject formData, String roleType,
-            RoleBasedAuthorizationStrategy targetStrategy, RoleBasedAuthorizationStrategy oldStrategy)
-    {     
-        if (!formData.has(roleType)) {
-            assert false : "Unexistent Role type " + roleType;
+    private void readRoles(JSONObject formData, final RoleType roleType,
+                           RoleBasedAuthorizationStrategy targetStrategy, RoleBasedAuthorizationStrategy oldStrategy) {
+        final String roleTypeAsString = roleType.getStringType();
+        if (!formData.has(roleTypeAsString)) {
+            assert false : "Unexistent Role type " + roleTypeAsString;
             return;
         }
-        JSONObject projectRoles = formData.getJSONObject(roleType);
+        JSONObject projectRoles = formData.getJSONObject(roleTypeAsString);
         if (!projectRoles.containsKey("data")) {
             assert false : "No data at role description";
             return;
@@ -838,7 +824,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           Role role = new Role(roleName, pattern, permissions);
           targetStrategy.addRole(roleType, role);
 
-          RoleMap roleMap = oldStrategy.getRoleMap(roleType);
+          RoleMap roleMap = oldStrategy.roleMaps.get(roleType);
           if (roleMap != null) {
             Set<String> sids = roleMap.getSidsForRole(roleName);
             if (sids != null) {
