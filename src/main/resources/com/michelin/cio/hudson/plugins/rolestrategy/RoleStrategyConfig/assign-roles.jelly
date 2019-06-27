@@ -37,10 +37,12 @@
           <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
           <j:set var="projectGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
           <j:set var="slaveGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
+          <j:set var="viewGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.VIEW)}"/>
           
           <j:set var="globalSIDs" value="${it.strategy.getSIDs(it.strategy.GLOBAL)}"/>
           <j:set var="projectSIDs" value="${it.strategy.getSIDs(it.strategy.PROJECT)}"/>
           <j:set var="slaveSIDs" value="${it.strategy.getSIDs(it.strategy.SLAVE)}"/>
+          <j:set var="viewSIDs" value="${it.strategy.getSIDs(it.strategy.VIEW)}"/>
           
           <j:if test="${empty(descriptorPath)}">
             <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
@@ -88,6 +90,11 @@
              <f:section title="${%Node roles}">
               <f:rowSet name="slaveRoles">
                 <f:block><st:include page="assign-slave-roles.jelly" optional="true" /></f:block>
+              </f:rowSet>
+            </f:section>
+            <f:section title="${%View roles}">
+              <f:rowSet name="viewRoles">
+                <f:block><st:include page="assign-view-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
             <f:block>

@@ -189,4 +189,8 @@ public class RoleStrategyConfig extends ManagementLink {
     public final RoleType getSlaveRoleType() {
         return RoleType.Slave;
     }
+
+    public final RoleType getViewRoleType() {
+        return RoleType.View;
+    }
 }
