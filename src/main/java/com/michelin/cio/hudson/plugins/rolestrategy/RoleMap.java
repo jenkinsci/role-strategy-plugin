@@ -29,6 +29,7 @@ import com.google.common.cache.CacheBuilder;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Items;
 import hudson.model.User;
@@ -482,5 +483,51 @@ public class RoleMap {
      * The method to implement which will be called on each {@link Role}.
      */
     abstract public void perform(Role current);
+  }
+
+  /**
+   * Unmarshall a {@link RoleMap} from XML
+   *
+   * @param reader the XML reader
+   */
+  static RoleMap unmarshall(HierarchicalStreamReader reader) {
+    RoleMap map = new RoleMap();
+
+    while (reader.hasMoreChildren()) {
+      reader.moveDown();
+      String name = reader.getAttribute("name");
+      String pattern = reader.getAttribute("pattern");
+      Set<Permission> permissions = new HashSet<>();
+
+      String next = reader.peekNextChild();
+      if (next != null && next.equals("permissions")) {
+        reader.moveDown();
+        while (reader.hasMoreChildren()) {
+          reader.moveDown();
+          Permission p = Permission.fromId(reader.getValue());
+          if (p != null) {
+            permissions.add(p);
+          }
+          reader.moveUp();
+        }
+        reader.moveUp();
+      }
+
+      Role role = new Role(name, pattern, permissions);
+      map.addRole(role);
+
+      next = reader.peekNextChild();
+      if (next != null && next.equals("assignedSIDs")) {
+        reader.moveDown();
+        while (reader.hasMoreChildren()) {
+          reader.moveDown();
+          map.assignRole(role, reader.getValue());
+          reader.moveUp();
+        }
+        reader.moveUp();
+      }
+      reader.moveUp();
+    }
+    return map;
   }
 }

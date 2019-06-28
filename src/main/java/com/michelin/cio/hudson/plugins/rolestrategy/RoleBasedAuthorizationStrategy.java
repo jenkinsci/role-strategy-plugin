@@ -50,6 +50,7 @@ import hudson.security.PermissionGroup;
 import hudson.security.SidACL;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import javax.annotation.ParametersAreNonnullByDefault;
 import javax.servlet.ServletException;
 
 import java.io.Writer;
@@ -62,6 +63,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -93,19 +96,31 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
-  private final RoleMap itemRoles;
+  private RoleBasedProjectAuthorizationEngine projectAuthorizationEngine;
+
+  private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
 
   public RoleBasedAuthorizationStrategy() {
       agentRoles = new RoleMap();
       globalRoles = new RoleMap();
-      itemRoles = new RoleMap();
+      projectAuthorizationEngine = new RegexAuthorizationEngine();
+  }
+
+  @ParametersAreNonnullByDefault
+  public RoleBasedAuthorizationStrategy(RoleMap globalRoles, RoleMap agentRoles,
+                                        RoleBasedProjectAuthorizationEngine projectAuthorizationEngine) {
+      this.globalRoles = globalRoles;
+      this.agentRoles = agentRoles;
+      this.projectAuthorizationEngine = projectAuthorizationEngine;
   }
 
   /**
    * Creates a new {@link RoleBasedAuthorizationStrategy}
    *
    * @param grantedRoles the roles in the strategy
+   * @deprecated Use {@link #RoleBasedAuthorizationStrategy(RoleMap, RoleMap, RoleBasedProjectAuthorizationEngine)}
    */
+  @Deprecated
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
       RoleMap map = grantedRoles.get(SLAVE);
       agentRoles = map == null ? new RoleMap() : map;
@@ -114,7 +129,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       globalRoles = map == null ? new RoleMap() : map;
 
       map = grantedRoles.get(PROJECT);
-      itemRoles = map == null ? new RoleMap() : map;
+      projectAuthorizationEngine = new RegexAuthorizationEngine(map == null ? new RoleMap() : map);
   }
 
   /**
@@ -140,7 +155,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           case Global:
               return globalRoles;
           case Project:
-              return itemRoles;
+              return projectAuthorizationEngine.getRoleMap();
           case Slave:
               return agentRoles;
           default:
@@ -163,8 +178,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     @Nonnull
     public ACL getACL(@Nonnull AbstractItem project) {
-        return itemRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project)
-                .newInheritingACL(getRootACL());
+        return projectAuthorizationEngine.getACL(project).newInheritingACL(getRootACL());
     }
 
     @Override
@@ -183,7 +197,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public Collection<String> getGroups() {
     Set<String> sids = new HashSet<>();
     sids.addAll(globalRoles.getSids(true));
-    sids.addAll(itemRoles.getSids(true));
+    sids.addAll(projectAuthorizationEngine.getSids(true));
     sids.addAll(agentRoles.getSids(true));
     return sids;
   }
@@ -232,7 +246,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     return ImmutableMap.of(
             RoleType.Global, globalRoles,
             RoleType.Slave, agentRoles,
-            RoleType.Project, itemRoles);
+            RoleType.Project, projectAuthorizationEngine.getRoleMap());
   }
 
   /**
@@ -558,56 +572,66 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
       }
 
-      public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
-        final Map<String, RoleMap> roleMaps = new HashMap<>();
+      @Override
+      public RoleBasedAuthorizationStrategy unmarshal(HierarchicalStreamReader reader,
+                                                      final UnmarshallingContext context) {
+        RoleMap agentRoles = null;
+        RoleMap globalRoles = null;
+        RoleMap projectRoles = null;
+
+        RoleBasedProjectAuthorizationEngine projectAuthorizationEngine = null;
+
         while(reader.hasMoreChildren()) {
-          reader.moveDown();
+            reader.moveDown();
 
-          // roleMaps
-          if(reader.getNodeName().equals("roleMap")) {
-            String type = reader.getAttribute("type");
-            RoleMap map = new RoleMap();
-            while(reader.hasMoreChildren()) {
-              reader.moveDown();
-              String name = reader.getAttribute("name");
-              String pattern = reader.getAttribute("pattern");
-              Set<Permission> permissions = new HashSet<>();
-
-              String next = reader.peekNextChild();
-              if (next != null && next.equals("permissions")) {
-                reader.moveDown();
-                while(reader.hasMoreChildren()) {
-                  reader.moveDown();
-                  Permission p = Permission.fromId(reader.getValue());
-                  if (p != null) {
-                    permissions.add(p);
-                  }
-                  reader.moveUp();
+            // roleMaps
+            String nodeName = reader.getNodeName();
+            if(nodeName.equals("roleMap")) {
+                RoleType roleType = RoleType.fromString(reader.getAttribute("type"));
+                RoleMap roleMap = RoleMap.unmarshall(reader);
+                switch (roleType) {
+                    case Global:
+                        globalRoles = roleMap;
+                        break;
+                    case Slave:
+                        agentRoles = roleMap;
+                        break;
+                    case Project:
+                        projectRoles = roleMap;
+                        break;
                 }
-                reader.moveUp();
-              }
-
-              Role role = new Role(name, pattern, permissions);
-              map.addRole(role);
-
-              next = reader.peekNextChild();
-              if (next != null && next.equals("assignedSIDs")) {
-                reader.moveDown();
-                while(reader.hasMoreChildren()) {
-                  reader.moveDown();
-                  map.assignRole(role, reader.getValue());
-                  reader.moveUp();
+            } else if (nodeName.equals("projectAuthorizationEngine")) {
+                String type = reader.getAttribute("class");
+                try {
+                    @SuppressWarnings("unchecked")
+                    Class<? extends RoleBasedProjectAuthorizationEngine> clazz =
+                            (Class<? extends RoleBasedProjectAuthorizationEngine>) Class.forName(type);
+                    RoleBasedProjectAuthorizationEngine engine = clazz.newInstance();
+                    projectAuthorizationEngine = engine.configure(reader);
+                } catch (IllegalAccessException | InstantiationException e) {
+                    LOGGER.log(Level.WARNING, "The class should have public no-arg constructor.", e);
+                } catch (ClassNotFoundException | ClassCastException e) {
+                    LOGGER.log(Level.WARNING, "Unable to instantiate projectAuthorizationEngine.", e);
                 }
-                reader.moveUp();
-              }
-              reader.moveUp();
-            }
-            roleMaps.put(type, map);
           }
+
           reader.moveUp();
         }
 
-        return new RoleBasedAuthorizationStrategy(roleMaps);
+        if (projectAuthorizationEngine == null) {
+            // compatibility mode: use the format before RoleBasedProjectAuthorizationEngine existed
+            projectAuthorizationEngine = new RegexAuthorizationEngine(projectRoles == null ? new RoleMap() : projectRoles);
+        }
+
+        if (agentRoles == null) {
+            agentRoles = new RoleMap();
+        }
+
+        if (globalRoles == null) {
+            globalRoles = new RoleMap();
+        }
+
+        return new RoleBasedAuthorizationStrategy(globalRoles, agentRoles, projectAuthorizationEngine);
       }
 
       protected RoleBasedAuthorizationStrategy create() {
