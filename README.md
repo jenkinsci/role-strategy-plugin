@@ -29,3 +29,8 @@ License
 -------
 
 [MIT License](./LICENSE.md)
+
+More information
+----------------
+
+* [Developer documentation](./docs/DEVELOPER.md)
