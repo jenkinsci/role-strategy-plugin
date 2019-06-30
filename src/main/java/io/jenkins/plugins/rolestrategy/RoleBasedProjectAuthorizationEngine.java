@@ -1,6 +1,9 @@
-package com.michelin.cio.hudson.plugins.rolestrategy;
+package io.jenkins.plugins.rolestrategy;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.model.AbstractItem;
 import hudson.security.SidACL;
 
@@ -10,8 +13,10 @@ import java.util.Collection;
 /**
  * An engine that can be used for Item or Agent authorization inside a {@link RoleBasedAuthorizationStrategy}.
  * All subclasses should have a public no-argument constructor.
+ *
+ * @since TODO
  */
-interface RoleBasedProjectAuthorizationEngine {
+public interface RoleBasedProjectAuthorizationEngine {
 
     @Nonnull
     SidACL getACL(@Nonnull AbstractItem project);
@@ -44,4 +49,11 @@ interface RoleBasedProjectAuthorizationEngine {
      */
     @Nonnull
     RoleBasedProjectAuthorizationEngine configure(HierarchicalStreamReader reader);
+
+    /**
+     * Marshall the object to XML
+     *
+     * @param writer the XML writer
+     */
+    void marshal(HierarchicalStreamWriter writer);
 }

@@ -30,6 +30,7 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Items;
 import hudson.model.User;
@@ -45,11 +46,14 @@ import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
 import org.jenkinsci.plugins.rolestrategy.Settings;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -98,8 +102,9 @@ public class RoleMap {
           .expireAfterWrite(1, TimeUnit.HOURS)
           .build();
 
-  RoleMap() {
-    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
+  @Restricted(NoExternalUse.class)
+  public RoleMap() {
+    this.grantedRoles = new ConcurrentSkipListMap<>();
   }
 
     /**
@@ -108,7 +113,7 @@ public class RoleMap {
      */
     @DataBoundConstructor
     public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
-        this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>(grantedRoles);
+        this.grantedRoles = new ConcurrentSkipListMap<>(grantedRoles);
     }
 
   /**
@@ -312,6 +317,7 @@ public class RoleMap {
    * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
    * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
    */
+  @Nonnull
   public SortedMap<Role, Set<String>> getGrantedRoles() {
     return Collections.unmodifiableSortedMap(this.grantedRoles);
   }
@@ -490,7 +496,8 @@ public class RoleMap {
    *
    * @param reader the XML reader
    */
-  static RoleMap unmarshall(HierarchicalStreamReader reader) {
+  @Restricted(NoExternalUse.class)
+  public static RoleMap unmarshal(@Nonnull HierarchicalStreamReader reader) {
     RoleMap map = new RoleMap();
 
     while (reader.hasMoreChildren()) {
@@ -529,5 +536,47 @@ public class RoleMap {
       reader.moveUp();
     }
     return map;
+  }
+
+  /**
+   * Unmarshall the {@link RoleMap} to XML
+   *
+   * @param writer the XML writer
+   * @param roleType the type of the {@link RoleMap} being marshaled
+   */
+  @Restricted(NoExternalUse.class)
+  @ParametersAreNonnullByDefault
+  public void marshal(HierarchicalStreamWriter writer, RoleType roleType) {
+    RoleMap roleMap = this;
+    writer.startNode("roleMap");
+    writer.addAttribute("type", roleType.getStringType());
+
+    for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+      Role role = grantedRole.getKey();
+      if (role != null) {
+        writer.startNode("role");
+        writer.addAttribute("name", role.getName());
+        writer.addAttribute("pattern", role.getPattern().pattern());
+
+        writer.startNode("permissions");
+        for (Permission permission : role.getPermissions()) {
+          writer.startNode("permission");
+          writer.setValue(permission.getId());
+          writer.endNode();
+        }
+        writer.endNode();
+
+        writer.startNode("assignedSIDs");
+        for (String sid : grantedRole.getValue()) {
+          writer.startNode("sid");
+          writer.setValue(sid);
+          writer.endNode();
+        }
+        writer.endNode();
+
+        writer.endNode();
+      }
+    }
+    writer.endNode();
   }
 }

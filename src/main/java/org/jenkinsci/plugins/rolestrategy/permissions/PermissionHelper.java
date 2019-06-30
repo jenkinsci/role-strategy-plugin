@@ -25,6 +25,7 @@ package org.jenkinsci.plugins.rolestrategy.permissions;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.PluginManager;
 import hudson.security.Permission;
 import java.util.ArrayList;
@@ -34,7 +35,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
@@ -53,7 +53,7 @@ public class PermissionHelper {
      * List of the dangerous permissions, which need to be suppressed by the plugin.
      */
     @Restricted(NoExternalUse.class)
-    public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<Permission>(Arrays.asList(
+    public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             Jenkins.RUN_SCRIPTS,
             PluginManager.CONFIGURE_UPDATECENTER,
             PluginManager.UPLOAD_PLUGINS)));
@@ -125,8 +125,8 @@ public class PermissionHelper {
      */
     @CheckForNull
     public static String reportDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
-        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
-        return grantedRoles != null ? reportDangerousPermissions(grantedRoles.keySet()) : null;
+        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleType.Global);
+        return reportDangerousPermissions(grantedRoles.keySet());
     }
     
     /**
@@ -156,23 +156,17 @@ public class PermissionHelper {
        return report.toString();
     }
     
-    @CheckForNull
     public static boolean hasDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
-        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
-        if (grantedRoles == null) {
-            // Undefined
-            return false;
-        }
+        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleType.Global);
         return hasDangerousPermissions(grantedRoles.keySet());
     }
     
-    @CheckForNull
     public static boolean hasDangerousPermissions(@Nonnull Iterable<Role> roles) {
        for (Role role : roles) {
            if (hasPotentiallyDangerousPermissions(role)) {
                return true;
            }
-       } 
+       }
        return false;
     }
 }

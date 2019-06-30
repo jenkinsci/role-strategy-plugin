@@ -1,7 +1,10 @@
-package com.michelin.cio.hudson.plugins.rolestrategy;
+package io.jenkins.plugins.rolestrategy;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.Role;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
+import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.model.AbstractItem;
 import hudson.security.SidACL;
 
@@ -9,13 +12,19 @@ import javax.annotation.Nonnull;
 import java.util.Collection;
 
 /**
- * The authorization using regular expressions provided by {@link Role} and {@link RoleMap}
+ * Authorization using regular expressions provided by {@link Role} and {@link RoleMap}
+ *
+ * @since TODO
  */
-class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEngine {
+public class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEngine {
     private final RoleMap roleMap;
 
-    RegexAuthorizationEngine(RoleMap roleMap) {
+    public RegexAuthorizationEngine(@Nonnull RoleMap roleMap) {
         this.roleMap = roleMap;
+    }
+
+    public RegexAuthorizationEngine() {
+        this(new RoleMap());
     }
 
     /**
@@ -27,20 +36,19 @@ class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEngine {
         return roleMap.getSids(includeAnonymous);
     }
 
-    RegexAuthorizationEngine() {
-        this(new RoleMap());
-    }
-
     @Nonnull
     @Override
     public SidACL getACL(@Nonnull AbstractItem project) {
         return roleMap.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Nonnull
     @Override
     public RegexAuthorizationEngine configure(HierarchicalStreamReader reader) {
-        return new RegexAuthorizationEngine(RoleMap.unmarshall(reader));
+        return new RegexAuthorizationEngine(RoleMap.unmarshal(reader));
     }
 
     /**
@@ -52,5 +60,14 @@ class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEngine {
     @Nonnull
     public RoleMap getRoleMap() {
         return roleMap;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void marshal(HierarchicalStreamWriter writer) {
+        // Use RoleType.Project because this is a project authorization engine
+        roleMap.marshal(writer, RoleType.Project);
     }
 }

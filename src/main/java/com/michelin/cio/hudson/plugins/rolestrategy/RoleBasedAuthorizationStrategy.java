@@ -69,6 +69,9 @@ import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import io.jenkins.plugins.rolestrategy.RegexAuthorizationEngine;
+import io.jenkins.plugins.rolestrategy.RoleBasedProjectAuthorizationEngine;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -528,48 +531,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * update the getRoleMaps() method.</p>
    */
   public static class ConverterImpl implements Converter {
+      @Override
       public boolean canConvert(Class type) {
-        return type==RoleBasedAuthorizationStrategy.class;
+        return type == RoleBasedAuthorizationStrategy.class;
       }
 
+      @Override
       public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
-        RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
-        
-        // Role maps
-        Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
-        for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
-          RoleMap roleMap = map.getValue();
-          writer.startNode("roleMap");
-          writer.addAttribute("type", map.getKey().getStringType());
-
-          for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
-            Role role = grantedRole.getKey();
-            if (role != null) {
-              writer.startNode("role");
-              writer.addAttribute("name", role.getName());
-              writer.addAttribute("pattern", role.getPattern().pattern());
-
-              writer.startNode("permissions");
-              for (Permission permission : role.getPermissions()) {
-                writer.startNode("permission");
-                writer.setValue(permission.getId());
-                writer.endNode();
-              }
-              writer.endNode();
-
-              writer.startNode("assignedSIDs");
-              for (String sid : grantedRole.getValue()) {
-                writer.startNode("sid");
-                writer.setValue(sid);
-                writer.endNode();
-              }
-              writer.endNode();
-
-              writer.endNode();
-            }
-          }
-          writer.endNode();
-        }
+        RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) source;
+        strategy.globalRoles.marshal(writer, RoleType.Global);
+        strategy.agentRoles.marshal(writer, RoleType.Slave);
+        strategy.projectAuthorizationEngine.marshal(writer);
       }
 
       @Override
@@ -588,7 +560,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             String nodeName = reader.getNodeName();
             if(nodeName.equals("roleMap")) {
                 RoleType roleType = RoleType.fromString(reader.getAttribute("type"));
-                RoleMap roleMap = RoleMap.unmarshall(reader);
+                RoleMap roleMap = RoleMap.unmarshal(reader);
                 switch (roleType) {
                     case Global:
                         globalRoles = roleMap;
@@ -620,6 +592,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         if (projectAuthorizationEngine == null) {
             // compatibility mode: use the format before RoleBasedProjectAuthorizationEngine existed
+            LOGGER.log(Level.INFO, "Entering compatibility mode, no projectAuthorizationEngine detected.");
             projectAuthorizationEngine = new RegexAuthorizationEngine(projectRoles == null ? new RoleMap() : projectRoles);
         }
 
