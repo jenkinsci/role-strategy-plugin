@@ -31,20 +31,18 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
-import hudson.model.Hudson;
 import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import javax.annotation.Nullable;
 import javax.servlet.ServletException;
 
 import hudson.util.FormApply;
+import io.jenkins.plugins.rolestrategy.RoleBasedProjectAuthorizationEngine;
 import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-
-import static hudson.util.FormApply.success;
 import javax.annotation.CheckForNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -121,12 +119,11 @@ public class RoleStrategyConfig extends ManagementLink {
    *         {@code null} if the strategy is not used.
    */
   @CheckForNull
-  public AuthorizationStrategy getStrategy() {
+  public RoleBasedAuthorizationStrategy getStrategy() {
     AuthorizationStrategy strategy = Jenkins.getActiveInstance().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy) {
-      return strategy;
-    }
-    else {
+      return (RoleBasedAuthorizationStrategy) strategy;
+    } else {
       return null;
     }
   }
@@ -136,7 +133,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
+  public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, FormException {
     Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
@@ -159,7 +156,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
+  public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, FormException {
     Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
@@ -188,5 +185,23 @@ public class RoleStrategyConfig extends ManagementLink {
     
     public final RoleType getSlaveRoleType() {
         return RoleType.Slave;
+    }
+
+    /**
+     * Returns the class of the projectAuthorizationEngine
+     *
+     * @return the class of the projectAuthorizationEngine if the current {@link AuthorizationStrategy}
+     * is {@link RoleBasedAuthorizationStrategy}, null otherwise
+     */
+    @Restricted(NoExternalUse.class)
+    @Nullable
+    public Class<? extends RoleBasedProjectAuthorizationEngine> getProjectAuthorizationEngineClass() {
+      RoleBasedProjectAuthorizationEngine projectAuthEngine = RoleBasedAuthorizationStrategy
+              .DescriptorImpl.getProjectAuthorizationEngine();
+      if (projectAuthEngine != null) {
+          return projectAuthEngine.getClass();
+      } else {
+          return null;
+      }
     }
 }

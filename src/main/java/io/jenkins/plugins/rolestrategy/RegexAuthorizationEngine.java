@@ -5,6 +5,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.security.SidACL;
 
@@ -16,6 +17,7 @@ import java.util.Collection;
  *
  * @since TODO
  */
+@Extension
 public class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEngine {
     private final RoleMap roleMap;
 

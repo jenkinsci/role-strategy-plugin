@@ -730,7 +730,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * to create the {@link AuthorizationStrategy} object.
      */
     @Override
-    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+    public RoleBasedAuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) {
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
@@ -936,6 +936,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       else {
         return false;
       }
+    }
+
+    /**
+     * Returns the projectAuthorizationEngine for this {@link RoleBasedAuthorizationStrategy}
+     *
+     * @return the projectAuthorizationEngine if the {@link AuthorizationStrategy} is
+     * {@link RoleBasedAuthorizationStrategy}; null otherwise
+     */
+    @Nullable
+    static RoleBasedProjectAuthorizationEngine getProjectAuthorizationEngine() {
+        RoleBasedAuthorizationStrategy strategy = getInstance();
+        if (strategy != null) {
+            return strategy.projectAuthorizationEngine;
+        } else {
+            return null;
+        }
     }
   }
 }

@@ -82,7 +82,10 @@
             </f:section>
             <f:section title="${%Item roles}">
               <f:rowSet name="projectRoles">
-                <f:block><st:include page="assign-project-roles.jelly" optional="true" /></f:block>
+                <f:block>
+                  <st:include page="assign-project-roles.jelly" optional="false"
+                              class="${it.projectAuthorizationEngineClass}"/>
+                </f:block>
               </f:rowSet>
             </f:section>
              <f:section title="${%Node roles}">
