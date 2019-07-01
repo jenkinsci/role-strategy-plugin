@@ -40,6 +40,7 @@ import hudson.security.SidACL;
 import hudson.model.Item;
 import jenkins.model.Jenkins;
 
+import net.sf.json.JSONObject;
 import org.acegisecurity.BadCredentialsException;
 import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
@@ -55,6 +56,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -204,10 +206,22 @@ public class RoleMap {
 
   /**
    * Add the given role to this {@link RoleMap}.
+   *
+   * The role is overwritten by default
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
-      if (this.getRole(role.getName()) == null) {
+      addRole(true, role);
+  }
+
+    /**
+     * Adds the given role to this {@link RoleMap}
+     *
+     * @param shouldOverwrite if true, the role would be overwritten if it had existed in the {@link RoleMap}
+     * @param role the role to be added
+     */
+  public void addRole(boolean shouldOverwrite, Role role) {
+      if (shouldOverwrite || this.getRole(role.getName()) == null) {
           this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
           matchingRoleMapCache.invalidateAll();
       }
@@ -420,8 +434,17 @@ public class RoleMap {
 
       return matchingJobNames;
   }
-   
-  /**
+
+    /**
+     * Remove roles from this {@link RoleMap}
+     *
+     * @param roleNames names of roles to remove
+     */
+    public void removeRoles(String[] roleNames) {
+        Arrays.stream(roleNames).map(this::getRole).forEach(this::removeRole);
+    }
+
+    /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
   private final class AclImpl extends SidACL {
@@ -578,5 +601,66 @@ public class RoleMap {
       }
     }
     writer.endNode();
+  }
+
+    @Restricted(NoExternalUse.class)
+    public void assignSidsFromJson(JSONObject json, RoleType roleType) {
+        // Get roles and skip non-existent role entries (backward-comp)
+        clearSids();
+        JSONObject roles = json.getJSONObject(roleType.getStringType());
+        if (roles.isNullObject()) {
+            return;
+        }
+
+        for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>) roles.getJSONObject("data").entrySet()) {
+            String sid = r.getKey();
+            for (Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>) r.getValue().entrySet()) {
+                if (e.getValue()) {
+                    Role role = getRole(e.getKey());
+                    if (role != null && sid != null && !sid.equals("")) {
+                        assignRole(role, sid);
+                    }
+                }
+            }
+        }
+    }
+
+  @Restricted(NoExternalUse.class)
+  public static void addRolesAndCopySids(RoleMap oldRoleMap, RoleMap newRoleMap,
+                                         JSONObject formData, String roleType) {
+    if (!formData.has(roleType)) {
+      assert false : "Nonexistent Role type " + roleType;
+      return;
+    }
+
+    JSONObject roleMap = formData.getJSONObject(roleType);
+    if (!roleMap.containsKey("data")) {
+      assert false : "No data at role description";
+      return;
+    }
+
+    for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String,JSONObject>>) roleMap.getJSONObject("data").entrySet()) {
+      String roleName = r.getKey();
+      String pattern = r.getValue().getString("pattern");
+      if (pattern != null) {
+        r.getValue().remove("pattern");
+      } else {
+        pattern = Role.GLOBAL_ROLE_PATTERN;
+      }
+
+      Set<Permission> permissions = RoleBasedAuthorizationStrategy.DescriptorImpl.getPermissionsFromJson(r);
+
+      Role role = new Role(roleName, pattern, permissions);
+      newRoleMap.addRole(role);
+
+      if (oldRoleMap != null) {
+        Set<String> sids = oldRoleMap.getSidsForRole(roleName);
+        if (sids != null) {
+          for (String sid : sids) {
+            newRoleMap.assignRole(role, sid);
+          }
+        }
+      }
+    }
   }
 }
