@@ -13,8 +13,11 @@ import net.sf.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Set;
+import java.util.SortedMap;
 
 /**
  * Authorization using regular expressions provided by {@link Role} and {@link RoleMap}
@@ -37,6 +40,15 @@ public class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEn
      * {@inheritDoc}
      */
     @Override
+    @Nonnull
+    public SortedMap<Role, Set<String>> getGrantedRoles() {
+        return roleMap.getGrantedRoles();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void assignRole(String roleName, String sid) {
         Role role = roleMap.getRole(roleName);
         if (Objects.nonNull(role)) {
@@ -53,8 +65,9 @@ public class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEn
         if (old.getClass() != getClass()) {
             throw new IllegalArgumentException("Old RoleBasedProjectAuthorizationEngine is not of the same type.");
         }
+        RegexAuthorizationEngine oldEngine = (RegexAuthorizationEngine) old;
         roleMap.clearSids();
-        RoleMap.addRolesAndCopySids(old.getRoleMap(), roleMap, formData, RoleBasedAuthorizationStrategy.PROJECT);
+        RoleMap.addRolesAndCopySids(oldEngine.getRoleMap(), roleMap, formData, RoleBasedAuthorizationStrategy.PROJECT);
         return this;
     }
 
@@ -65,6 +78,22 @@ public class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEn
     @Override
     public Collection<? extends String> getSids(boolean includeAnonymous) {
         return roleMap.getSids(includeAnonymous);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void deleteSids(String... sid) {
+        Arrays.stream(sid).forEach(roleMap::deleteSids);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void unassignSidFromRole(String sid, String roleName) {
+        roleMap.deleteRoleSid(sid, roleName);
     }
 
     @Nonnull
@@ -83,11 +112,18 @@ public class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEn
     }
 
     /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void marshalRoleToJson(String roleName, JSONObject json) {
+        roleMap.marshalRoleToJson(roleName, RoleType.Project, json);
+    }
+
+    /**
      * Returns the {@link RoleMap} used internally by this engine
      *
      * @return the {@link RoleMap} used by this engine
      */
-    @Override
     @Nonnull
     public RoleMap getRoleMap() {
         return roleMap;
@@ -116,6 +152,11 @@ public class RegexAuthorizationEngine implements RoleBasedProjectAuthorizationEn
     @Override
     public void removeRoles(String[] roleNames) {
         roleMap.removeRoles(roleNames);
+    }
+
+    @Override
+    public void marshalAssignedSidsToJson(JSONObject json) {
+        roleMap.marshalAssignedSidsToJson(json);
     }
 
     /**

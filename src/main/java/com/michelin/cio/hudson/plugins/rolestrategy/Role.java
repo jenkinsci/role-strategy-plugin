@@ -24,25 +24,33 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
+
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import io.jenkins.plugins.rolestrategy.AbstractRole;
+import net.sf.json.JSONObject;
 import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.ParametersAreNonnullByDefault;
 
 /** 
  * Class representing a role, which holds a set of {@link Permission}s.
  * @author Thomas Maurel
  */
-public final class Role implements Comparable {
+public final class Role extends AbstractRole implements Comparable {
   public static final String GLOBAL_ROLE_PATTERN = ".*";
 
   private static final Logger LOGGER = Logger.getLogger(Role.class.getName());  
@@ -218,9 +226,30 @@ public final class Role implements Comparable {
         if (this.pattern != other.pattern && (this.pattern == null || !this.pattern.equals(other.pattern))) {
             return false;
         }
-        if (this.permissions != other.permissions && (this.permissions == null || !this.permissions.equals(other.permissions))) {
+        if (this.permissions != other.permissions && !this.permissions.equals(other.permissions)) {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Unmarshal this role to JSON
+     *
+     * @param roleType the type of the role
+     * @param json a mutable JSON object
+     */
+    @ParametersAreNonnullByDefault
+    void unmarshalToJson(RoleType roleType, JSONObject json) {
+        Set<Permission> permissions = getPermissions();
+        Map<String, Boolean> permissionsMap = new HashMap<>();
+
+        for (Permission permission : permissions) {
+            permissionsMap.put(permission.getId(), permission.getEnabled());
+        }
+
+        json.put("permissionIds", permissionsMap);
+        if (roleType != RoleType.Global) {
+            json.put("pattern", getPattern().pattern());
+        }
     }
 }

@@ -55,7 +55,6 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -144,27 +143,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     return globalRoles.getACL(RoleType.Global, null);
   }
 
-  /**
-   * Get the {@link RoleMap} corresponding to the {@link RoleType}
-   *
-   * @param roleType the type of the role
-   * @return the {@link RoleMap} corresponding to the {@code roleType}
-   * @throws IllegalArgumentException for an invalid {@code roleType}
-   */
-  @Nonnull
-  private RoleMap getRoleMap(RoleType roleType) {
-      switch (roleType) {
-          case Global:
-              return globalRoles;
-          case Project:
-              return projectAuthorizationEngine.getRoleMap();
-          case Slave:
-              return agentRoles;
-          default:
-              throw new IllegalArgumentException("Unknown RoleType: " + roleType);
-      }
-  }
-
     /**
      * Get the specific ACL for projects.
      *
@@ -217,15 +195,28 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     return getGrantedRoles(RoleType.fromString(type));
   }
 
-  /**
-   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}
-   * @param type the type of the role
-   * @return roles mapped to the set of user sids assigned to that role
-   * @since TODO
-   */
-  public SortedMap<Role, Set<String>> getGrantedRoles(@Nonnull RoleType type) {
-    return getRoleMap(type).getGrantedRoles();
-  }
+    /**
+     * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}
+     *
+     * @param type the type of the role
+     * @return roles mapped to the set of user sids assigned to that role
+     * @throws UnsupportedOperationException if the {@link RoleType} is {@link RoleType#Project} and the
+     *                                       engine does not use {@link Role}
+     * @throws IllegalArgumentException      if the {@link RoleType} is not supported
+     * @since TODO
+     */
+    public SortedMap<Role, Set<String>> getGrantedRoles(@Nonnull RoleType type) {
+        switch (type) {
+            case Global:
+                return globalRoles.getGrantedRoles();
+            case Slave:
+                return agentRoles.getGrantedRoles();
+            case Project:
+                return projectAuthorizationEngine.getGrantedRoles();
+            default:
+                throw new IllegalArgumentException("Unsupported RoleType");
+        }
+    }
 
   /**
    * Get all the SIDs referenced by specified {@link RoleMap} type.
@@ -325,21 +316,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void doGetRole(@QueryParameter(required = true) String type,
                           @QueryParameter(required = true) String roleName) throws IOException {
         checkAdminPerm();
+
+        @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         JSONObject responseJson = new JSONObject();
-        RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-        Role role = roleMap.getRole(roleName);
-        if (role != null){
-            Set<Permission> permissions = role.getPermissions();
-            Map<String, Boolean> permissionsMap = new HashMap<>();
-            for (Permission permission : permissions) {
-                permissionsMap.put(permission.getId(), permission.getEnabled());
-            }
-            responseJson.put("permissionIds", permissionsMap);
-            if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
-                responseJson.put("pattern", role.getPattern().pattern());
-            }
-            Map<Role,Set<String>> grantedRoleMap = roleMap.getGrantedRoles();
-            responseJson.put("sids", grantedRoleMap.get(role));
+
+        RoleType roleType = RoleType.fromString(type);
+
+        switch (roleType) {
+            case Global:
+                globalRoles.marshalRoleToJson(roleName, RoleType.Global, responseJson);
+                break;
+            case Slave:
+                agentRoles.marshalRoleToJson(roleName, RoleType.Slave, responseJson);
+                break;
+            case Project:
+                projectAuthorizationEngine.marshalRoleToJson(roleName, responseJson);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported RoleType");
         }
 
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
@@ -410,7 +404,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             case Global:
                 role = globalRoles.getRole(roleName);
                 if (Objects.nonNull(role)) {
-                    globalRoles.assignRole(globalRoles.getRole(roleName), sid);
+                    globalRoles.assignRole(role, sid);
                 }
                 break;
             case Slave:
@@ -455,7 +449,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void doDeleteSid(@QueryParameter(required = true) String type,
                             @QueryParameter(required = true) String sid) throws IOException {
         checkAdminPerm();
-        getRoleMap(RoleType.fromString(type)).deleteSids(sid);
+        switch (RoleType.fromString(type)) {
+            case Global:
+                globalRoles.deleteSids(sid);
+                break;
+            case Slave:
+                agentRoles.deleteSids(sid);
+                break;
+            case Project:
+                projectAuthorizationEngine.deleteSids(sid);
+                break;
+        }
         persistChanges();
     }
 
@@ -474,34 +478,55 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void doUnassignRole(@QueryParameter(required = true) String type,
                             @QueryParameter(required = true) String roleName,
                             @QueryParameter(required = true) String sid) throws IOException {
-      checkAdminPerm();
-      RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-      Role role = roleMap.getRole(roleName);
-      if (role != null) {
-        roleMap.deleteRoleSid(sid, role.getName());
-      }
-      persistChanges();
+        checkAdminPerm();
+
+        switch (RoleType.fromString(type)) {
+            case Global:
+                globalRoles.deleteRoleSid(sid, roleName);
+                break;
+            case Slave:
+                agentRoles.deleteRoleSid(sid, roleName);
+                break;
+            case Project:
+                projectAuthorizationEngine.unassignSidFromRole(sid, roleName);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported RoleType");
+        }
+
+        persistChanges();
     }
 
     /**
-     * API method to get all groups/users with their role in any role type
-     * Example: curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=projectRoles
+     * Gets the sids assigned to each role.
+     * <p>
+     * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=projectRoles}
      *
      * @param type (globalRoles by default, projectRoles, slaveRoles)
-     *
+     * @throws IllegalArgumentException when unknown type is provided
      * @since 2.6.0
      */
     @Restricted(NoExternalUse.class)
     public void doGetAllRoles(@QueryParameter(fixEmpty = true) String type) throws IOException {
         checkAdminPerm();
-        JSONObject responseJson = new JSONObject();
-        RoleMap roleMap = getRoleMap(RoleType.Global);
-        if (type != null) {
-            roleMap = getRoleMap(RoleType.fromString(type));
-        }
 
-        for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
-            responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
+        @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+        JSONObject responseJson = new JSONObject();
+
+        RoleType roleType = type == null ? RoleType.Global : RoleType.fromString(type);
+
+        switch (roleType) {
+            case Global:
+                globalRoles.marshalAssignedSidsToJson(responseJson);
+                break;
+            case Slave:
+                agentRoles.marshalAssignedSidsToJson(responseJson);
+                break;
+            case Project:
+                projectAuthorizationEngine.marshalAssignedSidsToJson(responseJson);
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported RoleType");
         }
 
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
@@ -644,16 +669,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Updates macro roles
      * @since 2.1.0
      */
-    void renewMacroRoles()
-    {
+    void renewMacroRoles() {
         //TODO: add mandatory roles
-        
+
         // Check role extensions
-        for (UserMacroExtension userExt : UserMacroExtension.all())
-        {
-            if (userExt.IsApplicable(RoleType.Global))
-            {
-                getRoleMap(RoleType.Global).getSids().contains(userExt.getName());
+        for (UserMacroExtension userExt : UserMacroExtension.all()) {
+            if (userExt.IsApplicable(RoleType.Global)) {
+                globalRoles.getSids().contains(userExt.getName());
             }
         }
     }
@@ -664,7 +686,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @deprecated Always available since 1.566
      */
     @Deprecated
-    public static boolean isCreateAllowed(){
+    public static boolean isCreateAllowed() {
         return true;
     }
 

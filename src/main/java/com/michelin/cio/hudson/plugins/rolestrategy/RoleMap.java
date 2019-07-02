@@ -515,7 +515,7 @@ public class RoleMap {
   }
 
   /**
-   * Unmarshall a {@link RoleMap} from XML
+   * Unmarshal a {@link RoleMap} from XML
    *
    * @param reader the XML reader
    */
@@ -562,7 +562,7 @@ public class RoleMap {
   }
 
   /**
-   * Unmarshall the {@link RoleMap} to XML
+   * Marshal the {@link RoleMap} to XML
    *
    * @param writer the XML writer
    * @param roleType the type of the {@link RoleMap} being marshaled
@@ -663,4 +663,28 @@ public class RoleMap {
       }
     }
   }
+
+  /**
+   * Marshals a {@link Role} to the {@link JSONObject}.
+   *
+   * @param roleName the name of the {@link Role} to be marshaled.
+   * @param roleType the type of the {@link Role}
+   * @param json     a mutable {@link JSONObject}
+   */
+    public void marshalRoleToJson(String roleName, RoleType roleType, JSONObject json) {
+        Role role = getRole(roleName);
+        if (role != null) {
+            role.unmarshalToJson(roleType, json);
+            json.put("sids", grantedRoles.get(role));
+        }
+    }
+
+    /**
+     * Marshals sids assigned to each role.
+     *
+     * @param json a mutable {@link JSONObject}
+     */
+    public void marshalAssignedSidsToJson(JSONObject json) {
+        grantedRoles.forEach((role, sids) -> json.put(role.getName(), sids));
+    }
 }

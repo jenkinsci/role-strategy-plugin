@@ -1,7 +1,7 @@
 package io.jenkins.plugins.rolestrategy;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
-import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.ExtensionList;
@@ -13,6 +13,8 @@ import net.sf.json.JSONObject;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
+import java.util.Set;
+import java.util.SortedMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,17 +60,6 @@ public interface RoleBasedProjectAuthorizationEngine extends ExtensionPoint {
     Collection<? extends String> getSids(boolean includeAnonymous);
 
     /**
-     * The {@link RoleMap} it the {@link RoleBasedProjectAuthorizationEngine} supports it.
-     *
-     * @return the {@link RoleMap} used by this engine
-     * @throws UnsupportedOperationException if the engine does not have a {@link RoleMap}
-     */
-    @Nonnull
-    default RoleMap getRoleMap() {
-        throw new UnsupportedOperationException("This engine does not use a RoleMap.");
-    }
-
-    /**
      * Configure a {@link RoleBasedProjectAuthorizationEngine} using the XML from the reader.
      *
      * @param reader the XML reader at the node containing the configuration.
@@ -88,7 +79,7 @@ public interface RoleBasedProjectAuthorizationEngine extends ExtensionPoint {
     RoleBasedProjectAuthorizationEngine configure(JSONObject formData, RoleBasedProjectAuthorizationEngine old);
 
     /**
-     * Marshall the object to XML
+     * Marshal the object to XML
      *
      * @param writer the XML writer
      */
@@ -135,4 +126,45 @@ public interface RoleBasedProjectAuthorizationEngine extends ExtensionPoint {
      * @param sid      the user's sid
      */
     void assignRole(String roleName, String sid);
+
+    /**
+     * Get a map associating a {@link Role} with the sids it is assigned to.
+     *
+     * @return map associating a {@link Role} with the sids it is assigned to
+     * @throws UnsupportedOperationException when the engine does not support this method.
+     */
+    @Nonnull
+    default SortedMap<Role, Set<String>> getGrantedRoles() {
+        throw new UnsupportedOperationException("This operation is not supported yet.");
+    }
+
+    /**
+     * Marshal the role (identified by its name) to JSON
+     *
+     * @param roleName the name of the role
+     * @param json     a mutable {@link JSONObject}
+     */
+    void marshalRoleToJson(String roleName, JSONObject json);
+
+    /**
+     * Delete the sids from all roles
+     *
+     * @param sids the sids to be deleted
+     */
+    void deleteSids(String... sids);
+
+    /**
+     * Unassigns the sid from the Role identified by its roleName.
+     *
+     * @param sid      the sid of the user
+     * @param roleName the name of the role
+     */
+    void unassignSidFromRole(String sid, String roleName);
+
+    /**
+     * For each role, marshal the sids assigned to it
+     *
+     * @param json mutable JSON object
+     */
+    void marshalAssignedSidsToJson(JSONObject json);
 }
