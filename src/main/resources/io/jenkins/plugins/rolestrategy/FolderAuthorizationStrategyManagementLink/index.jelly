@@ -1,0 +1,11 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+    <l:layout permission="${app.ADMINISTER}" norefresh="true" title="Folder Authorization">
+        <st:include it="${app}" page="sidepanel.jelly" optional="true"/>
+        <l:main-panel>
+            <h1>
+                Hello world
+            </h1>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>
