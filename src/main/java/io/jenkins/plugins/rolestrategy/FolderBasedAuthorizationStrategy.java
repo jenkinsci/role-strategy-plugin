@@ -71,6 +71,11 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         globalACL = new GlobalAclImpl(globalRoles);
     }
 
+    public void addGlobalRole(@Nonnull GlobalRole globalRole) {
+        globalRoles.add(globalRole);
+        generateNewGlobalAcl();
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<AuthorizationStrategy> {
         @Nonnull

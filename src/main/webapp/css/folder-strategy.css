@@ -1,0 +1,14 @@
+div.form-row {
+    padding: 10px 10px 10px 10px;
+}
+
+.form-label {
+    padding-right: 20px;
+    padding-bottom: 10px;
+    font-size: larger;
+    font-weight: bold;
+}
+
+div.permission-row {
+    padding: 5px 0;
+}

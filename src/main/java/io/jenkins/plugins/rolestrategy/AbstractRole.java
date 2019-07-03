@@ -7,6 +7,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -55,6 +56,21 @@ public abstract class AbstractRole {
      */
     public void assignSids(@Nonnull List<String> sids) {
         this.sids.addAll(sids);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AbstractRole role = (AbstractRole) o;
+        return name.equals(role.name) &&
+                permissions.equals(role.permissions) &&
+                sids.equals(role.sids);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, permissions, sids);
     }
 
     /**

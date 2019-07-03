@@ -1,11 +1,35 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
     <l:layout permission="${app.ADMINISTER}" norefresh="true" title="Folder Authorization">
+        <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/folder-strategy.css" type="text/css"/>
         <st:include it="${app}" page="sidepanel.jelly" optional="true"/>
         <l:main-panel>
-            <h1>
-                Hello world
-            </h1>
+            <div>
+                <h1>Manage Global Roles</h1>
+                <f:form method="post" name="globalRole" action="addGlobalRole">
+                    <div class="form-row">
+                        <label class="form-label" for="roleName">Name of the role</label>
+                        <input id="roleName" name="name" type="text" minlength="3"/>
+                    </div>
+                    <div class="form-label">
+                        Permissions
+                    </div>
+                    <div class="form-row" style="overflow:scroll; height: 250px">
+                        <j:forEach items="${it.getPermissions()}" var="perm">
+                            <div>
+                                <label>
+                                    <input type="checkbox" name="${perm}">
+                                        ${perm.group.title} | ${perm.name}
+                                    </input>
+                                </label>
+                            </div>
+                        </j:forEach>
+                    </div>
+                    <div class="form-row">
+                        <input type="submit" value="Add role"/>
+                    </div>
+                </f:form>
+            </div>
         </l:main-panel>
     </l:layout>
 </j:jelly>
