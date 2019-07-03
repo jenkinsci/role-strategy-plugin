@@ -11,25 +11,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class FolderRole implements Comparable<FolderRole> {
-    @Nonnull
-    private final String name;
-
-    @Nonnull
-    private final Set<String> sids = ConcurrentHashMap.newKeySet();
-
-    @Nonnull
-    private final Set<Permission> permissions;
-
+public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
     @Nonnull
     private final Set<Folder> folders;
 
     @DataBoundConstructor
     @ParametersAreNonnullByDefault
     public FolderRole(String name, Set<Permission> permissions, Set<Folder> folders) {
-        this.name = name;
-        this.permissions = Collections.unmodifiableSet(permissions);
-        this.folders = folders;
+        super(name, permissions);
+        this.folders = ConcurrentHashMap.newKeySet();
+        this.folders.addAll(folders);
     }
 
     @Override
@@ -50,5 +41,15 @@ public class FolderRole implements Comparable<FolderRole> {
     @Override
     public int compareTo(@Nonnull FolderRole other) {
         return name.compareTo(other.name);
+    }
+
+    /**
+     * Returns the folders managed by this role
+     *
+     * @return the folders managed by this role
+     */
+    @Nonnull
+    public Set<Folder> getFolders() {
+        return Collections.unmodifiableSet(folders);
     }
 }

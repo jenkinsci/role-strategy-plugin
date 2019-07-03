@@ -22,6 +22,6 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
     @CheckForNull
     @Override
     public String getDisplayName() {
-        return "Folder AuthorizationLevel Strategy";
+        return "Folder Authorization Strategy";
     }
 }

@@ -9,35 +9,38 @@ import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+@ParametersAreNonnullByDefault
 public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
-    private Set<FolderRole> roles = ConcurrentHashMap.newKeySet();
+    private final Set<GlobalRole> globalRoles;
+    private final Set<FolderRole> folderRoles;
+
+    private transient GlobalAclImpl globalACL;
 
     @DataBoundConstructor
-    FolderBasedAuthorizationStrategy(Set<FolderRole> roles) {
+    public FolderBasedAuthorizationStrategy(Set<GlobalRole> globalRoles, Set<FolderRole> folderRoles) {
+        this.globalRoles = ConcurrentHashMap.newKeySet();
+        this.folderRoles = ConcurrentHashMap.newKeySet();
 
+        this.globalRoles.addAll(globalRoles);
+        this.folderRoles.addAll(folderRoles);
+
+        generateNewGlobalAcl();
     }
 
     @Nonnull
     @Override
-    public ACL getRootACL() {
-        return new ACL() {
-            @Override
-            public boolean hasPermission(@Nonnull Authentication a, @Nonnull Permission permission) {
-                return true;
-            }
-        };
+    public GlobalAclImpl getRootACL() {
+        return globalACL;
     }
 
     @Nonnull
@@ -64,17 +67,16 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         return Collections.emptySet();
     }
 
+    private void generateNewGlobalAcl() {
+        globalACL = new GlobalAclImpl(globalRoles);
+    }
+
     @Extension
     public static class DescriptorImpl extends Descriptor<AuthorizationStrategy> {
         @Nonnull
         @Override
         public String getDisplayName() {
             return "Folder AuthorizationLevel strategy";
-        }
-
-        @Override
-        public AuthorizationStrategy newInstance(@Nullable StaplerRequest req, @Nonnull JSONObject formData) throws FormException {
-            return super.newInstance(req, formData);
         }
     }
 }
