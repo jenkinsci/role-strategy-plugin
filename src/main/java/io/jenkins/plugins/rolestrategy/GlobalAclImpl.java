@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.Permission;
 import hudson.security.SidACL;
 import org.acegisecurity.acls.sid.Sid;
+import org.apache.commons.collections.CollectionUtils;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -32,8 +33,7 @@ class GlobalAclImpl extends SidACL {
         for (GlobalRole role : globalRoles) {
             Set<Permission> impliedPermissions = ConcurrentHashMap.newKeySet();
 
-            role.permissions.parallelStream()
-                    .forEach(p -> impliedPermissions.addAll(getImpliedPermissions(p)));
+            role.permissions.parallelStream().forEach(impliedPermissions::add);
 
             role.sids.parallelStream().forEach(sid -> {
                 Set<Permission> permissionsForSid = permissionList.get(sid);
@@ -50,9 +50,9 @@ class GlobalAclImpl extends SidACL {
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL",
             justification = "hudson.security.SidACL requires null when unknown")
     @Nullable
-    protected Boolean hasPermission(Sid p, Permission permission) {
-        Set<Permission> permissions = permissionList.get(toString(p));
-        if (permission != null && permissions.contains(permission)) {
+    protected Boolean hasPermission(Sid sid, Permission permission) {
+        Set<Permission> permissions = permissionList.get(toString(sid));
+        if (permissions != null && CollectionUtils.containsAny(permissions, getImplyingPermissions(permission))) {
             return true;
         }
 
@@ -60,7 +60,7 @@ class GlobalAclImpl extends SidACL {
     }
 
     // TODO: 7/3/2019 Remove this when RoleMap has the implied permission cache (PR#83)
-    private static Set<Permission> getImpliedPermissions(Permission p) {
+    private static Set<Permission> getImplyingPermissions(Permission p) {
         final Set<Permission> permissions = new HashSet<>();
         for (; p != null; p = p.impliedBy) {
             permissions.add(p);
