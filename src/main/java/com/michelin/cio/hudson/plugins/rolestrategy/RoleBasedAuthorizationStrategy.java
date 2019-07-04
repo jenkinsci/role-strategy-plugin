@@ -839,7 +839,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     private Role createAdminRole() {
       Set<Permission> permissions = new HashSet<>();
-      for (PermissionGroup group : getGroups(GLOBAL)) {
+      for (PermissionGroup group : getPermissionGroups(RoleType.Global)) {
         for (Permission permission : group) {
           permissions.add(permission);
         }
@@ -863,36 +863,16 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @param type Role type
      * @return Groups, which should be displayed for a specific role type.
      *         {@code null} if an unsupported type is defined.
+     * @deprecated use {@link #getPermissionGroups(RoleType)}
      */
     @Nullable
+    @Deprecated
     public List<PermissionGroup> getGroups(@Nonnull String type) {
-        List<PermissionGroup> groups;
-        if (type.equals(GLOBAL)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
+        try {
+            return getPermissionGroups(RoleType.fromString(type));
+        } catch (IllegalArgumentException e) {
+            return null;
         }
-        else if (type.equals(PROJECT)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(Computer.class));
-            groups.remove(PermissionGroup.get(View.class));
-        }
-        else if (type.equals(SLAVE)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(View.class));
-            
-            // Project, SCM and Run permissions 
-            groups.remove(PermissionGroup.get(Item.class));
-            groups.remove(PermissionGroup.get(SCM.class));
-            groups.remove(PermissionGroup.get(Run.class));
-        }
-        else {
-            groups = null;
-        }
-        return groups;
     }
 
     @Restricted(NoExternalUse.class)
@@ -941,4 +921,39 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
     }
   }
+
+    /**
+     * Get the needed permissions group valid for the {@link RoleType}
+     *
+     * @param type the {@link RoleType}
+     * @return Groups, which should be displayed for a specific role type.
+     * @throws IllegalArgumentException when {@code type} is unknown
+     */
+    @Nonnull
+    public static List<PermissionGroup> getPermissionGroups(@Nonnull RoleType type) {
+        List<PermissionGroup> groups;
+        if (type == RoleType.Global) {
+            groups = new ArrayList<>(PermissionGroup.getAll());
+            groups.remove(PermissionGroup.get(Permission.class));
+        } else if (type == RoleType.Project) {
+            groups = new ArrayList<>(PermissionGroup.getAll());
+            groups.remove(PermissionGroup.get(Permission.class));
+            groups.remove(PermissionGroup.get(Hudson.class));
+            groups.remove(PermissionGroup.get(Computer.class));
+            groups.remove(PermissionGroup.get(View.class));
+        } else if (type == RoleType.Slave) {
+            groups = new ArrayList<>(PermissionGroup.getAll());
+            groups.remove(PermissionGroup.get(Permission.class));
+            groups.remove(PermissionGroup.get(Hudson.class));
+            groups.remove(PermissionGroup.get(View.class));
+
+            // Project, SCM and Run permissions
+            groups.remove(PermissionGroup.get(Item.class));
+            groups.remove(PermissionGroup.get(SCM.class));
+            groups.remove(PermissionGroup.get(Run.class));
+        } else {
+            throw new IllegalArgumentException("Unknown RoleType");
+        }
+        return groups;
+    }
 }

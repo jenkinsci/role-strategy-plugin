@@ -9,12 +9,13 @@ import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.kohsuke.stapler.json.JsonBody;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -50,12 +51,29 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         return permissions.stream().filter(p -> !PermissionHelper.isDangerous(p)).collect(Collectors.toSet());
     }
 
+    /**
+     * Adds a {@link GlobalRole} to {@link FolderBasedAuthorizationStrategy}
+     *
+     * @param request the request to create the {@link GlobalRole}
+     */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAddGlobalRole(@QueryParameter GlobalRole globalRole) {
+    public void doAddGlobalRole(@JsonBody GlobalRoleCreationRequest request) {
+        Jenkins jenkins = Jenkins.getInstance();
+        jenkins.checkPermission(Jenkins.ADMINISTER);
+        AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
+        if (strategy instanceof FolderBasedAuthorizationStrategy) {
+            ((FolderBasedAuthorizationStrategy) strategy).addGlobalRole(request.getGlobalRole());
+        }
+    }
+
+    @Restricted(NoExternalUse.class)
+    @Nonnull
+    public Set<GlobalRole> getGlobalRoles() {
         AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
-            ((FolderBasedAuthorizationStrategy) strategy).addGlobalRole(globalRole);
+            return ((FolderBasedAuthorizationStrategy) strategy).getGlobalRoles();
         }
+        return Collections.emptySet();
     }
 }
