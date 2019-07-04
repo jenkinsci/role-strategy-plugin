@@ -12,3 +12,63 @@ div.form-row {
 div.permission-row {
     padding: 5px 0;
 }
+
+div.role-container {
+    display: flex;
+    flex-direction: row;
+    flex-basis: auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+div.role {
+    display: flex;
+    flex-direction: column;
+    padding: 5px 5px;
+    border: 2px solid black;
+    margin: 3px 3px;
+    flex-grow: 1;
+}
+
+button.submit-button {
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    padding: 5px 5px;
+    margin-top: 10px;
+    margin-left: 30px;
+    background-color: #dddddd;
+}
+
+button.submit-button:hover {
+    background-color: #f1f1f1;
+}
+
+/* Taken from https://www.w3schools.com/howto/howto_js_collapsible.asp */
+
+.collapsible {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 5px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: inherit;
+}
+
+.active, .collapsible:hover {
+    background-color: #ccc;
+}
+
+.collapsible-content {
+    padding: 0 18px;
+    display: none;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    background-color: #f1f1f1;
+    transition: max-height 0.2s ease-out;
+    min-height: 125px;
+    max-height: 125px;
+}

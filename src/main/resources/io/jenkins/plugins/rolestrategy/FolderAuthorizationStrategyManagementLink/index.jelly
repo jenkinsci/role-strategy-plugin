@@ -10,14 +10,21 @@
                 <h2>
                     Current Global roles
                 </h2>
-                <div>
+                <div class="role-container">
                     <j:forEach items="${it.globalRoles}" var="globalRole">
-                        <div>
+                        <div class="role">
                             Name: ${globalRole.name}
                             <br/>
                             Sids: ${globalRole.sids}
                             <br/>
-                            Permissions: ${globalRole.permissions}
+                            <button class="collapsible">View Permissions</button>
+                            <div class="collapsible-content">
+                                <ul>
+                                    <j:forEach items="${globalRole.permissions}" var="perm">
+                                        <li>${perm.group.title} | ${perm.name}</li>
+                                    </j:forEach>
+                                </ul>
+                            </div>
                             <hr/>
                         </div>
                     </j:forEach>
@@ -33,7 +40,7 @@
                     <div class="form-label">
                         Permissions
                     </div>
-                    <div class="form-row" style="overflow:scroll; height: 250px">
+                    <div class="form-row" style="overflow-y:scroll; overflow-x: hidden; height: 225px;">
                         <j:forEach items="${it.getPermissions()}" var="perm">
                             <label style="display: block;">
                                 <input type="checkbox" name="globalPermissions" value="${perm.id}">
@@ -42,11 +49,13 @@
                             </label>
                         </j:forEach>
                     </div>
-                    <button type="button" onclick="addGlobalRole('${rootURL}/folder-auth/addGlobalRole')">
+                    <button type="button" onclick="addGlobalRole('${rootURL}/folder-auth/addGlobalRole')"
+                            class="submit-button">
                         Add Role
                     </button>
                 </div>
             </div>
+            <script src="${rootURL}/plugin/role-strategy/js/folder-auth/collapsible.js"/>
         </l:main-panel>
     </l:layout>
 </j:jelly>
