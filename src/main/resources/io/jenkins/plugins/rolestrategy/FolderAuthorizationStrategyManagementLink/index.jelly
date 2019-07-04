@@ -4,7 +4,6 @@
         <st:include it="${app}" page="sidepanel.jelly" optional="true"/>
         <l:main-panel>
             <script src="${rootURL}/plugin/role-strategy/js/folder-auth/globalrole.js"/>
-            <script src="${resURL}/js/util.jenkins.js"/>
             <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/folder-strategy.css" type="text/css"/>
             <div>
                 <h1>Manage Global Roles</h1>

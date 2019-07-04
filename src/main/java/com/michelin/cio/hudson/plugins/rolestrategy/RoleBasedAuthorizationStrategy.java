@@ -869,7 +869,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Deprecated
     public List<PermissionGroup> getGroups(@Nonnull String type) {
         try {
-            return getPermissionGroups(RoleType.fromString(type));
+            return new ArrayList<>(getPermissionGroups(RoleType.fromString(type)));
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -930,30 +930,31 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @throws IllegalArgumentException when {@code type} is unknown
      */
     @Nonnull
-    public static List<PermissionGroup> getPermissionGroups(@Nonnull RoleType type) {
-        List<PermissionGroup> groups;
-        if (type == RoleType.Global) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-        } else if (type == RoleType.Project) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(Computer.class));
-            groups.remove(PermissionGroup.get(View.class));
-        } else if (type == RoleType.Slave) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(View.class));
+    public static Set<PermissionGroup> getPermissionGroups(@Nonnull RoleType type) {
+        Set<PermissionGroup> groups = new HashSet<>(PermissionGroup.getAll());
+        groups.remove(PermissionGroup.get(Permission.class));
 
-            // Project, SCM and Run permissions
-            groups.remove(PermissionGroup.get(Item.class));
-            groups.remove(PermissionGroup.get(SCM.class));
-            groups.remove(PermissionGroup.get(Run.class));
-        } else {
-            throw new IllegalArgumentException("Unknown RoleType");
+        if (type == RoleType.Global) {
+            return groups;
         }
+
+        groups.remove(PermissionGroup.get(Hudson.class));
+        groups.remove(PermissionGroup.get(View.class));
+
+        switch (type) {
+            case Project:
+                groups.remove(PermissionGroup.get(Computer.class));
+                break;
+            case Slave:
+                // Project, SCM and Run permissions
+                groups.remove(PermissionGroup.get(Item.class));
+                groups.remove(PermissionGroup.get(SCM.class));
+                groups.remove(PermissionGroup.get(Run.class));
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown RoleType");
+        }
+
         return groups;
     }
 }

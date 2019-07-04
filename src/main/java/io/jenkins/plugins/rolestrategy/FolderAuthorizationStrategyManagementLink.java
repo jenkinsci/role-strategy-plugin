@@ -67,8 +67,8 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         }
     }
 
-    @Restricted(NoExternalUse.class)
     @Nonnull
+    @Restricted(NoExternalUse.class)
     public Set<GlobalRole> getGlobalRoles() {
         AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
