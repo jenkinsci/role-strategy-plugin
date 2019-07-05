@@ -4,6 +4,7 @@ work
 # Eclipse project files
 .settings
 .classpath
+.factorypath
 .project
 /nb-configuration.xml
 
