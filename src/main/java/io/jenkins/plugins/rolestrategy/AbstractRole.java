@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * A role as an object
@@ -22,10 +23,15 @@ public abstract class AbstractRole {
     protected final String name;
 
     /**
-     * The permissions that are assigned to this role.
+     * Wrappers of permissions that are assigned to this role.
      */
     @Nonnull
-    protected final Set<Permission> permissions;
+    protected final Set<PermissionWrapper> permissionWrappers;
+
+    /**
+     * The actual permissions in this Role
+     */
+    protected transient Set<Permission> permissions;
 
     /**
      * The sids on which this role is applicable.
@@ -34,10 +40,10 @@ public abstract class AbstractRole {
     protected final Set<String> sids;
 
     @ParametersAreNonnullByDefault
-    public AbstractRole(String name, Set<Permission> permissions) {
+    public AbstractRole(String name, Set<PermissionWrapper> permissionWrappers) {
         this.name = name;
         this.sids = ConcurrentHashMap.newKeySet();
-        this.permissions = Collections.unmodifiableSet(permissions);
+        this.permissionWrappers = Collections.unmodifiableSet(permissionWrappers);
     }
 
     /**
@@ -64,13 +70,13 @@ public abstract class AbstractRole {
         if (o == null || getClass() != o.getClass()) return false;
         AbstractRole role = (AbstractRole) o;
         return name.equals(role.name) &&
-                permissions.equals(role.permissions) &&
+                permissionWrappers.equals(role.permissionWrappers) &&
                 sids.equals(role.sids);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, permissions, sids);
+        return Objects.hash(name, permissionWrappers, sids);
     }
 
     /**
@@ -92,7 +98,9 @@ public abstract class AbstractRole {
      */
     @Nonnull
     public Set<Permission> getPermissions() {
-        return permissions;
+        return permissionWrappers.stream().parallel()
+                .map(PermissionWrapper::getPermission)
+                .collect(Collectors.toSet());
     }
 
     /**

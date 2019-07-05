@@ -1,7 +1,6 @@
 package io.jenkins.plugins.rolestrategy;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
-import hudson.security.Permission;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
@@ -17,7 +16,7 @@ public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
 
     @DataBoundConstructor
     @ParametersAreNonnullByDefault
-    public FolderRole(String name, Set<Permission> permissions, Set<Folder> folders) {
+    public FolderRole(String name, Set<PermissionWrapper> permissions, Set<Folder> folders) {
         super(name, permissions);
         this.folders = ConcurrentHashMap.newKeySet();
         this.folders.addAll(folders);
@@ -25,7 +24,7 @@ public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, sids, permissions);
+        return Objects.hash(name, sids, permissionWrappers);
     }
 
     @Override
@@ -35,7 +34,7 @@ public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
         FolderRole that = (FolderRole) o;
         return name.equals(that.name) &&
                 sids.equals(that.sids) &&
-                permissions.equals(that.permissions);
+                permissionWrappers.equals(that.permissionWrappers);
     }
 
     @Override

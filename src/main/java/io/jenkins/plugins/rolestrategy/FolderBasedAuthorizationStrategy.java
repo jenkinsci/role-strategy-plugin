@@ -51,9 +51,12 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
              *
              * The same thing happens in RoleBasedAuthorizationStrategy. See RoleBasedStrategy.DESCRIPTOR.newInstance()
              */
-            HashSet<Permission> adminPermissions = new HashSet<>();
+            HashSet<PermissionWrapper> adminPermissions = new HashSet<>();
             RoleBasedAuthorizationStrategy.getPermissionGroups(RoleType.Global)
-                    .forEach(group -> adminPermissions.addAll(group.getPermissions()));
+                    .forEach(permissionGroup -> permissionGroup.getPermissions().stream()
+                            .map(Permission::getId)
+                            .map(PermissionWrapper::new)
+                            .forEach(adminPermissions::add));
 
             GlobalRole adminRole = new GlobalRole("admin", adminPermissions);
             adminRole.assignSids(new PrincipalSid(Jenkins.getAuthentication()).getPrincipal());

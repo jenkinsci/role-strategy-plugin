@@ -1,11 +1,12 @@
 package io.jenkins.plugins.rolestrategy;
 
-import hudson.security.Permission;
-
 import java.util.Set;
 
+/**
+ * An {@link AbstractRole} that's applicable everywhere inside Jenkins.
+ */
 public class GlobalRole extends AbstractRole {
-    public GlobalRole(String name, Set<Permission> permissions) {
+    public GlobalRole(String name, Set<PermissionWrapper> permissions) {
         super(name, permissions);
     }
 }

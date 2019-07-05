@@ -33,7 +33,8 @@ class GlobalAclImpl extends SidACL {
         for (GlobalRole role : globalRoles) {
             Set<Permission> impliedPermissions = ConcurrentHashMap.newKeySet();
 
-            role.permissions.parallelStream().forEach(impliedPermissions::add);
+            role.permissionWrappers.parallelStream().map(PermissionWrapper::getPermission)
+                    .forEach(impliedPermissions::add);
 
             role.sids.parallelStream().forEach(sid -> {
                 Set<Permission> permissionsForSid = permissionList.get(sid);
