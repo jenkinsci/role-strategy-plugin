@@ -11,11 +11,21 @@
                     Current Global roles
                 </h2>
                 <div class="role-container">
-                    <j:forEach items="${it.globalRoles}" var="globalRole">
+                    <j:forEach items="${it.globalRoles}" var="globalRole" indexVar="index">
                         <div class="role">
                             Name: ${globalRole.name}
                             <br/>
                             Sids: ${globalRole.sids}
+                            <form action="${rootURL}/${it.urlName}/assignSidToGlobalRole" method="POST">
+                                <div class="form-row">
+                                    <label for="assign-sid-global-${index}" style="margin-right: 10px;">
+                                        Assign Sid
+                                    </label>
+                                    <input id="assign-sid-global-${index}" type="text" name="sid"/>
+                                    <input type="hidden" value="${globalRole.name}" name="roleName"/>
+                                    <input type="submit" style="margin-left: 10px;"/>
+                                </div>
+                            </form>
                             <br/>
                             <button class="collapsible">View Permissions</button>
                             <div class="collapsible-content">
@@ -49,7 +59,7 @@
                             </label>
                         </j:forEach>
                     </div>
-                    <button type="button" onclick="addGlobalRole('${rootURL}/folder-auth/addGlobalRole')"
+                    <button type="button" onclick="addGlobalRole('${rootURL}/${it.urlName}/addGlobalRole')"
                             class="submit-button">
                         Add Role
                     </button>

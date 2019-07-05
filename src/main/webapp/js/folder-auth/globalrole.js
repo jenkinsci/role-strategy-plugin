@@ -13,11 +13,12 @@ const addGlobalRole = (postUrl) => {
     response.permissions = [];
 
     const permissionCheckboxes = document.getElementsByName('globalPermissions');
-    permissionCheckboxes.forEach(checkbox => {
+    for (let i = 0; i < permissionCheckboxes.length; i++) {
+        const checkbox = permissionCheckboxes[i];
         if (checkbox.checked) {
-            response.permissions.push(checkbox.value.toString());
+            response.permissions.push(checkbox.value);
         }
-    });
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', postUrl, true);

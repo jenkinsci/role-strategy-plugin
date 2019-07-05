@@ -104,4 +104,12 @@ public abstract class AbstractRole {
     public Set<String> getSids() {
         return sids;
     }
+
+    public void unassignSids(String... sids) {
+        this.sids.removeAll(Arrays.asList(sids));
+    }
+
+    public void unassignSids(@Nonnull List<String> sids) {
+        this.sids.removeAll(sids);
+    }
 }

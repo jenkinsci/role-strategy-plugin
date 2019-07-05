@@ -9,20 +9,28 @@ import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.json.JsonBody;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Extension
 public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
+    private static final Logger LOGGER = Logger.getLogger(FolderAuthorizationStrategyManagementLink.class.getName());
+
     @CheckForNull
     @Override
     public String getIconFileName() {
@@ -58,12 +66,38 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAddGlobalRole(@JsonBody GlobalRoleCreationRequest request) {
+    public void doAddGlobalRole(@JsonBody GlobalRoleCreationRequest request) throws IOException {
         Jenkins jenkins = Jenkins.getInstance();
         jenkins.checkPermission(Jenkins.ADMINISTER);
         AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
             ((FolderBasedAuthorizationStrategy) strategy).addGlobalRole(request.getGlobalRole());
+        }
+    }
+
+    /**
+     * Assigns {@code sid} to the global role identified by {@code roleName}.
+     * <p>
+     * Does not do anything if a role corresponding to the {@code roleName} does not exist.
+     *
+     * @param roleName the name of the global to which {@code sid} will be assigned to.
+     * @param sid      the sid of the user/group to be assigned.
+     * @throws IOException when unable to assign the Sid
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doAssignSidToGlobalRole(@QueryParameter(required = true) String roleName,
+                                        @QueryParameter(required = true) String sid) throws IOException {
+        Jenkins jenkins = Jenkins.getInstance();
+        jenkins.checkPermission(Jenkins.ADMINISTER);
+        AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
+        if (strategy instanceof FolderBasedAuthorizationStrategy) {
+            ((FolderBasedAuthorizationStrategy) strategy).assignSidToGlobalRole(roleName, sid);
+        }
+        try {
+            Stapler.getCurrentResponse().forwardToPreviousPage(Stapler.getCurrentRequest());
+        } catch (ServletException | IOException e) {
+            LOGGER.log(Level.WARNING, "Unable to redirect to previous page.");
         }
     }
 

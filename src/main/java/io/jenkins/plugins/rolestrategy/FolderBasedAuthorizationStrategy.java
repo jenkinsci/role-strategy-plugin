@@ -17,11 +17,15 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.ParametersAreNullableByDefault;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @ParametersAreNonnullByDefault
 public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
@@ -29,6 +33,8 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
     private final Set<FolderRole> folderRoles;
 
     private transient GlobalAclImpl globalACL;
+
+    private static final Logger LOGGER = Logger.getLogger(FolderBasedAuthorizationStrategy.class.getName());
 
     @DataBoundConstructor
     @ParametersAreNullableByDefault
@@ -105,14 +111,40 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         globalACL = new GlobalAclImpl(globalRoles);
     }
 
-    public void addGlobalRole(@Nonnull GlobalRole globalRole) {
+    public void addGlobalRole(@Nonnull GlobalRole globalRole) throws IOException {
         globalRoles.add(globalRole);
-        generateNewGlobalAcl();
-        getDescriptor().save();
+        try {
+            Jenkins.getInstance().save();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save config file, not adding global role", e);
+            globalRoles.remove(globalRole);
+            throw e;
+        } finally {
+            generateNewGlobalAcl();
+        }
     }
 
     public Set<GlobalRole> getGlobalRoles() {
         return Collections.unmodifiableSet(globalRoles);
+    }
+
+    public void assignSidToGlobalRole(String roleName, String sid) throws IOException {
+        // TODO maintain an index of roles according to their names
+        Optional<GlobalRole> optionalRole = globalRoles.stream().filter(role -> role.name.equals(roleName)).findAny();
+
+        if (optionalRole.isPresent()) {
+            GlobalRole role = optionalRole.get();
+            role.assignSids(sid);
+            try {
+                Jenkins.getInstance().save();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Unable to save config file, not assigning the sids.", e);
+                role.unassignSids(sid);
+                throw e;
+            } finally {
+                generateNewGlobalAcl();
+            }
+        }
     }
 
     @Extension
