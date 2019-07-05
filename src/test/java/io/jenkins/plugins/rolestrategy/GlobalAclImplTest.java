@@ -1,6 +1,5 @@
 package io.jenkins.plugins.rolestrategy;
 
-import com.google.common.collect.ImmutableSet;
 import hudson.model.Item;
 import hudson.model.User;
 import jenkins.model.Jenkins;
@@ -12,6 +11,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.util.HashSet;
 import java.util.Set;
 
+import static io.jenkins.plugins.rolestrategy.PermissionWrapper.wrapPermissions;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -25,9 +25,9 @@ public class GlobalAclImplTest {
         jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
         Set<GlobalRole> globalRoles = new HashSet<>();
 
-        GlobalRole role1 = new GlobalRole("role1", ImmutableSet.of(Item.DISCOVER, Item.READ));
-        GlobalRole role2 = new GlobalRole("role2", ImmutableSet.of(Item.READ, Item.CONFIGURE, Item.BUILD));
-        GlobalRole adminRole = new GlobalRole("adminRole", ImmutableSet.of(Jenkins.ADMINISTER));
+        GlobalRole role1 = new GlobalRole("role1", wrapPermissions(Item.DISCOVER, Item.READ));
+        GlobalRole role2 = new GlobalRole("role2", wrapPermissions(Item.READ, Item.CONFIGURE, Item.BUILD));
+        GlobalRole adminRole = new GlobalRole("adminRole", wrapPermissions(Jenkins.ADMINISTER));
 
         role1.assignSids("foo", "bar", "baz");
         role2.assignSids("baz");
