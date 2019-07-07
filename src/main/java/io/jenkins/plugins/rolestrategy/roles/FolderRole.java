@@ -1,6 +1,6 @@
-package io.jenkins.plugins.rolestrategy;
+package io.jenkins.plugins.rolestrategy.roles;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
+import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
@@ -12,11 +12,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
     @Nonnull
-    private final Set<Folder> folders;
+    private final Set<String> folders;
 
     @DataBoundConstructor
     @ParametersAreNonnullByDefault
-    public FolderRole(String name, Set<PermissionWrapper> permissions, Set<Folder> folders) {
+    public FolderRole(String name, Set<PermissionWrapper> permissions, Set<String> folders) {
         super(name, permissions);
         this.folders = ConcurrentHashMap.newKeySet();
         this.folders.addAll(folders);
@@ -43,12 +43,12 @@ public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
     }
 
     /**
-     * Returns the folders managed by this role
+     * Returns the names of the folders managed by this role
      *
-     * @return the folders managed by this role
+     * @return the names of the folders managed by this role
      */
     @Nonnull
-    public Set<Folder> getFolders() {
+    public Set<String> getFolderNames() {
         return Collections.unmodifiableSet(folders);
     }
 }

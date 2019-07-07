@@ -1,6 +1,7 @@
-package io.jenkins.plugins.rolestrategy;
+package io.jenkins.plugins.rolestrategy.roles;
 
 import hudson.security.Permission;
+import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -27,11 +28,6 @@ public abstract class AbstractRole {
      */
     @Nonnull
     protected final Set<PermissionWrapper> permissionWrappers;
-
-    /**
-     * The actual permissions in this Role
-     */
-    protected transient Set<Permission> permissions;
 
     /**
      * The sids on which this role is applicable.

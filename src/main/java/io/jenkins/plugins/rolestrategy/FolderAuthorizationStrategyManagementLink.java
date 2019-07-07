@@ -5,6 +5,9 @@ import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import io.jenkins.plugins.rolestrategy.misc.GlobalRoleCreationRequest;
+import io.jenkins.plugins.rolestrategy.roles.FolderRole;
+import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
@@ -107,6 +110,16 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
             return ((FolderBasedAuthorizationStrategy) strategy).getGlobalRoles();
+        }
+        return Collections.emptySet();
+    }
+
+    @Nonnull
+    @Restricted(NoExternalUse.class)
+    public Set<FolderRole> getFolderRoles() {
+        AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
+        if (strategy instanceof FolderBasedAuthorizationStrategy) {
+            return ((FolderBasedAuthorizationStrategy) strategy).getFolderRoles();
         }
         return Collections.emptySet();
     }

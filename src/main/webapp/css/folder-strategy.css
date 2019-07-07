@@ -44,6 +44,16 @@ button.submit-button:hover {
     background-color: #f1f1f1;
 }
 
+div.permission-selector {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: 225px;
+    width: fit-content;
+    padding-left: 20px;
+    padding-right: 20px;
+    margin-bottom: 10px;
+}
+
 /* Taken from https://www.w3schools.com/howto/howto_js_collapsible.asp */
 
 .collapsible {

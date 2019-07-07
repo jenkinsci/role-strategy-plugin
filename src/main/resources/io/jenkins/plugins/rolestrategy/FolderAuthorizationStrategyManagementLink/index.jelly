@@ -50,7 +50,7 @@
                     <div class="form-label">
                         Permissions
                     </div>
-                    <div class="form-row" style="overflow-y:scroll; overflow-x: hidden; height: 225px;">
+                    <div class="permission-selector">
                         <j:forEach items="${it.getPermissions()}" var="perm">
                             <label style="display: block;">
                                 <input type="checkbox" name="globalPermissions" value="${perm.id}">
@@ -63,6 +63,41 @@
                             class="submit-button">
                         Add Role
                     </button>
+                </div>
+            </div>
+
+            <hr/>
+
+            <div style="margin-top: 20px;">
+                <h1>
+                    Manage Folder Roles
+                </h1>
+                <h2>
+                    Current Folder Roles
+                </h2>
+                <div>
+                    <j:forEach items="${it.folderRoles}" var="folderRole">
+                        <div class="role">
+                            Name: ${folderRole.name}
+                            <br/>
+                            Sids: ${folderRole.sids}
+                            <br/>
+                            <button class="collapsible">View Permissions</button>
+                            <div class="collapsible-content">
+                                <ul>
+                                    <j:forEach items="${folderRole.permissions}" var="perm">
+                                        <li>${perm.group.title} | ${perm.name}</li>
+                                    </j:forEach>
+                                </ul>
+                            </div>
+                            <hr/>
+                        </div>
+                    </j:forEach>
+                </div>
+
+                <h2>Add a folder role</h2>
+                <div>
+                    <!-- TODO -->
                 </div>
             </div>
             <script src="${rootURL}/plugin/role-strategy/js/folder-auth/collapsible.js"/>

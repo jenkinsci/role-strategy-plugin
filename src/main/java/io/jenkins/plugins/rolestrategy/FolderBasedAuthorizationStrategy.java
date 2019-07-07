@@ -9,9 +9,16 @@ import hudson.model.Job;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
+import hudson.security.SidACL;
+import io.jenkins.plugins.rolestrategy.acls.GlobalAclImpl;
+import io.jenkins.plugins.rolestrategy.acls.JobAclImpl;
+import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
+import io.jenkins.plugins.rolestrategy.roles.FolderRole;
+import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import jenkins.model.Jenkins;
-import org.acegisecurity.Authentication;
 import org.acegisecurity.acls.sid.PrincipalSid;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
@@ -29,12 +36,17 @@ import java.util.logging.Logger;
 
 @ParametersAreNonnullByDefault
 public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
+    private static final Logger LOGGER = Logger.getLogger(FolderBasedAuthorizationStrategy.class.getName());
     private final Set<GlobalRole> globalRoles;
     private final Set<FolderRole> folderRoles;
 
-    private transient GlobalAclImpl globalACL;
+    private transient GlobalAclImpl globalAcl;
+    /**
+     * Maps full name of jobs to their respective {@link ACL}s.
+     */
+    private transient ConcurrentHashMap<String, JobAclImpl> jobAcls = new ConcurrentHashMap<>();
 
-    private static final Logger LOGGER = Logger.getLogger(FolderBasedAuthorizationStrategy.class.getName());
+    private static final String FOLDER_SEPARATOR = "/";
 
     @DataBoundConstructor
     @ParametersAreNullableByDefault
@@ -68,12 +80,27 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
 
         generateNewGlobalAcl();
+        generateNewJobAcls();
+    }
+
+    private synchronized void generateNewJobAcls() {
+        jobAcls.clear();
+        for (FolderRole role : folderRoles) {
+            for (String name : role.getFolderNames()) {
+                JobAclImpl acl = jobAcls.get(name);
+                if (acl == null) {
+                    acl = new JobAclImpl();
+                }
+                acl.assignPermissions(role.getSids(), role.getPermissions());
+                jobAcls.put(name, acl);
+            }
+        }
     }
 
     @Nonnull
     @Override
     public GlobalAclImpl getRootACL() {
-        return globalACL;
+        return globalAcl;
     }
 
     /**
@@ -81,27 +108,39 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
      *
      * @return {@code this}
      */
+    @Nonnull
     @SuppressWarnings("unused")
     protected Object readResolve() {
         generateNewGlobalAcl();
+        generateNewJobAcls();
         return this;
     }
 
     @Nonnull
     @Override
-    public ACL getACL(@Nonnull Job<?, ?> project) {
+    public SidACL getACL(@Nonnull Job<?, ?> project) {
         return getACL((AbstractItem) project);
     }
 
-    @Override
     @Nonnull
-    public ACL getACL(@Nonnull AbstractItem item) {
-        return new ACL() {
-            @Override
-            public boolean hasPermission(@Nonnull Authentication a, @Nonnull Permission permission) {
-                return true;
+    @Override
+    public SidACL getACL(@Nonnull AbstractItem item) {
+        String fullName = item.getFullName();
+        String[] splits = fullName.split(FOLDER_SEPARATOR);
+        StringBuilder sb = new StringBuilder(fullName.length());
+        SidACL acl = globalAcl;
+
+        // Roles on a folder are applicable to all children
+        for (String str : splits) {
+            sb.append(str);
+            SidACL newAcl = jobAcls.get(sb.toString());
+            if (newAcl != null) {
+                acl = acl.newInheritingACL(newAcl);
             }
-        };
+            sb.append(FOLDER_SEPARATOR);
+        }
+        // TODO cache these ACLs
+        return acl;
     }
 
     @Nonnull
@@ -110,8 +149,8 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         return Collections.emptySet();
     }
 
-    private void generateNewGlobalAcl() {
-        globalACL = new GlobalAclImpl(globalRoles);
+    private synchronized void generateNewGlobalAcl() {
+        globalAcl = new GlobalAclImpl(globalRoles);
     }
 
     public void addGlobalRole(@Nonnull GlobalRole globalRole) throws IOException {
@@ -133,7 +172,7 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     public void assignSidToGlobalRole(String roleName, String sid) throws IOException {
         // TODO maintain an index of roles according to their names
-        Optional<GlobalRole> optionalRole = globalRoles.stream().filter(role -> role.name.equals(roleName)).findAny();
+        Optional<GlobalRole> optionalRole = globalRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
 
         if (optionalRole.isPresent()) {
             GlobalRole role = optionalRole.get();
@@ -148,6 +187,16 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
                 generateNewGlobalAcl();
             }
         }
+    }
+
+    /**
+     * Returns the {@link FolderRole}s on which this {@link AuthorizationStrategy} works.
+     *
+     * @return {@link FolderRole}s on which this {@link AuthorizationStrategy} works
+     */
+    @Restricted(NoExternalUse.class)
+    public Set<FolderRole> getFolderRoles() {
+        return Collections.unmodifiableSet(folderRoles);
     }
 
     @Extension

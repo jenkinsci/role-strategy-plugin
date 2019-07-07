@@ -1,4 +1,6 @@
-package io.jenkins.plugins.rolestrategy;
+package io.jenkins.plugins.rolestrategy.roles;
+
+import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
 
 import java.util.Set;
 

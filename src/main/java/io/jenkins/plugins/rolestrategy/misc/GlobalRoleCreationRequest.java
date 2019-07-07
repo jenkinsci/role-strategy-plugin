@@ -1,5 +1,6 @@
-package io.jenkins.plugins.rolestrategy;
+package io.jenkins.plugins.rolestrategy.misc;
 
+import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -12,7 +13,7 @@ public class GlobalRoleCreationRequest {
     public String name = "";
     public List<String> permissions = Collections.emptyList();
 
-    GlobalRole getGlobalRole() {
+    public GlobalRole getGlobalRole() {
         return new GlobalRole(name, permissions.stream().map(PermissionWrapper::new).collect(Collectors.toSet()));
     }
 }

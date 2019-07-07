@@ -1,6 +1,7 @@
-package io.jenkins.plugins.rolestrategy;
+package io.jenkins.plugins.rolestrategy.misc;
 
 import hudson.security.Permission;
+import io.jenkins.plugins.rolestrategy.roles.AbstractRole;
 
 import java.util.Arrays;
 import java.util.Set;

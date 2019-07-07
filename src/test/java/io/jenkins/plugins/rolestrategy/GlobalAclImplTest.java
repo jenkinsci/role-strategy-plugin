@@ -2,6 +2,8 @@ package io.jenkins.plugins.rolestrategy;
 
 import hudson.model.Item;
 import hudson.model.User;
+import io.jenkins.plugins.rolestrategy.acls.GlobalAclImpl;
+import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import jenkins.model.Jenkins;
 import org.acegisecurity.Authentication;
 import org.junit.Rule;
@@ -11,7 +13,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import java.util.HashSet;
 import java.util.Set;
 
-import static io.jenkins.plugins.rolestrategy.PermissionWrapper.wrapPermissions;
+import static io.jenkins.plugins.rolestrategy.misc.PermissionWrapper.wrapPermissions;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
