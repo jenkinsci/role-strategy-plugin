@@ -2,6 +2,9 @@ Role Strategy plugin
 ====================
 
 [![Join the chat at https://gitter.im/jenkinsci/role-strategy-plugin](https://badges.gitter.im/jenkinsci/role-strategy-plugin.svg)](https://gitter.im/jenkinsci/role-strategy-plugin?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/role-strategy.svg)](https://plugins.jenkins.io/role-strategy)
+[![GitHub release](https://img.shields.io/github/release/jenkinsci/role-strategy-plugin.svg?label=release)](https://github.com/jenkinsci/role-strategy-plugin/releases/latest)
+[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/role-strategy.svg?color=blue)](https://plugins.jenkins.io/role-strategy)
 
 About this plugin
 -----------------
@@ -26,3 +29,8 @@ License
 -------
 
 [MIT License](./LICENSE.md)
+
+More information
+----------------
+
+* [Developer documentation](./docs/DEVELOPER.md)

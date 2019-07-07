@@ -1,6 +1,7 @@
 package jmh.benchmarks;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.google.common.collect.Sets;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -8,9 +9,9 @@ import hudson.model.FreeStyleProject;
 import hudson.model.TopLevelItem;
 import hudson.model.User;
 import hudson.security.Permission;
+import jenkins.benchmark.jmh.JmhBenchmark;
+import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
-import jmh.JmhBenchmark;
-import jmh.JmhBenchmarkState;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -23,7 +24,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +42,7 @@ public class FolderAccessBenchmark {
         List<Folder> topFolders = new ArrayList<>();
         FreeStyleProject testProject = null;
         Map<String, TopLevelItem> items = null;
+        RoleMap projectRoleMap = null;
 
         @Override
         public void setup() throws Exception {
@@ -51,23 +52,23 @@ public class FolderAccessBenchmark {
             Map<String, RoleMap> rbasMap = new HashMap<>(1);
             SortedMap<Role, Set<String>> projectRoles = new TreeMap<>();
 
-            Set<String> userPermissions = new HashSet<>(Arrays.asList(
+            Set<String> userPermissions = Sets.newHashSet(
                     "hudson.model.Item.Discover",
                     "hudson.model.Item.Read"
-            ));
+            );
 
-            Set<String> maintainerPermissions = new HashSet<>(Arrays.asList(
+            Set<String> maintainerPermissions = Sets.newHashSet(
                     "hudson.model.Item.Discover",
                     "hudson.model.Item.Read",
                     "hudson.model.Item.Create"
-            ));
+            );
 
-            Set<String> adminPermissions = new HashSet<>(Arrays.asList(
+            Set<String> adminPermissions = Sets.newHashSet(
                     "hudson.model.Item.Discover",
                     "hudson.model.Item.Read",
                     "hudson.model.Item.Create",
                     "hudson.model.Item.Configure"
-            ));
+            );
 
             Random random = new Random(100L);
 
@@ -120,7 +121,7 @@ public class FolderAccessBenchmark {
                 topFolders.add(folder);
             }
 
-            RoleMap projectRoleMap = new RoleMap(projectRoles);
+            projectRoleMap = new RoleMap(projectRoles);
             rbasMap.put(RoleBasedAuthorizationStrategy.PROJECT, projectRoleMap);
             RoleBasedAuthorizationStrategy rbas = new RoleBasedAuthorizationStrategy(rbasMap);
             jenkins.setAuthorizationStrategy(rbas);
@@ -142,6 +143,14 @@ public class FolderAccessBenchmark {
     @Benchmark
     public void benchmark(JenkinsState state, ThreadState threadState, Blackhole blackhole) {
         state.testProject.hasPermission(Permission.CREATE);
+    }
+
+    /**
+     * Benchmark {@link RoleMap#newMatchingRoleMap(String)} since regex matching takes place there
+     */
+    @Benchmark
+    public void benchmarkNewMatchingRoleMap(JenkinsState state, ThreadState threadState, Blackhole blackhole) {
+        blackhole.consume(state.projectRoleMap.newMatchingRoleMap("TopFolder4/BottomFolder3/Project2"));
     }
 
     @Benchmark

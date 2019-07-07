@@ -1,5 +1,6 @@
 package jmh;
 
+import jenkins.benchmark.jmh.BenchmarkFinder;
 import org.junit.Test;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.results.format.ResultFormatType;
@@ -23,7 +24,7 @@ public final class BenchmarkRunner {
                 .resultFormat(ResultFormatType.JSON)
                 .result("jmh-report.json");
 
-        BenchmarkFinder bf = new BenchmarkFinder(this.getClass().getPackage().getName());
+        BenchmarkFinder bf = new BenchmarkFinder(getClass());
         bf.findBenchmarks(options);
         new Runner(options.build()).run();
     }
