@@ -88,15 +88,33 @@ public class RoleMap {
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
 
-  
+  /**
+   * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)}
+   * for different permissions for the same {@code itemNamePrefix}, so cache them and avoid wasting time
+   * matching regular expressions.
+   */
+  private final Cache<String, RoleMap> matchingRoleMapCache = CacheBuilder.newBuilder()
+          .softValues()
+          .maximumSize(2048)
+          .expireAfterWrite(1, TimeUnit.HOURS)
+          .build();
+
   RoleMap() {
     this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
 	private String userIdKey(String origSid) {
-    final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
-		final IdStrategy userIdStrategy = securityRealm.getUserIdStrategy();
+    boolean disableUserIdStrategy = RoleBasedAuthorizationStrategy.getDisableUserIdStrategy();
+    IdStrategy userIdStrategy = null;
+    if (disableUserIdStrategy) {
+		  userIdStrategy = new IdStrategy.CaseSensitive(); 
+    } else {
+      final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
+		  userIdStrategy = securityRealm.getUserIdStrategy();
+    }
 		final String sid = userIdStrategy.keyFor(origSid);
+    LOGGER.info("userIdStrategy" + userIdStrategy.getClass().getName() + " keyFor: "+origSid+" = "+sid);
+    LOGGER.log(Level.INFO, "userIdKey", new Throwable());
     return sid;
 	}
     /**
@@ -203,8 +221,8 @@ public class RoleMap {
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
           this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
+          matchingRoleMapCache.invalidateAll();
     }
-
   }
 
   /**
@@ -226,12 +244,11 @@ public class RoleMap {
    * @since 2.6.0
    */
   public void unAssignRole(Role role, String origSid) {
-		String sid = userIdKey(origSid);
-    if (this.hasRole(role)) {
-      if (this.grantedRoles.get(role).contains(sid)) {
-        this.grantedRoles.get(role).remove(sid);
+		  String sid = userIdKey(origSid);
+      Set<String> sids = grantedRoles.get(role);
+      if (sids != null) {
+        sids.remove(sid);
       }
-    }
   }
 
   /**
@@ -308,6 +325,7 @@ public class RoleMap {
    */
   public void removeRole(Role role){
       this.grantedRoles.remove(role);
+      matchingRoleMapCache.invalidateAll();
   }
   
 
@@ -368,50 +386,31 @@ public class RoleMap {
   }
 
   /**
-   * Create a sub-map of the current {@link RoleMap} containing only the
-   * {@link Role}s matching the given pattern.
-   * @param namePattern The pattern to match
-   * @return A {@link RoleMap} containing only {@link Role}s matching the given name
+   * Create a sub-map of this {@link RoleMap} containing {@link Role}s that are applicable
+   * on the given {@code itemNamePrefix}.
+   *
+   * @param itemNamePrefix the name of the {@link hudson.model.AbstractItem} or {@link hudson.model.Computer}
+   * @return A {@link RoleMap} containing roles that are applicable on the itemNamePrefix
    */
+  public RoleMap newMatchingRoleMap(String itemNamePrefix) {
+    RoleMap cachedRoleMap = matchingRoleMapCache.getIfPresent(itemNamePrefix);
+    if (cachedRoleMap != null) {
+      return cachedRoleMap;
+    }
 
-  public RoleMap newMatchingRoleMap(String namePattern) {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     new RoleWalker() {
       public void perform(Role current) {
-        Matcher m = current.getPattern().matcher(namePattern);
+        Matcher m = current.getPattern().matcher(itemNamePrefix);
         if (m.matches()) {
           roleMap.put(current, grantedRoles.get(current));
     }
       }
     };
-    return new RoleMap(roleMap);
-  }
 
-  /**
-   * Get all the roles holding the given permission.
-   * @param permission The permission you want to check
-   * @return A Set of Roles holding the given permission
-   */
-  private Set<Role> getRolesHavingPermission(final Permission permission) {
-    final Set<Role> roles = new HashSet<>();
-    final Set<Permission> permissions = new HashSet<>();
-    Permission p = permission;
-
-    // Get the implying permissions
-    for (; p!=null; p=p.impliedBy) {
-      permissions.add(p);
-    }
-    // Walk through the roles, and only add the roles having the given permission,
-    // or a permission implying the given permission
-    new RoleWalker() {
-      public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
-          roles.add(current);
-        }
-      }
-    };
-
-    return roles;
+    RoleMap newMatchingRoleMap = new RoleMap(roleMap);
+    matchingRoleMapCache.put(itemNamePrefix, newMatchingRoleMap);
+    return newMatchingRoleMap;
   }
 
   /**
@@ -462,8 +461,10 @@ public class RoleMap {
     @CheckForNull
     protected Boolean hasPermission(Sid p, Permission permission) {
       if (RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
+        LOGGER.info("TRUE hasPermission "+ toString(p));
         return true;
       }
+      LOGGER.info("FALSE hasPermission "+ toString(p));
       return null;
     }
   }

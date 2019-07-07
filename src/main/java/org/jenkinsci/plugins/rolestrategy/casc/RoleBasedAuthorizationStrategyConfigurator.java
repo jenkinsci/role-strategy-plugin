@@ -13,6 +13,10 @@ import io.jenkins.plugins.casc.Configurator;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
+import io.jenkins.plugins.casc.model.Scalar;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -32,6 +36,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Extension(optional = true, ordinal = 2)
 @Restricted({NoExternalUse.class})
 public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator<RoleBasedAuthorizationStrategy> {
+
+	  private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategyConfigurator.class.getName());  
 
     @Override
     @NonNull
@@ -53,20 +59,35 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     @Override
     protected RoleBasedAuthorizationStrategy instance(Mapping map, ConfigurationContext context) throws ConfiguratorException {
         final Configurator<GrantedRoles> c = context.lookupOrFail(GrantedRoles.class);
+        
         final GrantedRoles roles = c.configure(map.remove("roles"), context);
-        return new RoleBasedAuthorizationStrategy(roles.toMap());
+        RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(roles.toMap());
+        
+        CNode disableUserIdStrategyCnode =  map.remove("disableUserIdStrategy");
+        LOGGER.log(Level.FINE, "disableUserIdStrategy Cnode " + disableUserIdStrategyCnode);
+				if (disableUserIdStrategyCnode != null) {
+					Scalar disableUserIdStrategyScalar =  disableUserIdStrategyCnode.asScalar();
+					String cascValue = disableUserIdStrategyScalar.getValue();
+					final boolean disableUserIdStrategy = Boolean.parseBoolean( cascValue );
+					strategy.setDisableUserIdStrategy(disableUserIdStrategy);
+				}
+				return strategy;
     }
 
     @Override
     @NonNull
     public Set<Attribute<RoleBasedAuthorizationStrategy,?>> describe() {
-        return Collections.singleton(
+        final Set<Attribute<RoleBasedAuthorizationStrategy,?>> attributes = super.describe();
+        
+				attributes.add( new Attribute<RoleBasedAuthorizationStrategy, Boolean>("disableUserIdStrategy", Boolean.class) );
+				attributes.add( 
             new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
                 List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));
                 List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRoles(RoleBasedAuthorizationStrategy.SLAVE));
                 List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT));
                 return new GrantedRoles(globalRoles, projectRoles, agentRoles);
             }));
+				return attributes;
     }
 
     private List<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<String>> roleMap) {

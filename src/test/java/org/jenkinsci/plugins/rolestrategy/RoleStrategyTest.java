@@ -7,8 +7,7 @@ import hudson.model.Computer;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
-import hudson.security.AuthorizationStrategy;
-import io.jenkins.plugins.casc.ConfigurationContext;
+import hudson.security.AuthorizationStrategy; import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.Configurator;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
@@ -105,8 +104,68 @@ public class RoleStrategyTest {
 
         // Same user still cannot build on agent2
         assertHasNoPermission(user1, agent2, Computer.BUILD);
+
+        
+				
     }
 
+    @Test
+    @ConfiguredWithCode("Configuration-as-Code.yml")
+    public void testIgnoreCaseUser() throws Exception {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        User admin = User.getById("ADmin", false);
+        User user1 = User.getById("USer1", false);
+        User user2 = User.getById("USer2", true);
+        assertNotNull(admin);
+        assertNotNull(user1);
+        Computer agent1 = j.jenkins.getComputer("agent1");
+        Computer agent2 = j.jenkins.getComputer("agent2");
+        Folder folderA = j.jenkins.createProject(Folder.class, "A");
+        FreeStyleProject jobA1 = folderA.createProject(FreeStyleProject.class, "1");
+        Folder folderB = j.jenkins.createProject(Folder.class, "B");
+        FreeStyleProject jobB2 = folderB.createProject(FreeStyleProject.class, "2");
+
+        AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
+        assertThat("Authorization Strategy has been read incorrectly",
+            s, instanceOf(RoleBasedAuthorizationStrategy.class));
+        RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+
+        Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        assertThat(globalRoles.size(), equalTo(2));
+				rbas.setDisableUserIdStrategy(false); // case insensitive
+
+        assertHasPermission(admin, folderA, Item.CONFIGURE, Item.CANCEL);
+        assertHasPermission(user1, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
+        assertHasPermission(user2, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
+    }
+    public void testCaseSensitiveUser() throws Exception {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+        User admin = User.getById("ADmin", false);
+        User user1 = User.getById("USer1", false);
+        User user2 = User.getById("USer2", true);
+
+        assertNotNull(admin);
+        assertNotNull(user1);
+        Computer agent1 = j.jenkins.getComputer("agent1");
+        Computer agent2 = j.jenkins.getComputer("agent2");
+        Folder folderA = j.jenkins.createProject(Folder.class, "A");
+        FreeStyleProject jobA1 = folderA.createProject(FreeStyleProject.class, "1");
+        Folder folderB = j.jenkins.createProject(Folder.class, "B");
+        FreeStyleProject jobB2 = folderB.createProject(FreeStyleProject.class, "2");
+
+        AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
+        assertThat("Authorization Strategy has been read incorrectly",
+            s, instanceOf(RoleBasedAuthorizationStrategy.class));
+        RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+
+        Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        assertThat(globalRoles.size(), equalTo(2));
+				rbas.setDisableUserIdStrategy(true); // case sensitive
+        assertHasNoPermission(admin, folderA, Item.CONFIGURE, Item.CANCEL);
+        assertHasNoPermission(user1, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
+        assertHasNoPermission(user2, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
+				rbas.setDisableUserIdStrategy(false); // case sensitive
+    }
     @Test
     @ConfiguredWithCode("Configuration-as-Code.yml")
     public void shouldExportRolesCorrect() throws Exception {

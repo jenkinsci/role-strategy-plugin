@@ -1,0 +1,10 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
+          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
+
+<f:entry title="${%title.disableUserIdStrategy}" description="${%description.disableUserIdStrategy}" field="disableUserIdStrategy">
+  <f:checkbox/>
+</f:entry>
+
+</j:jelly>
+
