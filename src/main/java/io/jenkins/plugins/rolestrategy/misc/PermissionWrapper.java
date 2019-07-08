@@ -82,8 +82,8 @@ public final class PermissionWrapper {
      * @param permissions permissions to be wrapped up
      * @return a set containing a {@link PermissionWrapper} for each permission in {@code permissions}
      */
-    public static Set<PermissionWrapper> wrapPermissions(Collection<Permission> permission) {
-        return _wrapPermissions(permission.stream());
+    public static Set<PermissionWrapper> wrapPermissions(Collection<Permission> permissions) {
+        return _wrapPermissions(permissions.stream());
     }
 
     private static Set<PermissionWrapper> _wrapPermissions(Stream<Permission> stream) {

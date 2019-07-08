@@ -120,6 +120,7 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
      * @param roleName    the name of the role to be added
      * @param folderNames the folders on which this role is applicable
      * @param permissions the permissions granted by this role
+     * @throws IOException when unable to add the role
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
