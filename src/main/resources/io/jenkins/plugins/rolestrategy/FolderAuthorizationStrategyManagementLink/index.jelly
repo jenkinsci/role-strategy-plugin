@@ -44,23 +44,23 @@
                 </h2>
                 <div>
                     <div class="form-row">
-                        <label class="form-label" for="roleName">Name of the role</label>
-                        <input id="roleName" name="name" type="text" minlength="3"/>
+                        <label class="form-label">Name of the role
+                            <input id="globalRoleName" name="roleName" type="text" minlength="3"/>
+                        </label>
                     </div>
                     <div class="form-label">
                         Permissions
                     </div>
-                    <div class="permission-selector">
-                        <j:forEach items="${it.getGlobalPermissions()}" var="perm">
-                            <label style="display: block;">
-                                <input type="checkbox" name="globalPermissions" value="${perm.id}">
+                    <label class="form-label">
+                        <select multiple="multiple" name="permissions" id="global-permission-select">
+                            <j:forEach items="${it.getGlobalPermissions()}" var="perm">
+                                <option value="${perm.id}">
                                     ${perm.group.title} | ${perm.name}
-                                </input>
-                            </label>
-                        </j:forEach>
-                    </div>
-                    <button type="button" onclick="addGlobalRole('${rootURL}/${it.urlName}/addGlobalRole')"
-                            class="submit-button">
+                                </option>
+                            </j:forEach>
+                        </select>
+                    </label>
+                    <button type="button" onclick="addGlobalRole();" class="submit-button">
                         Add Role
                     </button>
                 </div>
@@ -75,12 +75,14 @@
                 <h2>
                     Current Folder Roles
                 </h2>
-                <div>
+                <div class="role-container">
                     <j:forEach items="${it.folderRoles}" var="folderRole" indexVar="index">
                         <div class="role">
                             Name: ${folderRole.name}
                             <br/>
                             Sids: ${folderRole.sids}
+                            <br/>
+                            Folders: ${folderRole.folderNames}
                             <br/>
                             <form action="${rootURL}/${it.urlName}/assignSidToFolderRole" method="POST">
                                 <div class="form-row">
@@ -106,17 +108,17 @@
                 </div>
 
                 <h2>Add a folder role</h2>
-                <form action="${rootURL}/${it.urlName}/addFolderRole" method="POST">
+                <div>
                     <div class="form-row">
                         <label class="form-label">
                             Name of the Role:
-                            <input type="text" name="roleName" minlength="3"/>
+                            <input type="text" id="folderRoleName" name="folderNames" minlength="3"/>
                         </label>
                     </div>
                     <div class="form-row">
                         <label class="form-label">
                             Apply on:
-                            <select name="folderNames" multiple="multiple">
+                            <select name="folderNames" multiple="multiple" id="folder-select">
                                 <j:forEach items="${it.allFolders}" var="folder">
                                     <option value="${folder.fullName}">${folder.fullName}</option>
                                 </j:forEach>
@@ -125,16 +127,16 @@
                     </div>
                     <label class="form-label">
                         Permissions
-                        <select multiple="multiple" name="permissions">
+                        <select multiple="multiple" name="permissions" id="folder-permission-select">
                             <j:forEach items="${it.getFolderPermissions()}" var="perm">
                                 <option value="${perm.id}">${perm.group.title} | ${perm.name}</option>
                             </j:forEach>
                         </select>
                     </label>
                     <div class="form-row">
-                        <input type="submit" style="display: block;" value="Add Role"/>
+                        <button type="button" class="submit-button" onclick="addFolderRole();">Add Role</button>
                     </div>
-                </form>
+                </div>
             </div>
             <script src="${rootURL}/plugin/role-strategy/js/folder-auth/collapsible.js"/>
         </l:main-panel>

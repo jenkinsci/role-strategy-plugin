@@ -9,8 +9,8 @@ import hudson.security.ACLContext;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import io.jenkins.plugins.rolestrategy.misc.FolderRoleCreationRequest;
 import io.jenkins.plugins.rolestrategy.misc.GlobalRoleCreationRequest;
-import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
 import io.jenkins.plugins.rolestrategy.roles.FolderRole;
 import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import jenkins.model.Jenkins;
@@ -26,14 +26,12 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 import static com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy.getPermissionGroups;
 
@@ -113,29 +111,20 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         }
     }
 
-
     /**
      * Adds a {@link FolderRole} to {@link FolderBasedAuthorizationStrategy}
      *
-     * @param roleName    the name of the role to be added
-     * @param folderNames the folders on which this role is applicable
-     * @param permissions the permissions granted by this role
+     * @param request the request to create the role
      * @throws IOException when unable to add the role
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAddFolderRole(@QueryParameter(required = true) String roleName,
-                                @QueryParameter(required = true) String[] folderNames,
-                                @QueryParameter(required = true) String[] permissions) throws IOException {
+    public void doAddFolderRole(@JsonBody FolderRoleCreationRequest request) throws IOException {
         Jenkins jenkins = Jenkins.getInstance();
         jenkins.checkPermission(Jenkins.ADMINISTER);
         AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
-            Set<PermissionWrapper> permissionWrappers = Arrays.stream(permissions).map(PermissionWrapper::new)
-                    .collect(Collectors.toSet());
-            FolderRole folderRole = new FolderRole(roleName, permissionWrappers,
-                    new HashSet<>(Arrays.asList(folderNames)));
-            ((FolderBasedAuthorizationStrategy) strategy).addFolderRole(folderRole);
+            ((FolderBasedAuthorizationStrategy) strategy).addFolderRole(request.getFolderRole());
         }
     }
 

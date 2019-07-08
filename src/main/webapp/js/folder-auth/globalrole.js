@@ -1,32 +1,61 @@
-"use strict";
+'use strict';
 
 // noinspection JSUnusedGlobalSymbols
-const addGlobalRole = (postUrl) => {
-    const roleName = document.getElementById('roleName').value;
-    if (!roleName) {
+const addGlobalRole = () => {
+    const roleName = document.getElementById('globalRoleName').value;
+    if (!roleName || roleName.length < 3) {
         alert('Please enter a valid name for the role to be added.');
         return;
     }
 
-    const response = {};
-    response.name = roleName;
-    response.permissions = [];
+    const response = {
+        name: roleName,
+        permissions: document.getElementById('global-permission-select').getValue(),
+    };
 
-    const permissionCheckboxes = document.getElementsByName('globalPermissions');
-    for (let i = 0; i < permissionCheckboxes.length; i++) {
-        const checkbox = permissionCheckboxes[i];
-        if (checkbox.checked) {
-            response.permissions.push(checkbox.value);
-        }
+    if (response.permissions.length <= 0) {
+        alert('Please select at least one permission');
+        return;
     }
 
+    sendPostRequest(`${rootURL}/folder-auth/addGlobalRole`, response);
+};
+
+// noinspection JSUnusedGlobalSymbols
+const addFolderRole = () => {
+    const roleName = document.getElementById('folderRoleName').value;
+    if (!roleName || roleName.length < 3) {
+        alert('Please enter a valid name for the role to be added');
+        return;
+    }
+
+    const response = {
+        name: roleName,
+        permissions: document.getElementById('folder-permission-select').getValue(),
+        folderNames: document.getElementById('folder-select').getValue(),
+    };
+
+    if (response.permissions.length <= 0) {
+        alert('Please select at least one permission');
+        return;
+    }
+
+    if (response.folderNames.length <= 0) {
+        alert('Please select at least one folder on which this role will be applicable');
+        return;
+    }
+
+    sendPostRequest(`${rootURL}/folder-auth/addFolderRole`, response);
+};
+
+const sendPostRequest = (postUrl, response) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', postUrl, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
 
     xhr.onload = () => {
         if (xhr.status === 200) {
-            alert('Global role was added successfully');
+            alert('The role was added successfully');
             location.reload(); // refresh the page
         } else {
             alert('Unable to add the role\n' + xhr.responseText);
