@@ -109,6 +109,18 @@ public abstract class AbstractRole {
         return sids;
     }
 
+    /**
+     * Return a comma separated list of sids assigned to this role
+     *
+     * @return a comma separated list of sids assigned to this role
+     */
+    @Nonnull
+    @SuppressWarnings("unused") // used by index.jelly
+    public String getSidsCommaSeparated() {
+        String string = sids.toString();
+        return string.substring(1, string.length() - 1);
+    }
+
     public void unassignSids(String... sids) {
         this.sids.removeAll(Arrays.asList(sids));
     }

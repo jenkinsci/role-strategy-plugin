@@ -51,4 +51,15 @@ public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
     public Set<String> getFolderNames() {
         return Collections.unmodifiableSet(folders);
     }
+
+    /**
+     * Returns the folder names as a comma separated string list
+     *
+     * @return the folder names as a comma separated string list
+     */
+    @SuppressWarnings("unused") // used in index.jelly
+    public String getFolderNamesCommaSeparated() {
+        String csv = folders.toString();
+        return csv.substring(1, csv.length() - 1);
+    }
 }

@@ -1,5 +1,7 @@
 div.form-row {
-    padding: 10px 10px 10px 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-right: 10px;
 }
 
 .form-label {
@@ -19,15 +21,20 @@ div.role-container {
     flex-basis: auto;
     flex-wrap: wrap;
     justify-content: flex-start;
+    max-height: 525px;
+    overflow-y: scroll;
 }
 
 div.role {
     display: flex;
     flex-direction: column;
-    padding: 5px 5px;
-    border: 2px solid black;
+    padding: 10px;
+    border-width: thin;
+    border-radius: 5px;
+    border-style: solid;
+    border-color: black;
+    background-color: #fdfdfd;
     margin: 3px 3px;
-    flex-grow: 1;
 }
 
 button.submit-button {
@@ -43,6 +50,20 @@ button.submit-button {
 
 button.submit-button:hover {
     background-color: #f1f1f1;
+}
+
+select[multiple] {
+    border-color: #000;
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+    border-style: solid;
+    border-width: thin;
+    padding: 10px;
+    scroll-padding: 10px;
+    display: block;
+    margin: 10px;
+    width: content-box;
 }
 
 /* Taken from https://www.w3schools.com/howto/howto_js_collapsible.asp */

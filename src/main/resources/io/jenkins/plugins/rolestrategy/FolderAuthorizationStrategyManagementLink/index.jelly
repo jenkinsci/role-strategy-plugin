@@ -15,7 +15,7 @@
                         <div class="role">
                             Name: ${globalRole.name}
                             <br/>
-                            Sids: ${globalRole.sids}
+                            Sids: ${globalRole.getSidsCommaSeparated()}
                             <form action="${rootURL}/${it.urlName}/assignSidToGlobalRole" method="POST">
                                 <div class="form-row">
                                     <label for="assign-sid-global-${index}" style="margin-right: 10px;">
@@ -80,9 +80,9 @@
                         <div class="role">
                             Name: ${folderRole.name}
                             <br/>
-                            Sids: ${folderRole.sids}
+                            Sids: ${folderRole.getSidsCommaSeparated()}
                             <br/>
-                            Folders: ${folderRole.folderNames}
+                            Folders: ${folderRole.getFolderNamesCommaSeparated()}
                             <br/>
                             <form action="${rootURL}/${it.urlName}/assignSidToFolderRole" method="POST">
                                 <div class="form-row">
@@ -118,7 +118,7 @@
                     <div class="form-row">
                         <label class="form-label">
                             Apply on:
-                            <select name="folderNames" multiple="multiple" id="folder-select">
+                            <select name="folderNames" multiple="multiple" id="folder-select" class="form-control">
                                 <j:forEach items="${it.allFolders}" var="folder">
                                     <option value="${folder.fullName}">${folder.fullName}</option>
                                 </j:forEach>
