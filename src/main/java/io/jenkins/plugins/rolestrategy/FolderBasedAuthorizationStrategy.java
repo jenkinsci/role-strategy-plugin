@@ -89,7 +89,7 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
 
         for (FolderRole role : folderRoles) {
-            updateFolderRole(role);
+            updateAclForFolderRole(role);
         }
     }
 
@@ -207,7 +207,7 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
             throw e;
         } finally {
             // TODO cache.invalidateAll() when caching ACLs
-            updateFolderRole(folderRole);
+            updateAclForFolderRole(folderRole);
         }
     }
 
@@ -225,19 +225,19 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
                 role.unassignSids(sid);
                 throw e;
             } finally {
-                updateFolderRole(role);
+                updateAclForFolderRole(role);
             }
         }
     }
 
     /**
-     * Updates the ACL for one folder role
+     * Updates the ACL for the folder role
      * <p>
      * Should be called when a folderRole has been updated
      *
      * @param role the role to be updated
      */
-    private void updateFolderRole(FolderRole role) {
+    private void updateAclForFolderRole(@Nonnull FolderRole role) {
         for (String name : role.getFolderNames()) {
             JobAclImpl acl = jobAcls.get(name);
             if (acl == null) {
