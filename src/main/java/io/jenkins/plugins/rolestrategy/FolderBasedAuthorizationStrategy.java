@@ -89,14 +89,7 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
 
         for (FolderRole role : folderRoles) {
-            for (String name : role.getFolderNames()) {
-                JobAclImpl acl = jobAcls.get(name);
-                if (acl == null) {
-                    acl = new JobAclImpl();
-                }
-                acl.assignPermissions(role.getSids(), role.getPermissions());
-                jobAcls.put(name, acl);
-            }
+            updateFolderRole(role);
         }
     }
 
@@ -114,6 +107,7 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Nonnull
     @SuppressWarnings("unused")
     protected Object readResolve() {
+        jobAcls = new ConcurrentHashMap<>();
         generateNewGlobalAcl();
         updateJobAcls(true);
         return this;
@@ -213,7 +207,44 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
             throw e;
         } finally {
             // TODO cache.invalidateAll() when caching ACLs
-            updateJobAcls(false);
+            updateFolderRole(folderRole);
+        }
+    }
+
+    public void assignSidToFolderRole(String roleName, String sid) throws IOException {
+        // TODO maintain an index of roles according to their names
+        Optional<FolderRole> optionalRole = folderRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
+
+        if (optionalRole.isPresent()) {
+            FolderRole role = optionalRole.get();
+            role.assignSids(sid);
+            try {
+                Jenkins.getInstance().save();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Unable to save config file, not assigning the sids.", e);
+                role.unassignSids(sid);
+                throw e;
+            } finally {
+                updateFolderRole(role);
+            }
+        }
+    }
+
+    /**
+     * Updates the ACL for one folder role
+     * <p>
+     * Should be called when a folderRole has been updated
+     *
+     * @param role the role to be updated
+     */
+    private void updateFolderRole(FolderRole role) {
+        for (String name : role.getFolderNames()) {
+            JobAclImpl acl = jobAcls.get(name);
+            if (acl == null) {
+                acl = new JobAclImpl();
+            }
+            acl.assignPermissions(role.getSids(), role.getPermissions());
+            jobAcls.put(name, acl);
         }
     }
 

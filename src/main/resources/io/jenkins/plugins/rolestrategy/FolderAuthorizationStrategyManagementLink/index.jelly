@@ -76,12 +76,22 @@
                     Current Folder Roles
                 </h2>
                 <div>
-                    <j:forEach items="${it.folderRoles}" var="folderRole">
+                    <j:forEach items="${it.folderRoles}" var="folderRole" indexVar="index">
                         <div class="role">
                             Name: ${folderRole.name}
                             <br/>
                             Sids: ${folderRole.sids}
                             <br/>
+                            <form action="${rootURL}/${it.urlName}/assignSidToFolderRole" method="POST">
+                                <div class="form-row">
+                                    <label for="assign-sid-folder-${index}" style="margin-right: 10px;">
+                                        Assign Sid
+                                    </label>
+                                    <input id="assign-sid-folder-${index}" type="text" name="sid"/>
+                                    <input type="hidden" value="${folderRole.name}" name="roleName"/>
+                                    <input type="submit" style="margin-left: 10px;"/>
+                                </div>
+                            </form>
                             <button class="collapsible">View Permissions</button>
                             <div class="collapsible-content">
                                 <ul>

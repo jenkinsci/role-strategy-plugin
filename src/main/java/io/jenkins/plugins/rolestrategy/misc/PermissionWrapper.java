@@ -27,9 +27,7 @@ public final class PermissionWrapper {
     public PermissionWrapper(String id) {
         this.id = id;
         permission = Permission.fromId(id);
-        if (permission == null) {
-            throw new IllegalArgumentException("Unable to infer permission from Id: " + id);
-        }
+        checkPermission();
     }
 
     /**
@@ -40,6 +38,7 @@ public final class PermissionWrapper {
     @SuppressWarnings("unused")
     private Object readResolve() {
         permission = Permission.fromId(id);
+        checkPermission();
         return this;
     }
 
@@ -64,6 +63,17 @@ public final class PermissionWrapper {
     @Override
     public int hashCode() {
         return id.hashCode();
+    }
+
+    /**
+     * Checks if the permission for this {@link PermissionWrapper} is valid.
+     *
+     * @throws IllegalArgumentException when the permission did not exist or was null
+     */
+    private void checkPermission() {
+        if (permission == null) {
+            throw new IllegalArgumentException("Unable to infer permission from Id: " + id);
+        }
     }
 
     /**

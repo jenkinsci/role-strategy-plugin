@@ -94,7 +94,7 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
      *
      * @param roleName the name of the global to which {@code sid} will be assigned to.
      * @param sid      the sid of the user/group to be assigned.
-     * @throws IOException when unable to assign the Sid
+     * @throws IOException when unable to assign the Sid to the role
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
@@ -136,6 +136,32 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
             FolderRole folderRole = new FolderRole(roleName, permissionWrappers,
                     new HashSet<>(Arrays.asList(folderNames)));
             ((FolderBasedAuthorizationStrategy) strategy).addFolderRole(folderRole);
+        }
+    }
+
+    /**
+     * Assigns {@code sid} to the folder role identified by {@code roleName}.
+     * <p>
+     * Does not do anything if a role corresponding to the {@code roleName} does not exist.
+     *
+     * @param roleName the name of the global to which {@code sid} will be assigned to.
+     * @param sid      the sid of the user/group to be assigned.
+     * @throws IOException when unable to assign the Sid to the role
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doAssignSidToFolderRole(@QueryParameter(required = true) String roleName,
+                                        @QueryParameter(required = true) String sid) throws IOException {
+        Jenkins jenkins = Jenkins.getInstance();
+        jenkins.checkPermission(Jenkins.ADMINISTER);
+        AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
+        if (strategy instanceof FolderBasedAuthorizationStrategy) {
+            ((FolderBasedAuthorizationStrategy) strategy).assignSidToFolderRole(roleName, sid);
+        }
+        try {
+            Stapler.getCurrentResponse().forwardToPreviousPage(Stapler.getCurrentRequest());
+        } catch (ServletException | IOException e) {
+            LOGGER.log(Level.WARNING, "Unable to redirect to previous page.");
         }
     }
 
