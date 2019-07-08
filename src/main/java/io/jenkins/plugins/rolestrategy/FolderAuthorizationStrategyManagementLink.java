@@ -1,11 +1,16 @@
 package io.jenkins.plugins.rolestrategy;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.Extension;
 import hudson.model.ManagementLink;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import io.jenkins.plugins.rolestrategy.misc.GlobalRoleCreationRequest;
+import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
 import io.jenkins.plugins.rolestrategy.roles.FolderRole;
 import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import jenkins.model.Jenkins;
@@ -21,7 +26,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +34,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy.getPermissionGroups;
 
 @Extension
 public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
@@ -53,13 +60,15 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
     }
 
     @Nonnull
-    public Set<Permission> getPermissions(/* TODO add RoleType */) {
-        // TODO cleanup
-        List<PermissionGroup> permissionGroups = new ArrayList<>(PermissionGroup.getAll());
-        permissionGroups.remove(PermissionGroup.get(Permission.class));
-        Set<Permission> permissions = new HashSet<>();
-        permissionGroups.stream().map(PermissionGroup::getPermissions).forEach(permissions::addAll);
-        return permissions.stream().filter(p -> !PermissionHelper.isDangerous(p)).collect(Collectors.toSet());
+    @Restricted(NoExternalUse.class)
+    public Set<Permission> getGlobalPermissions() {
+        return getSafePermissions(getPermissionGroups(RoleType.Global));
+    }
+
+    @Nonnull
+    @Restricted(NoExternalUse.class)
+    public Set<Permission> getFolderPermissions() {
+        return getSafePermissions(getPermissionGroups(RoleType.Project));
     }
 
     /**
@@ -104,6 +113,31 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         }
     }
 
+
+    /**
+     * Adds a {@link FolderRole} to {@link FolderBasedAuthorizationStrategy}
+     *
+     * @param roleName    the name of the role to be added
+     * @param folderNames the folders on which this role is applicable
+     * @param permissions the permissions granted by this role
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doAddFolderRole(@QueryParameter(required = true) String roleName,
+                                @QueryParameter(required = true) String[] folderNames,
+                                @QueryParameter(required = true) String[] permissions) throws IOException {
+        Jenkins jenkins = Jenkins.getInstance();
+        jenkins.checkPermission(Jenkins.ADMINISTER);
+        AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
+        if (strategy instanceof FolderBasedAuthorizationStrategy) {
+            Set<PermissionWrapper> permissionWrappers = Arrays.stream(permissions).map(PermissionWrapper::new)
+                    .collect(Collectors.toSet());
+            FolderRole folderRole = new FolderRole(roleName, permissionWrappers,
+                    new HashSet<>(Arrays.asList(folderNames)));
+            ((FolderBasedAuthorizationStrategy) strategy).addFolderRole(folderRole);
+        }
+    }
+
     @Nonnull
     @Restricted(NoExternalUse.class)
     public Set<GlobalRole> getGlobalRoles() {
@@ -114,6 +148,25 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         return Collections.emptySet();
     }
 
+    /**
+     * Get all {@link Folder}s in the system
+     *
+     * @return folders in the system
+     */
+    @Nonnull
+    @Restricted(NoExternalUse.class)
+    public List<Folder> getAllFolders() {
+        Jenkins jenkins = Jenkins.getInstance();
+        jenkins.checkPermission(Jenkins.ADMINISTER);
+        List<Folder> folders;
+
+        try (ACLContext ignored = ACL.as(ACL.SYSTEM)) {
+            folders = jenkins.getAllItems(Folder.class);
+        }
+
+        return folders;
+    }
+
     @Nonnull
     @Restricted(NoExternalUse.class)
     public Set<FolderRole> getFolderRoles() {
@@ -122,5 +175,12 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
             return ((FolderBasedAuthorizationStrategy) strategy).getFolderRoles();
         }
         return Collections.emptySet();
+    }
+
+    private static Set<Permission> getSafePermissions(Set<PermissionGroup> groups) {
+        HashSet<Permission> safePermissions = new HashSet<>();
+        groups.stream().map(PermissionGroup::getPermissions).forEach(safePermissions::addAll);
+        safePermissions.removeAll(PermissionHelper.DANGEROUS_PERMISSIONS);
+        return safePermissions;
     }
 }

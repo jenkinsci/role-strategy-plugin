@@ -80,11 +80,14 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
 
         generateNewGlobalAcl();
-        generateNewJobAcls();
+        updateJobAcls(true);
     }
 
-    private synchronized void generateNewJobAcls() {
-        jobAcls.clear();
+    private synchronized void updateJobAcls(boolean doClear) {
+        if (doClear) {
+            jobAcls.clear();
+        }
+
         for (FolderRole role : folderRoles) {
             for (String name : role.getFolderNames()) {
                 JobAclImpl acl = jobAcls.get(name);
@@ -112,7 +115,7 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
     @SuppressWarnings("unused")
     protected Object readResolve() {
         generateNewGlobalAcl();
-        generateNewJobAcls();
+        updateJobAcls(true);
         return this;
     }
 
@@ -197,6 +200,21 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Restricted(NoExternalUse.class)
     public Set<FolderRole> getFolderRoles() {
         return Collections.unmodifiableSet(folderRoles);
+    }
+
+
+    public void addFolderRole(@Nonnull FolderRole folderRole) throws IOException {
+        folderRoles.add(folderRole);
+        try {
+            Jenkins.getInstance().save();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save configuration when adding folder role.", e);
+            folderRoles.remove(folderRole);
+            throw e;
+        } finally {
+            // TODO cache.invalidateAll() when caching ACLs
+            updateJobAcls(false);
+        }
     }
 
     @Extension

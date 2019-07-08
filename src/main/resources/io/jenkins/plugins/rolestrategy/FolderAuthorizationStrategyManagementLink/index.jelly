@@ -51,7 +51,7 @@
                         Permissions
                     </div>
                     <div class="permission-selector">
-                        <j:forEach items="${it.getPermissions()}" var="perm">
+                        <j:forEach items="${it.getGlobalPermissions()}" var="perm">
                             <label style="display: block;">
                                 <input type="checkbox" name="globalPermissions" value="${perm.id}">
                                     ${perm.group.title} | ${perm.name}
@@ -96,9 +96,35 @@
                 </div>
 
                 <h2>Add a folder role</h2>
-                <div>
-                    <!-- TODO -->
-                </div>
+                <form action="${rootURL}/${it.urlName}/addFolderRole" method="POST">
+                    <div class="form-row">
+                        <label class="form-label">
+                            Name of the Role:
+                            <input type="text" name="roleName" minlength="3"/>
+                        </label>
+                    </div>
+                    <div class="form-row">
+                        <label class="form-label">
+                            Apply on:
+                            <select name="folderNames" multiple="multiple">
+                                <j:forEach items="${it.allFolders}" var="folder">
+                                    <option value="${folder.fullName}">${folder.fullName}</option>
+                                </j:forEach>
+                            </select>
+                        </label>
+                    </div>
+                    <label class="form-label">
+                        Permissions
+                        <select multiple="multiple" name="permissions">
+                            <j:forEach items="${it.getFolderPermissions()}" var="perm">
+                                <option value="${perm.id}">${perm.group.title} | ${perm.name}</option>
+                            </j:forEach>
+                        </select>
+                    </label>
+                    <div class="form-row">
+                        <input type="submit" style="display: block;" value="Add Role"/>
+                    </div>
+                </form>
             </div>
             <script src="${rootURL}/plugin/role-strategy/js/folder-auth/collapsible.js"/>
         </l:main-panel>
