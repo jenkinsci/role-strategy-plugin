@@ -31,8 +31,6 @@ public class RoleDefinition {
     private final Set<String> permissions;
     private final Set<String> assignments;
 
-    private boolean disableUserIdStrategy;
-
     @DataBoundConstructor
     public RoleDefinition(String name, String description, String pattern, Collection<String> permissions, Collection<String> assignments) {
         this.name = name;

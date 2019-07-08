@@ -114,7 +114,7 @@ public class RoleMap {
     }
 		final String sid = userIdStrategy.keyFor(origSid);
     LOGGER.info("userIdStrategy" + userIdStrategy.getClass().getName() + " keyFor: "+origSid+" = "+sid);
-    LOGGER.log(Level.INFO, "userIdKey", new Throwable());
+    //LOGGER.log(Level.INFO, "userIdKey", new Throwable());
     return sid;
 	}
     /**

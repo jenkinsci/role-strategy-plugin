@@ -637,7 +637,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         
         RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(roleMaps);
         if (disableUserIdStrategy != null) {
-          stragegy.setDisableUserIdStrategy(disabled.booleanValue());
+          strategy.setDisableUserIdStrategy(disableUserIdStrategy.booleanValue());
         }
         return strategy;
       }
