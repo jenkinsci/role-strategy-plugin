@@ -73,6 +73,7 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
      * Adds a {@link GlobalRole} to {@link FolderBasedAuthorizationStrategy}
      *
      * @param request the request to create the {@link GlobalRole}
+     * @throws IOException when unable to add Global role
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
@@ -104,11 +105,7 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
             ((FolderBasedAuthorizationStrategy) strategy).assignSidToGlobalRole(roleName, sid);
         }
-        try {
-            Stapler.getCurrentResponse().forwardToPreviousPage(Stapler.getCurrentRequest());
-        } catch (ServletException | IOException e) {
-            LOGGER.log(Level.WARNING, "Unable to redirect to previous page.");
-        }
+        redirect();
     }
 
     /**
@@ -147,6 +144,13 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
             ((FolderBasedAuthorizationStrategy) strategy).assignSidToFolderRole(roleName, sid);
         }
+        redirect();
+    }
+
+    /**
+     * Redirects to the same page that initiated the request.
+     */
+    private void redirect() {
         try {
             Stapler.getCurrentResponse().forwardToPreviousPage(Stapler.getCurrentRequest());
         } catch (ServletException | IOException e) {
@@ -191,6 +195,41 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
             return ((FolderBasedAuthorizationStrategy) strategy).getFolderRoles();
         }
         return Collections.emptySet();
+    }
+
+    /**
+     * Deletes a global role
+     *
+     * @param roleName the name of the role to be deleted
+     * @throws IOException              when unable to delete the role
+     * @throws IllegalArgumentException when trying to delete the admin role
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doDeleteGlobalRole(@QueryParameter(required = true) String roleName)
+            throws IOException {
+        AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
+        if (strategy instanceof FolderBasedAuthorizationStrategy) {
+            ((FolderBasedAuthorizationStrategy) strategy).deleteGlobalRole(roleName);
+            redirect();
+        }
+    }
+
+    /**
+     * Deletes a folder role
+     *
+     * @param roleName the name of the role to be deleted
+     * @throws IOException when unable to delete the role
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doDeleteFolderRole(@QueryParameter(required = true) String roleName)
+            throws IOException {
+        AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
+        if (strategy instanceof FolderBasedAuthorizationStrategy) {
+            ((FolderBasedAuthorizationStrategy) strategy).deleteFolderRole(roleName);
+            redirect();
+        }
     }
 
     private static Set<Permission> getSafePermissions(Set<PermissionGroup> groups) {

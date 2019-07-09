@@ -35,6 +35,25 @@ div.role {
     border-color: black;
     background-color: #fdfdfd;
     margin: 3px 3px;
+    position: relative;
+}
+
+.delete-role {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    border-style: solid;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    border-color: #fff;
+    background-color: red;
+    color: white;
+    padding: 2px 5px;
+}
+
+.delete-role:hover {
+    background-color: firebrick;
 }
 
 button.submit-button {

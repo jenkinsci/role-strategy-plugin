@@ -1,6 +1,9 @@
 'use strict';
 
 // noinspection JSUnusedGlobalSymbols
+/**
+ * Adds a global role
+ */
 const addGlobalRole = () => {
     const roleName = document.getElementById('globalRoleName').value;
     if (!roleName || roleName.length < 3) {
@@ -22,6 +25,9 @@ const addGlobalRole = () => {
 };
 
 // noinspection JSUnusedGlobalSymbols
+/**
+ * Adds a Folder Role
+ */
 const addFolderRole = () => {
     const roleName = document.getElementById('folderRoleName').value;
     if (!roleName || roleName.length < 3) {
@@ -48,7 +54,12 @@ const addFolderRole = () => {
     sendPostRequest(`${rootURL}/folder-auth/addFolderRole`, response);
 };
 
-const sendPostRequest = (postUrl, response) => {
+/**
+ * Sends a POST request to {@code postUrl}
+ * @param postUrl the URL
+ * @param json JSON data to be sent
+ */
+const sendPostRequest = (postUrl, json) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', postUrl, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
@@ -68,7 +79,7 @@ const sendPostRequest = (postUrl, response) => {
     delete Array.prototype.toJSON;
 
     try {
-        xhr.send(JSON.stringify(response));
+        xhr.send(JSON.stringify(json));
     } finally {
         Array.prototype.toJSON = oldPrototype;
     }

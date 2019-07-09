@@ -37,6 +37,8 @@ import java.util.logging.Logger;
 @ParametersAreNonnullByDefault
 public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
     private static final Logger LOGGER = Logger.getLogger(FolderBasedAuthorizationStrategy.class.getName());
+    private static final String ADMIN_ROLE_NAME = "admin";
+
     private final Set<GlobalRole> globalRoles;
     private final Set<FolderRole> folderRoles;
 
@@ -70,7 +72,7 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
                             .map(PermissionWrapper::new)
                             .forEach(adminPermissions::add));
 
-            GlobalRole adminRole = new GlobalRole("admin", adminPermissions);
+            GlobalRole adminRole = new GlobalRole(ADMIN_ROLE_NAME, adminPermissions);
             adminRole.assignSids(new PrincipalSid(Jenkins.getAuthentication()).getPrincipal());
             this.globalRoles.add(adminRole);
         }
@@ -245,6 +247,60 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
             }
             acl.assignPermissions(role.getSids(), role.getPermissions());
             jobAcls.put(name, acl);
+        }
+    }
+
+    /**
+     * Deletes the global role identified by its name.
+     *
+     * @param roleName the name of the role to be deleted
+     * @throws IOException              when unable to save the configuration
+     * @throws IllegalArgumentException when trying to delete the admin role
+     */
+    public void deleteGlobalRole(String roleName) throws IOException {
+        Optional<GlobalRole> optionalRole = globalRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
+        if (optionalRole.isPresent()) {
+            GlobalRole role = optionalRole.get();
+            if (role.getName().equals(ADMIN_ROLE_NAME)) {
+                // the admin role cannot be deleted
+                throw new IllegalArgumentException("The admin role cannot be deleted.");
+            }
+            globalRoles.remove(role);
+            try {
+                Jenkins.getInstance().save();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Unable to save the config when deleting global role. " +
+                        "The role was not deleted.", e);
+                globalRoles.add(role);
+                throw e;
+            } finally {
+                generateNewGlobalAcl();
+            }
+        }
+    }
+
+    /**
+     * Deletes the folder role identified by its name.
+     *
+     * @param roleName the name of the role to be deleted
+     * @throws IOException when unable to save the configuration
+     */
+    public void deleteFolderRole(String roleName) throws IOException {
+        Optional<FolderRole> optionalRole = folderRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
+        if (optionalRole.isPresent()) {
+            FolderRole role = optionalRole.get();
+            folderRoles.remove(role);
+            try {
+                Jenkins.getInstance().save();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Unable to save the config when deleting folder role. " +
+                        "The role was not deleted.", e);
+                folderRoles.add(role);
+                throw e;
+            } finally {
+                // TODO update jobACLs manually?
+                updateJobAcls(true);
+            }
         }
     }
 
