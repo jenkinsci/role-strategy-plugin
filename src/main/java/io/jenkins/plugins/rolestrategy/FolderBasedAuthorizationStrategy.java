@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Optional;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -206,22 +206,31 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         return Collections.unmodifiableSet(globalRoles);
     }
 
+    /**
+     * Assigns SID to a {@link GlobalRole}.
+     *
+     * @param roleName the name of the {@link GlobalRole}
+     * @param sid      the sid to be assigned
+     * @throws IOException            when unable to save the configuration to disk
+     * @throws NoSuchElementException when no {@link GlobalRole} with name equal to {@code roleName} exists
+     */
     public void assignSidToGlobalRole(String roleName, String sid) throws IOException {
         // TODO maintain an index of roles according to their names
-        Optional<GlobalRole> optionalRole = globalRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
+        GlobalRole role = globalRoles.stream()
+                .filter(r -> r.getName().equals(roleName))
+                .findAny().orElseThrow(() ->
+                        new NoSuchElementException("No GlobalRole with the " + "name " + roleName + "exists."));
 
-        if (optionalRole.isPresent()) {
-            GlobalRole role = optionalRole.get();
-            role.assignSids(sid);
-            try {
-                Jenkins.getInstance().save();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Unable to save config file, not assigning the sids.", e);
-                role.unassignSids(sid);
-                throw e;
-            } finally {
-                generateNewGlobalAcl();
-            }
+        role.assignSids(sid);
+
+        try {
+            Jenkins.getInstance().save();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save config file, not assigning the sids.", e);
+            role.unassignSids(sid);
+            throw e;
+        } finally {
+            generateNewGlobalAcl();
         }
     }
 
@@ -255,25 +264,33 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
     }
 
+    /**
+     * Assigns a SID to a {@link FolderRole}.
+     *
+     * @param roleName the name of the {@link FolderRole}
+     * @param sid      the sid to be assigned
+     * @throws IOException            when unable to save the configuration to disk
+     * @throws NoSuchElementException when no {@link GlobalRole} with name equal to {@code roleName} exists
+     */
     public void assignSidToFolderRole(String roleName, String sid) throws IOException {
         // TODO maintain an index of roles according to their names
-        Optional<FolderRole> optionalRole = folderRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
+        FolderRole role = folderRoles.stream()
+                .filter(r -> r.getName().equals(roleName))
+                .findAny().orElseThrow(() ->
+                        new NoSuchElementException("No GlobalRole with the name " + roleName + " exists."));
 
-        if (optionalRole.isPresent()) {
-            FolderRole role = optionalRole.get();
-            role.assignSids(sid);
-            try {
-                Jenkins.getInstance().save();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Unable to save config file, not assigning the sids.", e);
-                role.unassignSids(sid);
-                throw e;
-            } finally {
-                // no cache invalidation required here because the inheritance of
-                // folder roles does not change and we're directly modifying the ACL
-                // whose references are kept inside the inheriting SidACL.
-                updateAclForFolderRole(role);
-            }
+        role.assignSids(sid);
+        try {
+            Jenkins.getInstance().save();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save config file, not assigning the sids.", e);
+            role.unassignSids(sid);
+            throw e;
+        } finally {
+            // no cache invalidation required here because the inheritance of
+            // folder roles does not change and we're directly modifying the ACL
+            // whose references are kept inside the inheriting SidACL.
+            updateAclForFolderRole(role);
         }
     }
 
@@ -302,27 +319,31 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
      *
      * @param roleName the name of the role to be deleted
      * @throws IOException              when unable to save the configuration
+     * @throws NoSuchElementException   when no {@link GlobalRole} with name equal to {@code roleName} exists
      * @throws IllegalArgumentException when trying to delete the admin role
      */
     public void deleteGlobalRole(String roleName) throws IOException {
-        Optional<GlobalRole> optionalRole = globalRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
-        if (optionalRole.isPresent()) {
-            GlobalRole role = optionalRole.get();
-            if (role.getName().equals(ADMIN_ROLE_NAME)) {
-                // the admin role cannot be deleted
-                throw new IllegalArgumentException("The admin role cannot be deleted.");
-            }
-            globalRoles.remove(role);
-            try {
-                Jenkins.getInstance().save();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Unable to save the config when deleting global role. " +
-                        "The role was not deleted.", e);
-                globalRoles.add(role);
-                throw e;
-            } finally {
-                generateNewGlobalAcl();
-            }
+        if (roleName.equals(ADMIN_ROLE_NAME)) {
+            // the admin role cannot be deleted
+            throw new IllegalArgumentException("The admin role cannot be deleted.");
+        }
+
+        GlobalRole role = globalRoles.stream()
+                .filter(r -> r.getName().equals(roleName))
+                .findAny().orElseThrow(() ->
+                        new NoSuchElementException("No GlobalRole with the name " + roleName + " exists."));
+
+        globalRoles.remove(role);
+
+        try {
+            Jenkins.getInstance().save();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save the config when deleting global role. " +
+                    "The role was not deleted.", e);
+            globalRoles.add(role);
+            throw e;
+        } finally {
+            generateNewGlobalAcl();
         }
     }
 
@@ -330,25 +351,28 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Deletes the folder role identified by its name.
      *
      * @param roleName the name of the role to be deleted
-     * @throws IOException when unable to save the configuration
+     * @throws IOException            when unable to save the configuration
+     * @throws NoSuchElementException when no {@link GlobalRole} with name equal to {@code roleName} exists
      */
     public void deleteFolderRole(String roleName) throws IOException {
-        Optional<FolderRole> optionalRole = folderRoles.stream().filter(role -> role.getName().equals(roleName)).findAny();
-        if (optionalRole.isPresent()) {
-            FolderRole role = optionalRole.get();
-            folderRoles.remove(role);
-            try {
-                Jenkins.getInstance().save();
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Unable to save the config when deleting folder role. " +
-                        "The role was not deleted.", e);
-                folderRoles.add(role);
-                throw e;
-            } finally {
-                // TODO update jobACLs manually?
-                updateJobAcls(true);
-                aclCache.invalidateAll();
-            }
+        FolderRole role = folderRoles.stream()
+                .filter(r -> r.getName().equals(roleName))
+                .findAny().orElseThrow(() ->
+                        new NoSuchElementException("No GlobalRole with the name " + roleName + " exists."));
+
+        folderRoles.remove(role);
+
+        try {
+            Jenkins.getInstance().save();
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Unable to save the config when deleting folder role. " +
+                    "The role was not deleted.", e);
+            folderRoles.add(role);
+            throw e;
+        } finally {
+            // TODO update jobACLs manually?
+            updateJobAcls(true);
+            aclCache.invalidateAll();
         }
     }
 

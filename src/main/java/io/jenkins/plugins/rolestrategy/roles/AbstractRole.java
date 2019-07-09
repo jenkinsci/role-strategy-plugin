@@ -2,6 +2,8 @@ package io.jenkins.plugins.rolestrategy.roles;
 
 import hudson.security.Permission;
 import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 /**
  * A role as an object
  */
+@Restricted(NoExternalUse.class)
 public abstract class AbstractRole {
     /**
      * The unique name of the role.
