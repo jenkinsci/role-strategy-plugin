@@ -208,7 +208,9 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
     @Restricted(NoExternalUse.class)
     public void doDeleteGlobalRole(@QueryParameter(required = true) String roleName)
             throws IOException {
-        AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
+        Jenkins jenkins = Jenkins.getInstance();
+        jenkins.checkPermission(Jenkins.ADMINISTER);
+        AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
             ((FolderBasedAuthorizationStrategy) strategy).deleteGlobalRole(roleName);
             redirect();
@@ -225,7 +227,9 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
     @Restricted(NoExternalUse.class)
     public void doDeleteFolderRole(@QueryParameter(required = true) String roleName)
             throws IOException {
-        AuthorizationStrategy strategy = Jenkins.getInstance().getAuthorizationStrategy();
+        Jenkins jenkins = Jenkins.getInstance();
+        jenkins.checkPermission(Jenkins.ADMINISTER);
+        AuthorizationStrategy strategy = jenkins.getAuthorizationStrategy();
         if (strategy instanceof FolderBasedAuthorizationStrategy) {
             ((FolderBasedAuthorizationStrategy) strategy).deleteFolderRole(roleName);
             redirect();
