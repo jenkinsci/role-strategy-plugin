@@ -271,7 +271,7 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
         }
     }
 
-    private static Set<Permission> getSafePermissions(Set<PermissionGroup> groups) {
+    static Set<Permission> getSafePermissions(Set<PermissionGroup> groups) {
         HashSet<Permission> safePermissions = new HashSet<>();
         groups.stream().map(PermissionGroup::getPermissions).forEach(safePermissions::addAll);
         safePermissions.removeAll(PermissionHelper.DANGEROUS_PERMISSIONS);

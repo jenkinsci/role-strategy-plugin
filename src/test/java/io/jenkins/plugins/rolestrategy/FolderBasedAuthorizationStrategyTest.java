@@ -8,6 +8,7 @@ import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.Permission;
+import hudson.security.PermissionGroup;
 import io.jenkins.plugins.rolestrategy.roles.FolderRole;
 import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import jenkins.model.Jenkins;
@@ -17,6 +18,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.util.Collections;
+import java.util.HashSet;
 
 import static io.jenkins.plugins.rolestrategy.misc.PermissionWrapper.wrapPermissions;
 import static junit.framework.TestCase.assertFalse;
@@ -50,7 +52,10 @@ public class FolderBasedAuthorizationStrategyTest {
         final String adminRoleName = "adminRole";
         final String overallReadRoleName = "overallRead";
 
-        strategy.addGlobalRole(new GlobalRole(adminRoleName, wrapPermissions(Permission.getAll())));
+        strategy.addGlobalRole(new GlobalRole(adminRoleName,
+                wrapPermissions(FolderAuthorizationStrategyManagementLink.getSafePermissions(
+                        new HashSet<>(PermissionGroup.getAll())))));
+
         strategy.assignSidToGlobalRole(adminRoleName, "admin");
 
         strategy.addGlobalRole(new GlobalRole(overallReadRoleName, wrapPermissions(Permission.READ)));

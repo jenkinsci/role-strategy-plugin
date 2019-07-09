@@ -2,7 +2,10 @@ package io.jenkins.plugins.rolestrategy.misc;
 
 import hudson.security.Permission;
 import io.jenkins.plugins.rolestrategy.roles.AbstractRole;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.stapler.DataBoundConstructor;
 
+import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
@@ -24,7 +27,8 @@ public final class PermissionWrapper {
      *
      * @param id the id of the permission this {@link PermissionWrapper} contains.
      */
-    public PermissionWrapper(String id) {
+    @DataBoundConstructor
+    public PermissionWrapper(@Nonnull String id) {
         this.id = id;
         permission = Permission.fromId(id);
         checkPermission();
@@ -68,11 +72,13 @@ public final class PermissionWrapper {
     /**
      * Checks if the permission for this {@link PermissionWrapper} is valid.
      *
-     * @throws IllegalArgumentException when the permission did not exist or was null
+     * @throws IllegalArgumentException when the permission did not exist, was null or was dangerous.
      */
     private void checkPermission() {
         if (permission == null) {
             throw new IllegalArgumentException("Unable to infer permission from Id: " + id);
+        } else if (PermissionHelper.isDangerous(permission)) {
+            throw new IllegalArgumentException("Dangerous Permissions are not supported.");
         }
     }
 

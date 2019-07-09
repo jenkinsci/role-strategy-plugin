@@ -10,7 +10,6 @@ import hudson.model.Descriptor;
 import hudson.model.Job;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
-import hudson.security.Permission;
 import hudson.security.SidACL;
 import io.jenkins.plugins.rolestrategy.acls.GlobalAclImpl;
 import io.jenkins.plugins.rolestrategy.acls.JobAclImpl;
@@ -30,7 +29,6 @@ import javax.annotation.ParametersAreNullableByDefault;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -74,12 +72,9 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
              *
              * The same thing happens in RoleBasedAuthorizationStrategy. See RoleBasedStrategy.DESCRIPTOR.newInstance()
              */
-            HashSet<PermissionWrapper> adminPermissions = new HashSet<>();
-            RoleBasedAuthorizationStrategy.getPermissionGroups(RoleType.Global)
-                    .forEach(permissionGroup -> permissionGroup.getPermissions().stream()
-                            .map(Permission::getId)
-                            .map(PermissionWrapper::new)
-                            .forEach(adminPermissions::add));
+            Set<PermissionWrapper> adminPermissions = PermissionWrapper.wrapPermissions(
+                    FolderAuthorizationStrategyManagementLink.getSafePermissions(
+                            RoleBasedAuthorizationStrategy.getPermissionGroups(RoleType.Global)));
 
             GlobalRole adminRole = new GlobalRole(ADMIN_ROLE_NAME, adminPermissions);
             adminRole.assignSids(new PrincipalSid(Jenkins.getAuthentication()).getPrincipal());

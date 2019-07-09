@@ -3,8 +3,10 @@ package io.jenkins.plugins.rolestrategy.acls;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.Permission;
 import hudson.security.SidACL;
+import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.Sid;
 import org.apache.commons.collections.CollectionUtils;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -25,6 +27,10 @@ abstract class AbstractAcl extends SidACL {
             justification = "hudson.security.SidACL requires null when unknown")
     @Nullable
     protected Boolean hasPermission(Sid sid, Permission permission) {
+        if (PermissionHelper.DANGEROUS_PERMISSIONS.contains(permission)) {
+            permission = Jenkins.ADMINISTER;
+        }
+
         Set<Permission> permissions = permissionList.get(toString(sid));
         if (permissions != null && CollectionUtils.containsAny(permissions, getImplyingPermissions(permission))) {
             return true;
