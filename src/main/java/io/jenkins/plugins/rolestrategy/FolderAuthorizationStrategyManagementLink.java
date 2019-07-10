@@ -1,6 +1,6 @@
 package io.jenkins.plugins.rolestrategy;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
+import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.Extension;
 import hudson.model.ManagementLink;
@@ -186,19 +186,19 @@ public class FolderAuthorizationStrategyManagementLink extends ManagementLink {
     }
 
     /**
-     * Get all {@link Folder}s in the system
+     * Get all {@link AbstractFolder}s in the system
      *
      * @return folders in the system
      */
     @Nonnull
     @Restricted(NoExternalUse.class)
-    public List<Folder> getAllFolders() {
+    public List<AbstractFolder> getAllFolders() {
         Jenkins jenkins = Jenkins.getInstance();
         jenkins.checkPermission(Jenkins.ADMINISTER);
-        List<Folder> folders;
+        List<AbstractFolder> folders;
 
         try (ACLContext ignored = ACL.as(ACL.SYSTEM)) {
-            folders = jenkins.getAllItems(Folder.class);
+            folders = jenkins.getAllItems(AbstractFolder.class);
         }
 
         return folders;

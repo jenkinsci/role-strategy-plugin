@@ -1,6 +1,7 @@
 package io.jenkins.plugins.rolestrategy.acls;
 
 import hudson.security.Permission;
+import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
 import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 
 import java.util.HashSet;
@@ -23,7 +24,7 @@ public class GlobalAclImpl extends AbstractAcl {
         for (GlobalRole role : globalRoles) {
             Set<Permission> impliedPermissions = ConcurrentHashMap.newKeySet();
 
-            role.getPermissions().parallelStream().forEach(impliedPermissions::add);
+            role.getPermissions().parallelStream().map(PermissionWrapper::getPermission).forEach(impliedPermissions::add);
 
             role.getSids().parallelStream().forEach(sid -> {
                 Set<Permission> permissionsForSid = permissionList.get(sid);

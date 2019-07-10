@@ -16,10 +16,16 @@ public class FolderRole extends AbstractRole implements Comparable<FolderRole> {
 
     @DataBoundConstructor
     @ParametersAreNonnullByDefault
-    public FolderRole(String name, Set<PermissionWrapper> permissions, Set<String> folders) {
+    @SuppressWarnings("WeakerAccess")
+    public FolderRole(String name, Set<PermissionWrapper> permissions, Set<String> folders, Set<String> sids) {
         super(name, permissions);
+        this.sids.addAll(sids);
         this.folders = ConcurrentHashMap.newKeySet();
         this.folders.addAll(folders);
+    }
+
+    public FolderRole(String name, Set<PermissionWrapper> permissions, Set<String> folders) {
+        this(name, permissions, folders, Collections.emptySet());
     }
 
     @Override

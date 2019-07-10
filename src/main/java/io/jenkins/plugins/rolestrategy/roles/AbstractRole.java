@@ -1,6 +1,5 @@
 package io.jenkins.plugins.rolestrategy.roles;
 
-import hudson.security.Permission;
 import io.jenkins.plugins.rolestrategy.misc.PermissionWrapper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -13,7 +12,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * A role as an object
@@ -96,10 +94,8 @@ public abstract class AbstractRole {
      * @return the permissions assigned to the role.
      */
     @Nonnull
-    public Set<Permission> getPermissions() {
-        return permissionWrappers.stream().parallel()
-                .map(PermissionWrapper::getPermission)
-                .collect(Collectors.toSet());
+    public Set<PermissionWrapper> getPermissions() {
+        return Collections.unmodifiableSet(permissionWrappers);
     }
 
     /**

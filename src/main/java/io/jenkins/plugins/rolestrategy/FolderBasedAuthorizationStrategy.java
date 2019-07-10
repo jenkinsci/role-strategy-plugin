@@ -19,8 +19,6 @@ import io.jenkins.plugins.rolestrategy.roles.FolderRole;
 import io.jenkins.plugins.rolestrategy.roles.GlobalRole;
 import jenkins.model.Jenkins;
 import org.acegisecurity.acls.sid.PrincipalSid;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import javax.annotation.Nonnull;
@@ -35,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @ParametersAreNonnullByDefault
 public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
@@ -234,7 +233,6 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
      *
      * @return {@link FolderRole}s on which this {@link AuthorizationStrategy} works
      */
-    @Restricted(NoExternalUse.class)
     public Set<FolderRole> getFolderRoles() {
         return Collections.unmodifiableSet(folderRoles);
     }
@@ -304,7 +302,8 @@ public class FolderBasedAuthorizationStrategy extends AuthorizationStrategy {
             if (acl == null) {
                 acl = new JobAclImpl();
             }
-            acl.assignPermissions(role.getSids(), role.getPermissions());
+            acl.assignPermissions(role.getSids(),
+                    role.getPermissions().stream().map(PermissionWrapper::getPermission).collect(Collectors.toSet()));
             jobAcls.put(name, acl);
         }
     }
