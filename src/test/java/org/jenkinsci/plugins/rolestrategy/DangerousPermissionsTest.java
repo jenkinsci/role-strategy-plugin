@@ -119,7 +119,7 @@ public class DangerousPermissionsTest {
     @SuppressWarnings("deprecation")
     public void shouldGrantDangerousPermissionsWhenEnabled() throws Exception {
         try {
-            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.ENABLED;
+            DangerousPermissionHandlingMode.setCURRENT(DangerousPermissionHandlingMode.ENABLED);
             assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
             RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
 
@@ -148,7 +148,7 @@ public class DangerousPermissionsTest {
             Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be disabled", m.isEnabled());
             Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be deactivated", m.isActivated());
         } finally {
-            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.UNDEFINED;
+            DangerousPermissionHandlingMode.setCURRENT(DangerousPermissionHandlingMode.UNDEFINED);
         }
     }
     
@@ -158,7 +158,7 @@ public class DangerousPermissionsTest {
     @LocalData
     public void shouldNotShowDangerousPermissionsWhenDisabled() throws Exception {
         try {
-            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.DISABLED;
+            DangerousPermissionHandlingMode.setCURRENT(DangerousPermissionHandlingMode.DISABLED);
             assertThat(j.jenkins.getAuthorizationStrategy(), instanceOf(RoleBasedAuthorizationStrategy.class));
             RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)j.jenkins.getAuthorizationStrategy();
 
@@ -187,7 +187,7 @@ public class DangerousPermissionsTest {
             Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be disabled", m.isEnabled());
             Assert.assertFalse("DangerousPermissionAdministrativeMonitor should be deactivated", m.isActivated());
         } finally {
-            DangerousPermissionHandlingMode.CURRENT = DangerousPermissionHandlingMode.UNDEFINED;
+            DangerousPermissionHandlingMode.setCURRENT(DangerousPermissionHandlingMode.UNDEFINED);
         }
     }
             
