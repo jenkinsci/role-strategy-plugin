@@ -61,9 +61,8 @@ public enum DangerousPermissionHandlingMode {
     public static final String PROPERTY_NAME = DangerousPermissionHandlingMode.class.getName() + ".enableDangerousPermissions";
     
     @Nonnull
-    @Restricted(NoExternalUse.class)
     @SuppressFBWarnings(value = "MS_SHOULD_BE_REFACTORED_TO_BE_FINAL", justification = "Groovy script console access")
-    public static /* allow script access */ DangerousPermissionHandlingMode CURRENT;
+    private static DangerousPermissionHandlingMode CURRENT;
 
     static {
         String str = System.getProperty(PROPERTY_NAME);
@@ -81,5 +80,16 @@ public enum DangerousPermissionHandlingMode {
     @Nonnull
     public static DangerousPermissionHandlingMode getCurrent() {
         return CURRENT;
+    }
+
+    /**
+     * Set the {@link DangerousPermissionHandlingMode}
+     *
+     * @param mode the {@code DangerousPermissionHandlingMode} to be set
+     */
+    @Restricted(NoExternalUse.class)
+    public static void setCURRENT(@Nonnull DangerousPermissionHandlingMode mode) {
+        CURRENT = mode;
+        RoleMap.invalidateDangerousPermissions();
     }
 }
