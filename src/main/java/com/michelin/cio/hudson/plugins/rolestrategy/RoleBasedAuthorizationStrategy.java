@@ -48,6 +48,7 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -70,6 +71,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
+import jenkins.model.IdStrategy;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
@@ -94,19 +96,35 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public final static String SLAVE     = "slaveRoles";
   public final static String MACRO_ROLE = "roleMacros";
   public final static String MACRO_USER  = "userMacros";
-  
+
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
   private static final Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
-      
-  /** * Use legacy case sensitive user ids if disableUserIdStrategy is true */
-  private static boolean disableUserIdStrategy = false;
-  
+
+  /** * Use legacy case sensitive user ids if userIdStrategy is true */
+  private UserIdStrategyChoice userIdStrategyChoice = UserIdStrategyChoice.DEFAULT;
+
   public RoleBasedAuthorizationStrategy() {
       agentRoles = new RoleMap();
       globalRoles = new RoleMap();
       itemRoles = new RoleMap();
+  }
+
+  public static enum UserIdStrategyChoice {
+
+      DEFAULT("Default"),
+      CASE_INSENSITIVE("Case Insensitive"),
+      CASE_SENSITIVE("Case Sensitive");
+
+      public final String text;
+
+      UserIdStrategyChoice(String text) {
+          this.text = text;
+      }
+      public String toString() {
+        return text;
+      }
   }
 
   /**
@@ -124,15 +142,42 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       map = grantedRoles.get(PROJECT);
       itemRoles = map == null ? new RoleMap() : map;
   }
-
+  public static IdStrategy getSecurityRealmUserIdStrategy() {
+      final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
+      IdStrategy userIdStrategy = securityRealm.getUserIdStrategy();
+      LOGGER.info("securityRealm.getUserIdStrategy() "+ userIdStrategy.getClass().getName());
+      return userIdStrategy;
+  }
+  public IdStrategy getUserIdStrategy() {
+    LOGGER.info("userIdStrategyChoice: "+ userIdStrategyChoice);
+    switch (userIdStrategyChoice) {
+      case CASE_INSENSITIVE:
+    LOGGER.info("userIdStrategyChoice: CASE_INSENSITIVE");
+        return new IdStrategy.CaseInsensitive();
+      case CASE_SENSITIVE:
+    LOGGER.info("userIdStrategyChoice: CASE_SENSITIVE");
+        return new IdStrategy.CaseSensitive();
+      case DEFAULT:
+      default:
+    LOGGER.info("userIdStrategyChoice: default: ");
+        return getSecurityRealmUserIdStrategy();
+    }
+  }
   @DataBoundSetter
-  public static void setDisableUserIdStrategy(boolean disableUserIdStrategy) {
-      LOGGER.info("setDisableUserIdStrategy "+ disableUserIdStrategy);
-      RoleBasedAuthorizationStrategy.disableUserIdStrategy = disableUserIdStrategy;
+  public void setUserIdStrategyChoice(UserIdStrategyChoice userIdStrategyChoice) {
+      LOGGER.info("setUserIdStrategyChoice: "+ userIdStrategyChoice);
+      this.userIdStrategyChoice = userIdStrategyChoice;
+      globalRoles.invalidateCache();
+      agentRoles.invalidateCache();
+      itemRoles.invalidateCache();
+  }
+  public void setUserIdStrategyChoiceStr(String userIdStrategyChoice) {
+      LOGGER.info("setUserIdStrategyChoice"+ userIdStrategyChoice);
+      setUserIdStrategyChoice( UserIdStrategyChoice.valueOf(userIdStrategyChoice) );
   }
 
-  public static boolean getDisableUserIdStrategy() {
-      return disableUserIdStrategy;
+  public UserIdStrategyChoice getUserIdStrategyChoice() {
+      return userIdStrategyChoice;
   }
 
     /**
@@ -164,7 +209,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               throw new IllegalArgumentException("Unknown RoleType: " + roleType);
      }
    }
-  
+
    /**
    * Get the specific ACL for projects.
      *
@@ -190,7 +235,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
                 .newInheritingACL(getRootACL());
     }
-  
+
   /**
    * Used by the container realm.
    * @return All the sids referenced by the strategy
@@ -273,7 +318,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap.assignRole(role, sid);
     }
   }
-  
+
     /**
      * API method to add roles
      * <p>
@@ -284,7 +329,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @param roleName      Name of role
      * @param permissionIds Comma separated list of IDs for given roleName
      * @param overwrite     Overwrite existing role
-     * @param pattern       Role pattern       
+     * @param pattern       Role pattern
      * @throws IOException  In case saving changes fails
      * @since 2.5.0
      */
@@ -517,7 +562,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         responseJson.write(writer);
         writer.close();
     }
-    
+
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
@@ -538,10 +583,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
         LOGGER.info("marshal context: "+ context);
-        LOGGER.info("disableUserIdStrategy: "+ disableUserIdStrategy);
-  
-        writer.startNode("disableUserIdStrategy");
-        writer.setValue(Boolean.toString(disableUserIdStrategy));
+        LOGGER.info("userIdStrategyChoice: "+ strategy.userIdStrategyChoice);
+
+        writer.startNode("userIdStrategyChoice");
+        writer.setValue(strategy.userIdStrategyChoice.name());
         writer.endNode();
 
         // Role maps
@@ -583,15 +628,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
         final Map<String, RoleMap> roleMaps = new HashMap<>();
-        Boolean disableUserIdStrategy = null;
+        String userIdStrategyChoice = null;
         LOGGER.info("unmarshal context: "+ context);
         while(reader.hasMoreChildren()) {
           reader.moveDown();
 
             // roleMaps
           LOGGER.info("unmarshal nodeName: "+reader.getNodeName());
-          if(reader.getNodeName().equals("disableUserIdStrategy")) {
-            disableUserIdStrategy = Boolean.valueOf(reader.getValue()); 
+          if(reader.getNodeName().equals("userIdStrategyChoice")) {
+            userIdStrategyChoice = reader.getValue();
           } else if(reader.getNodeName().equals("roleMap")) {
             String type = reader.getAttribute("type");
             RoleMap map = new RoleMap();
@@ -634,10 +679,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
           reader.moveUp();
         }
-        
+
         RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(roleMaps);
-        if (disableUserIdStrategy != null) {
-          strategy.setDisableUserIdStrategy(disableUserIdStrategy.booleanValue());
+        if (userIdStrategyChoice != null) {
+          strategy.setUserIdStrategyChoiceStr(userIdStrategyChoice);
         }
         return strategy;
       }
@@ -645,8 +690,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       protected RoleBasedAuthorizationStrategy create() {
           return new RoleBasedAuthorizationStrategy();
       }
-  } 
-    
+  }
+
     /**
      * Retrieves instance of the strategy.
      * @return Strategy instance or {@code null} if it is disabled.
@@ -658,7 +703,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         if (authStrategy instanceof RoleBasedAuthorizationStrategy) {
             return (RoleBasedAuthorizationStrategy)authStrategy;
         }
-        
+
         // Nothing to do here, not a Role strategy
         return null;
     }
@@ -670,7 +715,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     void renewMacroRoles()
     {
         //TODO: add mandatory roles
-        
+
         // Check role extensions
         for (UserMacroExtension userExt : UserMacroExtension.all())
         {
@@ -702,7 +747,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       return Messages.RoleBasedAuthorizationStrategy_DisplayName();
     }
 
-    /** 
+    /**
      * Called on role management form's submission.
      */
     @RequirePOST
@@ -731,7 +776,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       JSONObject json = req.getSubmittedForm();
       LOGGER.info("doAssignSubmit: "+json.toString());
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
-      
+
       if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
         Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
@@ -744,7 +789,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           if (roles.isNullObject()) {
               continue;
           }
-          
+
           for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)roles.getJSONObject("data").entrySet()) {
             String sid = r.getKey();
             for (Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
@@ -771,7 +816,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
-      
+
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
       if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
@@ -818,9 +863,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.addRole(RoleType.Global, adminRole);
         strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
       }
-      
-      if (formData.has("disableUserIdStrategy")) {
-        strategy.disableUserIdStrategy = formData.getBoolean("disableUserIdStrategy");
+
+      if (formData.has("userIdStrategyChoice")) {
+        strategy.setUserIdStrategyChoiceStr(formData.getString("userIdStrategyChoice"));
       }
       strategy.renewMacroRoles();
       return strategy;
@@ -838,7 +883,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             assert false : "No data at role description";
             return;
         }
-        
+
         for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)projectRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
           Set<Permission> permissions = new HashSet<>();
@@ -870,7 +915,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
     }
-    
+
     /**
      * Create an admin role.
      */
@@ -896,7 +941,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * Get the needed permissions groups.
-     * 
+     *
      * @param type Role type
      * @return Groups, which should be displayed for a specific role type.
      *         {@code null} if an unsupported type is defined.
@@ -920,8 +965,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(Permission.class));
             groups.remove(PermissionGroup.get(Hudson.class));
             groups.remove(PermissionGroup.get(View.class));
-            
-            // Project, SCM and Run permissions 
+
+            // Project, SCM and Run permissions
             groups.remove(PermissionGroup.get(Item.class));
             groups.remove(PermissionGroup.get(SCM.class));
             groups.remove(PermissionGroup.get(Run.class));
@@ -941,12 +986,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         return PermissionHelper.hasDangerousPermissions(instance);
     }
-    
+
     @Restricted(NoExternalUse.class)
     public boolean showPermission(String type, Permission p) {
         return showPermission(type, p, false);
     }
-    
+
     /**
      * Check if the permission should be displayed.
      * For Stapler only.
@@ -961,7 +1006,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 // Should never happen
                 return false;
             }
-            
+
             // When disabled, never show the permissions
             return showDangerous && DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.DISABLED;
         }

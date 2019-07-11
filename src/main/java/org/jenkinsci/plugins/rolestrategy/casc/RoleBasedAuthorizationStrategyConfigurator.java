@@ -62,13 +62,13 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
         final GrantedRoles roles = c.configure(map.remove("roles"), context);
         RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(roles.toMap());
         
-        CNode disableUserIdStrategyCnode =  map.remove("disableUserIdStrategy");
-        LOGGER.log(Level.FINE, "disableUserIdStrategy Cnode " + disableUserIdStrategyCnode);
-				if (disableUserIdStrategyCnode != null) {
-					Scalar disableUserIdStrategyScalar =  disableUserIdStrategyCnode.asScalar();
-					String cascValue = disableUserIdStrategyScalar.getValue();
-					final boolean disableUserIdStrategy = Boolean.parseBoolean( cascValue );
-					strategy.setDisableUserIdStrategy(disableUserIdStrategy);
+        CNode userIdStrategyChoiceCnode =  map.remove("userIdStrategyChoice");
+        LOGGER.log(Level.FINE, "userIdStrategyChoice Cnode " + userIdStrategyChoiceCnode);
+				if (userIdStrategyChoiceCnode != null) {
+					Scalar userIdStrategyChoiceScalar =  userIdStrategyChoiceCnode.asScalar();
+					String cascValue = userIdStrategyChoiceScalar.getValue();
+					final String userIdStrategyChoice =  cascValue;
+					strategy.setUserIdStrategyChoiceStr(userIdStrategyChoice);
 				}
 				return strategy;
     }
@@ -78,7 +78,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     public Set<Attribute<RoleBasedAuthorizationStrategy,?>> describe() {
         final Set<Attribute<RoleBasedAuthorizationStrategy,?>> attributes = super.describe();
         
-				attributes.add( new Attribute<RoleBasedAuthorizationStrategy, Boolean>("disableUserIdStrategy", Boolean.class) );
+				attributes.add( new Attribute<RoleBasedAuthorizationStrategy, String>("userIdStrategyChoice", String.class) );
 				attributes.add( 
             new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
                 List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));

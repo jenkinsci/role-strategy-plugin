@@ -32,6 +32,7 @@ import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermi
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy.UserIdStrategyChoice;
 
 /**
  * @author Oleg Nenashev
@@ -132,7 +133,7 @@ public class RoleStrategyTest {
 
         Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
         assertThat(globalRoles.size(), equalTo(2));
-				rbas.setDisableUserIdStrategy(false); // case insensitive
+				rbas.setUserIdStrategyChoice(UserIdStrategyChoice.CASE_INSENSITIVE);
 
         assertHasPermission(admin, folderA, Item.CONFIGURE, Item.CANCEL);
         assertHasPermission(user1, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
@@ -160,11 +161,10 @@ public class RoleStrategyTest {
 
         Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
         assertThat(globalRoles.size(), equalTo(2));
-				rbas.setDisableUserIdStrategy(true); // case sensitive
+				rbas.setUserIdStrategyChoice(UserIdStrategyChoice.CASE_SENSITIVE);
         assertHasNoPermission(admin, folderA, Item.CONFIGURE, Item.CANCEL);
         assertHasNoPermission(user1, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
         assertHasNoPermission(user2, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
-				rbas.setDisableUserIdStrategy(false); // case sensitive
     }
     @Test
     @ConfiguredWithCode("Configuration-as-Code.yml")

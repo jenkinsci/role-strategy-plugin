@@ -81,7 +81,7 @@ public class RoleMap {
   private final SortedMap <Role,Set<String>> grantedRoles;
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
-  
+
   private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
           .softValues()
           .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
@@ -104,17 +104,16 @@ public class RoleMap {
   }
 
 	private String userIdKey(String origSid) {
-    boolean disableUserIdStrategy = RoleBasedAuthorizationStrategy.getDisableUserIdStrategy();
-    IdStrategy userIdStrategy = null;
-    if (disableUserIdStrategy) {
-		  userIdStrategy = new IdStrategy.CaseSensitive(); 
+    RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+    IdStrategy userIdStrategy;
+    if (strategy == null) { 
+      userIdStrategy = RoleBasedAuthorizationStrategy.getSecurityRealmUserIdStrategy();
+      LOGGER.log(Level.WARNING, "RoleBasedAuthorizationStrategy.getInstance() is null, using default IdStrategy", new Throwable());
     } else {
-      final SecurityRealm securityRealm = Jenkins.getActiveInstance().getSecurityRealm();
-		  userIdStrategy = securityRealm.getUserIdStrategy();
-    }
+      userIdStrategy = strategy.getUserIdStrategy();
+    } 
 		final String sid = userIdStrategy.keyFor(origSid);
     LOGGER.info("userIdStrategy" + userIdStrategy.getClass().getName() + " keyFor: "+origSid+" = "+sid);
-    //LOGGER.log(Level.INFO, "userIdKey", new Throwable());
     return sid;
 	}
     /**
@@ -132,7 +131,7 @@ public class RoleMap {
    */
   private boolean hasPermission(String origSid, Permission p, RoleType roleType, AccessControlled controlledItem) {
 		String sid = userIdKey(origSid);
-    
+
     if (PermissionHelper.isDangerous(p)) {
       /* if this is a dangerous permission, fall back to Administer unless we're in compat mode */
       p = Jenkins.ADMINISTER;
@@ -198,7 +197,7 @@ public class RoleMap {
 
   /**
    * Check if the {@link RoleMap} contains the given {@link Role}.
-   * 
+   *
    * @param role Role to be checked
    * @return {@code true} if the {@link RoleMap} contains the given role
    */
@@ -260,7 +259,7 @@ public class RoleMap {
       this.grantedRoles.get(role).clear();
     }
   }
-  
+
   /**
    * Clear all the roles associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
@@ -318,7 +317,7 @@ public class RoleMap {
     }
     return null;
   }
-  
+
   /**
    * Removes a {@link Role}
    * @param role The {@link Role} which shall be removed
@@ -327,7 +326,10 @@ public class RoleMap {
       this.grantedRoles.remove(role);
       matchingRoleMapCache.invalidateAll();
   }
-  
+
+  public void invalidateCache() {
+      matchingRoleMapCache.invalidateAll();
+  }
 
   /**
    * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
@@ -435,7 +437,7 @@ public class RoleMap {
 
       return matchingJobNames;
   }
-   
+
   /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
@@ -448,7 +450,7 @@ public class RoleMap {
         this.item = item;
         this.roleType = roleType;
     }
-     
+
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
@@ -461,10 +463,10 @@ public class RoleMap {
     @CheckForNull
     protected Boolean hasPermission(Sid p, Permission permission) {
       if (RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
-        LOGGER.info("TRUE hasPermission "+ toString(p));
+        LOGGER.info("TRUE hasPermission "+ toString(p) + " " + permission);
         return true;
       }
-      LOGGER.info("FALSE hasPermission "+ toString(p));
+      LOGGER.info("FALSE hasPermission "+ toString(p) + " " + permission);
       return null;
     }
   }
@@ -480,8 +482,8 @@ public class RoleMap {
     }
     /**
      * Aborts the iterations.
-     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
-     * @since TODO 
+     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions.
+     * @since TODO
      */
     public void abort() {
       this.shouldAbort=true;
