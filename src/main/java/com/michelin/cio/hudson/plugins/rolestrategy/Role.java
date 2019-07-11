@@ -95,7 +95,7 @@ public final class Role implements Comparable {
   public Role(@Nonnull String name, @CheckForNull String pattern, @CheckForNull Set <String> permissionIds, @CheckForNull String description) {
       this(name,
            Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN),
-           PermissionHelper.fromStrings(permissionIds),
+           PermissionHelper.fromStrings(permissionIds, true),
            description);
   }
 

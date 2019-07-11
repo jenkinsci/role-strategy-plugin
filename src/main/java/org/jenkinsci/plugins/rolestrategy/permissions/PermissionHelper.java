@@ -34,9 +34,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
 import jenkins.model.Jenkins;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
@@ -48,12 +50,13 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  */
 @Restricted(NoExternalUse.class)
 public class PermissionHelper {
+    private static final Logger LOGGER = Logger.getLogger(PermissionHelper.class.getName());
     
     /**
      * List of the dangerous permissions, which need to be suppressed by the plugin.
      */
     @Restricted(NoExternalUse.class)
-    public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<Permission>(Arrays.asList(
+    public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             Jenkins.RUN_SCRIPTS,
             PluginManager.CONFIGURE_UPDATECENTER,
             PluginManager.UPLOAD_PLUGINS)));
@@ -71,6 +74,21 @@ public class PermissionHelper {
      */
     @Nonnull
     public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds) throws SecurityException {
+        return fromStrings(permissionIds, false);
+    }
+
+    /**
+     * Convert a set of string to a collection of permissions.
+     *
+     * @param permissionIds Permission IDs
+     * @param ignoreDangerous if true, dangerous permissions will be ignored
+     * @throws SecurityException if {@code ignoreDangerous == false} and the permission is dangerous
+     * @return Created set of permissions
+     */
+    @Nonnull
+    @Restricted(NoExternalUse.class)
+    public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds, boolean ignoreDangerous)
+            throws SecurityException {
         if (permissionIds == null) {
             return Collections.emptySet();
         }
@@ -82,8 +100,14 @@ public class PermissionHelper {
                 // throw IllegalArgumentException?
                 continue;
             }
+
             if (isDangerous(p)) {
-                throw new SecurityException("Rejected dangerous permission: " + permission);
+                if (!ignoreDangerous) {
+                    throw new SecurityException("Rejected dangerous permission: " + permission);
+                } else {
+                    LOGGER.log(Level.WARNING, "Ignoring dangerous permission: " + permission);
+                    continue;
+                }
             }
             res.add(p);
         }
