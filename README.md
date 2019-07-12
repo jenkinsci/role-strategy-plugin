@@ -8,29 +8,41 @@ Role Strategy plugin
 
 About this plugin
 -----------------
-The Role Strategy plugin is meant to be used from [Jenkins][2] to add a new role-based mechanism to manager users' permissions. Please take a look at [Jenkins' wiki][3] to get detailed information.
+The Role Strategy plugin is meant to be used from [Jenkins](https://jenkins.io) to add a new role-based mechanism to manager users' permissions. Please take a look at [Jenkins' wiki](http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin) to get detailed information.
 
-Installation
-------------
+* Creating **global roles**, such as admin, job creator, anonymous, etc., allowing to set Overall, Slave, Job, Run, View and SCM permissions on a global basis.
+* Creating **project roles**, allowing to set only Job and Run permissions on a project basis.
+* Creating **agent roles**, allowing to set node-related permissions.
+* Assigning these roles to users.
+
+## Usage
+
+### Installation
+
 The Role Strategy plugin can be installed from any Jenkins installation connected to the Internet using the **Plugin Manager** screen.
 
-[2]: http://jenkins-ci.org/
-[3]: http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin
-[4]: https://svn.jenkins-ci.org/trunk/hudson/plugins/role-strategy/
-[5]: https://github.com/jenkinsci/role-strategy-plugin
-[6]: https://github.com/oleg-nenashev
+### Getting started
 
-Changelog
----------
+1. Activate the Role-Based Strategy by using the standard _Manage Jenkins > Security_ screen:
+2. Go to the _Manage and Assign Roles_ on the _Manage Jenkins_ screen
+3. Define roles by using the _Manages Roles_ screen. It is possible to define global and project/agent-specific roles.
+  * Global roles apply to any item in Jenkins and override *anything* you specify in the Project Roles. That is, when you give a role the right to Job-Read in the Global Roles, then this role is allowed to read all Jobs, no matter what you specify in the Project Roles.
+  * For project and agent roles you can set a regular expression pattern for matching items. The regular expression aimed at matching the full item name.
+    * For example, if you set the field to `Roger-.*`, then the role will match all jobs which name starts with `Roger-`. 
+    * Patterns are case-sensitive. To perform a case-insensitive match, use `(?i)` notation: upper, `Roger-.*` vs. lower, `roger-.*` vs. case-insensitive, `(?i)roger-.*`. 
+    * Folders can be matched using expressions like `^foo/bar.*`
+4. Assign roles to users and user groups using the _Assign Roles_ screen
+   * User groups represent authorities provided by the Security Realm (e.g. LDAP plugin can provide groups)
+   * There are also two built-in groups: `authenticated ` (users who logged in) and `anonymous` (any users, including ones who have not logged in)
 
-See the changelog [here](https://wiki.jenkins.io/display/JENKINS/Role+Strategy+Plugin#RoleStrategyPlugin-Versionhistory)
+## Changelog
 
-License
--------
+See the changelog [here](https://github.com/jenkinsci/role-strategy-plugin/releases)
+
+## License
 
 [MIT License](./LICENSE.md)
 
-More information
-----------------
+## More information
 
 * [Developer documentation](./docs/DEVELOPER.md)
