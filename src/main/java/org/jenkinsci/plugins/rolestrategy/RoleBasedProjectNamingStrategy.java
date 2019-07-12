@@ -49,15 +49,17 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             // check project role with pattern
             SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
             badList = new ArrayList<>(roles.size());
-            for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
-                Role key = entry.getKey();
-                if (key.hasPermission(Item.CREATE)) {
-                    String namePattern = key.getPattern().toString();
-                    if (StringUtils.isNotBlank(namePattern) && StringUtils.isNotBlank(name)) {
-                        if (Pattern.matches(namePattern, name)){
-                            matches = true;
-                        } else {
-                            badList.add(namePattern);
+            if (StringUtils.isNotBlank(name)) {
+                for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
+                    Role key = entry.getKey();
+                    if (key.hasPermission(Item.CREATE)) {
+                        String namePattern = key.getPattern().toString();
+                        if (StringUtils.isNotBlank(namePattern)) {
+                            if (Pattern.matches(namePattern, name)){
+                                matches = true;
+                            } else {
+                                badList.add(namePattern);
+                            }
                         }
                     }
                 }
