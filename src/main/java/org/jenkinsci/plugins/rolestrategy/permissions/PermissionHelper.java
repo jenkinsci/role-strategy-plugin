@@ -67,18 +67,6 @@ public class PermissionHelper {
 
     /**
      * Convert a set of string to a collection of permissions.
-     * Dangerous permissions will be checked.
-     * @param permissionIds Permission IDs
-     * @throws SecurityException Permission is rejected, because it is dangerous.
-     * @return Created set of permissions
-     */
-    @Nonnull
-    public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds) throws SecurityException {
-        return fromStrings(permissionIds, false);
-    }
-
-    /**
-     * Convert a set of string to a collection of permissions.
      *
      * @param permissionIds Permission IDs
      * @param ignoreDangerous if true, dangerous permissions will be ignored

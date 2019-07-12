@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.collections.CollectionUtils;
+import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -95,7 +96,7 @@ public final class Role implements Comparable {
   public Role(@Nonnull String name, @CheckForNull String pattern, @CheckForNull Set <String> permissionIds, @CheckForNull String description) {
       this(name,
            Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN),
-           PermissionHelper.fromStrings(permissionIds, true),
+           PermissionHelper.fromStrings(permissionIds, DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.ENABLED),
            description);
   }
 
