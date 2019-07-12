@@ -6,6 +6,8 @@ Macros allow extending the permission model by custom logic in plugins
 If a user sid meets the criteria defined in Roles and Assignments, then the role membership check will be delegated to the extension, 
 which makes decisions according to instance and parameters.
 
+![Managing roles](/docs/images/macroDefinition.PNG)
+
 ## Available macros
 
 * `@BuildableJob` - checks if the job is buildable
