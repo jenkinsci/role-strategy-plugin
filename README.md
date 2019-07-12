@@ -6,14 +6,16 @@ Role Strategy plugin
 [![GitHub release](https://img.shields.io/github/release/jenkinsci/role-strategy-plugin.svg?label=release)](https://github.com/jenkinsci/role-strategy-plugin/releases/latest)
 [![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/role-strategy.svg?color=blue)](https://plugins.jenkins.io/role-strategy)
 
-About this plugin
------------------
-The Role Strategy plugin is meant to be used from [Jenkins](https://jenkins.io) to add a new role-based mechanism to manager users' permissions. Please take a look at [Jenkins' wiki](http://wiki.jenkins-ci.org/display/JENKINS/Role+Strategy+Plugin) to get detailed information.
+## About this plugin
+
+The Role Strategy plugin is meant to be used from [Jenkins](https://jenkins.io) to add a new role-based mechanism to manager users' permissions. 
+Supported features
 
 * Creating **global roles**, such as admin, job creator, anonymous, etc., allowing to set Overall, Slave, Job, Run, View and SCM permissions on a global basis.
 * Creating **project roles**, allowing to set only Job and Run permissions on a project basis.
 * Creating **agent roles**, allowing to set node-related permissions.
-* Assigning these roles to users.
+* Assigning these roles to users and user groups
+* Extending role and permissions matching via [Macro extensions](./docs/MACROS.md)
 
 ## Usage
 
@@ -49,14 +51,13 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 
 ![Assign roles](/docs/images/assignRoles.png)
 
-## Changelog
-
-See the changelog [here](https://github.com/jenkinsci/role-strategy-plugin/releases)
-
 ## License
 
 [MIT License](./LICENSE.md)
 
 ## More information
 
+* [Changelog](https://github.com/jenkinsci/role-strategy-plugin/releases)
+* [Macro extensions](./docs/MACROS.md)
+* [Greasemonkey Addons for Web UI](./docs/USERSCRIPTS.md)
 * [Developer documentation](./docs/DEVELOPER.md)
