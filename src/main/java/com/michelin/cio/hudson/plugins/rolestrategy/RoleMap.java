@@ -113,19 +113,18 @@ public class RoleMap {
     this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
   }
 
-	private String userIdKey(String origSid) {
-    RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    IdStrategy userIdStrategy;
-    if (strategy == null) { 
-      userIdStrategy = RoleBasedAuthorizationStrategy.getSecurityRealmUserIdStrategy();
-      LOGGER.log(Level.WARNING, "RoleBasedAuthorizationStrategy.getInstance() is null, using default IdStrategy", new Throwable());
-    } else {
-      userIdStrategy = strategy.getUserIdStrategy();
-    } 
-		final String sid = userIdStrategy.keyFor(origSid);
-    LOGGER.info("userIdStrategy" + userIdStrategy.getClass().getName() + " keyFor: "+origSid+" = "+sid);
-    return sid;
-	}
+  private IdStrategy getUserIdStrategy() {
+      RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+      IdStrategy userIdStrategy;
+      if (strategy == null) { 
+        userIdStrategy = RoleBasedAuthorizationStrategy.getSecurityRealmUserIdStrategy();
+        LOGGER.log(Level.WARNING, "RoleBasedAuthorizationStrategy.getInstance() is null, using default IdStrategy", new Throwable());
+      } else {
+        userIdStrategy = strategy.getUserIdStrategy();
+      } 
+      LOGGER.info("userIdStrategy: " + userIdStrategy.getClass().getName() );
+      return userIdStrategy;
+  }
     /**
      * Constructor.
      * @param grantedRoles Roles to be granted.
@@ -142,13 +141,15 @@ public class RoleMap {
   public static void invalidateDangerousPermissions() {
     PermissionHelper.DANGEROUS_PERMISSIONS.forEach(implyingPermissionCache::remove);
   }
-
+  private boolean hasSid(Set<String> roleAssignements, IdStrategy userIdStrategy, String sid) {
+    return roleAssignements.stream().anyMatch( rolesid -> userIdStrategy.compare(rolesid, sid) == 0 );
+  }
   /**
    * Check if the given sid has the provided {@link Permission}.
    * @return True if the sid's granted permission
    */
-  private boolean hasPermission(String origSid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
-		String sid = userIdKey(origSid);
+  private boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
+    IdStrategy userIdStrategy = getUserIdStrategy();
     final Set<Permission> permissions = getImplyingPermissions(permission);
     final boolean[] hasPermission = { false };
 
@@ -157,7 +158,7 @@ public class RoleMap {
     new RoleWalker() {
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
-          if (grantedRoles.get(current).contains(sid)) {
+          if (hasSid( grantedRoles.get(current), userIdStrategy, sid))  {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
@@ -275,8 +276,7 @@ public class RoleMap {
    * @param role The {@link Role} to assign the sid to
    * @param sid The sid to assign
    */
-  public void assignRole(Role role, String origSid) {
-		String sid = userIdKey(origSid);
+  public void assignRole(Role role, String sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
     }
@@ -288,8 +288,7 @@ public class RoleMap {
    * @param sid The sid to assign
    * @since 2.6.0
    */
-  public void unAssignRole(Role role, String origSid) {
-		  String sid = userIdKey(origSid);
+  public void unAssignRole(Role role, String sid) {
       Set<String> sids = grantedRoles.get(role);
       if (sids != null) {
         sids.remove(sid);
@@ -310,8 +309,7 @@ public class RoleMap {
    * Clear all the roles associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
    */
-  public void deleteSids(String origSid) {
-		 String sid = userIdKey(origSid);
+  public void deleteSids(String sid) {
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
          Role role = entry.getKey();
          Set<String> sids = entry.getValue();
@@ -327,8 +325,7 @@ public class RoleMap {
    * @param rolename The role for thwich you want to clear the {@link Role}s
    * @since 2.6.0
    */
-  public void deleteRoleSid(String origSid, String rolename){
-		String sid = userIdKey(origSid);
+  public void deleteRoleSid(String sid, String rolename){
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
          Role role = entry.getKey();
          if (role.getName().equals(rolename)) {
