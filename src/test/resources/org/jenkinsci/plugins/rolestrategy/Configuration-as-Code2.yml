@@ -1,7 +1,7 @@
 jenkins:
   authorizationStrategy:
     roleBased:
-      disableUserIdStrategy: false
+      userIdStrategyChoice: DEFAULT
       roles:
         global:
           - name: "admin"
