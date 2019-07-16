@@ -244,7 +244,7 @@ public class RoleMap {
 
   /**
    * Check if the {@link RoleMap} contains the given {@link Role}.
-   *
+   * 
    * @param role Role to be checked
    * @return {@code true} if the {@link RoleMap} contains the given role
    */
@@ -265,10 +265,10 @@ public class RoleMap {
    * @param role The {@link Role} to add
    */
   public void addRole(Role role) {
-    if (this.getRole(role.getName()) == null) {
+      if (this.getRole(role.getName()) == null) {
           this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
           matchingRoleMapCache.invalidateAll();
-    }
+      }
   }
 
   /**
@@ -304,12 +304,12 @@ public class RoleMap {
       this.grantedRoles.get(role).clear();
     }
   }
-
+  
   /**
    * Clear all the roles associated to the given sid
    * @param sid The sid for thwich you want to clear the {@link Role}s
    */
-  public void deleteSids(String sid) {
+  public void deleteSids(String sid){
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
          Role role = entry.getKey();
          Set<String> sids = entry.getValue();
@@ -360,7 +360,7 @@ public class RoleMap {
     }
     return null;
   }
-
+  
   /**
    * Removes a {@link Role}
    * @param role The {@link Role} which shall be removed
@@ -369,7 +369,7 @@ public class RoleMap {
       this.grantedRoles.remove(role);
       matchingRoleMapCache.invalidateAll();
   }
-
+  
   public void invalidateCache() {
       matchingRoleMapCache.invalidateAll();
   }
@@ -449,7 +449,7 @@ public class RoleMap {
         Matcher m = current.getPattern().matcher(itemNamePrefix);
         if (m.matches()) {
           roleMap.put(current, grantedRoles.get(current));
-    }
+        }
       }
     };
 
@@ -480,7 +480,7 @@ public class RoleMap {
 
       return matchingJobNames;
   }
-
+   
   /**
    * The Acl class that will delegate the permission check to the {@link RoleMap} object.
    */
@@ -493,7 +493,7 @@ public class RoleMap {
         this.item = item;
         this.roleType = roleType;
     }
-
+     
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
@@ -525,8 +525,8 @@ public class RoleMap {
     }
     /**
      * Aborts the iterations.
-     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions.
-     * @since TODO
+     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions. 
+     * @since TODO 
      */
     public void abort() {
       this.shouldAbort=true;
@@ -553,3 +553,4 @@ public class RoleMap {
     abstract public void perform(Role current);
   }
 }
+
