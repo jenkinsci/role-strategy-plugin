@@ -141,8 +141,8 @@ public class RoleMap {
   public static void invalidateDangerousPermissions() {
     PermissionHelper.DANGEROUS_PERMISSIONS.forEach(implyingPermissionCache::remove);
   }
-  private boolean hasSid(Set<String> roleAssignements, IdStrategy userIdStrategy, String sid) {
-    return roleAssignements.stream().anyMatch( rolesid -> userIdStrategy.compare(rolesid, sid) == 0 );
+  private boolean hasSid(Set<String> roleAssignments, IdStrategy userIdStrategy, String sid) {
+    return roleAssignments.stream().anyMatch( rolesid -> userIdStrategy.compare(rolesid, sid) == 0 );
   }
   /**
    * Check if the given sid has the provided {@link Permission}.
