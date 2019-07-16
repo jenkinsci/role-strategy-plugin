@@ -180,7 +180,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       return userIdStrategyChoice;
   }
 
-    /**
+  /**
    * Get the root ACL.
    * @return The global ACL
    */
@@ -207,15 +207,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               return agentRoles;
           default:
               throw new IllegalArgumentException("Unknown RoleType: " + roleType);
-     }
-   }
+      }
+  }
 
-   /**
-   * Get the specific ACL for projects.
+    /**
+     * Get the specific ACL for projects.
      *
-   * @param project The access-controlled project
-   * @return The project specific ACL
-   */
+     * @param project The access-controlled project
+     * @return The project specific ACL
+     */
     @Override
     @Nonnull
     public ACL getACL(@Nonnull Job<?,?> project) {
@@ -235,7 +235,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
                 .newInheritingACL(getRootACL());
     }
-
+  
   /**
    * Used by the container realm.
    * @return All the sids referenced by the strategy
@@ -261,7 +261,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Deprecated
   public SortedMap<Role, Set<String>> getGrantedRoles(String type) {
     return getGrantedRoles(RoleType.fromString(type));
-    }
+  }
 
   /**
    * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}
@@ -318,7 +318,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap.assignRole(role, sid);
     }
   }
-
+  
     /**
      * API method to add roles
      * <p>
@@ -329,7 +329,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @param roleName      Name of role
      * @param permissionIds Comma separated list of IDs for given roleName
      * @param overwrite     Overwrite existing role
-     * @param pattern       Role pattern
+     * @param pattern       Role pattern       
      * @throws IOException  In case saving changes fails
      * @since 2.5.0
      */
@@ -364,11 +364,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleType roleType = RoleType.fromString(type);
         if (overwriteb) {
             RoleMap roleMap = getRoleMap(roleType);
-                Role role2 = roleMap.getRole(roleName);
-                if (role2 != null) {
-                    roleMap.removeRole(role2);
-                }
+            Role role2 = roleMap.getRole(roleName);
+            if (role2 != null) {
+                roleMap.removeRole(role2);
             }
+        }
         addRole(roleType, role);
         persistChanges();
     }
@@ -389,20 +389,20 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         checkAdminPerm();
         JSONObject responseJson = new JSONObject();
         RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-            Role role = roleMap.getRole(roleName);
-            if (role != null){
-                Set<Permission> permissions = role.getPermissions();
+        Role role = roleMap.getRole(roleName);
+        if (role != null){
+            Set<Permission> permissions = role.getPermissions();
             Map<String, Boolean> permissionsMap = new HashMap<>();
-                for (Permission permission : permissions) {
+            for (Permission permission : permissions) {
                 permissionsMap.put(permission.getId(), permission.getEnabled());
-                }
+            }
             responseJson.put("permissionIds", permissionsMap);
             if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
                 responseJson.put("pattern", role.getPattern().pattern());
-                }
-                Map<Role,Set<String>> grantedRoleMap = roleMap.getGrantedRoles();
-                responseJson.put("sids", grantedRoleMap.get(role));
             }
+            Map<Role,Set<String>> grantedRoleMap = roleMap.getGrantedRoles();
+            responseJson.put("sids", grantedRoleMap.get(role));
+        }
 
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
         Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
@@ -427,13 +427,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         checkAdminPerm();
 
         RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-            String[] split = roleNames.split(",");
-            for (String aSplit : split) {
-                Role role = roleMap.getRole(aSplit);
-                if (role != null) {
-                    roleMap.removeRole(role);
-                }
+        String[] split = roleNames.split(",");
+        for (String aSplit : split) {
+            Role role = roleMap.getRole(aSplit);
+            if (role != null) {
+                roleMap.removeRole(role);
             }
+        }
         persistChanges();
     }
 
@@ -456,11 +456,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         checkAdminPerm();
         final RoleType roleType = RoleType.fromString(type);
         Role role = getRoleMap(roleType).getRole(roleName);
-            if (role != null) {
+        if (role != null) {
             assignRole(roleType, role, sid);
-            }
-            persistChanges();
         }
+        persistChanges();
+    }
 
     private static void persistChanges() throws IOException {
         instance().save();
@@ -507,13 +507,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void doUnassignRole(@QueryParameter(required = true) String type,
                             @QueryParameter(required = true) String roleName,
                             @QueryParameter(required = true) String sid) throws IOException {
-        checkAdminPerm();
+      checkAdminPerm();
       RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-          Role role = roleMap.getRole(roleName);
-          if (role != null) {
-            roleMap.deleteRoleSid(sid, role.getName());
-          }
-        persistChanges();
+      Role role = roleMap.getRole(roleName);
+      if (role != null) {
+        roleMap.deleteRoleSid(sid, role.getName());
+      }
+      persistChanges();
     }
 
     /**
@@ -533,9 +533,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             roleMap = getRoleMap(RoleType.fromString(type));
         }
 
-            for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
-                responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
-            }
+        for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+            responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
+        }
 
         Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
         Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
@@ -562,7 +562,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         responseJson.write(writer);
         writer.close();
     }
-
+    
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
@@ -633,7 +633,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         while(reader.hasMoreChildren()) {
           reader.moveDown();
 
-            // roleMaps
+          // roleMaps
           LOGGER.info("unmarshal nodeName: "+reader.getNodeName());
           if(reader.getNodeName().equals("userIdStrategyChoice")) {
             userIdStrategyChoice = reader.getValue();
@@ -690,8 +690,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       protected RoleBasedAuthorizationStrategy create() {
           return new RoleBasedAuthorizationStrategy();
       }
-  }
-
+  } 
+    
     /**
      * Retrieves instance of the strategy.
      * @return Strategy instance or {@code null} if it is disabled.
@@ -703,7 +703,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         if (authStrategy instanceof RoleBasedAuthorizationStrategy) {
             return (RoleBasedAuthorizationStrategy)authStrategy;
         }
-
+        
         // Nothing to do here, not a Role strategy
         return null;
     }
@@ -715,7 +715,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     void renewMacroRoles()
     {
         //TODO: add mandatory roles
-
+        
         // Check role extensions
         for (UserMacroExtension userExt : UserMacroExtension.all())
         {
@@ -747,7 +747,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       return Messages.RoleBasedAuthorizationStrategy_DisplayName();
     }
 
-    /**
+    /** 
      * Called on role management form's submission.
      */
     @RequirePOST
@@ -776,7 +776,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       JSONObject json = req.getSubmittedForm();
       LOGGER.info("doAssignSubmit: "+json.toString());
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
-
+      
       if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
         Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
@@ -789,7 +789,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           if (roles.isNullObject()) {
               continue;
           }
-
+          
           for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)roles.getJSONObject("data").entrySet()) {
             String sid = r.getKey();
             for (Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
@@ -816,7 +816,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
-
+      
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
       if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
@@ -863,7 +863,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.addRole(RoleType.Global, adminRole);
         strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
       }
-
+      
       if (formData.has("userIdStrategyChoice")) {
         strategy.setUserIdStrategyChoiceStr(formData.getString("userIdStrategyChoice"));
       }
@@ -883,7 +883,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             assert false : "No data at role description";
             return;
         }
-
+        
         for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)projectRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
           Set<Permission> permissions = new HashSet<>();
@@ -915,7 +915,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
     }
-
+    
     /**
      * Create an admin role.
      */
@@ -965,7 +965,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             groups.remove(PermissionGroup.get(Permission.class));
             groups.remove(PermissionGroup.get(Hudson.class));
             groups.remove(PermissionGroup.get(View.class));
-
+            
             // Project, SCM and Run permissions
             groups.remove(PermissionGroup.get(Item.class));
             groups.remove(PermissionGroup.get(SCM.class));
@@ -986,12 +986,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         return PermissionHelper.hasDangerousPermissions(instance);
     }
-
+    
     @Restricted(NoExternalUse.class)
     public boolean showPermission(String type, Permission p) {
         return showPermission(type, p, false);
     }
-
+    
     /**
      * Check if the permission should be displayed.
      * For Stapler only.
@@ -1006,7 +1006,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 // Should never happen
                 return false;
             }
-
+            
             // When disabled, never show the permissions
             return showDangerous && DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.DISABLED;
         }
