@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.Extension;
 import hudson.model.Failure;
 import hudson.model.Item;
@@ -50,13 +51,13 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     public void checkName(String name) throws Failure {
         boolean matches = false;
         ArrayList<String> badList = null;
-        final AuthorizationStrategy auth = Jenkins.getInstance().getAuthorizationStrategy();
+        final AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
         if (auth instanceof RoleBasedAuthorizationStrategy) {
             final RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
 
             // Check whether the user has a global role allowing them to carry out this action
             boolean globalRolePermitted = false;
-            final SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+            final SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleType.Global);
             for (final SortedMap.Entry<Role, Set<String>> entry : gRole.entrySet()) {
                 if (entry.getKey().hasPermission(Item.CREATE)) {
                     globalRolePermitted = true;
@@ -69,7 +70,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             }
 
             // Check whether there's a project-specific role that matches
-            final SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
+            final SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleType.Project);
             badList = new ArrayList<>(roles.size());
             if (StringUtils.isNotBlank(name)) {
                 for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
