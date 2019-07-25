@@ -4,9 +4,12 @@ import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import hudson.model.Computer;
+import hudson.model.Failure;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.AuthorizationStrategy;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.Configurator;
@@ -14,13 +17,16 @@ import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.casc.model.CNode;
-import java.util.Map;
-import java.util.Set;
 import jenkins.model.Jenkins;
+import jenkins.model.ProjectNamingStrategy;
 import org.jenkinsci.plugins.rolestrategy.casc.RoleBasedAuthorizationStrategyConfigurator;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
+
+import java.util.Map;
+import java.util.Set;
 
 import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
 import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
@@ -33,6 +39,7 @@ import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermi
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * @author Oleg Nenashev
@@ -42,6 +49,12 @@ public class RoleStrategyTest {
 
     @Rule
     public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
+
+    @Before
+    public void setup()
+    {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+    }
 
     @Test
     public void shouldReturnCustomConfigurator() {
@@ -55,7 +68,6 @@ public class RoleStrategyTest {
     @Issue("Issue #48")
     @ConfiguredWithCode("Configuration-as-Code.yml")
     public void shouldReadRolesCorrectly() throws Exception {
-        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         User admin = User.getById("admin", false);
         User user1 = User.getById("user1", false);
         User user2 = User.getById("user2", true);
@@ -131,5 +143,79 @@ public class RoleStrategyTest {
 
         Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
         assertThat(globalRoles.size(), equalTo(2));
+    }
+
+    @Test
+    @Issue("JENKINS-34337")
+    @ConfiguredWithCode("Configuration-as-Code-With-Name-Strategy.yml")
+    public void nameStrategyShouldHandleValidCreate() throws Exception {
+        final ProjectNamingStrategy s = j.jenkins.getProjectNamingStrategy();
+        assertThat("Project Naming Strategy has been read incorrectly",
+                s, instanceOf(RoleBasedProjectNamingStrategy.class));
+
+        try(final ACLContext ctx = ACL.as(User.getById("user3", true))) {
+            // Create a new job with the specified prefix (34337_.*)
+            j.jenkins.createProject(FreeStyleProject.class, "34337_job");
+        }
+    }
+
+    @Test(expected = Failure.class)
+    @Issue("JENKINS-34337")
+    @ConfiguredWithCode("Configuration-as-Code-With-Name-Strategy.yml")
+    public void nameStrategyShouldFailWithInvalidCreate() throws Exception {
+        final ProjectNamingStrategy s = j.jenkins.getProjectNamingStrategy();
+        assertThat("Authorization Strategy has been read incorrectly",
+                s, instanceOf(RoleBasedProjectNamingStrategy.class));
+
+        // Create a new job with the specified prefix (34337_.*)
+        try(final ACLContext ctx = ACL.as(User.getById("user3", true))) {
+            j.jenkins.createProject(FreeStyleProject.class, "invalid_name");
+        }
+        catch (final Failure f)
+        {
+            if (!f.getMessage().contains("does not match the job name convention pattern"))
+            {
+                fail("Unexpected failure occurred when testing create: " + f.getMessage());
+            }
+            throw f;
+        }
+
+    }
+
+    @Test
+    @Issue("JENKINS-34337")
+    @ConfiguredWithCode("Configuration-as-Code-With-Name-Strategy.yml")
+    public void nameStrategyShouldAcceptValidRename() throws Exception {
+        final ProjectNamingStrategy s = j.jenkins.getProjectNamingStrategy();
+        assertThat("Authorization Strategy has been read incorrectly",
+                s, instanceOf(RoleBasedProjectNamingStrategy.class));
+
+        try(final ACLContext ctx = ACL.as(User.getById("user3", true))) {
+            final FreeStyleProject job = j.jenkins.createProject(FreeStyleProject.class, "34337_job_to_rename_existing");
+            job.doConfirmRename("34337_job_to_rename_new");
+        }
+    }
+
+    @Test(expected = Failure.class)
+    @Issue("JENKINS-34337")
+    @ConfiguredWithCode("Configuration-as-Code-With-Name-Strategy.yml")
+    public void nameStrategyShouldFailInvalidRename() throws Exception {
+        final ProjectNamingStrategy s = j.jenkins.getProjectNamingStrategy();
+        assertThat("Authorization Strategy has been read incorrectly",
+                s, instanceOf(RoleBasedProjectNamingStrategy.class));
+
+        try(final ACLContext ctx = ACL.as(User.getById("user3", true))) {
+            // Create a new job with the specified prefix (34337_.*)
+            final FreeStyleProject job = j.jenkins.createProject(FreeStyleProject.class, "34337_job_to_rename_existing");
+            job.doConfirmRename("invalid_name");
+        }
+        catch (final Failure f)
+        {
+            if (!f.getMessage().contains("does not match the job name convention pattern"))
+            {
+                fail("Unexpected failure occurred when testing rename: " + f.getMessage());
+            }
+            throw f;
+        }
     }
 }

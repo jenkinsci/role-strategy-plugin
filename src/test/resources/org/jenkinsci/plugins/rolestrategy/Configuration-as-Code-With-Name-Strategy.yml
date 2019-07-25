@@ -1,0 +1,38 @@
+jenkins:
+  projectNamingStrategy: "roleBased"
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "readonly"
+            description: "Read-only users"
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+            assignments:
+              - "authenticated"
+          - name: "create-and-configure"
+            description: "Users who can create/configure"
+            permissions:
+              - "Job/Create"
+              - "Job/Configure"
+            assignments:
+              - "user3"
+        items:
+          - name: "Prefix pattern"
+            description: "Jobs in Folder Prefix with a set prefix"
+            pattern: "34337_.*"
+            permissions:
+              - "Job/Create"
+              - "Job/Configure"
+              - "Job/Read"
+            assignments:
+              - "user3"
+
+  # System for test
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "user3"
+          password: ""
