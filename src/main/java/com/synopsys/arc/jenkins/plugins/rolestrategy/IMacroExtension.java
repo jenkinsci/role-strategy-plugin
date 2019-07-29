@@ -35,13 +35,13 @@ import hudson.security.Permission;
  * @since 2.1.0
  */
 public interface IMacroExtension {
-    
+
     /**
      * Get name of the appropriate macro.
      * @return Name of the macro
      */
-    String getName();      
-    
+    String getName();
+
     /**
      * Check if the macro extension is applicable to specified role type
      * @param roleType Type to be checked
@@ -50,13 +50,13 @@ public interface IMacroExtension {
     //TODO: fix naming conventions
     @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
     boolean IsApplicable(RoleType roleType);
-    
+
     /**
      * Returns description of the macro (including parameters).
      * @return Description of the macro
      */
     String getDescription();
-    
+
     /**
      * Check if user belongs to specified Macro
      * @param sid SID to be checked
@@ -64,7 +64,7 @@ public interface IMacroExtension {
      * @param type Type of the role to be checked
      * @param item Item
      * @param macro Macro with parameters
-     * @return True if user satisfies macro's requirements 
+     * @return True if user satisfies macro's requirements
      */
     boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro);
 }
