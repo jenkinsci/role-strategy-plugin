@@ -37,38 +37,38 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  */
 @Restricted(NoExternalUse.class)
 public class Settings {
-    
+
     /**
      * Defines maximum size of the User details cache.
      * This cache is being used when {@link #TREAT_USER_AUTHORITIES_AS_ROLES} is enabled.
      * Changing of this option requires Jenkins restart.
      * @since 2.3.1
      */
-    public static final int USER_DETAILS_CACHE_MAX_SIZE = 
+    public static final int USER_DETAILS_CACHE_MAX_SIZE =
             Integer.getInteger(Settings.class.getName() + ".userDetailsCacheMaxSize", 100);
-    
+
     /**
      * Defines lifetime of entries in the User details cache.
      * This cache is being used when {@link #TREAT_USER_AUTHORITIES_AS_ROLES} is enabled.
      * Changing of this option requires Jenkins restart.
      * @since 2.3.1
      */
-    public static final int USER_DETAILS_CACHE_EXPIRATION_TIME_SEC = 
+    public static final int USER_DETAILS_CACHE_EXPIRATION_TIME_SEC =
             Integer.getInteger(Settings.class.getName() + ".userDetailsCacheExpircationTimeSec", 60);
-    
+
     /**
      * Enabling processing of User Authorities.
-     * Alters the behavior of 
+     * Alters the behavior of
      * {@link RoleMap#hasPermission(java.lang.String, hudson.security.Permission, com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType, hudson.security.AccessControlled)}.
      * Since 2.3.0 this value was {@code true}, but it has been switched due to the performance reasons.
      * The behavior can be reverted (even dynamically via System Groovy Script).
      * @since 2.3.1
      */
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "We want to be it modifyable on the flight")
-    public static boolean TREAT_USER_AUTHORITIES_AS_ROLES = 
+    public static boolean TREAT_USER_AUTHORITIES_AS_ROLES =
             Boolean.getBoolean(Settings.class.getName() + ".treatUserAuthoritiesAsRoles");
-    
+
     private Settings() {}
-    
-    
+
+
 }

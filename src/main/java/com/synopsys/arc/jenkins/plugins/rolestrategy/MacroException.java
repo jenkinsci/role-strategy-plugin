@@ -30,7 +30,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
  */
 public class MacroException extends Exception {
     MacroExceptionCode errorCode;
-    
+
     public MacroException(MacroExceptionCode code, String message) {
         super(message);
         this.errorCode = code;
@@ -38,11 +38,11 @@ public class MacroException extends Exception {
 
     public MacroExceptionCode getErrorCode() {
         return errorCode;
-    }   
+    }
 
     @Override
     public String getMessage() {
-        return "<"+errorCode+">: " + super.getMessage(); 
+        return "<"+errorCode+">: " + super.getMessage();
     }
 
 }

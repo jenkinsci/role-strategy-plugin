@@ -48,7 +48,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  */
 @Restricted(NoExternalUse.class)
 public class PermissionHelper {
-    
+
     /**
      * List of the dangerous permissions, which need to be suppressed by the plugin.
      */
@@ -57,7 +57,7 @@ public class PermissionHelper {
             Jenkins.RUN_SCRIPTS,
             PluginManager.CONFIGURE_UPDATECENTER,
             PluginManager.UPLOAD_PLUGINS)));
-    
+
     private PermissionHelper() {
         // Cannot be constructed
     }
@@ -89,7 +89,7 @@ public class PermissionHelper {
         }
         return res;
     }
-    
+
     /**
      * Check if the permissions is dangerous.
      * Takes the current {@link DangerousPermissionHandlingMode} into account.
@@ -102,10 +102,10 @@ public class PermissionHelper {
             // all permissions are fine
             return false;
         }
-        
+
         return DANGEROUS_PERMISSIONS.contains(p);
     }
-    
+
     /**
      * Checks if the role is potentially dangerous.
      * Does not take the current {@link DangerousPermissionHandlingMode} into account.
@@ -116,7 +116,7 @@ public class PermissionHelper {
         // We do not care about permissions for Jenkins admins, otherwise we report the issue
         return !r.hasPermission(Jenkins.ADMINISTER) && r.hasAnyPermission(DANGEROUS_PERMISSIONS);
     }
-    
+
     /**
      * Prepare the report string about dangerous roles.
      * @param strategy Strategy
@@ -128,7 +128,7 @@ public class PermissionHelper {
         SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
         return grantedRoles != null ? reportDangerousPermissions(grantedRoles.keySet()) : null;
     }
-    
+
     /**
      * Prepare the report string about dangerous roles.
      * @param roles Roles
@@ -143,19 +143,19 @@ public class PermissionHelper {
                dangerousRoleNames.add(role.getName());
            }
        }
-       
+
        if (dangerousRoleNames.isEmpty()) {
            // No dangerous roles
            return null;
        }
-       
+
        StringBuilder report = new StringBuilder("Dangerous roles found: [");
        report.append(StringUtils.join(dangerousRoleNames, ","));
        report.append("] do not declare Jenkins.ADMINISTER and contain one of the following permissions: ");
        report.append(StringUtils.join(DANGEROUS_PERMISSIONS, ","));
        return report.toString();
     }
-    
+
     @CheckForNull
     public static boolean hasDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
         SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
@@ -165,14 +165,14 @@ public class PermissionHelper {
         }
         return hasDangerousPermissions(grantedRoles.keySet());
     }
-    
+
     @CheckForNull
     public static boolean hasDangerousPermissions(@Nonnull Iterable<Role> roles) {
        for (Role role : roles) {
            if (hasPotentiallyDangerousPermissions(role)) {
                return true;
            }
-       } 
+       }
        return false;
     }
 }

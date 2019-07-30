@@ -171,21 +171,21 @@ public class RoleStrategyConfig extends ManagementLink {
     }
 
     /**
-     * @deprecated The extension is not implemented 
+     * @deprecated The extension is not implemented
      */
     @Deprecated
     public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
         return UserMacroExtension.all();
     }
-    
+
     public final RoleType getGlobalRoleType() {
         return RoleType.Global;
     }
-    
+
     public final RoleType getProjectRoleType() {
         return RoleType.Project;
     }
-    
+
     public final RoleType getSlaveRoleType() {
         return RoleType.Slave;
     }

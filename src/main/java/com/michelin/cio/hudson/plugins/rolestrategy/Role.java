@@ -38,15 +38,15 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
-/** 
+/**
  * Class representing a role, which holds a set of {@link Permission}s.
  * @author Thomas Maurel
  */
 public final class Role implements Comparable {
   public static final String GLOBAL_ROLE_PATTERN = ".*";
 
-  private static final Logger LOGGER = Logger.getLogger(Role.class.getName());  
-      
+  private static final Logger LOGGER = Logger.getLogger(Role.class.getName());
+
   /**
    * Name of the role.
    */
@@ -171,7 +171,7 @@ public final class Role implements Comparable {
 
   /**
    * Compare role names.
-   * Used to sort the sets. 
+   * Used to sort the sets.
    * We presume that any role name is being used once and only once.
    * @param o The object you want to compare this instance to
    * @return Comparison of role names
