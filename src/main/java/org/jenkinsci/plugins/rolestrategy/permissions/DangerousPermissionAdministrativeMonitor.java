@@ -44,21 +44,21 @@ public class DangerousPermissionAdministrativeMonitor extends AdministrativeMoni
     public boolean isEnabled() {
         return DangerousPermissionHandlingMode.getCurrent() == DangerousPermissionHandlingMode.UNDEFINED;
     }
- 
+
     @Override
     public boolean isActivated() {
-        
+
         // We care only about the undefined mode
         if (DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.UNDEFINED) {
             return false;
         }
-        
+
         RoleBasedAuthorizationStrategy roleStrategy = RoleBasedAuthorizationStrategy.getInstance();
         if (roleStrategy == null) {
             // Disabled, nothing to do here
             return false;
         }
-        
+
         final String report = PermissionHelper.reportDangerousPermissions(roleStrategy);
         return report != null;
     }
@@ -67,7 +67,7 @@ public class DangerousPermissionAdministrativeMonitor extends AdministrativeMoni
     public String getDisplayName() {
         return "Role Strategy. Dangerous permissions";
     }
-    
+
     @CheckForNull
     public String getReport() {
         RoleBasedAuthorizationStrategy roleStrategy = RoleBasedAuthorizationStrategy.getInstance();
@@ -77,7 +77,7 @@ public class DangerousPermissionAdministrativeMonitor extends AdministrativeMoni
         }
         return PermissionHelper.reportDangerousPermissions(roleStrategy);
     }
-    
+
     @CheckForNull
     public static DangerousPermissionAdministrativeMonitor getInstance() {
         Jenkins j = Jenkins.getInstanceOrNull();

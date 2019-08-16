@@ -1,3 +1,3 @@
-// Builds a module using https://github.com/jenkins-infra/pipeline-library
-buildPlugin(jenkinsVersions: [null, '2.150.2'])
+// Builds the plugin using https://github.com/jenkins-infra/pipeline-library
+buildPlugin(configurations: buildPlugin.recommendedConfigurations())
 runBenchmarks('jmh-report.json')

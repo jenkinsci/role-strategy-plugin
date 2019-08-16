@@ -45,7 +45,7 @@ public enum RoleType {
     public static RoleType FromString(String roleName) {
         return fromString(roleName);
     }
-    
+
     /**
      * Get Role Type for {@link RoleBasedAuthorizationStrategy}'s item
      *

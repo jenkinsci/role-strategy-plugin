@@ -34,7 +34,7 @@ import hudson.model.Hudson;
  * @since 2.1.0
  */
 public abstract class UserMacroExtension implements ExtensionPoint, IMacroExtension {
-    
+
     /**
      * Get list of all registered {@link UserMacroExtension}s.
      * @return List of {@link UserMacroExtension}s.
