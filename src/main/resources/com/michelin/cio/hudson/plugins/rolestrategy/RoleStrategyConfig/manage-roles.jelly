@@ -34,21 +34,6 @@
           <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
-          <script type="text/javascript">
-            jQuery.browser = {};
-            (function () {
-                jQuery.browser.msie = false;
-                jQuery.browser.version = 0;
-                if (navigator.userAgent.match(/MSIE ([0-9]+)\./)) {
-                    jQuery.browser.msie = true;
-                    jQuery.browser.version = RegExp.$1;
-                }
-            })();
-
-            jQuery.curCSS = function(element, prop, val) {
-              return jQuery(element).css(prop, val);
-            };
-          </script>
 
           <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
