@@ -87,16 +87,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>jquery</artifactId>
-            <version>1.11.2-0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>jquery-ui</artifactId>
-            <version>1.0.1</version>
-        </dependency>
-        <dependency>
             <groupId>io.jenkins</groupId>
             <artifactId>configuration-as-code</artifactId>
             <version>${configuration-as-code.version}</version>
@@ -111,5 +101,3 @@
         </dependency>
     </dependencies>
 </project>
-
-

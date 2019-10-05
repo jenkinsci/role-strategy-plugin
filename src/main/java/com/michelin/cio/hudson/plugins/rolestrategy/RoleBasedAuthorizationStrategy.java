@@ -496,7 +496,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         List<String> matchingJobs = RoleMap.getMatchingJobNames(Pattern.compile(pattern), maxJobs);
         JSONObject responseJson = new JSONObject();
         responseJson.put("matchingJobs", matchingJobs);
-        Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+        StaplerResponse response = Stapler.getCurrentResponse();
+        response.addHeader("Content-Type", "application/json");
+        Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
         responseJson.write(writer);
         writer.close();
     }
