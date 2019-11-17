@@ -93,7 +93,7 @@
 
         makeButton($$('${id}button'), function (e) {
           <!-- when 'add' is clicked... -->
-          var name = $$('${id}text').value;
+          var name = $$('${id}text').value.trim();
           if(name=="") {
             alert("Please enter a role name");
             return;
