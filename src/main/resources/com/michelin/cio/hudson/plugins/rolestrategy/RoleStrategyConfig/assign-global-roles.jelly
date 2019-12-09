@@ -75,7 +75,7 @@
 
     <br /><br />
     <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
-      <f:textbox type="text" id="${id}text" />
+      <f:textbox type="text" id="${id}text" checkUrl="'${descriptorPath}/checkForWhitespace?value='+escape(this.value)" />
     </f:entry>
     <f:entry>
       <input type="button" value="${%Add}" id="${id}button"/>
@@ -91,7 +91,7 @@
 
         makeButton($$('${id}button'), function (e) {
           <!-- when 'add' is clicked... -->
-          var name = $$('${id}text').value;
+          var name = $$('${id}text').value.trim();
           if(name=="") {
             alert("Please enter a role name");
             return;

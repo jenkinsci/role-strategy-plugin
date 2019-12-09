@@ -66,6 +66,8 @@ import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -670,6 +672,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Nonnull
     public  String getDisplayName() {
       return Messages.RoleBasedAuthorizationStrategy_DisplayName();
+    }
+
+
+    public FormValidation doCheckForWhitespace(@QueryParameter String value) {
+      if (value==null || value.trim().equals(value)) {
+        return FormValidation.ok();
+      } else {
+        return FormValidation.warning(Messages.RoleBasedProjectNamingStrategy_WhiteSpaceWillBeTrimmed());
+      }
     }
 
     /**
