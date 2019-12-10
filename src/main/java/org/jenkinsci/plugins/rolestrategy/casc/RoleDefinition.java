@@ -71,11 +71,11 @@ public class RoleDefinition {
     }
 
     public Set<String> getPermissions() {
-        return new HashSet<>(permissions);
+        return Collections.unmodifiableSet(permissions);
     }
 
     public Set<String> getAssignments() {
-        return new HashSet<>(assignments);
+        return Collections.unmodifiableSet(assignments);
     }
 
 }
