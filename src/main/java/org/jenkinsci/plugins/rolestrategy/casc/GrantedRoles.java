@@ -5,7 +5,6 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrate
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,7 +48,7 @@ public class GrantedRoles {
     private RoleMap retrieveRoleMap(List<RoleDefinition> definitions) {
         TreeMap<Role, Set<String>> resMap = new TreeMap<>();
         for (RoleDefinition definition : definitions) {
-            resMap.put(definition.getRole(), new HashSet<>(definition.getAssignments()));
+            resMap.put(definition.getRole(), definition.getAssignments());
         }
         return new RoleMap(resMap);
     }
