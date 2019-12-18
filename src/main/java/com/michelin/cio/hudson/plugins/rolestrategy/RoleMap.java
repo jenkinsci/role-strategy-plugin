@@ -294,7 +294,6 @@ public class RoleMap {
    */
   public void deleteSids(String sid){
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
-         Role role = entry.getKey();
          Set<String> sids = entry.getValue();
          if (sids.contains(sid)) {
              sids.remove(sid);

@@ -4,7 +4,6 @@ import hudson.model.User;
 import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.Permission;
-import junit.framework.Assert;
 
 import org.acegisecurity.Authentication;
 import org.acegisecurity.AuthenticationException;
@@ -15,6 +14,7 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.acegisecurity.userdetails.UserDetails;
 import org.acegisecurity.userdetails.UsernameNotFoundException;
 import org.junit.After;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +44,7 @@ public class UserAuthoritiesAsRolesTest {
         Authentication orig = seccon.getAuthentication();
         seccon.setAuthentication(User.get("alice").impersonate());
         try {
-            Assert.assertTrue(j.jenkins.hasPermission(Permission.READ));
+            assertTrue(j.jenkins.hasPermission(Permission.READ));
         } finally {
             seccon.setAuthentication(orig);
         }
