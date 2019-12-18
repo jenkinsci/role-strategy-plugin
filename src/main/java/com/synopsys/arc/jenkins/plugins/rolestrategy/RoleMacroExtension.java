@@ -26,7 +26,6 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.macros.StubMacro;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
-import hudson.model.Hudson;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.CheckForNull;
@@ -43,6 +42,8 @@ public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtens
     private static final Map<String, RoleMacroExtension> NAME_CACHE =
             new ConcurrentHashMap<String, RoleMacroExtension>();
 
+    private static final Map<String, Macro> MACRO_CACHE = new ConcurrentHashMap<String, Macro>();
+
     private static void updateRegistry() {
         NAME_CACHE.clear();
         for (RoleMacroExtension ext : all()) {
@@ -52,10 +53,15 @@ public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtens
 
     @CheckForNull
     public static Macro getMacro(String unparsedMacroString) {
-        //TODO: add macro cache
+        if (MACRO_CACHE.containsKey(unparsedMacroString)) {
+            return MACRO_CACHE.get(unparsedMacroString);
+        }
         try {
-            return Macro.parse(unparsedMacroString);
+            Macro m = Macro.parse(unparsedMacroString);
+            MACRO_CACHE.put(unparsedMacroString, m);
+            return m;
         } catch (MacroException ex) {
+            MACRO_CACHE.put(unparsedMacroString, null);
             return null;
         }
     }
