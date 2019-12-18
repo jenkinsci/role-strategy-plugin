@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.rolestrategy;
 
 import hudson.model.User;
 import hudson.security.Permission;
-import junit.framework.Assert;
 
 import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContext;
@@ -12,6 +11,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.recipes.LocalData;
+import static org.junit.Assert.assertTrue;
 
 public class RoleAssignmentTest {
 
@@ -29,7 +29,7 @@ public class RoleAssignmentTest {
         Authentication orig = seccon.getAuthentication();
         seccon.setAuthentication(User.get("alice").impersonate());
         try {
-            Assert.assertTrue(j.jenkins.hasPermission(Permission.READ));
+            assertTrue(j.jenkins.hasPermission(Permission.READ));
         } finally {
             seccon.setAuthentication(orig);
         }

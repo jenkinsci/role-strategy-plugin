@@ -31,7 +31,6 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
-import hudson.model.Hudson;
 import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import java.io.IOException;
@@ -44,7 +43,6 @@ import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
-import static hudson.util.FormApply.success;
 import javax.annotation.CheckForNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;

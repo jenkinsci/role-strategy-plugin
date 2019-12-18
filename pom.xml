@@ -5,6 +5,7 @@
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
         <version>3.46</version>
+        <relativePath />
     </parent>
 
     <artifactId>role-strategy</artifactId>

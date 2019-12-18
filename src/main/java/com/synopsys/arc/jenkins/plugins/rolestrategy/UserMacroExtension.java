@@ -25,7 +25,6 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
-import hudson.model.Hudson;
 
 /**
  * User macro, which automatically detects User.

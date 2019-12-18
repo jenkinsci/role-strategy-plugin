@@ -27,7 +27,6 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
