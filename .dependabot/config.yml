@@ -12,8 +12,6 @@ update_configs:
         dependency_name: "org.jenkins-ci.main:jenkins-core"
     - match:
         dependency_name: "org.jenkins-ci.plugins*"
+        dependency_type: "production"
     - match:
         dependency_name: "io.jenkins.plugins*"
-  allowed_updates:
-    - match:
-        dependency_name: "org.jenkins-ci.plugins:plugin"
