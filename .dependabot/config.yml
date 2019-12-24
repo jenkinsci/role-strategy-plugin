@@ -16,4 +16,4 @@ update_configs:
         dependency_name: "io.jenkins.plugins*"
   allowed_updates:
     - match:
-        dependency_name: "org.jenkins-ci.plugins:plugin-pom"
+        dependency_name: "org.jenkins-ci.plugins:plugin"
