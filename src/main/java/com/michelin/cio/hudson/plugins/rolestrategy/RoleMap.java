@@ -506,7 +506,7 @@ public class RoleMap {
     /**
      * Aborts the iterations.
      * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions.
-     * @since 2.14
+     * @since 2.10
      */
     public void abort() {
       this.shouldAbort=true;
