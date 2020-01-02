@@ -91,7 +91,6 @@ public class RoleMap {
   }
 
   private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
-          .softValues()
           .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
@@ -102,7 +101,6 @@ public class RoleMap {
    * matching regular expressions.
    */
   private final Cache<String, RoleMap> matchingRoleMapCache = CacheBuilder.newBuilder()
-          .softValues()
           .maximumSize(2048)
           .expireAfterWrite(1, TimeUnit.HOURS)
           .build();
