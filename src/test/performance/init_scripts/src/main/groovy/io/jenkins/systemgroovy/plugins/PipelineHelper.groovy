@@ -13,7 +13,7 @@ import org.jenkinsci.plugins.workflow.libs.SCMRetriever
 /**
  * Helper script for Pipeline job management.
  * @author Oleg Nenashev
- * @since TODO
+ * @since 2.10
  */
 class PipelineHelper {
 

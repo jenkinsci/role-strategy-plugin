@@ -207,7 +207,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}
    * @param type the type of the role
    * @return roles mapped to the set of user sids assigned to that role
-   * @since TODO
+   * @since 2.12
    */
   public SortedMap<Role, Set<String>> getGrantedRoles(@Nonnull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
