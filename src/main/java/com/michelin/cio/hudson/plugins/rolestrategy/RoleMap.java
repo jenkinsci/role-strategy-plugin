@@ -57,6 +57,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -105,6 +106,10 @@ public class RoleMap {
           .softValues()
           .maximumSize(2048)
           .expireAfterWrite(1, TimeUnit.HOURS)
+          .build();
+
+  private final Cache<Integer, AclImpl> aclCache = CacheBuilder.newBuilder()
+          .maximumSize(512)
           .build();
 
   RoleMap() {
@@ -243,7 +248,14 @@ public class RoleMap {
    * @return ACL for the current {@link RoleMap}
    */
   public SidACL getACL(RoleType roleType, AccessControlled controlledItem) {
-    return new AclImpl(roleType, controlledItem);
+    Integer hash = Objects.hash(roleType, controlledItem);
+    AclImpl acl = aclCache.getIfPresent(hash);
+    if (acl != null) {
+      return acl;
+    }
+    acl = new AclImpl(roleType, controlledItem);
+    aclCache.put(hash, acl);
+    return acl;
   }
 
   /**
