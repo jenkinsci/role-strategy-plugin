@@ -101,7 +101,7 @@ public class RoleMap {
    * matching regular expressions.
    */
   private final Cache<String, RoleMap> matchingRoleMapCache = CacheBuilder.newBuilder()
-          .maximumSize(2048)
+          .maximumSize(4096)
           .expireAfterWrite(1, TimeUnit.HOURS)
           .build();
 

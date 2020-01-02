@@ -45,7 +45,7 @@ public class Settings {
      * @since 2.3.1
      */
     public static final int USER_DETAILS_CACHE_MAX_SIZE =
-            Integer.getInteger(Settings.class.getName() + ".userDetailsCacheMaxSize", 100);
+            Integer.getInteger(Settings.class.getName() + ".userDetailsCacheMaxSize", 200);
 
     /**
      * Defines lifetime of entries in the User details cache.
