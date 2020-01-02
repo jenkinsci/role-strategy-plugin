@@ -3,6 +3,8 @@ package jmh.benchmarks;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+
 import hudson.model.Computer;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -59,7 +61,7 @@ public class CascBenchmark {
                     s, instanceOf(RoleBasedAuthorizationStrategy.class));
             rbas = (RoleBasedAuthorizationStrategy) s;
 
-            Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+            Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
             assertThat(Objects.requireNonNull(globalRoles).size(), equalTo(2));
 
             // Admin has configuration access
