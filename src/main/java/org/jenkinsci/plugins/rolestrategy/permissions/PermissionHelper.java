@@ -25,6 +25,8 @@ package org.jenkinsci.plugins.rolestrategy.permissions;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+
 import hudson.PluginManager;
 import hudson.security.Permission;
 import java.util.ArrayList;
@@ -124,7 +126,7 @@ public class PermissionHelper {
      */
     @CheckForNull
     public static String reportDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
-        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleType.Global);
         return grantedRoles != null ? reportDangerousPermissions(grantedRoles.keySet()) : null;
     }
 
@@ -157,7 +159,7 @@ public class PermissionHelper {
 
     @CheckForNull
     public static boolean hasDangerousPermissions(@Nonnull RoleBasedAuthorizationStrategy strategy) {
-        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleType.Global);
         if (grantedRoles == null) {
             // Undefined
             return false;

@@ -3,6 +3,8 @@ package org.jenkinsci.plugins.rolestrategy.casc;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -62,9 +64,9 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     public Set<Attribute<RoleBasedAuthorizationStrategy,?>> describe() {
         return Collections.singleton(
             new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
-                List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL));
-                List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRoles(RoleBasedAuthorizationStrategy.SLAVE));
-                List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT));
+                List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Global));
+                List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Slave));
+                List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Project));
                 return new GrantedRoles(globalRoles, projectRoles, agentRoles);
             }));
     }

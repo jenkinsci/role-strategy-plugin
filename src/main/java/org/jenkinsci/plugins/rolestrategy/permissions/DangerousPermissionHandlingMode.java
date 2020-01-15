@@ -33,7 +33,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 /**
  * Defines the dangerous permission management logic.
  * @author Oleg Nenashev
- * @since TODO
+ * @since 2.4.0
  */
 public enum DangerousPermissionHandlingMode {
 
