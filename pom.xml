@@ -42,7 +42,7 @@
     <properties>
         <revision>2.17</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.60.3</jenkins.version>
+        <jenkins.version>2.219-rc29210.175c0edcd51f</jenkins.version>
         <java.level>8</java.level>
         <configuration-as-code.version>1.35</configuration-as-code.version>
     </properties>
@@ -98,6 +98,27 @@
             <artifactId>test-harness</artifactId>
             <version>${configuration-as-code.version}</version>
             <scope>test</scope>
+        </dependency>
+        <!-- Upper bound dep -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.26</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+            <version>1.7.26</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+            <version>1.7.26</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId>
+            <version>1.7.26</version>
         </dependency>
     </dependencies>
 </project>
