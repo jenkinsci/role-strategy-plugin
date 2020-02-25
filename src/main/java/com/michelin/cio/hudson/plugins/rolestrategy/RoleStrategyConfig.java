@@ -73,6 +73,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   @Override
   public Permission getRequiredPermission() {
+	// replace with Jenkins.SYSTEM_READ after baseline >= 2.222
     return SystemReadPermission.SYSTEM_READ;
   }
 
