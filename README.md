@@ -11,7 +11,7 @@ Role Strategy plugin
 The Role Strategy plugin is meant to be used from [Jenkins](https://jenkins.io) to add a new role-based mechanism to manage users' permissions. 
 Supported features
 
-* Creating **global roles**, such as admin, job creator, anonymous, etc., allowing to set Overall, Slave, Job, Run, View and SCM permissions on a global basis.
+* Creating **global roles**, such as admin, job creator, anonymous, etc., allowing to set Overall, Agent, Job, Run, View and SCM permissions on a global basis.
 * Creating **project roles**, allowing to set only Job and Run permissions on a project basis.
 * Creating **agent roles**, allowing to set node-related permissions.
 * Assigning these roles to users and user groups
