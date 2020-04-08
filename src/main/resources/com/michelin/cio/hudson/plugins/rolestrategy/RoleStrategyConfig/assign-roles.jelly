@@ -28,7 +28,15 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
-    <l:layout permission="${app.ADMINISTER}" norefresh="true">
+    <l:layout permission="${app.SYSTEM_READ}" title="${%Assign Roles}" norefresh="true">
+        <j:choose>
+          <j:when test="${app.hasPermission(app.ADMINISTER)}">
+            <j:set var="readOnlyMode" value="false" />
+          </j:when>
+          <j:otherwise>
+            <j:set var="readOnlyMode" value="true" />
+          </j:otherwise>
+        </j:choose>
         <st:include it="${app}" page="sidepanel.jelly"/>
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
@@ -48,22 +56,26 @@
 
           <d:taglib uri="local">
             <d:tag name="userRow">
-              <td class="start">
-                <a href="#">
-                  <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
-                </a>
-              </td>
+                <td class="start">
+                  <l:isAdmin>
+                    <a href="#">
+                      <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
+                    </a>
+                  </l:isAdmin>
+                </td>
               <td class="left-most">${title}</td>
               <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
                 <td width="*">
                   <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
                 </td>
               </j:forEach>
-              <td class="stop">
-                <a href="#">
-                  <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
-                </a>
-              </td>
+              <l:isAdmin>
+                <td class="stop">
+                  <a href="#">
+                    <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
+                  </a>
+                </td>
+              </l:isAdmin>
             </d:tag>
           </d:taglib>
 
@@ -90,10 +102,12 @@
                 <f:block><st:include page="assign-slave-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-            <f:block>
-              <f:submit value="${%Save}" />
-              <f:apply />
-            </f:block>
+            <l:isAdmin>
+              <f:block>
+                <f:submit value="${%Save}" />
+                <f:apply />
+              </f:block>
+            </l:isAdmin>
           </f:form>
         </l:main-panel>
     </l:layout>
