@@ -137,12 +137,11 @@ public class RoleMap {
    */
   private boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
     final Set<Permission> permissions = getImplyingPermissions(permission);
-    final boolean[] hasPermission = { false };
 
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
-    new RoleWalker() {
-      public void perform(Role current) {
+    return new RoleWalker() {
+      public boolean perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
           if (grantedRoles.get(current).contains(sid)) {
             // Handle roles macro
@@ -151,26 +150,22 @@ public class RoleMap {
               if (macro != null) {
                 RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
                 if (macroExtension.IsApplicable(roleType) && macroExtension.hasPermission(sid, permission, roleType, controlledItem, macro)) {
-                  hasPermission[0] = true;
-                  abort();
+                  return true;
                 }
               }
             } else {
-              hasPermission[0] = true;
-              abort();
+              return true;
             }
           } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
             try {
               UserDetails userDetails = cache.getIfPresent(sid);
               if (userDetails == null) {
-                userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername(sid);
                 cache.put(sid, userDetails);
               }
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
                 if (grantedAuthority.getAuthority().equals(current.getName())) {
-                  hasPermission[0] = true;
-                  abort();
-                  return;
+                  return true;
                 }
               }
             } catch (BadCredentialsException e) {
@@ -184,9 +179,9 @@ public class RoleMap {
             }
           }
         }
+        return false;
       }
-    };
-    return hasPermission[0];
+    }.walk();
   }
 
   /**
@@ -427,13 +422,14 @@ public class RoleMap {
 
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     new RoleWalker() {
-      public void perform(Role current) {
+      public boolean perform(Role current) {
         Matcher m = current.getPattern().matcher(itemNamePrefix);
         if (m.matches()) {
           roleMap.put(current, grantedRoles.get(current));
         }
+        return false;
       }
-    };
+    }.walk();
 
     RoleMap newMatchingRoleMap = new RoleMap(roleMap);
     matchingRoleMapCache.put(itemNamePrefix, newMatchingRoleMap);
@@ -447,7 +443,7 @@ public class RoleMap {
    * @return List of matching job names
    */
   public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
-      Iterator<Item> jobs = Items.allItems(Jenkins.getInstance(), Item.class).iterator();
+      Iterator<Item> jobs = Items.allItems(Jenkins.get(), Item.class).iterator();
       List<String> matchingJobNames = new ArrayList<>();
 
       while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
@@ -499,37 +495,21 @@ public class RoleMap {
    * action on each one.
    */
   private abstract class RoleWalker {
-    boolean shouldAbort=false;
     RoleWalker() {
-      walk();
-    }
-    /**
-     * Aborts the iterations.
-     * The method can be used from RoleWalker callbacks to preemptively abort the execution loops on some conditions.
-     * @since 2.10
-     */
-    public void abort() {
-      this.shouldAbort=true;
     }
 
     /**
      * Walk through the roles.
      */
-    public void walk() {
+    public boolean walk() {
       Set<Role> roles = RoleMap.this.getRoles();
-      Iterator<Role> iter = roles.iterator();
-      while (iter.hasNext()) {
-        Role current = iter.next();
-        perform(current);
-        if (shouldAbort) {
-            break;
-        }
-      }
+      return roles.parallelStream().anyMatch(r -> perform(r));
     }
 
     /**
      * The method to implement which will be called on each {@link Role}.
+     * @return true if the rolewalker should abort
      */
-    abstract public void perform(Role current);
+    abstract public boolean perform(Role current);
   }
 }
