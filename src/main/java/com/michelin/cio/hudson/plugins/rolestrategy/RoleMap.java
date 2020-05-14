@@ -42,10 +42,7 @@ import org.acegisecurity.GrantedAuthority;
 import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
 import org.jenkinsci.plugins.rolestrategy.Settings;
-import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
 
@@ -122,14 +119,6 @@ public class RoleMap {
           this.grantedRoles.put(entry.getKey(), new HashSet<>(entry.getValue()));
         }
     }
-
-  /**
-   * Invalidate the dangerous permissions from the cache when the {@link DangerousPermissionHandlingMode} changes.
-   */
-  @Restricted(NoExternalUse.class)
-  public static void invalidateDangerousPermissions() {
-    PermissionHelper.DANGEROUS_PERMISSIONS.forEach(implyingPermissionCache::remove);
-  }
 
   /**
    * Check if the given sid has the provided {@link Permission}.
