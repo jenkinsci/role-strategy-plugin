@@ -503,7 +503,7 @@ public class RoleMap {
      */
     public boolean walk() {
       Set<Role> roles = RoleMap.this.getRoles();
-      return roles.parallelStream().anyMatch(r -> perform(r));
+      return roles.stream().anyMatch(r -> perform(r));
     }
 
     /**
