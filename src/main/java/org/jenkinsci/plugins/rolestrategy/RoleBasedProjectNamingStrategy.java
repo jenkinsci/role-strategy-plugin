@@ -3,6 +3,8 @@ package org.jenkinsci.plugins.rolestrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+
 import hudson.Extension;
 import hudson.model.Failure;
 import hudson.model.Item;
@@ -41,13 +43,13 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         if (auth instanceof RoleBasedAuthorizationStrategy){
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             //firstly check global role
-            SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.GLOBAL);
+            SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleType.Global);
             for (SortedMap.Entry<Role, Set<String>> entry: gRole.entrySet()){
                 if (entry.getKey().hasPermission(Item.CREATE))
                     return;
             }
             // check project role with pattern
-            SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleBasedAuthorizationStrategy.PROJECT);
+            SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleType.Project);
             badList = new ArrayList<>(roles.size());
             if (StringUtils.isNotBlank(name)) {
                 for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {

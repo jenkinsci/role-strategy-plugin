@@ -55,7 +55,7 @@
                     <td rowspan="2" class="pane-header blank">
                       ${%Description}
                     </td>
-                    <td rowspan="2" class="stop" />
+                    <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
                 </tr>
                 <!--Second header row-->
                 <tr name="Caption" class="group-row">
@@ -71,15 +71,15 @@
                         <td>${macroExt.IsApplicable(it.globalRoleType)}</td>
                         <td>${macroExt.IsApplicable(it.projectRoleType)}</td>
                         <td>${macroExt.IsApplicable(it.slaveRoleType)}</td>
-                        <td><j:out value="${macroExt.getDescription()}"/></td> 
-                        <td class="stop" />
+                        <td><j:out value="${macroExt.getDescription()}"/></td>
+                        <l:isAdmin><td class="stop" /></l:isAdmin>
                     </tr>
                 </j:forEach>
             </table>
         </d:tag>
     </d:taglib>
     
-    <l:layout permission="${app.ADMINISTER}" norefresh="true">
+    <l:layout permission="${app.SYSTEM_READ}" norefresh="true">
         <st:include it="${app}" page="sidepanel.jelly"/>
         
         <l:main-panel>

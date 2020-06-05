@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.46</version>
+        <version>4.1</version>
         <relativePath />
     </parent>
 
@@ -42,9 +42,10 @@
     <properties>
         <revision>2.17</revision>
         <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.60.3</jenkins.version>
+        <jenkins.version>2.222.1</jenkins.version>
         <java.level>8</java.level>
-        <configuration-as-code.version>1.29</configuration-as-code.version>
+        <configuration-as-code.version>1.35</configuration-as-code.version>
+        <useBeta>true</useBeta>
     </properties>
 
     <repositories>
@@ -76,6 +77,11 @@
             <version>2.2</version>
         </dependency>
         <dependency>
+            <groupId>org.jvnet.hudson.plugins</groupId>
+            <artifactId>extended-read-permission</artifactId>
+            <version>3.2</version>
+        </dependency>
+        <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-junit</artifactId>
             <version>2.0.0.0</version>
@@ -94,10 +100,9 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>io.jenkins</groupId>
-            <artifactId>configuration-as-code</artifactId>
+            <groupId>io.jenkins.configuration-as-code</groupId>
+            <artifactId>test-harness</artifactId>
             <version>${configuration-as-code.version}</version>
-            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
     </dependencies>

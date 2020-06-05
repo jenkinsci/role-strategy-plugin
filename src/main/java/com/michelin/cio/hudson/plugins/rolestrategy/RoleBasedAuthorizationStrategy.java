@@ -71,7 +71,6 @@ import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
-import org.jenkinsci.plugins.rolestrategy.permissions.DangerousPermissionHandlingMode;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -207,7 +206,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}
    * @param type the type of the role
    * @return roles mapped to the set of user sids assigned to that role
-   * @since TODO
+   * @since 2.12
    */
   public SortedMap<Role, Set<String>> getGrantedRoles(@Nonnull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
@@ -907,51 +906,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         return groups;
     }
-
-    @Restricted(NoExternalUse.class)
-    public boolean hasDangerousPermissions() {
-        RoleBasedAuthorizationStrategy instance = RoleBasedAuthorizationStrategy.getInstance();
-        if (instance == null) {
-            // Should never happen
-            return false;
-        }
-        return PermissionHelper.hasDangerousPermissions(instance);
-    }
-
+    
     @Restricted(NoExternalUse.class)
     public boolean showPermission(String type, Permission p) {
-        return showPermission(type, p, false);
-    }
-
-    /**
-     * Check if the permission should be displayed.
-     * For Stapler only.
-     */
-    @Restricted(NoExternalUse.class)
-    public boolean showPermission(String type, Permission p, boolean showDangerous) {
-      if(type.equals(GLOBAL)) {
-        if (PermissionHelper.isDangerous(p)) {
-            // Consult with the Security strategy
-            RoleBasedAuthorizationStrategy instance = RoleBasedAuthorizationStrategy.getInstance();
-            if (instance == null) {
-                // Should never happen
+        switch (type) {
+            case GLOBAL:
+                if (PermissionHelper.isDangerous(p)) {
+                    return false;
+                }
+                return p.getEnabled();
+            case PROJECT:
+                return p == Item.CREATE && p.getEnabled() || p != Item.CREATE && p.getEnabled();
+            case SLAVE:
+                return p != Computer.CREATE && p.getEnabled();
+            default:
                 return false;
-            }
-
-            // When disabled, never show the permissions
-            return showDangerous && DangerousPermissionHandlingMode.getCurrent() != DangerousPermissionHandlingMode.DISABLED;
         }
-        return p.getEnabled();
-      }
-      else if (type.equals(PROJECT)) {
-        return p == Item.CREATE && p.getEnabled() || p != Item.CREATE && p.getEnabled();
-      }
-      else if (type.equals(SLAVE)) {
-          return p!=Computer.CREATE && p.getEnabled();
-      }
-      else {
-        return false;
-      }
     }
   }
 }

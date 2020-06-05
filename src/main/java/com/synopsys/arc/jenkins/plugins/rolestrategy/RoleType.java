@@ -53,7 +53,7 @@ public enum RoleType {
      * {@link RoleBasedAuthorizationStrategy}'s item
      * @return Appropriate row type
      * @throws IllegalArgumentException Invalid roleName
-     * @since TODO
+     * @since 2.3.0
      */
     public static RoleType fromString(String roleName) {
         if (roleName.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {

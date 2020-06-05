@@ -32,7 +32,9 @@ import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
 import hudson.model.ManagementLink;
+import hudson.plugins.extendedread.SystemReadPermission;
 import hudson.security.AuthorizationStrategy;
+import hudson.security.Permission;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
@@ -64,9 +66,15 @@ public class RoleStrategyConfig extends ManagementLink {
     String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
     if (Jenkins.getActiveInstance().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
-      icon = "secure.gif";
+      icon = "secure.png";
     }
     return icon;
+  }
+
+  @Override
+  public Permission getRequiredPermission() {
+	// replace with Jenkins.SYSTEM_READ after baseline >= 2.222
+    return SystemReadPermission.SYSTEM_READ;
   }
 
   /**

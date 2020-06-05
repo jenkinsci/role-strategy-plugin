@@ -41,7 +41,7 @@
             ${role.key.name}
           </td>
         </j:forEach>
-        <td class="stop" />
+        <l:isAdmin><td class="stop" /></l:isAdmin>
       </tr>
       <j:set var="nbAssignedProjectsRoles" value="${0}" />
       <j:forEach var="sid" items="${projectSIDs}">
@@ -68,11 +68,12 @@
               ${role.key.name}
             </td>
           </j:forEach>
-          <td class="stop" />
+          <l:isAdmin><td class="stop" /></l:isAdmin>
         </tr>
       </j:if>
     </table>
 
+  <l:isAdmin>
     <br /><br />
     <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
       <f:textbox type="text" id="${id}text" checkUrl="'${descriptorPath}/checkForWhitespace?value='+escape(this.value)" />
@@ -80,6 +81,7 @@
     <f:entry>
       <input type="button" value="${%Add}" id="${id}button"/>
     </f:entry>
+  </l:isAdmin>
 
     <script>
       var tableHighlighter;
@@ -89,7 +91,11 @@
         var table = master.parentNode;
         table.removeChild(master);
 
-        makeButton($$('${id}button'), function (e) {
+        var btn = $$('${id}button');
+        if (!btn) {
+          return;
+        }
+        makeButton(btn, function (e) {
           <!-- when 'add' is clicked... -->
           var name = $$('${id}text').value.trim();
           if(name=="") {

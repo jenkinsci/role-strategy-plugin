@@ -141,7 +141,7 @@ public class Macro {
      * @param macroString - macro string
      * @return Macro instance
      * @throws MacroException - Parse error
-     * @since TODO
+     * @since 2.3.0
      */
     public static Macro parse(String macroString) throws MacroException {
         if (!isMacro(macroString)) {

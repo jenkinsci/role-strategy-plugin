@@ -28,7 +28,15 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
-    <l:layout permission="${app.ADMINISTER}" norefresh="true">
+    <l:layout permission="${app.SYSTEM_READ}" norefresh="true" title="${%Manage Roles}">
+        <j:choose>
+          <j:when test="${app.hasPermission(app.ADMINISTER)}">
+            <j:set var="readOnlyMode" value="false" />
+          </j:when>
+          <j:otherwise>
+            <j:set var="readOnlyMode" value="true" />
+          </j:otherwise>
+        </j:choose>
         <st:include it="${app}" page="sidepanel.jelly"/>
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
@@ -41,11 +49,13 @@
 
           <d:taglib uri="local">
             <d:tag name="roleRow">
-              <td class="start">
-                <a href="#">
-                  <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
-                </a>
-              </td>
+                <td class="start">
+                  <l:isAdmin>
+                    <a href="#">
+                      <img alt="remove" src="${imagesURL}/16x16/stop.png"/>
+                    </a>
+                  </l:isAdmin>
+                </td>
               <td class="left-most">${title}</td>
               <j:if test="${!attrs.global}">
                 <td width="*" class="in-place-edit">
@@ -62,28 +72,28 @@
               <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
-                  <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p, attrs.showDangerous)}">
+                  <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
                     <td width="*">                   
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>
                 </j:forEach>
               </j:forEach>
-              <td class="stop">
-                <a href="#">
-                  <img alt="remove" src="${imagesURL}/16x16/stop.gif"/>
-                </a>
-              </td>
+              <l:isAdmin>
+                <td class="stop">
+                  <a href="#">
+                    <img alt="remove" src="${imagesURL}/16x16/stop.png"/>
+                  </a>
+                </td>
+              </l:isAdmin>
             </d:tag>
           </d:taglib>
 
           <f:form method="post" name="config" action="rolesSubmit">
             <h1>
-              <img src="${imagesURL}/48x48/fingerprint.gif" alt="${it.displayName}" />
+              <img src="${imagesURL}/48x48/fingerprint.png" alt="${it.displayName}" />
               ${it.manageRolesName}
             </h1>
-
-            <j:set var="hasDangerous" value="${it.strategy.descriptor.hasDangerousPermissions()}"/>
 
             <f:section title="${%Global roles}">
               <f:rowSet name="globalRoles">
@@ -100,10 +110,12 @@
                 <f:block><st:include page="manage-slave-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-            <f:block>
-              <f:submit value="${%Save}" />
-              <f:apply />
-            </f:block>
+            <l:isAdmin>
+              <f:block>
+                <f:submit value="${%Save}" />
+                <f:apply />
+              </f:block>
+            </l:isAdmin>
           </f:form>
         </l:main-panel>
     </l:layout>

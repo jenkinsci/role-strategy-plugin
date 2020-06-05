@@ -40,7 +40,7 @@
         <j:forEach var="g" items="${globalGroups}">
           <j:set var="cnt" value="${0}" />
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
               <j:set var="cnt" value="${cnt+1}"/>
             </j:if>
           </j:forEach>
@@ -49,13 +49,13 @@
             ${g.title}
           </td>
         </j:forEach>
-        <td rowspan="2" class="stop" />
+        <l:isAdmin><td class="stop" /></l:isAdmin>
       </tr>
       <!-- The second row for individual permission -->
       <tr class="caption-row">
         <j:forEach var="g" items="${globalGroups}">
           <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
+            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
               <th class="pane" tooltip="${p.description}">
                 ${p.name}
               </th>
@@ -66,12 +66,12 @@
       <j:set var="nbGlobalRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" showDangerous="${hasDangerous}"/>
+          <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" />
         </tr>
         <j:set var="nbGlobalRoles" value="${nbGlobalRoles+1}"/>
       </j:forEach>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${true}" type="${it.strategy.GLOBAL}" showDangerous="${hasDangerous}"/>
+        <local:roleRow role="${null}" global="${true}" type="${it.strategy.GLOBAL}" />
       </tr>
       <!-- The last two rows are used to repeat the header if necessary (if more than 20 lines) -->
       <j:if test="${nbGlobalRoles ge 20}">
@@ -82,20 +82,20 @@
           </td>
           <j:forEach var="g" items="${globalGroups}">
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
                 <th class="pane" tooltip="${p.description}">
                   ${p.name}
                 </th>
               </j:if>
             </j:forEach>
           </j:forEach>
-          <td rowspan="2" class="stop" />
+          <l:isAdmin><td class="stop" /></l:isAdmin>
         </tr>
         <tr class="group-row">
           <j:forEach var="g" items="${globalGroups}">
             <j:set var="cnt" value="${0}" />
             <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p, hasDangerous)}">
+              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
                 <j:set var="cnt" value="${cnt+1}"/>
               </j:if>
             </j:forEach>
@@ -108,6 +108,7 @@
       </j:if>
     </table>
 
+  <l:isAdmin>
     <br /><br />
     <f:entry title="${%Role to add}">
       <f:textbox type="text" id="${id}text" />
@@ -115,6 +116,7 @@
     <f:entry>
       <input type="button" value="${%Add}" id="${id}button"/>
     </f:entry>
+  </l:isAdmin>
 
     <script>
       var tableHighlighter;
@@ -124,7 +126,11 @@
         var table = master.parentNode;
         table.removeChild(master);
 
-        makeButton($$('${id}button'), function (e) {
+        var btn = $$('${id}button');
+        if (!btn) {
+            return;
+        }
+        makeButton(btn, function (e) {
           <!-- when 'add' is clicked... -->
           var name = $$('${id}text').value;
           if(name=="") {
