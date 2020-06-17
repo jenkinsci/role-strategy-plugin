@@ -54,7 +54,7 @@
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:userRow global="${true}" type="${it.strategy.GLOBAL}"/>
+        <local:userRow title="{{USER}}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${nbAssignedGlobalRoles ge 19}">
@@ -115,6 +115,13 @@
           copy.removeAttribute("style");
           copy.childNodes[1].innerHTML = name;
           copy.setAttribute("name",'['+name+']');
+
+          var children = copy.childNodes;
+          children.forEach(function(item){
+            item.outerHTML= item.outerHTML.replace("{{USER}}", name);
+            
+          });
+
           <j:if test="${nbAssignedGlobalRoles lt 19}">
             table.appendChild(copy);
           </j:if>
