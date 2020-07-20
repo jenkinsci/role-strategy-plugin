@@ -54,7 +54,7 @@
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:userRow global="${false}" type="${it.strategy.PROJECT}"/>
+        <local:userRow title="{{USER}}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${nbAssignedProjectsRoles ge 19}">
@@ -113,6 +113,14 @@
             copy = master.cloneNode(true); <!-- for IE -->
           copy.removeAttribute("id");
           copy.removeAttribute("style");
+          
+          var children = copy.childNodes;
+          children.forEach(function(item){
+            item.outerHTML= item.outerHTML.replace("{{USER}}", name);
+            
+          });
+
+
           copy.childNodes[1].innerHTML = name;
           copy.setAttribute("name",'['+name+']');
           <j:if test="${nbAssignedProjectsRoles lt 19}">
