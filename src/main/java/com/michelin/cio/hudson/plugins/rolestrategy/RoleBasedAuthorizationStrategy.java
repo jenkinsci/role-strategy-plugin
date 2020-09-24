@@ -31,6 +31,7 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import hudson.Extension;
@@ -576,7 +577,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               String pattern = reader.getAttribute("pattern");
               Set<Permission> permissions = new HashSet<>();
 
-              String next = reader.peekNextChild();
+              String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
               if (next != null && next.equals("permissions")) {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
@@ -593,7 +594,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               Role role = new Role(name, pattern, permissions);
               map.addRole(role);
 
-              next = reader.peekNextChild();
+              next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
               if (next != null && next.equals("assignedSIDs")) {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
