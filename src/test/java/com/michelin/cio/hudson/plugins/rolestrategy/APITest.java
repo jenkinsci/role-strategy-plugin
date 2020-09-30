@@ -12,17 +12,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.jvnet.hudson.test.MockFolder;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 /**
- * Test suite for {@link RoleBasedAuthorizationStrategy} Web API Methods
+ * Tests for {@link RoleBasedAuthorizationStrategy} Web API Methods
  */
 public class APITest {
 
@@ -47,53 +45,77 @@ public class APITest {
 
     @Test
     public void testAddRole() throws IOException {
-        addRole("projectRoles", "new-role", "hudson.model.Item.Configure",
-                false, "test-folder.*");
-        assertTrue("Checking if the role is found.", checkIfRoleExists("new-role"));
+        // Adding role via curl command
+        String roleName = "new-role";
+        String pattern = "test-folder.*";
+        String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole";
+        String curlCmd = "curl -u adminUser:adminUser -X POST " + url + " --data type="+ RoleType.Project.getStringType()
+                + "&roleName=" + roleName + "&permissionIds=hudson.model.Item.Configure&overwrite=false"
+                + "&pattern=" + pattern;
+        String output = execCmd(curlCmd);
+        LOGGER.info("Output of addRole: " + output);
+        // Verifying that the role is in
+        RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+        SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleType.Project);
+        boolean foundRole = false;
+        for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
+            Role role = entry.getKey();
+            if (role.getName().equals("new-role") && role.getPattern().pattern().equals(pattern)) {
+                foundRole = true;
+            }
+        }
+        assertTrue("Checking if the role is found.", foundRole);
     }
 
     @Test
     public void testGetRole() throws IOException {
-        String roleString = getRole(RoleType.Global.getStringType(), "adminRole");
+        String curlCmd = "curl -u adminUser:adminUser -X GET " + jenkinsRule.jenkins.getRootUrl()
+                + "role-strategy/strategy/getRole?" + "type=" + RoleType.Global.getStringType() + "&roleName=adminRole";
+        String roleString = execCmd(curlCmd);
         LOGGER.info("response: " + roleString);
+
         assertTrue(roleString.length() > 2);
+        assertNotEquals("{}", roleString);
     }
 
     @Test
     public void testAssignRole() throws IOException, InterruptedException {
-        // Verifying that alice does not have permission by default
-        MockFolder testFolder = jenkinsRule.createFolder("test-folder");
-        Authentication auth = User.getById("alice", true).impersonate();
-        assertFalse(testFolder.hasPermission(auth, Permission.CONFIGURE));
-        // Testing creating role
-        testAddRole();
+        // adding role
+        String roleName = "new-role";
+        String pattern = "test-folder.*";
+        String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole";
+        String curlCmd = "curl -u adminUser:adminUser -X POST " + url + " --data type="+ RoleType.Project.getStringType()
+                + "&roleName=" + roleName + "&permissionIds=hudson.model.Item.Configure&overwrite=false"
+                + "&pattern=" + pattern;
+        execCmd(curlCmd);
         // Assigning role
-        assignRole(RoleType.Project.getStringType(), "new-role", "alice");
-        // Testing that alice has permissions
-        Thread.sleep(3000);
-        // getting the roles
+        String sid = "alice";
+        url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole";
+        curlCmd = "curl -u adminUser:adminUser -X POST " + url + " --data type=" + RoleType.Project.getStringType()
+                + "&roleName=" + roleName + "&sid=" + sid;
+        execCmd(curlCmd);
+        Thread.sleep(1000);
+        // Verifying that alice is assigned to the role "new-role"
         RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
         SortedMap<Role, Set<String>> roles = strategy.getGrantedRoles(RoleType.Project);
-        LOGGER.info("role:");
-        LOGGER.info(roles.toString());
         boolean found = false;
         for (Map.Entry<Role, Set<String>> entry : roles.entrySet()) {
             Role role = entry.getKey();
             Set<String> sids = entry.getValue();
-            if (role.getName().equals("new-role") && sids.contains("alice")) {
+            if (role.getName().equals(roleName) && sids.contains(sid)) {
                 found = true;
                 break;
             }
         }
         assertTrue(found);
-
     }
 
     @Test
     public void testUnassignRole() throws IOException, InterruptedException {
         testAssignRole();  // assign alice to a role named "new-role"
-        String url = jenkinsRule.jenkins.getRootUrl() + "/role-strategy/strategy/unassignRole";
-        String curlCmd = url + " --data type=" + RoleType.Project.getStringType() + "&roleName=new-role&sid=alice";
+        String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignRole";
+        String curlCmd = "curl -u adminUser:adminUser -X POST " + url + " --data type="
+                + RoleType.Project.getStringType() + "&roleName=new-role&sid=alice";
         String output = execCmd(curlCmd);
         LOGGER.info("UnassignRole output: " + output);
         // Verifying that alice no longer has permissions
@@ -109,88 +131,6 @@ public class APITest {
             assertFalse("Checking if Alice is still assigned to new-role",
                     role.getName().equals("new-role") && sids.contains("alice"));
         }
-
-    }
-
-
-    /**
-     * Method to check if a role exists via the role strategy instead of via web API method
-     * @param roleName Name of the role
-     * @return true if role exists
-     */
-    private boolean checkIfRoleExists(String roleName) {
-        RoleBasedAuthorizationStrategy roleBasedAuthorizationStrategy = RoleBasedAuthorizationStrategy.getInstance();
-        assertNotNull(roleBasedAuthorizationStrategy);
-        SortedMap<Role, Set<String>> grantedRoles = roleBasedAuthorizationStrategy.getGrantedRoles(RoleType.Project);
-        boolean foundRole = false;
-        for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
-            Role role = entry.getKey();
-            if (role.getName().equals(roleName)) {
-                foundRole = true;
-            }
-        }
-        return foundRole;
-    }
-
-    /**
-     * Assigns a user to a role via the web API
-     * @param roleType Type of the role - see {@link RoleType}
-     * @param roleName Name of the role
-     * @param sid User id of jenkins user
-     */
-    private void assignRole(String roleType, String roleName, String sid) throws IOException {
-        String url = jenkinsRule.jenkins.getRootUrl() + "/role-strategy/strategy/assignRole";
-        String curlCmd = "curl -u adminUser:adminUser -X POST " + url + "  --data type="+ roleType +
-                "&roleName=" + roleName + "&sid=" + sid;
-        String output = execCmd(curlCmd);
-        LOGGER.info("assignRole output: " + output);
-    }
-
-    /**
-     * Overloaded method without the pattern argument. See {@link APITest#addRole(String, String, String, boolean, String)}
-     */
-    private void addRole(String roleType, String roleName, String permissions, boolean overwrite) throws IOException {
-        addRole(roleType, roleName, permissions, overwrite, null);
-    }
-
-    /**
-     * Adds a Jenkins role using the web API method
-     * @param roleType Type of Jenkins role - see {@link RoleType}
-     * @param roleName Name of role
-     * @param permissions Permissions of the role
-     * @param overwrite Whether to overwrite an existing role
-     * @param pattern Any pattern
-     * @throws IOException
-     */
-    private void addRole(String roleType, String roleName, String permissions, boolean overwrite, String pattern)
-            throws IOException {
-        String url = jenkinsRule.jenkins.getRootUrl() + "/role-strategy/strategy/addRole";
-        String curlCmd;
-
-        if (pattern != null) {
-            curlCmd = "curl -u adminUser:adminUser -X POST " + url + "  --data type="+ roleType + "&roleName=" + roleName
-                    + "&permissionIds=" + permissions + "&overwrite=" + overwrite + "&pattern=" + pattern;
-        } else {
-            curlCmd = "curl -u adminUser:adminUser -X POST " + jenkinsRule.jenkins.getRootUrl() +
-                    "/role-strategy/strategy/assignRole" + "  --data type="+ roleType + "&roleName=" + roleName
-                    + "&permissionIds=" + permissions + "&overwrite=" + overwrite;
-        }
-        String output = execCmd(curlCmd);
-        LOGGER.info("Output of addRole: " + output);
-    }
-
-    /**
-     * Gets a Jenkins role via the Web API method
-     * @param roleType Type of Jenkins role - see {@link RoleType}
-     * @param roleName Name of Jenkins role
-     * @return Json string containing the role
-     * @throws IOException
-     */
-    private String getRole(String roleType, String roleName) throws IOException {
-        String curlCmd = "curl -u adminUser:adminUser -X GET " + jenkinsRule.jenkins.getRootUrl() + "/role-strategy/strategy/getRole?"
-                + "type=" + roleType + "&roleName=" + roleName;
-        String output = execCmd(curlCmd);
-        return output;
     }
 
     /**
