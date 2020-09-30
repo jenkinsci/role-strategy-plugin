@@ -1,13 +1,10 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gargoylesoftware.htmlunit.HttpMethod;
 import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import hidden.jth.org.apache.http.HttpRequest;
-import hidden.jth.org.apache.http.auth.UsernamePasswordCredentials;
 import hudson.model.User;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
@@ -19,13 +16,9 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Issue;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
