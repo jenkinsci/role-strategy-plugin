@@ -16,6 +16,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.Issue;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
@@ -28,17 +29,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Logger;
 
 /**
  * Tests for {@link RoleBasedAuthorizationStrategy} Web API Methods
  */
 public class APITest {
-
+    
     @Rule
     public final JenkinsRule jenkinsRule = new JenkinsRule();
-    public static Logger LOGGER = Logger.getLogger(APITest.class.getName());
-    JenkinsRule.WebClient webClient;
+    
+    private JenkinsRule.WebClient webClient;
 
     @Before
     public void setUp() throws Exception {
@@ -58,6 +58,7 @@ public class APITest {
     }
 
     @Test
+    @Issue("JENKINS-61470")
     public void testAddRole() throws IOException {
         String roleName = "new-role";
         String pattern = "test-folder.*";
@@ -88,6 +89,7 @@ public class APITest {
     }
 
     @Test
+    @Issue("JENKINS-61470")
     public void testGetRole() throws IOException {
         String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getRole?type="
                 + RoleType.Global.getStringType() + "&roleName=adminRole";
@@ -103,6 +105,7 @@ public class APITest {
     }
 
     @Test
+    @Issue("JENKINS-61470")
     public void testAssignRole() throws IOException, InterruptedException {
         String roleName = "new-role";
         String sid = "alice";
@@ -134,6 +137,7 @@ public class APITest {
     }
 
     @Test
+    @Issue("JENKINS-61470")
     public void testUnassignRole() throws IOException, InterruptedException {
 
         String roleName = "new-role";
@@ -158,16 +162,5 @@ public class APITest {
             assertFalse("Checking if Alice is still assigned to new-role",
                     role.getName().equals("new-role") && sids.contains("alice"));
         }
-    }
-
-    /**
-     * Util method for executing a terminal command and getting the output
-     * @param cmd Command to be run
-     * @return String containing the terminal output
-     * @throws java.io.IOException
-     */
-    private static String execCmd(String cmd) throws java.io.IOException {
-        java.util.Scanner s = new java.util.Scanner(Runtime.getRuntime().exec(cmd).getInputStream()).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
     }
 }
