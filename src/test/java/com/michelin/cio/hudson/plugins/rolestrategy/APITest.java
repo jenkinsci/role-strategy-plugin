@@ -24,6 +24,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -71,7 +72,7 @@ public class APITest {
                 new NameValuePair("pattern", pattern)
         ));
         Page page = webClient.getPage(request);
-        assertEquals("Testing if post request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+        assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
 
         // Verifying that the role is in
         RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
@@ -91,11 +92,11 @@ public class APITest {
         String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getRole?type="
                 + RoleType.Global.getStringType() + "&roleName=adminRole";
         URL apiURL = new URL(url);
-        WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+        WebRequest request = new WebRequest(apiURL, HttpMethod.GET);
         Page page = webClient.getPage(request);
 
         // Verifying that web request is successful and that the role is found
-        assertEquals("Testing if post request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+        assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
         String roleString = page.getWebResponse().getContentAsString();
         assertTrue(roleString.length() > 2);
         assertNotEquals("{}", roleString);  // {} is returned when no role is found
@@ -103,21 +104,20 @@ public class APITest {
 
     @Test
     public void testAssignRole() throws IOException, InterruptedException {
-        // adding role
         String roleName = "new-role";
-        String pattern = "test-folder.*";
-        String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole";
-        String curlCmd = "curl -u adminUser:adminUser -X POST " + url + " --data type="+ RoleType.Project.getStringType()
-                + "&roleName=" + roleName + "&permissionIds=hudson.model.Item.Configure&overwrite=false"
-                + "&pattern=" + pattern;
-        execCmd(curlCmd);
-        // Assigning role
         String sid = "alice";
-        url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole";
-        curlCmd = "curl -u adminUser:adminUser -X POST " + url + " --data type=" + RoleType.Project.getStringType()
-                + "&roleName=" + roleName + "&sid=" + sid;
-        execCmd(curlCmd);
-        Thread.sleep(1000);
+        // Assigning role using web request
+        testAddRole();
+        URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole");
+        WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+        request.setRequestParameters(Arrays.asList(
+                new NameValuePair("type", RoleType.Project.getStringType()),
+                new NameValuePair("roleName", roleName),
+                new NameValuePair("sid", sid)
+        ));
+        Page page = webClient.getPage(request);
+        assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+
         // Verifying that alice is assigned to the role "new-role"
         RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
         SortedMap<Role, Set<String>> roles = strategy.getGrantedRoles(RoleType.Project);
@@ -135,12 +135,20 @@ public class APITest {
 
     @Test
     public void testUnassignRole() throws IOException, InterruptedException {
+
+        String roleName = "new-role";
+        String sid = "alice";
         testAssignRole();  // assign alice to a role named "new-role"
-        String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignRole";
-        String curlCmd = "curl -u adminUser:adminUser -X POST " + url + " --data type="
-                + RoleType.Project.getStringType() + "&roleName=new-role&sid=alice";
-        String output = execCmd(curlCmd);
-        LOGGER.info("UnassignRole output: " + output);
+        URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignRole");
+        WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+        request.setRequestParameters(Arrays.asList(
+                new NameValuePair("type", RoleType.Project.getStringType()),
+                new NameValuePair("roleName", roleName),
+                new NameValuePair("sid", sid)
+        ));
+        Page page = webClient.getPage(request);
+        assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+
         // Verifying that alice no longer has permissions
         RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
         SortedMap<Role, Set<String>> roles = strategy.getGrantedRoles(RoleType.Project);
