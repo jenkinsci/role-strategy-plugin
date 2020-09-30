@@ -86,6 +86,10 @@ public class RoleStrategyConfig extends ManagementLink {
     return "role-strategy";
   }
 
+  public String getCategoryName() {
+    return "SECURITY";
+  }
+
   /**
    * Text displayed in the Manage Hudson panel.
    * @return Link text in the Admin panel
