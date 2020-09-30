@@ -1,10 +1,7 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import hudson.model.Item;
 import hudson.model.User;
-import hudson.security.Permission;
-import org.acegisecurity.Authentication;
 import org.acegisecurity.context.SecurityContext;
 import org.acegisecurity.context.SecurityContextHolder;
 import org.junit.Before;
@@ -119,10 +116,6 @@ public class APITest {
         String output = execCmd(curlCmd);
         LOGGER.info("UnassignRole output: " + output);
         // Verifying that alice no longer has permissions
-        Authentication auth = User.getById("alice", false).impersonate();
-        Item testFolder = jenkinsRule.jenkins.getItemByFullName("test-folder");
-        assertFalse(testFolder.hasPermission(auth, Permission.CONFIGURE));
-        // TODO - check on the backend whether the role still exists and is unassigned
         RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
         SortedMap<Role, Set<String>> roles = strategy.getGrantedRoles(RoleType.Project);
         for (Map.Entry<Role, Set<String>> entry : roles.entrySet()) {
