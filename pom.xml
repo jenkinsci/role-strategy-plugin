@@ -10,7 +10,7 @@
 
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>3.1</version>
+    <version>${revision}${changelist}</version>
     <name>Role-based Authorization Strategy</name>
     <url>https://github.com/jenkinsci/role-strategy-plugin</url>
 
@@ -18,7 +18,7 @@
         <connection>scm:git:ssh://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-        <tag>role-strategy-3.1</tag>
+        <tag>${scmTag}</tag>
     </scm>
 
     <developers>
@@ -40,7 +40,7 @@
     </developers>
 
     <properties>
-        <revision>3.1</revision>
+        <revision>3.2</revision>
         <changelist>-SNAPSHOT</changelist>
         <jenkins.version>2.222.1</jenkins.version>
         <java.level>8</java.level>
