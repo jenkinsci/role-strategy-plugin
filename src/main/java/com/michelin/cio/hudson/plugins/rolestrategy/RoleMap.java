@@ -254,6 +254,7 @@ public class RoleMap {
   public void assignRole(Role role, String sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
+      matchingRoleMapCache.invalidateAll();
     }
   }
 
@@ -267,6 +268,7 @@ public class RoleMap {
       Set<String> sids = grantedRoles.get(role);
       if (sids != null) {
         sids.remove(sid);
+        matchingRoleMapCache.invalidateAll();
       }
   }
 
@@ -277,6 +279,7 @@ public class RoleMap {
   public void clearSidsForRole(Role role) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).clear();
+      matchingRoleMapCache.invalidateAll();
     }
   }
 
@@ -291,6 +294,7 @@ public class RoleMap {
              sids.remove(sid);
          }
      }
+    matchingRoleMapCache.invalidateAll();
   }
 
   /**
