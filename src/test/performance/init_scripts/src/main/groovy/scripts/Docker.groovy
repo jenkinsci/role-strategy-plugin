@@ -56,7 +56,7 @@ static DockerSlaveTemplate fromTemplate(String image) {
 }
 
 // Default agent image
-final DockerSlaveTemplate defaultJnlpAgentTemplate = fromTemplate("jenkins/jnlp-slave")
+final DockerSlaveTemplate defaultJnlpAgentTemplate = fromTemplate("jenkins/inbound-agent")
 defaultJnlpAgentTemplate.with {
     // Default label to "docker", no caching
     // User - jenkins (default)
