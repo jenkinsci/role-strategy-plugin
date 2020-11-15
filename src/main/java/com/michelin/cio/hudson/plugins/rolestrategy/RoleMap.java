@@ -440,19 +440,11 @@ public class RoleMap {
    * @return List of matching job names
    */
   public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
-      Iterator<Item> jobs = Items.allItems(Jenkins.getInstance(), Item.class).iterator();
       List<String> matchingJobNames = new ArrayList<>();
-
-      while(jobs.hasNext() && matchingJobNames.size() < maxJobs) {
-          Item job = jobs.next();
-          String jobName = job.getFullName();
-
-          Matcher m = pattern.matcher(jobName);
-          if(m.matches()) {
-              matchingJobNames.add(jobName);
-          }
+      for (Item i : Jenkins.get().allItems(Item.class, i -> pattern.matcher(i.getFullName()).matches())) {
+        if (matchingJobNames.size() >= maxJobs) break;
+        matchingJobNames.add(i.getFullName());
       }
-
       return matchingJobNames;
   }
 
