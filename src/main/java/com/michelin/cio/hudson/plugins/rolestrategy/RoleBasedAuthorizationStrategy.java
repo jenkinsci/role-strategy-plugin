@@ -499,7 +499,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         JSONObject responseJson = new JSONObject();
         responseJson.put("matchingJobs", matchingJobs);
         StaplerResponse response = Stapler.getCurrentResponse();
-        response.addHeader("Content-Type", "application/json");
+        response.setContentType("application/json;charset=UTF-8");
         Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
         responseJson.write(writer);
         writer.close();
