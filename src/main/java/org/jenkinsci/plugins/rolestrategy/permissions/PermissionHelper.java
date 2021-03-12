@@ -23,22 +23,26 @@
  */
 package org.jenkinsci.plugins.rolestrategy.permissions;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleStrategySecurityConfig;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.PluginManager;
 import hudson.security.Permission;
+import jenkins.model.Jenkins;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
-import jenkins.model.Jenkins;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Helper methods for dangerous permission handling.
+ *
  * @author Oleg Nenashev
  */
 @Restricted(NoExternalUse.class)
@@ -53,6 +57,8 @@ public class PermissionHelper {
             PluginManager.CONFIGURE_UPDATECENTER,
             PluginManager.UPLOAD_PLUGINS)));
 
+    private static final Logger LOGGER = Logger.getLogger(PermissionHelper.class.getName());
+
     private PermissionHelper() {
         // Cannot be constructed
     }
@@ -60,12 +66,16 @@ public class PermissionHelper {
     /**
      * Convert a set of string to a collection of permissions.
      * Dangerous permissions will be checked.
+     *
      * @param permissionIds Permission IDs
-     * @throws SecurityException Permission is rejected, because it is dangerous.
      * @return Created set of permissions
+     * @throws SecurityException Permission is rejected, because it is dangerous.
      */
     @NonNull
     public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds) throws SecurityException {
+
+        RoleStrategySecurityConfig config = RoleStrategySecurityConfig.getOrFail();
+
         if (permissionIds == null) {
             return Collections.emptySet();
         }
@@ -78,7 +88,12 @@ public class PermissionHelper {
                 continue;
             }
             if (isDangerous(p)) {
-                throw new SecurityException("Rejected dangerous permission: " + permission);
+                if (config.isLogDangerousPermissions()) {
+                    LOGGER.log(Level.WARNING, "Rejected dangerous permission: " + permission);
+                    continue;
+                } else {
+                    throw new SecurityException("Rejected dangerous permission: " + permission);
+                }
             }
             res.add(p);
         }
@@ -87,6 +102,7 @@ public class PermissionHelper {
 
     /**
      * Check if the permissions is dangerous.
+     *
      * @param p Permission
      * @return {@code true} if the permission is considered as dangerous.
      */

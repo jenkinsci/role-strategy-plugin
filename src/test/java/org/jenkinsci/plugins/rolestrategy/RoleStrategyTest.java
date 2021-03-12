@@ -3,8 +3,8 @@ package org.jenkinsci.plugins.rolestrategy;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleStrategySecurityConfig;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-
 import hudson.model.Computer;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -15,9 +15,9 @@ import io.jenkins.plugins.casc.Configurator;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
-import io.jenkins.plugins.casc.model.CNode;
 import java.util.Map;
 import java.util.Set;
+import io.jenkins.plugins.casc.model.CNode;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.rolestrategy.casc.RoleBasedAuthorizationStrategyConfigurator;
 import org.junit.Rule;
@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
 import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
+import static io.jenkins.plugins.casc.misc.Util.getSecurityRoot;
 import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
 import static io.jenkins.plugins.casc.misc.Util.toYamlString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -35,6 +36,7 @@ import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPer
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Oleg Nenashev
@@ -72,7 +74,7 @@ public class RoleStrategyTest {
 
         AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
         assertThat("Authorization Strategy has been read incorrectly",
-            s, instanceOf(RoleBasedAuthorizationStrategy.class));
+                s, instanceOf(RoleBasedAuthorizationStrategy.class));
         RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
         Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
@@ -128,10 +130,31 @@ public class RoleStrategyTest {
     public void shouldHandleNullItemsAndAgentsCorrectly() {
         AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
         assertThat("Authorization Strategy has been read incorrectly",
-            s, instanceOf(RoleBasedAuthorizationStrategy.class));
+                s, instanceOf(RoleBasedAuthorizationStrategy.class));
         RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
         Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
         assertThat(globalRoles.size(), equalTo(2));
+    }
+
+    @Test
+    @ConfiguredWithCode("Configuration-as-Code3.yml")
+    public void shouldReadRoleStrategySecurityConfigCorrectly() throws Exception {
+        RoleStrategySecurityConfig config = RoleBasedAuthorizationStrategy.getInstance().getSecurityConfiguration();
+        assertNotNull("RoleStrategySecurityConfig was null", config);
+        assertTrue("logDangerousPermissions field is not true", config.isLogDangerousPermissions());
+    }
+
+    @Test
+    @ConfiguredWithCode("Configuration-as-Code3.yml")
+    public void shouldExportRoleStrategySecurityConfigCorrectly() throws Exception {
+        ConfiguratorRegistry registry = ConfiguratorRegistry.get();
+        ConfigurationContext context = new ConfigurationContext(registry);
+        CNode yourAttribute = getSecurityRoot(context).get("roleStrategyConfig");
+
+        String exported = toYamlString(yourAttribute);
+        String expected = toStringFromYamlFile(this, "Configuration-as-Code-Export2.yml");
+
+        assertThat(exported, is(expected));
     }
 }
