@@ -31,6 +31,7 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
 import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
@@ -464,19 +465,39 @@ public class RoleMap {
     /**
      * Checks if the sid has the given permission.
      * <p>Actually only delegate the check to the {@link RoleMap} instance.</p>
-     * @param p The sid to check
+     * @param sid The sid to check
      * @param permission The permission to check
      * @return True if the sid has the given permission
      */
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
     @CheckForNull
-    protected Boolean hasPermission(Sid p, Permission permission) {
-      if (RoleMap.this.hasPermission(toString(p), permission, roleType, item)) {
+    protected Boolean hasPermission(Sid sid, Permission permission) {
+      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item)) {
+        if (item instanceof Item) {
+          final ItemGroup parent = ((Item)item).getParent();
+          if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission)) && shouldCheckParentPermissions()) {
+            // For READ and DISCOVER permission checks, do the same permission check on the parent
+            Permission requiredPermissionOnParent = permission == Item.DISCOVER ? Item.DISCOVER : Item.READ;
+            if (!((Item) parent).hasPermission(requiredPermissionOnParent)) {
+              return null;
+            }
+          }
+        }
         return true;
       }
       return null;
     }
+  }
+
+  private static boolean shouldCheckParentPermissions() {
+    // TODO Switch to SystemProperties in 2.236+
+    String propertyName = RoleMap.class.getName() + ".checkParentPermissions";
+    String value = System.getProperty(propertyName);
+    if (value == null) {
+      return true;
+    }
+    return Boolean.parseBoolean(value);
   }
 
   /**
