@@ -24,8 +24,8 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -88,8 +88,7 @@ public class RoleMap {
     Permission.getAll().forEach(RoleMap::cacheImplyingPermissions);
   }
 
-  private final Cache<String, UserDetails> cache = CacheBuilder.newBuilder()
-          .softValues()
+  private final Cache<String, UserDetails> cache = Caffeine.newBuilder()
           .maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
           .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS)
           .build();
@@ -99,8 +98,7 @@ public class RoleMap {
    * for different permissions for the same {@code itemNamePrefix}, so cache them and avoid wasting time
    * matching regular expressions.
    */
-  private final Cache<String, RoleMap> matchingRoleMapCache = CacheBuilder.newBuilder()
-          .softValues()
+  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder()
           .maximumSize(2048)
           .expireAfterWrite(1, TimeUnit.HOURS)
           .build();
@@ -153,7 +151,7 @@ public class RoleMap {
             try {
               UserDetails userDetails = cache.getIfPresent(sid);
               if (userDetails == null) {
-                userDetails = Jenkins.getInstance().getSecurityRealm().loadUserByUsername(sid);
+                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername(sid);
                 cache.put(sid, userDetails);
               }
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
@@ -414,11 +412,10 @@ public class RoleMap {
    * @return A {@link RoleMap} containing roles that are applicable on the itemNamePrefix
    */
   public RoleMap newMatchingRoleMap(String itemNamePrefix) {
-    RoleMap cachedRoleMap = matchingRoleMapCache.getIfPresent(itemNamePrefix);
-    if (cachedRoleMap != null) {
-      return cachedRoleMap;
-    }
+    return matchingRoleMapCache.get(itemNamePrefix, this::createMatchingRoleMap);
+  }
 
+  private RoleMap createMatchingRoleMap(String itemNamePrefix) {
     SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
     new RoleWalker() {
       public void perform(Role current) {
@@ -428,10 +425,7 @@ public class RoleMap {
         }
       }
     };
-
-    RoleMap newMatchingRoleMap = new RoleMap(roleMap);
-    matchingRoleMapCache.put(itemNamePrefix, newMatchingRoleMap);
-    return newMatchingRoleMap;
+    return new RoleMap(roleMap);
   }
 
   /**
