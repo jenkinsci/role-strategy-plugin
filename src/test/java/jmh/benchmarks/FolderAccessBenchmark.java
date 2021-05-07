@@ -1,7 +1,6 @@
 package jmh.benchmarks;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
-import com.google.common.collect.Sets;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -52,23 +51,23 @@ public class FolderAccessBenchmark {
             Map<String, RoleMap> rbasMap = new HashMap<>(1);
             SortedMap<Role, Set<String>> projectRoles = new TreeMap<>();
 
-            Set<String> userPermissions = Sets.newHashSet(
-                    "hudson.model.Item.Discover",
-                    "hudson.model.Item.Read"
-            );
+            Set<String> userPermissions = new HashSet<>();
+            Collections.addAll(userPermissions,
+                      "hudson.model.Item.Discover",
+                                "hudson.model.Item.Read");
 
-            Set<String> maintainerPermissions = Sets.newHashSet(
-                    "hudson.model.Item.Discover",
-                    "hudson.model.Item.Read",
-                    "hudson.model.Item.Create"
-            );
+            Set<String> maintainerPermissions = new HashSet<>();
+            Collections.addAll(maintainerPermissions,
+                      "hudson.model.Item.Discover",
+                                "hudson.model.Item.Read",
+                                "hudson.model.Item.Create");
 
-            Set<String> adminPermissions = Sets.newHashSet(
-                    "hudson.model.Item.Discover",
-                    "hudson.model.Item.Read",
-                    "hudson.model.Item.Create",
-                    "hudson.model.Item.Configure"
-            );
+            Set<String> adminPermissions = new HashSet<>();
+            Collections.addAll(adminPermissions,
+                      "hudson.model.Item.Discover",
+                                "hudson.model.Item.Read",
+                                "hudson.model.Item.Create",
+                                "hudson.model.Item.Configure");
 
             Random random = new Random(100L);
 
