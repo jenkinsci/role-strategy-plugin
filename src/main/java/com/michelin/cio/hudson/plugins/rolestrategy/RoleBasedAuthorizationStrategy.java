@@ -25,7 +25,6 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
-import com.google.common.collect.ImmutableMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
@@ -57,6 +56,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -231,10 +231,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @Nonnull
   private Map<RoleType, RoleMap> getRoleMaps() {
-    return ImmutableMap.of(
-            RoleType.Global, globalRoles,
-            RoleType.Slave, agentRoles,
-            RoleType.Project, itemRoles);
+    Map<RoleType, RoleMap> roleMaps = new HashMap<>();
+    roleMaps.put(RoleType.Global, globalRoles);
+    roleMaps.put(RoleType.Slave, agentRoles);
+    roleMaps.put(RoleType.Project, itemRoles);
+    return Collections.unmodifiableMap(roleMaps);
   }
 
   /**
