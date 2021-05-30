@@ -51,6 +51,40 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 
 ![Assign roles](/docs/images/assignRoles.png)
 
+### Config & Assign role by using Jenkins Script Console or Groovy Hook Script
+Configuration management can be used via [Jenkins Script Console](https://www.jenkins.io/doc/book/managing/script-console/) or [Groovy Hook Scripts](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/), following example is creating a admin role & user based on plugin 3.1. 
+
+```
+import jenkins.model.Jenkins
+
+import hudson.security.PermissionGroup
+import hudson.security.Permission
+
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy
+import com.michelin.cio.hudson.plugins.rolestrategy.Role
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType
+
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper
+
+Jenkins jenkins = Jenkins.getInstance()
+def rbas = new RoleBasedAuthorizationStrategy()
+
+/* create admin role */
+Set<Permission> permissions = new HashSet<>();
+def groups = new ArrayList<>(PermissionGroup.getAll());
+groups.remove(PermissionGroup.get(Permission.class));
+Role adminRole = new Role("admin",permissions)
+
+/* assign admin role to admin user */
+globalRoleMap = rbas.getRoleMaps()[RoleType.Global]
+globalRoleMap.addRole(adminRole)
+globalRoleMap.assignRole(adminRole, 'admin')
+
+jenkins.setAuthorizationStrategy(rbas)
+
+jenkins.save()
+
+```
 ## License
 
 [MIT License](./LICENSE.md)
