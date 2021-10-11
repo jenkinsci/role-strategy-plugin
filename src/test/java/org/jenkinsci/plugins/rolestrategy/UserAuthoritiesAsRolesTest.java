@@ -37,7 +37,7 @@ public class UserAuthoritiesAsRolesTest {
     }
 
     @LocalData
-    @Test public void testRoleAuthority() throws Exception {
+    @Test public void testRoleAuthority() {
         j.jenkins.setSecurityRealm(new MockSecurityRealm());
 
         SecurityContext seccon = SecurityContextHolder.getContext();

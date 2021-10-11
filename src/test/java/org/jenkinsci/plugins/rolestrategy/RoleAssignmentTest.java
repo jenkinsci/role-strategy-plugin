@@ -24,7 +24,7 @@ public class RoleAssignmentTest {
     }
     
     @LocalData
-    @Test public void testRoleAssignment() throws Exception {
+    @Test public void testRoleAssignment() {
         SecurityContext seccon = SecurityContextHolder.getContext();
         Authentication orig = seccon.getAuthentication();
         seccon.setAuthentication(User.getById("alice", true).impersonate());

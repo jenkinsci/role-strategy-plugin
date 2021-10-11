@@ -101,7 +101,7 @@ public class APITest {
 
     @Test
     @Issue("JENKINS-61470")
-    public void testAssignRole() throws IOException, InterruptedException {
+    public void testAssignRole() throws IOException {
         String roleName = "new-role";
         String sid = "alice";
         Authentication alice = User.getById(sid, true).impersonate();
@@ -140,7 +140,7 @@ public class APITest {
 
     @Test
     @Issue("JENKINS-61470")
-    public void testUnassignRole() throws IOException, InterruptedException {
+    public void testUnassignRole() throws IOException {
 
         String roleName = "new-role";
         String sid = "alice";

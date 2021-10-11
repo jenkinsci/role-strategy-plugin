@@ -689,7 +689,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
+    public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
         checkAdminPerm();
 
         req.setCharacterEncoding("UTF-8");
@@ -705,7 +705,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
+    public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
         checkAdminPerm();
 
         req.setCharacterEncoding("UTF-8");
@@ -747,7 +747,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * to create the {@link AuthorizationStrategy} object.
      */
     @Override
-    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) {
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
