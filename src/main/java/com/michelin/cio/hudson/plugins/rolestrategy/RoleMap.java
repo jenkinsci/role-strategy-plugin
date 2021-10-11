@@ -104,7 +104,7 @@ public class RoleMap {
           .build();
 
   RoleMap() {
-    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
+    this.grantedRoles = new ConcurrentSkipListMap<>();
   }
 
     /**
@@ -284,14 +284,12 @@ public class RoleMap {
 
   /**
    * Clear all the roles associated to the given sid
-   * @param sid The sid for thwich you want to clear the {@link Role}s
+   * @param sid The sid for which you want to clear the {@link Role}s
    */
   public void deleteSids(String sid){
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
-         Set<String> sids = entry.getValue();
-         if (sids.contains(sid)) {
-             sids.remove(sid);
-         }
+       Set<String> sids = entry.getValue();
+       sids.remove(sid);
      }
     matchingRoleMapCache.invalidateAll();
   }
@@ -517,12 +515,10 @@ public class RoleMap {
      */
     public void walk() {
       Set<Role> roles = RoleMap.this.getRoles();
-      Iterator<Role> iter = roles.iterator();
-      while (iter.hasNext()) {
-        Role current = iter.next();
+      for (Role current : roles) {
         perform(current);
         if (shouldAbort) {
-            break;
+          break;
         }
       }
     }

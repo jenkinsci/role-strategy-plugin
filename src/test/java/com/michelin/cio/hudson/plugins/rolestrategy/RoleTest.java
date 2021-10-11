@@ -35,7 +35,7 @@ public class RoleTest {
         Permission aRealPerm = Permission.CREATE;
         Permission nullPerm = null;
 
-        Set<Permission> perms = new HashSet<Permission>(Arrays.asList(aRealPerm, nullPerm));
+        Set<Permission> perms = new HashSet<>(Arrays.asList(aRealPerm, nullPerm));
         
         // Test with modifiable collections
         Role role = new Role("name", perms);

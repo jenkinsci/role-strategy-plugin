@@ -27,6 +27,7 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.logging.Level;
@@ -66,7 +67,7 @@ public final class Role implements Comparable {
   /**
    * {@link Permission}s hold by the role.
    */
-  private final Set < Permission > permissions = new HashSet < Permission > ();
+  private final Set < Permission > permissions = new HashSet<>();
 
   private transient Integer cachedHashCode = null;
 
@@ -122,7 +123,7 @@ public final class Role implements Comparable {
    * Getter for the role name.
    * @return The role name
    */
-  public final String getName() {
+  public String getName() {
     return name;
   }
 
@@ -130,7 +131,7 @@ public final class Role implements Comparable {
    * Getter for the regexp pattern.
    * @return The pattern associated to the role
    */
-  public final Pattern getPattern() {
+  public Pattern getPattern() {
     return pattern;
   }
 
@@ -138,7 +139,7 @@ public final class Role implements Comparable {
    * Getter for the {@link Permission}s set.
    * @return {@link Permission}s set
    */
-  public final Set < Permission > getPermissions() {
+  public Set < Permission > getPermissions() {
     return permissions;
   }
 
@@ -156,7 +157,7 @@ public final class Role implements Comparable {
    * @param permission The permission you want to check
    * @return True if the role holds this permission
    */
-  public final Boolean hasPermission(Permission permission) {
+  public Boolean hasPermission(Permission permission) {
     return permissions.contains(permission);
   }
 
@@ -165,7 +166,7 @@ public final class Role implements Comparable {
    * @param permissions A {@link Permission}s set
    * @return True if the role holds any of the given {@link Permission}s
    */
-  public final Boolean hasAnyPermission(Set<Permission> permissions) {
+  public Boolean hasAnyPermission(Set<Permission> permissions) {
     return CollectionUtils.containsAny(this.permissions, permissions);
   }
 
@@ -212,13 +213,13 @@ public final class Role implements Comparable {
             return false;
         }
         final Role other = (Role) obj;
-        if ((this.name == null) ? (other.name != null) : !this.name.equals(other.name)) {
+        if (!Objects.equals(this.name, other.name)) {
             return false;
         }
-        if (this.pattern != other.pattern && (this.pattern == null || !this.pattern.equals(other.pattern))) {
+        if (!Objects.equals(this.pattern, other.pattern)) {
             return false;
         }
-        if (this.permissions != other.permissions && (this.permissions == null || !this.permissions.equals(other.permissions))) {
+        if (!Objects.equals(this.permissions, other.permissions)) {
             return false;
         }
         return true;

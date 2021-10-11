@@ -40,9 +40,9 @@ import javax.annotation.CheckForNull;
 public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtension {
 
     private static final Map<String, RoleMacroExtension> NAME_CACHE =
-            new ConcurrentHashMap<String, RoleMacroExtension>();
+            new ConcurrentHashMap<>();
 
-    private static final Map<String, Macro> MACRO_CACHE = new ConcurrentHashMap<String, Macro>();
+    private static final Map<String, Macro> MACRO_CACHE = new ConcurrentHashMap<>();
 
     private static void updateRegistry() {
         NAME_CACHE.clear();
