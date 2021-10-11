@@ -93,14 +93,14 @@ class GroovyInitBootstrap {
                 GroovyCodeSource codeSource = new GroovyCodeSource(f)
                 new GroovyShell(groovyClassloader, bindings).evaluate(codeSource)
             } catch (IOException e) {
-                LOGGER.log(WARNING, "Failed to execute " + f, e);
+                LOGGER.log(WARNING, "Failed to execute " + f, e)
                 throw new Error("Failed to execute " + f, e)
             }
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(GroovyBootstrap.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GroovyBootstrap.class.getName())
 }
 
-GroovyInitBootstrap bootstrap = new GroovyInitBootstrap(Jenkins.instance)
+GroovyInitBootstrap bootstrap = new GroovyInitBootstrap(Jenkins.get())
 bootstrap.run()

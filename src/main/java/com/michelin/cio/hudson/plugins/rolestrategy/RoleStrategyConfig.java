@@ -64,7 +64,7 @@ public class RoleStrategyConfig extends ManagementLink {
   public String getIconFileName() {
     String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
-    if (Jenkins.getActiveInstance().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
+    if (Jenkins.get().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
       icon = "secure.png";
     }
     return icon;
@@ -130,7 +130,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @CheckForNull
   public AuthorizationStrategy getStrategy() {
-    AuthorizationStrategy strategy = Jenkins.getActiveInstance().getAuthorizationStrategy();
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy) {
       return strategy;
     }
@@ -145,7 +145,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -168,7 +168,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
     FormApply.success(".").generateResponse(req, rsp, this);
