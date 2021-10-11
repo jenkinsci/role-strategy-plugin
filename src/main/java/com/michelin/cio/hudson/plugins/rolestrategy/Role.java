@@ -178,6 +178,8 @@ public final class Role implements Comparable {
    */
   @Override
   public int compareTo(@NonNull Object o) {
+    Objects.requireNonNull(o);
+
     if (o instanceof Role) {
         return name.compareTo(((Role)o).name);
     }
