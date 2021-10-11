@@ -32,12 +32,10 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
-import hudson.model.Descriptor.FormException;
 import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
 import hudson.util.FormApply;

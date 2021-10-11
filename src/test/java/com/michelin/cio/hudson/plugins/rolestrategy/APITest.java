@@ -25,12 +25,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 
 /**

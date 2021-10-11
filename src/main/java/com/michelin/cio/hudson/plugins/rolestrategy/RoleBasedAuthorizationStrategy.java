@@ -30,7 +30,6 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -52,7 +51,6 @@ import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import hudson.security.SidACL;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
 import java.io.Writer;
