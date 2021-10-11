@@ -22,13 +22,16 @@
  * THE SOFTWARE.
  */
 
+
+import edu.umd.cs.findbugs.annotations.NonNull
+import jenkins.model.Jenkins
 import org.codehaus.groovy.control.CompilerConfiguration
+
+import javax.servlet.ServletContext
+import java.util.logging.Logger
+
 import static java.util.logging.Level.INFO
-import static java.util.logging.Level.WARNING;
-import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletContext;
-import jenkins.model.Jenkins;
+import static java.util.logging.Level.WARNING
 
 /**
  * Bootstraps the standard Jenkins initialization logic.
@@ -48,7 +51,7 @@ class GroovyInitBootstrap {
         this(j.servletContext, j.rootDir, j.pluginManager.uberClassLoader)
     }
 
-    GroovyInitBootstrap(@Nonnull ServletContext servletContext, @Nonnull File home, @Nonnull ClassLoader groovyClassloader) {
+    GroovyInitBootstrap(@NonNull ServletContext servletContext, @NonNull File home, @NonNull ClassLoader groovyClassloader) {
         this.servletContext = servletContext
         this.home = home
         compilerConfiguration.classpath = new File(home, "init.groovy.d/").absolutePath

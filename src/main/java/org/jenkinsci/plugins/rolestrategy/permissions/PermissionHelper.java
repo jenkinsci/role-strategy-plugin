@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.plugins.rolestrategy.permissions;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.PluginManager;
 import hudson.security.Permission;
 import java.util.Arrays;
@@ -30,8 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -63,7 +63,7 @@ public class PermissionHelper {
      * @throws SecurityException Permission is rejected, because it is dangerous.
      * @return Created set of permissions
      */
-    @Nonnull
+    @NonNull
     public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds) throws SecurityException {
         if (permissionIds == null) {
             return Collections.emptySet();
@@ -89,7 +89,7 @@ public class PermissionHelper {
      * @param p Permission
      * @return {@code true} if the permission is considered as dangerous.
      */
-    public static boolean isDangerous(@Nonnull Permission p) {
+    public static boolean isDangerous(@NonNull Permission p) {
         return DANGEROUS_PERMISSIONS.contains(p);
     }
 }

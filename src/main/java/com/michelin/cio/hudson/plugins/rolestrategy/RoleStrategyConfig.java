@@ -28,6 +28,8 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
@@ -44,7 +46,6 @@ import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
-import javax.annotation.CheckForNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -70,6 +71,7 @@ public class RoleStrategyConfig extends ManagementLink {
     return icon;
   }
 
+  @NonNull
   @Override
   public Permission getRequiredPermission() {
     return Jenkins.SYSTEM_READ;

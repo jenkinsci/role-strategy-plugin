@@ -5,6 +5,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Computer;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -23,7 +24,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import javax.annotation.Nonnull;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -96,13 +96,13 @@ public class CascBenchmark {
             folder = folderB;
         }
 
-        @Nonnull
+        @NonNull
         @Override
         protected String getResourcePath() {
             return "sample-casc.yml";
         }
 
-        @Nonnull
+        @NonNull
         @Override
         protected Class<?> getEnclosingClass() {
             return CascBenchmark.class;

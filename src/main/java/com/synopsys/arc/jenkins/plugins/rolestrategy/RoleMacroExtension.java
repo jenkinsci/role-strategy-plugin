@@ -24,11 +24,11 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.macros.StubMacro;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.CheckForNull;
 
 /**
  * Extension for macro roles (automatic membership handling).
