@@ -30,9 +30,9 @@ import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
-import static org.junit.Assert.assertThat;
 
 @JmhBenchmark
 public class CascBenchmark {
