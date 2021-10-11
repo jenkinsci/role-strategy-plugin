@@ -114,7 +114,7 @@ public class CascBenchmark {
         @Setup(Level.Iteration)
         public void setup() {
             SecurityContext securityContext = SecurityContextHolder.getContext();
-            securityContext.setAuthentication(User.get("user2").impersonate());
+            securityContext.setAuthentication(User.getById("user2", true).impersonate());
         }
     }
 

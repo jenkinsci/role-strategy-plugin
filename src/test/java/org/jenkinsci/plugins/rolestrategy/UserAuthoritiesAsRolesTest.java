@@ -42,7 +42,7 @@ public class UserAuthoritiesAsRolesTest {
 
         SecurityContext seccon = SecurityContextHolder.getContext();
         Authentication orig = seccon.getAuthentication();
-        seccon.setAuthentication(User.get("alice").impersonate());
+        seccon.setAuthentication(User.getById("alice", true).impersonate());
         try {
             assertTrue(j.jenkins.hasPermission(Permission.READ));
         } finally {

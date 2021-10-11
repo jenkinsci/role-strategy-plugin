@@ -54,7 +54,7 @@ public class PermissionBenchmark {
         public void setup() {
             securityContext = SecurityContextHolder.getContext();
             originalAuthentication = securityContext.getAuthentication();
-            securityContext.setAuthentication(User.get("alice").impersonate());
+            securityContext.setAuthentication(User.getById("alice", true).impersonate());
         }
 
         @TearDown(Level.Iteration)

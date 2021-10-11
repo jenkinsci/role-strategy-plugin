@@ -27,7 +27,7 @@ public class RoleAssignmentTest {
     @Test public void testRoleAssignment() throws Exception {
         SecurityContext seccon = SecurityContextHolder.getContext();
         Authentication orig = seccon.getAuthentication();
-        seccon.setAuthentication(User.get("alice").impersonate());
+        seccon.setAuthentication(User.getById("alice", true).impersonate());
         try {
             assertTrue(j.jenkins.hasPermission(Permission.READ));
         } finally {
