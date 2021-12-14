@@ -132,7 +132,7 @@ public class RoleMap {
     new RoleWalker() {
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
-          if (grantedRoles.get(current).contains(sid)) {
+          if (grantedRoles.get(current).stream().map(role -> Pattern.compile(role).matcher(sid)).anyMatch(m -> m.matches())) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
