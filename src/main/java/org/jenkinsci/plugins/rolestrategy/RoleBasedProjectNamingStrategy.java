@@ -39,7 +39,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     public void checkName(String name) throws Failure {
         boolean matches = false;
         ArrayList<String> badList = null;
-        AuthorizationStrategy auth = Jenkins.getActiveInstance().getAuthorizationStrategy();
+        final AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
         if (auth instanceof RoleBasedAuthorizationStrategy){
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             //firstly check global role
