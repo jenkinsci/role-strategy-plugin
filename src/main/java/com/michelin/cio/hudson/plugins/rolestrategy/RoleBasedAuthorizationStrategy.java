@@ -408,7 +408,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     private static Jenkins instance() {
-        return Jenkins.getInstance();
+        return Jenkins.getInstanceOrNull();
     }
 
     private static void checkAdminPerm() {
