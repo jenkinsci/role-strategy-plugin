@@ -47,6 +47,7 @@ public class PermissionHelper {
      * List of the dangerous permissions, which need to be suppressed by the plugin.
      */
     @Restricted(NoExternalUse.class)
+    @SuppressWarnings("deprecation")
     public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<Permission>(Arrays.asList(
             Jenkins.RUN_SCRIPTS,
             PluginManager.CONFIGURE_UPDATECENTER,
