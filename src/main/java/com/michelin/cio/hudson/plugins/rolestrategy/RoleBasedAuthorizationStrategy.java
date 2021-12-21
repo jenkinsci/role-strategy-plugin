@@ -26,7 +26,6 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -640,12 +639,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * Updates macro roles
      * @since 2.1.0
      */
+    @SuppressWarnings("deprecation")
     void renewMacroRoles()
     {
         //TODO: add mandatory roles
 
         // Check role extensions
-        for (UserMacroExtension userExt : UserMacroExtension.all())
+        for (final com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension userExt : com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension.all())
         {
             if (userExt.IsApplicable(RoleType.Global))
             {

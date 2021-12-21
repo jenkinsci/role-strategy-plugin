@@ -25,7 +25,6 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.User;
 import hudson.security.AccessControlled;
@@ -39,7 +38,7 @@ import hudson.security.Permission;
  * @deprecated Not supported at current version
  */
 //@Extension
-public class LoggedUserMacro extends UserMacroExtension {
+public class LoggedUserMacro extends com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension {
 
     @Override
     public String getName() {

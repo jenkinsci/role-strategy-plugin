@@ -27,7 +27,6 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.Descriptor.FormException;
@@ -182,8 +181,8 @@ public class RoleStrategyConfig extends ManagementLink {
      * @deprecated The extension is not implemented
      */
     @Deprecated
-    public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
-        return UserMacroExtension.all();
+    public ExtensionList<com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension> getUserMacroExtensions() {
+        return com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension.all();
     }
 
     public final RoleType getGlobalRoleType() {
