@@ -35,8 +35,8 @@ import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Class representing a role, which holds a set of {@link Permission}s.
@@ -92,7 +92,7 @@ public final class Role implements Comparable {
 
   //TODO: comment is used for erasure cleanup only
   @DataBoundConstructor
-  public Role(@Nonnull String name, @CheckForNull String pattern, @CheckForNull Set <String> permissionIds, @CheckForNull String description) {
+  public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set <String> permissionIds, @CheckForNull String description) {
       this(name,
            Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN),
            PermissionHelper.fromStrings(permissionIds),

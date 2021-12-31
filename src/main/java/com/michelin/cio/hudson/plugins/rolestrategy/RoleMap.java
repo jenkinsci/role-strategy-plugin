@@ -47,8 +47,8 @@ import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -112,7 +112,7 @@ public class RoleMap {
      * @param grantedRoles Roles to be granted.
      */
     @DataBoundConstructor
-    public RoleMap(@Nonnull SortedMap<Role,Set<String>> grantedRoles) {
+    public RoleMap(@NonNull SortedMap<Role,Set<String>> grantedRoles) {
         this();
         for (Map.Entry<Role,Set<String>> entry : grantedRoles.entrySet()) {
           this.grantedRoles.put(entry.getKey(), new HashSet<>(entry.getValue()));
@@ -222,7 +222,7 @@ public class RoleMap {
    * @param role Role to be checked
    * @return {@code true} if the {@link RoleMap} contains the given role
    */
-  public boolean hasRole(@Nonnull Role role) {
+  public boolean hasRole(@NonNull Role role) {
     return this.grantedRoles.containsKey(role);
   }
 

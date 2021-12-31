@@ -26,7 +26,7 @@ import org.codehaus.groovy.control.CompilerConfiguration
 import static java.util.logging.Level.INFO
 import static java.util.logging.Level.WARNING;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.ServletContext;
 import jenkins.model.Jenkins;
 
@@ -48,7 +48,7 @@ class GroovyInitBootstrap {
         this(j.servletContext, j.rootDir, j.pluginManager.uberClassLoader)
     }
 
-    GroovyInitBootstrap(@Nonnull ServletContext servletContext, @Nonnull File home, @Nonnull ClassLoader groovyClassloader) {
+    GroovyInitBootstrap(@NonNull ServletContext servletContext, @NonNull File home, @NonNull ClassLoader groovyClassloader) {
         this.servletContext = servletContext
         this.home = home
         compilerConfiguration.classpath = new File(home, "init.groovy.d/").absolutePath
@@ -86,7 +86,7 @@ class GroovyInitBootstrap {
      * @param f Groovy file
      * @throws Error Execution failed, should be considered as fatal.
      */
-    protected void execute(@Nonnull File f) {
+    protected void execute(@NonNull File f) {
         if (f.exists()) {
             LOGGER.log(INFO, "Executing {0}", f)
             try {

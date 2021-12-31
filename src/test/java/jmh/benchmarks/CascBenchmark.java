@@ -23,7 +23,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -96,13 +96,13 @@ public class CascBenchmark {
             folder = folderB;
         }
 
-        @Nonnull
+        @NonNull
         @Override
         protected String getResourcePath() {
             return "sample-casc.yml";
         }
 
-        @Nonnull
+        @NonNull
         @Override
         protected Class<?> getEnclosingClass() {
             return CascBenchmark.class;

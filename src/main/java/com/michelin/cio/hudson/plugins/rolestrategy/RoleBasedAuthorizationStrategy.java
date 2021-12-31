@@ -64,9 +64,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
@@ -124,7 +124,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return The global ACL
    */
   @Override
-  @Nonnull
+  @NonNull
   public SidACL getRootACL() {
     return globalRoles.getACL(RoleType.Global, null);
   }
@@ -136,7 +136,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return the {@link RoleMap} corresponding to the {@code roleType}
    * @throws IllegalArgumentException for an invalid {@code roleType}
    */
-  @Nonnull
+  @NonNull
   private RoleMap getRoleMap(RoleType roleType) {
       switch (roleType) {
           case Global:
@@ -157,21 +157,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @return The project specific ACL
      */
     @Override
-    @Nonnull
-    public ACL getACL(@Nonnull Job<?,?> project) {
+    @NonNull
+    public ACL getACL(@NonNull Job<?,?> project) {
       return getACL((AbstractItem) project);
     }
 
     @Override
-    @Nonnull
-    public ACL getACL(@Nonnull AbstractItem project) {
+    @NonNull
+    public ACL getACL(@NonNull AbstractItem project) {
         return itemRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project)
                 .newInheritingACL(getRootACL());
     }
 
     @Override
-    @Nonnull
-    public ACL getACL(@Nonnull Computer computer) {
+    @NonNull
+    public ACL getACL(@NonNull Computer computer) {
         return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
                 .newInheritingACL(getRootACL());
     }
@@ -181,7 +181,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return All the sids referenced by the strategy
    */
   @Override
-  @Nonnull
+  @NonNull
   public Collection<String> getGroups() {
     Set<String> sids = new HashSet<>();
     sids.addAll(globalRoles.getSids(true));
@@ -209,7 +209,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return roles mapped to the set of user sids assigned to that role
    * @since 2.12
    */
-  public SortedMap<Role, Set<String>> getGrantedRoles(@Nonnull RoleType type) {
+  public SortedMap<Role, Set<String>> getGrantedRoles(@NonNull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
   }
 
@@ -229,7 +229,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * a look at the {@link ConverterImpl}) and, as such, must remain private
    * since it exposes all the security config.</p>
    */
-  @Nonnull
+  @NonNull
   private Map<RoleType, RoleMap> getRoleMaps() {
     Map<RoleType, RoleMap> roleMaps = new HashMap<>();
     roleMaps.put(RoleType.Global, globalRoles);
@@ -670,7 +670,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final class DescriptorImpl extends GlobalMatrixAuthorizationStrategy.DescriptorImpl {
 
     @Override
-    @Nonnull
+    @NonNull
     public  String getDisplayName() {
       return Messages.RoleBasedAuthorizationStrategy_DisplayName();
     }
@@ -879,7 +879,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      *         {@code null} if an unsupported type is defined.
      */
     @Nullable
-    public List<PermissionGroup> getGroups(@Nonnull String type) {
+    public List<PermissionGroup> getGroups(@NonNull String type) {
         List<PermissionGroup> groups;
         if (type.equals(GLOBAL)) {
             groups = new ArrayList<>(PermissionGroup.getAll());
