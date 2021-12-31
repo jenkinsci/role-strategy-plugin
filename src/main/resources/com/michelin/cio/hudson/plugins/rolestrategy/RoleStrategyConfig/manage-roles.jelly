@@ -52,7 +52,7 @@
                 <td class="start">
                   <l:isAdmin>
                     <a href="#">
-                      <img alt="remove" src="${imagesURL}/16x16/stop.png"/>
+                      <l:icon alt="remove" class="icon-stop icon-sm"/>
                     </a>
                   </l:isAdmin>
                 </td>
@@ -82,7 +82,7 @@
               <l:isAdmin>
                 <td class="stop">
                   <a href="#">
-                    <img alt="remove" src="${imagesURL}/16x16/stop.png"/>
+                    <l:icon alt="remove" class="icon-stop icon-sm"/>
                   </a>
                 </td>
               </l:isAdmin>
@@ -91,7 +91,7 @@
 
           <f:form method="post" name="config" action="rolesSubmit">
             <h1>
-              <img src="${imagesURL}/48x48/fingerprint.png" alt="${it.displayName}" />
+              <l:icon src="icon-fingerprint icon-xlg" alt="${it.displayName}" />
               ${it.manageRolesName}
             </h1>
 

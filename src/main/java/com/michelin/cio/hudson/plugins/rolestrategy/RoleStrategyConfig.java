@@ -64,7 +64,7 @@ public class RoleStrategyConfig extends ManagementLink {
     String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
     if (Jenkins.get().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
-      icon = "secure.png";
+      icon = "icon-secure";
     }
     return icon;
   }
