@@ -54,7 +54,7 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 ### Config & Assign role by using Jenkins Script Console or Groovy Hook Script
 Configuration management can be used via [Jenkins Script Console](https://www.jenkins.io/doc/book/managing/script-console/) or [Groovy Hook Scripts](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/), following example is creating a admin role & user based on plugin 3.1. 
 
-```
+```groovy
 import jenkins.model.Jenkins
 
 import hudson.security.PermissionGroup
@@ -66,7 +66,7 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType
 
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper
 
-Jenkins jenkins = Jenkins.getInstance()
+Jenkins jenkins = Jenkins.get()
 def rbas = new RoleBasedAuthorizationStrategy()
 
 /* create admin role */
@@ -83,7 +83,6 @@ globalRoleMap.assignRole(adminRole, 'admin')
 jenkins.setAuthorizationStrategy(rbas)
 
 jenkins.save()
-
 ```
 ## License
 

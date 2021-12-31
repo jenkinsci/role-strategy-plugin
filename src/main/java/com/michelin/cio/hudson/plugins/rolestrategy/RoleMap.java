@@ -29,10 +29,11 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
-import hudson.model.Items;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -47,12 +48,9 @@ import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -104,7 +102,7 @@ public class RoleMap {
           .build();
 
   RoleMap() {
-    this.grantedRoles = new ConcurrentSkipListMap<Role, Set<String>>();
+    this.grantedRoles = new ConcurrentSkipListMap<>();
   }
 
     /**
@@ -284,14 +282,12 @@ public class RoleMap {
 
   /**
    * Clear all the roles associated to the given sid
-   * @param sid The sid for thwich you want to clear the {@link Role}s
+   * @param sid The sid for which you want to clear the {@link Role}s
    */
   public void deleteSids(String sid){
      for (Map.Entry<Role, Set<String>> entry: grantedRoles.entrySet()) {
-         Set<String> sids = entry.getValue();
-         if (sids.contains(sid)) {
-             sids.remove(sid);
-         }
+       Set<String> sids = entry.getValue();
+       sids.remove(sid);
      }
     matchingRoleMapCache.invalidateAll();
   }
@@ -517,12 +513,10 @@ public class RoleMap {
      */
     public void walk() {
       Set<Role> roles = RoleMap.this.getRoles();
-      Iterator<Role> iter = roles.iterator();
-      while (iter.hasNext()) {
-        Role current = iter.next();
+      for (Role current : roles) {
         perform(current);
         if (shouldAbort) {
-            break;
+          break;
         }
       }
     }

@@ -22,13 +22,17 @@
  * THE SOFTWARE.
  */
 
+
+import edu.umd.cs.findbugs.annotations.NonNull
+import jenkins.model.Jenkins
 import org.codehaus.groovy.control.CompilerConfiguration
+
+import javax.servlet.ServletContext
+import java.util.logging.Logger
+
 import static java.util.logging.Level.INFO
+import static java.util.logging.Level.WARNING
 import static java.util.logging.Level.WARNING;
-import java.util.logging.Logger;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import javax.servlet.ServletContext;
-import jenkins.model.Jenkins;
 
 /**
  * Bootstraps the standard Jenkins initialization logic.
@@ -93,14 +97,14 @@ class GroovyInitBootstrap {
                 GroovyCodeSource codeSource = new GroovyCodeSource(f)
                 new GroovyShell(groovyClassloader, bindings).evaluate(codeSource)
             } catch (IOException e) {
-                LOGGER.log(WARNING, "Failed to execute " + f, e);
+                LOGGER.log(WARNING, "Failed to execute " + f, e)
                 throw new Error("Failed to execute " + f, e)
             }
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(GroovyBootstrap.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GroovyBootstrap.class.getName())
 }
 
-GroovyInitBootstrap bootstrap = new GroovyInitBootstrap(Jenkins.instance)
+GroovyInitBootstrap bootstrap = new GroovyInitBootstrap(Jenkins.get())
 bootstrap.run()

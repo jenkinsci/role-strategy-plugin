@@ -30,9 +30,11 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
-import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.model.AbstractItem;
 import hudson.model.Computer;
@@ -49,7 +51,6 @@ import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import hudson.security.SidACL;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
 import java.io.Writer;
@@ -64,9 +65,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
 
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
@@ -408,7 +406,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     private static Jenkins instance() {
-        return Jenkins.getInstance();
+        return Jenkins.get();
     }
 
     private static void checkAdminPerm() {
@@ -578,7 +576,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               String pattern = reader.getAttribute("pattern");
               Set<Permission> permissions = new HashSet<>();
 
-              String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
+              String next = reader.peekNextChild();
               if (next != null && next.equals("permissions")) {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
@@ -595,7 +593,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               Role role = new Role(name, pattern, permissions);
               map.addRole(role);
 
-              next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
+              next = reader.peekNextChild();
               if (next != null && next.equals("assignedSIDs")) {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
@@ -689,7 +687,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
+    public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
         checkAdminPerm();
 
         req.setCharacterEncoding("UTF-8");
@@ -705,7 +703,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
+    public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
         checkAdminPerm();
 
         req.setCharacterEncoding("UTF-8");
@@ -747,7 +745,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * to create the {@link AuthorizationStrategy} object.
      */
     @Override
-    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) {
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
@@ -760,7 +758,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
         for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)globalRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<Permission>();
+          Set<Permission> permissions = new HashSet<>();
           for (Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
               if (e.getValue()) {
                   Permission p = Permission.fromId(e.getKey());
@@ -858,8 +856,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           permissions.add(permission);
         }
       }
-      Role role = new Role("admin", permissions);
-      return role;
+        return new Role("admin", permissions);
     }
 
     /**
@@ -881,30 +878,32 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Nullable
     public List<PermissionGroup> getGroups(@NonNull String type) {
         List<PermissionGroup> groups;
-        if (type.equals(GLOBAL)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-        }
-        else if (type.equals(PROJECT)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(Computer.class));
-            groups.remove(PermissionGroup.get(View.class));
-        }
-        else if (type.equals(SLAVE)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(View.class));
+        switch (type) {
+            case GLOBAL:
+                groups = new ArrayList<>(PermissionGroup.getAll());
+                groups.remove(PermissionGroup.get(Permission.class));
+                break;
+            case PROJECT:
+                groups = new ArrayList<>(PermissionGroup.getAll());
+                groups.remove(PermissionGroup.get(Permission.class));
+                groups.remove(PermissionGroup.get(Hudson.class));
+                groups.remove(PermissionGroup.get(Computer.class));
+                groups.remove(PermissionGroup.get(View.class));
+                break;
+            case SLAVE:
+                groups = new ArrayList<>(PermissionGroup.getAll());
+                groups.remove(PermissionGroup.get(Permission.class));
+                groups.remove(PermissionGroup.get(Hudson.class));
+                groups.remove(PermissionGroup.get(View.class));
 
-            // Project, SCM and Run permissions
-            groups.remove(PermissionGroup.get(Item.class));
-            groups.remove(PermissionGroup.get(SCM.class));
-            groups.remove(PermissionGroup.get(Run.class));
-        }
-        else {
-            groups = null;
+                // Project, SCM and Run permissions
+                groups.remove(PermissionGroup.get(Item.class));
+                groups.remove(PermissionGroup.get(SCM.class));
+                groups.remove(PermissionGroup.get(Run.class));
+                break;
+            default:
+                groups = null;
+                break;
         }
         return groups;
     }

@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.plugins.rolestrategy.permissions;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.PluginManager;
 import hudson.security.Permission;
 import java.util.Arrays;
@@ -30,8 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
+
 import jenkins.model.Jenkins;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -47,7 +48,7 @@ public class PermissionHelper {
      * List of the dangerous permissions, which need to be suppressed by the plugin.
      */
     @Restricted(NoExternalUse.class)
-    public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<Permission>(Arrays.asList(
+    public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             Jenkins.RUN_SCRIPTS,
             PluginManager.CONFIGURE_UPDATECENTER,
             PluginManager.UPLOAD_PLUGINS)));

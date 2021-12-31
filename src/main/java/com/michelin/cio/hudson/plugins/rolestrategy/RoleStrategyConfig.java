@@ -28,14 +28,14 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
-import hudson.model.Descriptor.FormException;
 import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
 import hudson.util.FormApply;
@@ -44,7 +44,6 @@ import jenkins.model.Jenkins;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -64,12 +63,13 @@ public class RoleStrategyConfig extends ManagementLink {
   public String getIconFileName() {
     String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
-    if (Jenkins.getActiveInstance().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
+    if (Jenkins.get().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
       icon = "secure.png";
     }
     return icon;
   }
 
+  @NonNull
   @Override
   public Permission getRequiredPermission() {
     return Jenkins.SYSTEM_READ;
@@ -130,7 +130,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @CheckForNull
   public AuthorizationStrategy getStrategy() {
-    AuthorizationStrategy strategy = Jenkins.getActiveInstance().getAuthorizationStrategy();
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy) {
       return strategy;
     }
@@ -144,8 +144,8 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
+  public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -156,7 +156,7 @@ public class RoleStrategyConfig extends ManagementLink {
 //  public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
 //    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
 //
-//    // TODO: MAcros Enable/Disable
+//    // TODO: Macros Enable/Disable
 //
 //    // Redirect to the plugin index page
 //    FormApply.success(".").generateResponse(req, rsp, this);
@@ -167,8 +167,8 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-    Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
+  public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
     FormApply.success(".").generateResponse(req, rsp, this);

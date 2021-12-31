@@ -29,12 +29,12 @@ import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
 import static io.jenkins.plugins.casc.misc.Util.toYamlString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 /**
  * @author Oleg Nenashev
@@ -125,7 +125,7 @@ public class RoleStrategyTest {
     @Test
     @Issue("Issue #214")
     @ConfiguredWithCode("Configuration-as-Code2.yml")
-    public void shouldHandleNullItemsAndAgentsCorrectly() throws Exception {
+    public void shouldHandleNullItemsAndAgentsCorrectly() {
         AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
         assertThat("Authorization Strategy has been read incorrectly",
             s, instanceOf(RoleBasedAuthorizationStrategy.class));
