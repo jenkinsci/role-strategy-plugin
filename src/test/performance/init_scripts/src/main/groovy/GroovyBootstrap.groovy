@@ -32,6 +32,7 @@ import java.util.logging.Logger
 
 import static java.util.logging.Level.INFO
 import static java.util.logging.Level.WARNING
+import static java.util.logging.Level.WARNING;
 
 /**
  * Bootstraps the standard Jenkins initialization logic.
@@ -89,7 +90,7 @@ class GroovyInitBootstrap {
      * @param f Groovy file
      * @throws Error Execution failed, should be considered as fatal.
      */
-    protected void execute(@Nonnull File f) {
+    protected void execute(@NonNull File f) {
         if (f.exists()) {
             LOGGER.log(INFO, "Executing {0}", f)
             try {
