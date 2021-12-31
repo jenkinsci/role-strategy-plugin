@@ -28,7 +28,7 @@ import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 /**
  * Extension for macro roles (automatic membership handling).
