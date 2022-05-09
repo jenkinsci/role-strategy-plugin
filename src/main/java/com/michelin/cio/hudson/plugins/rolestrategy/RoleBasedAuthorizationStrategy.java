@@ -953,7 +953,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       SecurityRealm sr = Jenkins.get().getSecurityRealm();
 
-      if(v.equals("authenticated"))
+      if (v.equals("authenticated")) {
         // system reserved group
         return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
 
