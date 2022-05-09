@@ -21,10 +21,10 @@ class ValidationUtil {
           return String.format("<span title='%s'>%s</span>", tooltip, user);
       }
 
+      String imageFormat = String.format("svgs/%s.svg' width='16'", img);
       if (jenkinsVersion.isOlderThan(new VersionNumber("2.308"))) {
-          return String.format("<span title='%s'><img src='%s%s/images/16x16/%s.png' style='margin-right:0.2em'>%s</span>", tooltip, Stapler.getCurrentRequest().getContextPath(), Jenkins.RESOURCE_PATH, img, user);
-      } else {
-          return String.format("<span title='%s'><img src='%s%s/images/svgs/%s.svg' width='16' style='margin-right:0.2em'>%s</span>", tooltip, Stapler.getCurrentRequest().getContextPath(), Jenkins.RESOURCE_PATH, img, user);
+        imageFormat = String.format("16x16/%s.png'", img);
       }
+      return String.format("<span title='%s'><img src='%s%s/images/%s style='margin-right:0.2em'>%s</span>", tooltip, Stapler.getCurrentRequest().getContextPath(), Jenkins.RESOURCE_PATH, imageFormat, user);
   }
 }

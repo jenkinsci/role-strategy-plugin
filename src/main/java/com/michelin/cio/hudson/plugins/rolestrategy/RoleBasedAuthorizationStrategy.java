@@ -956,6 +956,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       if (v.equals("authenticated")) {
         // system reserved group
         return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
+      }
 
       try {
         try {
