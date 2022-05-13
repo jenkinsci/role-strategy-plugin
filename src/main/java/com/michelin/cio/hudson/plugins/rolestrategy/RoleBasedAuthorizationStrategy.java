@@ -940,16 +940,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
     }
 
-    public FormValidation doCheckName(@QueryParameter String value ) {
-        return doCheckName_(value, Jenkins.ADMINISTER);
-    }
-
-    private FormValidation doCheckName_(@NonNull String value, @NonNull Permission permission) {
-
+    @RequirePOST
+    public FormValidation doCheckName(@QueryParameter String value) {
       final String v = value.substring(1,value.length()-1);
       String ev = Functions.escape(v);
 
-      if (!Jenkins.get().hasPermission(permission))  return FormValidation.ok(ev); // can't check
+      if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER))  return FormValidation.ok(ev); // can't check
 
       SecurityRealm sr = Jenkins.get().getSecurityRealm();
 
