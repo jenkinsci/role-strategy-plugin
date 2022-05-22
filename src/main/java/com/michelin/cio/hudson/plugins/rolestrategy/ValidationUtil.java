@@ -1,5 +1,6 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import org.apache.commons.jelly.JellyContext;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.kohsuke.accmod.Restricted;
@@ -25,7 +26,10 @@ class ValidationUtil {
 
       String imageFormat = String.format("icon-%s icon-sm", img);
       Icon icon = IconSet.icons.getIconByClassSpec(imageFormat);
-      return String.format("<span title='%s'><img src='%s%s/images/%s' style='%s margin-right:0.2em'>%s</span>",
-            tooltip, Stapler.getCurrentRequest().getContextPath(), Jenkins.RESOURCE_PATH, icon.getUrl(), icon.getStyle(), user);
+      JellyContext ctx = new JellyContext();
+      ctx.setVariable("resURL", Stapler.getCurrentRequest().getContextPath() + Jenkins.RESOURCE_PATH);
+      String url = icon.getQualifiedUrl(ctx);
+      return String.format("<span title='%s'><img src='%s' style='%s margin-right:0.2em'>%s</span>",
+            tooltip, url, icon.getStyle(), user);
   }
 }
