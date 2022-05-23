@@ -150,7 +150,7 @@
         "#projectRoles TD.start A" : deleteAssignedProjectRole,
         "#projectRoles TD.stop A" : deleteAssignedProjectRole,
         "#projectRoles TR.permission-row" : function(e) {
-          FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"GET",e.childNodes[1]);
+          FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
         }
       });
     </script>

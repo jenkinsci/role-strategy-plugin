@@ -30,26 +30,33 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
+import hudson.Functions;
+import hudson.Util;
 import hudson.model.AbstractItem;
 import hudson.model.Computer;
+import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.User;
 import hudson.model.View;
 import hudson.scm.SCM;
 import hudson.security.ACL;
+import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
-import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
+import hudson.security.UserMayOrMayNotExistException2;
 import java.io.IOException;
 import javax.servlet.ServletException;
 
@@ -64,12 +71,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -78,6 +88,8 @@ import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * Role-based authorization strategy.
@@ -517,10 +529,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * update the getRoleMaps() method.</p>
    */
   public static class ConverterImpl implements Converter {
+      @Override
       public boolean canConvert(Class type) {
         return type==RoleBasedAuthorizationStrategy.class;
       }
 
+      @Override
       public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
 
@@ -561,6 +575,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
       }
 
+      @Override
       public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
         final Map<String, RoleMap> roleMaps = new HashMap<>();
         while(reader.hasMoreChildren()) {
@@ -576,7 +591,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               String pattern = reader.getAttribute("pattern");
               Set<Permission> permissions = new HashSet<>();
 
-              String next = reader.peekNextChild();
+              String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
               if (next != null && next.equals("permissions")) {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
@@ -593,7 +608,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               Role role = new Role(name, pattern, permissions);
               map.addRole(role);
 
-              next = reader.peekNextChild();
+              next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
               if (next != null && next.equals("assignedSIDs")) {
                 reader.moveDown();
                 while(reader.hasMoreChildren()) {
@@ -665,7 +680,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   /**
    * Descriptor used to bind the strategy to the Web forms.
    */
-  public static final class DescriptorImpl extends GlobalMatrixAuthorizationStrategy.DescriptorImpl {
+  public static final class DescriptorImpl extends Descriptor<AuthorizationStrategy> {
 
     @Override
     @NonNull
@@ -923,6 +938,60 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             default:
                 return false;
         }
+    }
+
+    @RequirePOST
+    public FormValidation doCheckName(@QueryParameter String value) {
+      final String v = value.substring(1,value.length()-1);
+      String ev = Functions.escape(v);
+
+      if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER))  return FormValidation.ok(ev); // can't check
+
+      SecurityRealm sr = Jenkins.get().getSecurityRealm();
+
+      if (v.equals("authenticated")) {
+        // system reserved group
+        return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
+      }
+
+      try {
+        try {
+          sr.loadUserByUsername2(v);
+          User u = User.getById(v, true);
+          if (v.equals(u.getFullName())) {
+              return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("person", ev, "User"));
+          }
+          return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("person", Util.escape(StringUtils.abbreviate(u.getFullName(), 50)), "User " + ev));
+        } catch (UserMayOrMayNotExistException2 e) {
+          // undecidable, meaning the user may exist
+          return FormValidation.respond(FormValidation.Kind.OK, ev);
+        } catch (UsernameNotFoundException e) {
+          // fall through next
+        } catch (AuthenticationException e) {
+          // other seemingly unexpected error.
+          return FormValidation.error(e,"Failed to test the validity of the user name "+v);
+        }
+
+        try {
+          sr.loadGroupByGroupname2(v, false);
+          return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
+        } catch (UserMayOrMayNotExistException2 e) {
+          // undecidable, meaning the group may exist
+          return FormValidation.respond(FormValidation.Kind.WARNING, v);
+        } catch (UsernameNotFoundException e) {
+          // fall through next
+        } catch (AuthenticationException e) {
+          // other seemingly unexpected error.
+          return FormValidation.error(e,"Failed to test the validity of the group name "+v);
+        }
+
+        // couldn't find it. it doesn't exist
+        return FormValidation.respond(FormValidation.Kind.ERROR, ValidationUtil.formatNonExistentUserGroupValidationResponse(ev, "User or group not found")); // TODO i18n
+      } catch (Exception e) {
+        // if the check fails miserably, we still want the user to be able to see the name of the user,
+        // so use 'ev' as the message
+        return FormValidation.error(e,ev);
+      }
     }
   }
 }
