@@ -41,8 +41,7 @@
 
     <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.303.1</jenkins.version>
-        <useBeta>true</useBeta>
+        <jenkins.version>2.303.3</jenkins.version>
     </properties>
 
     <repositories>
@@ -72,7 +71,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.303.x</artifactId>
-                <version>1362.v59f2f3db_80ee</version>
+                <version>1382.v7d694476f340</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
