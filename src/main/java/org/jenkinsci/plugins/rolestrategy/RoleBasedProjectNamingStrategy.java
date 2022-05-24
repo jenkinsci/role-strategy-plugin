@@ -38,10 +38,10 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
     @Override
     public void checkName(String name) throws Failure {
-        boolean matches = false;
-        ArrayList<String> badList = null;
         AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
         if (auth instanceof RoleBasedAuthorizationStrategy){
+            boolean matches = false;
+            ArrayList<String> badList = null;
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             //firstly check global role
             SortedMap<Role, Set<String>> gRole = rbas.getGrantedRoles(RoleType.Global);
@@ -67,15 +67,15 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
                     }
                 }
             }
-        }
-        if (!matches) {
-            String error;
-            if (badList != null && !badList.isEmpty())
-                //TODO beatify long outputs?
-                error = Messages.RoleBasedProjectNamingStrategy_JobNameConventionNotApplyed(name, badList.toString());
-            else
-                error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();
-            throw new Failure(error);
+            if (!matches) {
+                String error;
+                if (badList != null && !badList.isEmpty())
+                    //TODO beatify long outputs?
+                    error = Messages.RoleBasedProjectNamingStrategy_JobNameConventionNotApplyed(name, badList.toString());
+                else
+                    error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();
+                throw new Failure(error);
+            }
         }
     }
 
