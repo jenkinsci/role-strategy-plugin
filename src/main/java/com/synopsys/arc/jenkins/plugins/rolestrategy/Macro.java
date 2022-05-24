@@ -24,9 +24,9 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Arrays;
-import javax.annotation.Nonnull;
 
 /**
  * Macro representation for roles and users.
@@ -55,7 +55,7 @@ public class Macro {
     private final int index;
 
     //TODO: rework to list/set?
-    @Nonnull
+    @NonNull
     private final String[] parameters;
 
     public Macro(String name, Integer index, String[] parameters) {

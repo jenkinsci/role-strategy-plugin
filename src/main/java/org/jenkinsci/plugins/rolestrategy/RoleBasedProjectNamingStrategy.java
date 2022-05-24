@@ -5,6 +5,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Failure;
 import hudson.model.Item;
@@ -39,7 +40,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     public void checkName(String name) throws Failure {
         boolean matches = false;
         ArrayList<String> badList = null;
-        AuthorizationStrategy auth = Jenkins.getActiveInstance().getAuthorizationStrategy();
+        AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
         if (auth instanceof RoleBasedAuthorizationStrategy){
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             //firstly check global role
@@ -86,6 +87,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     @Extension
     public static final class DescriptorImpl extends ProjectNamingStrategyDescriptor {
 
+        @NonNull
         @Override
         public String getDisplayName() {
             return Messages.RoleBasedAuthorizationStrategy_DisplayName();

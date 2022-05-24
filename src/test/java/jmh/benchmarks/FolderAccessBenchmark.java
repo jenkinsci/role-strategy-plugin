@@ -135,7 +135,7 @@ public class FolderAccessBenchmark {
         @Setup(Level.Iteration)
         public void setup() {
             SecurityContext securityContext = SecurityContextHolder.getContext();
-            securityContext.setAuthentication(User.get("user33").impersonate());
+            securityContext.setAuthentication(User.getById("user33", true).impersonate());
         }
     }
 

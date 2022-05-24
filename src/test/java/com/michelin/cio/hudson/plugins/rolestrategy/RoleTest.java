@@ -5,8 +5,8 @@ import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -35,7 +35,7 @@ public class RoleTest {
         Permission aRealPerm = Permission.CREATE;
         Permission nullPerm = null;
 
-        Set<Permission> perms = new HashSet<Permission>(Arrays.asList(aRealPerm, nullPerm));
+        Set<Permission> perms = new HashSet<>(Arrays.asList(aRealPerm, nullPerm));
         
         // Test with modifiable collections
         Role role = new Role("name", perms);

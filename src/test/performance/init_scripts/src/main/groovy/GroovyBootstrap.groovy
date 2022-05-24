@@ -22,13 +22,17 @@
  * THE SOFTWARE.
  */
 
+
+import edu.umd.cs.findbugs.annotations.NonNull
+import jenkins.model.Jenkins
 import org.codehaus.groovy.control.CompilerConfiguration
+
+import javax.servlet.ServletContext
+import java.util.logging.Logger
+
 import static java.util.logging.Level.INFO
+import static java.util.logging.Level.WARNING
 import static java.util.logging.Level.WARNING;
-import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.servlet.ServletContext;
-import jenkins.model.Jenkins;
 
 /**
  * Bootstraps the standard Jenkins initialization logic.
@@ -48,7 +52,7 @@ class GroovyInitBootstrap {
         this(j.servletContext, j.rootDir, j.pluginManager.uberClassLoader)
     }
 
-    GroovyInitBootstrap(@Nonnull ServletContext servletContext, @Nonnull File home, @Nonnull ClassLoader groovyClassloader) {
+    GroovyInitBootstrap(@NonNull ServletContext servletContext, @NonNull File home, @NonNull ClassLoader groovyClassloader) {
         this.servletContext = servletContext
         this.home = home
         compilerConfiguration.classpath = new File(home, "init.groovy.d/").absolutePath
@@ -86,21 +90,21 @@ class GroovyInitBootstrap {
      * @param f Groovy file
      * @throws Error Execution failed, should be considered as fatal.
      */
-    protected void execute(@Nonnull File f) {
+    protected void execute(@NonNull File f) {
         if (f.exists()) {
             LOGGER.log(INFO, "Executing {0}", f)
             try {
                 GroovyCodeSource codeSource = new GroovyCodeSource(f)
                 new GroovyShell(groovyClassloader, bindings).evaluate(codeSource)
             } catch (IOException e) {
-                LOGGER.log(WARNING, "Failed to execute " + f, e);
+                LOGGER.log(WARNING, "Failed to execute " + f, e)
                 throw new Error("Failed to execute " + f, e)
             }
         }
     }
 
-    private static final Logger LOGGER = Logger.getLogger(GroovyBootstrap.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GroovyBootstrap.class.getName())
 }
 
-GroovyInitBootstrap bootstrap = new GroovyInitBootstrap(Jenkins.instance)
+GroovyInitBootstrap bootstrap = new GroovyInitBootstrap(Jenkins.get())
 bootstrap.run()

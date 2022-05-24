@@ -13,7 +13,6 @@ import org.acegisecurity.context.SecurityContextHolder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockFolder;
@@ -25,6 +24,12 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
+
 
 /**
  * Tests for {@link RoleBasedAuthorizationStrategy} Web API Methods
@@ -78,6 +83,7 @@ public class APITest {
             Role role = entry.getKey();
             if (role.getName().equals("new-role") && role.getPattern().pattern().equals(pattern)) {
                 foundRole = true;
+                break;
             }
         }
         assertTrue("Checking if the role is found.", foundRole);
@@ -101,7 +107,7 @@ public class APITest {
 
     @Test
     @Issue("JENKINS-61470")
-    public void testAssignRole() throws IOException, InterruptedException {
+    public void testAssignRole() throws IOException {
         String roleName = "new-role";
         String sid = "alice";
         Authentication alice = User.getById(sid, true).impersonate();
@@ -140,7 +146,7 @@ public class APITest {
 
     @Test
     @Issue("JENKINS-61470")
-    public void testUnassignRole() throws IOException, InterruptedException {
+    public void testUnassignRole() throws IOException {
 
         String roleName = "new-role";
         String sid = "alice";

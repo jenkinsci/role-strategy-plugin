@@ -33,23 +33,31 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
+import hudson.Functions;
+import hudson.Util;
 import hudson.model.AbstractItem;
 import hudson.model.Computer;
+import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
+import hudson.model.User;
 import hudson.model.View;
 import hudson.scm.SCM;
 import hudson.security.ACL;
+import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
-import hudson.security.GlobalMatrixAuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
+import hudson.security.UserMayOrMayNotExistException2;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import javax.servlet.ServletException;
 
 import java.io.Writer;
@@ -63,15 +71,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -80,6 +88,8 @@ import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * Role-based authorization strategy.
@@ -124,7 +134,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return The global ACL
    */
   @Override
-  @Nonnull
+  @NonNull
   public SidACL getRootACL() {
     return globalRoles.getACL(RoleType.Global, null);
   }
@@ -136,7 +146,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return the {@link RoleMap} corresponding to the {@code roleType}
    * @throws IllegalArgumentException for an invalid {@code roleType}
    */
-  @Nonnull
+  @NonNull
   private RoleMap getRoleMap(RoleType roleType) {
       switch (roleType) {
           case Global:
@@ -157,21 +167,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @return The project specific ACL
      */
     @Override
-    @Nonnull
-    public ACL getACL(@Nonnull Job<?,?> project) {
+    @NonNull
+    public ACL getACL(@NonNull Job<?,?> project) {
       return getACL((AbstractItem) project);
     }
 
     @Override
-    @Nonnull
-    public ACL getACL(@Nonnull AbstractItem project) {
+    @NonNull
+    public ACL getACL(@NonNull AbstractItem project) {
         return itemRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project)
                 .newInheritingACL(getRootACL());
     }
 
     @Override
-    @Nonnull
-    public ACL getACL(@Nonnull Computer computer) {
+    @NonNull
+    public ACL getACL(@NonNull Computer computer) {
         return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
                 .newInheritingACL(getRootACL());
     }
@@ -181,7 +191,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return All the sids referenced by the strategy
    */
   @Override
-  @Nonnull
+  @NonNull
   public Collection<String> getGroups() {
     Set<String> sids = new HashSet<>();
     sids.addAll(globalRoles.getSids(true));
@@ -209,7 +219,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return roles mapped to the set of user sids assigned to that role
    * @since 2.12
    */
-  public SortedMap<Role, Set<String>> getGrantedRoles(@Nonnull RoleType type) {
+  public SortedMap<Role, Set<String>> getGrantedRoles(@NonNull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
   }
 
@@ -229,7 +239,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * a look at the {@link ConverterImpl}) and, as such, must remain private
    * since it exposes all the security config.</p>
    */
-  @Nonnull
+  @NonNull
   private Map<RoleType, RoleMap> getRoleMaps() {
     Map<RoleType, RoleMap> roleMaps = new HashMap<>();
     roleMaps.put(RoleType.Global, globalRoles);
@@ -408,7 +418,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     private static Jenkins instance() {
-        return Jenkins.getInstance();
+        return Jenkins.get();
     }
 
     private static void checkAdminPerm() {
@@ -519,10 +529,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * update the getRoleMaps() method.</p>
    */
   public static class ConverterImpl implements Converter {
+      @Override
       public boolean canConvert(Class type) {
         return type==RoleBasedAuthorizationStrategy.class;
       }
 
+      @Override
       public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy)source;
 
@@ -563,6 +575,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
       }
 
+      @Override
       public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
         final Map<String, RoleMap> roleMaps = new HashMap<>();
         while(reader.hasMoreChildren()) {
@@ -667,10 +680,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   /**
    * Descriptor used to bind the strategy to the Web forms.
    */
-  public static final class DescriptorImpl extends GlobalMatrixAuthorizationStrategy.DescriptorImpl {
+  public static final class DescriptorImpl extends Descriptor<AuthorizationStrategy> {
 
     @Override
-    @Nonnull
+    @NonNull
     public  String getDisplayName() {
       return Messages.RoleBasedAuthorizationStrategy_DisplayName();
     }
@@ -689,7 +702,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
+    public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
         checkAdminPerm();
 
         req.setCharacterEncoding("UTF-8");
@@ -705,7 +718,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws UnsupportedEncodingException, ServletException, FormException, IOException {
+    public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
         checkAdminPerm();
 
         req.setCharacterEncoding("UTF-8");
@@ -747,7 +760,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * to create the {@link AuthorizationStrategy} object.
      */
     @Override
-    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) throws FormException {
+    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) {
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 
@@ -760,7 +773,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
         for (Map.Entry<String,JSONObject> r : (Set<Map.Entry<String,JSONObject>>)globalRoles.getJSONObject("data").entrySet()) {
           String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<Permission>();
+          Set<Permission> permissions = new HashSet<>();
           for (Map.Entry<String,Boolean> e : (Set<Map.Entry<String,Boolean>>)r.getValue().entrySet()) {
               if (e.getValue()) {
                   Permission p = Permission.fromId(e.getKey());
@@ -858,8 +871,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           permissions.add(permission);
         }
       }
-      Role role = new Role("admin", permissions);
-      return role;
+        return new Role("admin", permissions);
     }
 
     /**
@@ -879,32 +891,34 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      *         {@code null} if an unsupported type is defined.
      */
     @Nullable
-    public List<PermissionGroup> getGroups(@Nonnull String type) {
+    public List<PermissionGroup> getGroups(@NonNull String type) {
         List<PermissionGroup> groups;
-        if (type.equals(GLOBAL)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-        }
-        else if (type.equals(PROJECT)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(Computer.class));
-            groups.remove(PermissionGroup.get(View.class));
-        }
-        else if (type.equals(SLAVE)) {
-            groups = new ArrayList<>(PermissionGroup.getAll());
-            groups.remove(PermissionGroup.get(Permission.class));
-            groups.remove(PermissionGroup.get(Hudson.class));
-            groups.remove(PermissionGroup.get(View.class));
+        switch (type) {
+            case GLOBAL:
+                groups = new ArrayList<>(PermissionGroup.getAll());
+                groups.remove(PermissionGroup.get(Permission.class));
+                break;
+            case PROJECT:
+                groups = new ArrayList<>(PermissionGroup.getAll());
+                groups.remove(PermissionGroup.get(Permission.class));
+                groups.remove(PermissionGroup.get(Hudson.class));
+                groups.remove(PermissionGroup.get(Computer.class));
+                groups.remove(PermissionGroup.get(View.class));
+                break;
+            case SLAVE:
+                groups = new ArrayList<>(PermissionGroup.getAll());
+                groups.remove(PermissionGroup.get(Permission.class));
+                groups.remove(PermissionGroup.get(Hudson.class));
+                groups.remove(PermissionGroup.get(View.class));
 
-            // Project, SCM and Run permissions
-            groups.remove(PermissionGroup.get(Item.class));
-            groups.remove(PermissionGroup.get(SCM.class));
-            groups.remove(PermissionGroup.get(Run.class));
-        }
-        else {
-            groups = null;
+                // Project, SCM and Run permissions
+                groups.remove(PermissionGroup.get(Item.class));
+                groups.remove(PermissionGroup.get(SCM.class));
+                groups.remove(PermissionGroup.get(Run.class));
+                break;
+            default:
+                groups = null;
+                break;
         }
         return groups;
     }
@@ -924,6 +938,60 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             default:
                 return false;
         }
+    }
+
+    @RequirePOST
+    public FormValidation doCheckName(@QueryParameter String value) {
+      final String v = value.substring(1,value.length()-1);
+      String ev = Functions.escape(v);
+
+      if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER))  return FormValidation.ok(ev); // can't check
+
+      SecurityRealm sr = Jenkins.get().getSecurityRealm();
+
+      if (v.equals("authenticated")) {
+        // system reserved group
+        return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
+      }
+
+      try {
+        try {
+          sr.loadUserByUsername2(v);
+          User u = User.getById(v, true);
+          if (v.equals(u.getFullName())) {
+              return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("person", ev, "User"));
+          }
+          return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("person", Util.escape(StringUtils.abbreviate(u.getFullName(), 50)), "User " + ev));
+        } catch (UserMayOrMayNotExistException2 e) {
+          // undecidable, meaning the user may exist
+          return FormValidation.respond(FormValidation.Kind.OK, ev);
+        } catch (UsernameNotFoundException e) {
+          // fall through next
+        } catch (AuthenticationException e) {
+          // other seemingly unexpected error.
+          return FormValidation.error(e,"Failed to test the validity of the user name "+v);
+        }
+
+        try {
+          sr.loadGroupByGroupname2(v, false);
+          return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
+        } catch (UserMayOrMayNotExistException2 e) {
+          // undecidable, meaning the group may exist
+          return FormValidation.respond(FormValidation.Kind.WARNING, v);
+        } catch (UsernameNotFoundException e) {
+          // fall through next
+        } catch (AuthenticationException e) {
+          // other seemingly unexpected error.
+          return FormValidation.error(e,"Failed to test the validity of the group name "+v);
+        }
+
+        // couldn't find it. it doesn't exist
+        return FormValidation.respond(FormValidation.Kind.ERROR, ValidationUtil.formatNonExistentUserGroupValidationResponse(ev, "User or group not found")); // TODO i18n
+      } catch (Exception e) {
+        // if the check fails miserably, we still want the user to be able to see the name of the user,
+        // so use 'ev' as the message
+        return FormValidation.error(e,ev);
+      }
     }
   }
 }

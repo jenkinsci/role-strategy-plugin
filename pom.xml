@@ -4,18 +4,18 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.18</version>
+        <version>4.40</version>
         <relativePath />
     </parent>
 
     <artifactId>role-strategy</artifactId>
     <packaging>hpi</packaging>
-    <version>${revision}${changelist}</version>
+    <version>${changelist}</version>
     <name>Role-based Authorization Strategy</name>
     <url>https://github.com/jenkinsci/role-strategy-plugin</url>
 
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
+        <connection>scm:git:https://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
         <tag>${scmTag}</tag>
@@ -40,11 +40,8 @@
     </developers>
 
     <properties>
-        <revision>3.2.1</revision>
-        <changelist>-SNAPSHOT</changelist>
-        <jenkins.version>2.222.4</jenkins.version>
-        <java.level>8</java.level>
-        <useBeta>true</useBeta>
+        <changelist>999999-SNAPSHOT</changelist>
+        <jenkins.version>2.303.3</jenkins.version>
     </properties>
 
     <repositories>
@@ -73,8 +70,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.222.x</artifactId>
-                <version>887.vae9c8ac09ff7</version>
+                <artifactId>bom-2.303.x</artifactId>
+                <version>1382.v7d694476f340</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -82,10 +79,6 @@
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>matrix-auth</artifactId>
-        </dependency>
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>caffeine-api</artifactId>

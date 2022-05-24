@@ -52,7 +52,7 @@ public class MaliciousRegexBenchmark {
         @Setup(Level.Iteration)
         public void setup() {
             SecurityContext securityContext = SecurityContextHolder.getContext();
-            securityContext.setAuthentication(User.get(testUser).impersonate());
+            securityContext.setAuthentication(User.getById(testUser, true).impersonate());
         }
     }
 

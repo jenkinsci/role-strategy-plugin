@@ -24,11 +24,11 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.macros.StubMacro;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.ExtensionList;
 import hudson.ExtensionPoint;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.CheckForNull;
 
 /**
  * Extension for macro roles (automatic membership handling).
@@ -40,9 +40,9 @@ import javax.annotation.CheckForNull;
 public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtension {
 
     private static final Map<String, RoleMacroExtension> NAME_CACHE =
-            new ConcurrentHashMap<String, RoleMacroExtension>();
+            new ConcurrentHashMap<>();
 
-    private static final Map<String, Macro> MACRO_CACHE = new ConcurrentHashMap<String, Macro>();
+    private static final Map<String, Macro> MACRO_CACHE = new ConcurrentHashMap<>();
 
     private static void updateRegistry() {
         NAME_CACHE.clear();

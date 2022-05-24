@@ -32,7 +32,7 @@ public class RoleDefinition {
     private final Set<String> assignments;
 
     @DataBoundConstructor
-    public RoleDefinition(String name, String description, String pattern, Collection<String> permissions, Collection<String> assignments) {
+    public RoleDefinition(@NonNull String name, @CheckForNull String description, @CheckForNull String pattern, Collection<String> permissions, Collection<String> assignments) {
         this.name = name;
         this.description = description;
         this.pattern = pattern;
@@ -62,10 +62,12 @@ public class RoleDefinition {
         return name;
     }
 
+    @CheckForNull
     public String getDescription() {
         return description;
     }
 
+    @CheckForNull
     public String getPattern() {
         return pattern;
     }
