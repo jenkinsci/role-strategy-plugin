@@ -118,7 +118,7 @@
       <f:textbox type="text" id="${id}text" />
     </f:entry>
     <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-      <f:textbox type="text" id="${id}pattern" />
+      <f:textbox type="text" id="${id}pattern" checkUrl="'${descriptorPath}/checkPattern?value='+escape(this.value)"/>
     </f:entry>
     <f:entry>
       <input type="button" value="${%Add}" id="${id}button"/>
@@ -148,6 +148,13 @@
             alert("Please enter a pattern");
             return;
           }
+          try {
+            new RegExp(pattern);
+          } catch(e) {
+            alert("Invalid pattern");
+            return;
+          }
+          
           if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
             alert("Entry for '"+name+"' already exists");
             return;
@@ -258,7 +265,7 @@
             this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
           }
           else {
-            this.innerHTML = this.childNodes[0].value.escapeHTML() + '<input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
+            this.innerHTML = '<a href="#" class="patternAnchor">&quot;' + this.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
           }
           return false;
         }

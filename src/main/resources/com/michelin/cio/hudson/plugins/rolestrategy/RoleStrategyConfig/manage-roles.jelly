@@ -47,6 +47,10 @@
           <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
           <j:set var="slaveGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
 
+          <j:if test="${empty(descriptorPath)}">
+            <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
+          </j:if>
+
           <d:taglib uri="local">
             <d:tag name="roleRow">
                 <td class="start">
