@@ -43,7 +43,7 @@ import jenkins.model.Jenkins;
 
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
-
+import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -139,6 +139,11 @@ public class RoleStrategyConfig extends ManagementLink {
     }
   }
 
+  @Restricted(NoExternalUse.class)
+  public boolean getNameingStrategyIsSet() {
+    return Jenkins.get().getProjectNamingStrategy() instanceof RoleBasedProjectNamingStrategy;
+  }
+  
   /**
    * Called on roles management form submission.
    */

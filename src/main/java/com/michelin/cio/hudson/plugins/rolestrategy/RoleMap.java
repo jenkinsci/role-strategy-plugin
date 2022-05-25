@@ -37,17 +37,21 @@ import hudson.model.ItemGroup;
 import hudson.model.Node;
 import hudson.model.User;
 import hudson.security.AccessControlled;
+import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.SidACL;
 import jenkins.model.Jenkins;
-import org.acegisecurity.BadCredentialsException;
-import org.acegisecurity.GrantedAuthority;
+import jenkins.model.ProjectNamingStrategy;
+
 import org.acegisecurity.acls.sid.Sid;
-import org.acegisecurity.userdetails.UserDetails;
+import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.jenkinsci.plugins.rolestrategy.Settings;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.springframework.dao.DataAccessException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -122,7 +126,8 @@ public class RoleMap {
    * Check if the given sid has the provided {@link Permission}.
    * @return True if the sid's granted permission
    */
-  private boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
+  @Restricted(NoExternalUse.class)
+  public boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem, boolean checkAuthorities) {
     final Set<Permission> permissions = getImplyingPermissions(permission);
     final boolean[] hasPermission = { false };
 
@@ -146,11 +151,11 @@ public class RoleMap {
               hasPermission[0] = true;
               abort();
             }
-          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES || checkAuthorities) {
             try {
               UserDetails userDetails = cache.getIfPresent(sid);
               if (userDetails == null) {
-                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername(sid);
+                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid);
                 cache.put(sid, userDetails);
               }
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
@@ -160,10 +165,6 @@ public class RoleMap {
                   return;
                 }
               }
-            } catch (BadCredentialsException e) {
-                LOGGER.log(Level.FINE, "Bad credentials", e);
-            } catch (DataAccessException e) {
-                LOGGER.log(Level.FINE, "failed to access the data", e);
             } catch (RuntimeException ex) {
                 // There maybe issues in the logic, which lead to IllegalStateException in Acegi Security (JENKINS-35652)
                 // So we want to ensure this method does not fail horribly in such case
@@ -481,7 +482,7 @@ public class RoleMap {
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item)) {
+      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item, false)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item)item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission)) && shouldCheckParentPermissions()) {
@@ -494,6 +495,22 @@ public class RoleMap {
         }
         return true;
       }
+      // For Item.CREATE 
+      // We need to find out if the given user has anywhere permission to create something
+      // not just in the current roletype, this can only reliably work when the project naming
+      // strategy is set to the role based naming strategy
+      if (permission == Item.CREATE && item == null) {
+        AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
+        ProjectNamingStrategy pns = Jenkins.get().getProjectNamingStrategy();
+        if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
+          RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
+          RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
+          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item, false)) {
+            return true;
+          }
+        }
+      }
+
       return null;
     }
   }

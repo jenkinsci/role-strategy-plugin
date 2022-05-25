@@ -148,7 +148,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @throws IllegalArgumentException for an invalid {@code roleType}
    */
   @NonNull
-  private RoleMap getRoleMap(RoleType roleType) {
+  @Restricted(NoExternalUse.class)
+  public RoleMap getRoleMap(RoleType roleType) {
       switch (roleType) {
           case Global:
               return globalRoles;
