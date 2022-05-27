@@ -945,8 +945,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Restricted(NoExternalUse.class)
     public FormValidation doCheckPattern(@QueryParameter String value) {
       try {
-          @SuppressWarnings("unused")
-          Pattern pattern = Pattern.compile(value);
+          Pattern.compile(value);
       } catch (PatternSyntaxException pse) {
         return FormValidation.error(pse.getMessage());
       }
