@@ -148,12 +148,6 @@
             alert("Please enter a pattern");
             return;
           }
-          try {
-            new RegExp(pattern);
-          } catch(e) {
-            alert("Invalid pattern");
-            return;
-          }
           
           if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
             alert("Entry for '"+name+"' already exists");
