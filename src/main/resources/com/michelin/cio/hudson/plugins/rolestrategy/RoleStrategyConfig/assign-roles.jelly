@@ -83,7 +83,6 @@
 
           <f:form method="post" name="config" action="assignSubmit">
             <h1>
-                <l:icon class="icon-user icon-xlg" alt="${it.assignRolesName}" />
                 ${it.assignRolesName}
             </h1>
 

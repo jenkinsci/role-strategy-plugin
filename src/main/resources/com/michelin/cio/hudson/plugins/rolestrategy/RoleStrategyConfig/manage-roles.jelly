@@ -91,7 +91,6 @@
 
           <f:form method="post" name="config" action="rolesSubmit">
             <h1>
-              <l:icon class="icon-fingerprint icon-xlg" alt="${it.displayName}" />
               ${it.manageRolesName}
             </h1>
 
