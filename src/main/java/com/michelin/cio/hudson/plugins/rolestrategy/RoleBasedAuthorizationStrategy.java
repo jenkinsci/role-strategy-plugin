@@ -74,6 +74,7 @@ import java.util.SortedMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
@@ -938,6 +939,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             default:
                 return false;
         }
+    }
+
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public FormValidation doCheckPattern(@QueryParameter String value) {
+      try {
+          Pattern.compile(value);
+      } catch (PatternSyntaxException pse) {
+        return FormValidation.error(pse.getMessage());
+      }
+      return FormValidation.ok();
     }
 
     @RequirePOST
