@@ -43,7 +43,6 @@
 
         <l:main-panel>
             <h1>
-                <l:icon class="${it.iconFileName} icon-xlg" alt="${it.displayName}"/>
                 ${it.displayName}
             </h1>
 

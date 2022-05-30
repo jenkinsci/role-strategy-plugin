@@ -87,7 +87,6 @@
             <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />    
                        
             <h1>
-              <l:icon class="icon-plugin icon-xlg" alt="${it.displayName}" />
               ${%Role-Strategy Macros Info}
             </h1>
             <p>Macros allow to extend analysis of user's access rights (see @RoleMacroExtension). 
