@@ -2,6 +2,9 @@ package org.jenkinsci.plugins.rolestrategy;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
 
@@ -35,37 +38,70 @@ public class RoleBasedProjectNamingStrategyTest
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
     
-    User user1 = User.getById("user1", false);
-    User user2 = User.getById("user2", false);
+    User userGlobal = User.getById("userGlobal", true);
+    User user1 = User.getById("userJobCreate", true);
+    User user2 = User.getById("userRead", true);
 
+    assertHasPermission(userGlobal, j.jenkins, Item.CREATE);
     assertHasPermission(user1, j.jenkins, Item.CREATE);
     assertHasNoPermission(user2, j.jenkins, Item.CREATE);
   }
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
-  public void checkName() {
+  public void globalUserCanCreateAnyJob() {
     j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
-    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
-    
-    User user1 = User.getById("user1", false);
-    User user2 = User.getById("user2", false);
-    User user3 = User.getById("user2", false);
-    
-    checkName(user1, "notAllowed");
-    Failure f = Assert.assertThrows(Failure.class, () -> checkName(user1, "notAllowed"));
-    
+
+    User userGlobal = User.getById("userGlobal", true);
+
+    checkName(userGlobal, "anyJobName", null);
   }
 
-  private void checkName(User user, final String jobName) {
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
+  public void itemUserCanCreateOnlyAllowedJobs() {
+    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+    AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly",
+        s, instanceOf(RoleBasedAuthorizationStrategy.class));
+
+    User userJobCreate = User.getById("userJobCreate", true);
+
+    checkName(userJobCreate, "jobAllowed", null);
+    checkName(userJobCreate, "jobAllowed", "folder");
+    Failure f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "jobAllowed", "folder2"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+  }
+
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
+  public void readUserCantCreateAllowedJobs() {
+    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+    AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly",
+        s, instanceOf(RoleBasedAuthorizationStrategy.class));
+
+    User userRead = User.getById("userRead", true);
+
+    Failure f = Assert.assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", null));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", "folder"));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
+  }
+
+  private void checkName(User user, final String jobName, final String parentName) {
     try (ACLContext c = ACL.as(user)) {
         ProjectNamingStrategy pns = j.jenkins.getProjectNamingStrategy();
         assertThat(pns, instanceOf(RoleBasedProjectNamingStrategy.class));
         RoleBasedProjectNamingStrategy rbpns = (RoleBasedProjectNamingStrategy) pns;
-        rbpns.checkName(null, jobName);
+        rbpns.checkName(parentName, jobName);
     }
   }
 

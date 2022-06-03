@@ -8,7 +8,6 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.Util;
 import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
@@ -28,8 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -39,8 +36,6 @@ import java.util.stream.Collectors;
  */
 public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implements Serializable {
 
-    private static final Logger LOGGER = Logger.getLogger(RoleBasedProjectNamingStrategy.class.getName());
-    
     private static final long serialVersionUID = 1L;
 
     private final boolean forceExistingJobs;
@@ -87,7 +82,13 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             if (global.hasPermission(principal, Item.CREATE, RoleType.Global, null, true)) {
                 return;
             }
-            
+
+            // check if user has anywhere else create permissions
+            RoleMap item = rbas.getRoleMap(RoleType.Project);
+            if (!item.hasPermission(principal, Item.CREATE, RoleType.Project, null, true)) {
+                throw new Failure(Messages.RoleBasedProjectNamingStrategy_NoPermissions());
+            }
+
             // check project role with pattern
             List<String> authorities = a.getAuthorities().stream().map(x -> x.getAuthority()).collect(Collectors.toList());
             SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleType.Project);

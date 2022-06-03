@@ -17,16 +17,16 @@ jenkins:
             assignments:
               - "authenticated"
           - name: "jobcreate"
-            description: "Read-only users"
+            description: "Create Job User"
             permissions:
               - "Job/Create"
               - "Job/Configure"
             assignments:
-              - "user3"
+              - "userGlobal"
         items:
           - name: "jobcreate"
             description: "Can create jobs"
-            pattern: "job.*"
+            pattern: "^job.*"
             permissions:
               - "Job/Configure"
               - "Job/Build"
@@ -34,15 +34,26 @@ jenkins:
               - "Job/Create"
               - "Job/Read"
             assignments:
-              - "user1"
+              - "userJobCreate"
+          - name: "folderjobcreate"
+            description: "Can create jobs in a folder"
+            pattern: "^folder/job.*"
+            permissions:
+              - "Job/Configure"
+              - "Job/Build"
+              - "Job/Delete"
+              - "Job/Create"
+              - "Job/Read"
+            assignments:
+              - "userJobCreate"
           - name: "jobread"
             description: "Can only read jobs"
-            pattern: "job.*"
+            pattern: "^job.*"
             permissions:
               - "Job/Build"
               - "Job/Read"
             assignments:
-              - "user2"
+              - "userRead"
 
   # System for test
   securityRealm:
