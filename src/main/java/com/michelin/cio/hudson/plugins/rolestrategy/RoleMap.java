@@ -127,7 +127,7 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   @Restricted(NoExternalUse.class)
-  public boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem, boolean checkAuthorities) {
+  public boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
     final Set<Permission> permissions = getImplyingPermissions(permission);
     final boolean[] hasPermission = { false };
 
@@ -135,7 +135,9 @@ public class RoleMap {
     // or a permission implying the given permission
     new RoleWalker() {
       public void perform(Role current) {
+        String mySid = sid;
         if (current.hasAnyPermission(permissions)) {
+          Set<String> r = grantedRoles.get(current);
           if (grantedRoles.get(current).contains(sid)) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
@@ -151,7 +153,7 @@ public class RoleMap {
               hasPermission[0] = true;
               abort();
             }
-          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES || checkAuthorities) {
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
             try {
               UserDetails userDetails = cache.getIfPresent(sid);
               if (userDetails == null) {
@@ -482,7 +484,7 @@ public class RoleMap {
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item, false)) {
+      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item)item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission)) && shouldCheckParentPermissions()) {
@@ -505,7 +507,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item, false)) {
+          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item)) {
             return true;
           }
         }

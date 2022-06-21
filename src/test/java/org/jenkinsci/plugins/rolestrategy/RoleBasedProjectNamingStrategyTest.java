@@ -2,15 +2,16 @@ package org.jenkinsci.plugins.rolestrategy;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
 
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 
@@ -30,69 +31,94 @@ public class RoleBasedProjectNamingStrategyTest
   @Rule
   public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
   
+  private DummySecurityRealm securityRealm;
+  private User userGlobal;
+  private User userJobCreate;
+  private User userRead;
+  private User userGlobalGroup;
+  private User userJobCreateGroup;
+  private User userReadGroup;
+
+  @Before
+  public void setup() {
+    securityRealm = j.createDummySecurityRealm();
+    j.jenkins.setSecurityRealm(securityRealm);
+    userGlobal = User.getById("userGlobal", true);
+    userJobCreate = User.getById("userJobCreate", true);
+    userRead = User.getById("userRead", true);
+    userGlobalGroup = User.getById("userGlobalGroup", true);
+    userJobCreateGroup = User.getById("userJobCreateGroup", true);
+    userReadGroup = User.getById("userReadGroup", true);
+    securityRealm.addGroups("userGlobalGroup", "groupGlobal");
+    securityRealm.addGroups("userJobCreateGroup", "groupJobCreate");
+    securityRealm.addGroups("userReadGroup", "groupRead");
+  }
+  
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
   public void createPermission() {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
-    
-    User userGlobal = User.getById("userGlobal", true);
-    User user1 = User.getById("userJobCreate", true);
-    User user2 = User.getById("userRead", true);
 
     assertHasPermission(userGlobal, j.jenkins, Item.CREATE);
-    assertHasPermission(user1, j.jenkins, Item.CREATE);
-    assertHasNoPermission(user2, j.jenkins, Item.CREATE);
+    assertHasPermission(userJobCreate, j.jenkins, Item.CREATE);
+    assertHasNoPermission(userRead, j.jenkins, Item.CREATE);
+    assertHasPermission(userGlobalGroup, j.jenkins, Item.CREATE);
+    assertHasPermission(userJobCreateGroup, j.jenkins, Item.CREATE);
+    assertHasNoPermission(userReadGroup, j.jenkins, Item.CREATE);
   }
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
   public void globalUserCanCreateAnyJob() {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
 
-    User userGlobal = User.getById("userGlobal", true);
-
     checkName(userGlobal, "anyJobName", null);
+    checkName(userGlobalGroup, "anyJobName", null);
   }
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
   public void itemUserCanCreateOnlyAllowedJobs() {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
 
-    User userJobCreate = User.getById("userJobCreate", true);
-
     checkName(userJobCreate, "jobAllowed", null);
     checkName(userJobCreate, "jobAllowed", "folder");
+    checkName(userJobCreateGroup, "jobAllowed", null);
+    checkName(userJobCreateGroup, "jobAllowed", "folder");
     Failure f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
     f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
     f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", null));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", "folder"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "jobAllowed", "folder2"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
   }
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
   public void readUserCantCreateAllowedJobs() {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
 
-    User userRead = User.getById("userRead", true);
-
     Failure f = Assert.assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", null));
     assertThat(f.getMessage(), is("No Create Permissions!"));
     f = Assert.assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", "folder"));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userReadGroup, "jobAllowed", null));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userReadGroup, "jobAllowed", "folder"));
     assertThat(f.getMessage(), is("No Create Permissions!"));
   }
 

@@ -77,20 +77,34 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             String principal = new PrincipalSid(a).getPrincipal();
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
             RoleMap global = rbas.getRoleMap(RoleType.Global);
+            List<String> authorities = a.getAuthorities().stream().map(x -> x.getAuthority()).collect(Collectors.toList());
             
             //first check global role
-            if (global.hasPermission(principal, Item.CREATE, RoleType.Global, null, true)) {
+            if (global.hasPermission(principal, Item.CREATE, RoleType.Global, null)) {
                 return;
+            }
+            for (String group: authorities) {
+              if (global.hasPermission(group, Item.CREATE, RoleType.Global, null)) {
+                return;
+              }
             }
 
             // check if user has anywhere else create permissions
             RoleMap item = rbas.getRoleMap(RoleType.Project);
-            if (!item.hasPermission(principal, Item.CREATE, RoleType.Project, null, true)) {
+            if (!item.hasPermission(principal, Item.CREATE, RoleType.Project, null)) {
+              boolean found = false;
+              for (String group: authorities) {
+                if (item.hasPermission(group, Item.CREATE, RoleType.Global, null)) {
+                  found = true;
+                  break;
+                }
+              }
+              if (!found) {
                 throw new Failure(Messages.RoleBasedProjectNamingStrategy_NoPermissions());
+              }
             }
 
             // check project role with pattern
-            List<String> authorities = a.getAuthorities().stream().map(x -> x.getAuthority()).collect(Collectors.toList());
             SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleType.Project);
             ArrayList<String> badList = new ArrayList<>(roles.size());
             for (SortedMap.Entry<Role, Set<String>> entry: roles.entrySet())  {
