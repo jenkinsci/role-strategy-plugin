@@ -181,7 +181,7 @@
             table.insertBefore(copy,table.childNodes[table.rows.length-2]);
           </j:if>
           projecttableHighlighter.scan(copy);
-          Behaviour.applySubtree(findAncestor(table,"TABLE"));
+          Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
         });
       })();
 
