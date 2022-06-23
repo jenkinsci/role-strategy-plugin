@@ -78,6 +78,7 @@ import java.util.regex.PatternSyntaxException;
 import hudson.util.FormValidation;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
@@ -88,6 +89,7 @@ import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.kohsuke.stapler.verb.GET;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -334,6 +336,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @throws IOException In case write response failed
      * @since 2.8.3
      */
+    @GET
     @Restricted(NoExternalUse.class)
     public void doGetRole(@QueryParameter(required = true) String type,
                           @QueryParameter(required = true) String roleName) throws IOException{
@@ -475,6 +478,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      *
      * @since 2.6.0
      */
+    @GET
     @Restricted(NoExternalUse.class)
     public void doGetAllRoles(@QueryParameter(fixEmpty = true) String type) throws IOException {
         checkAdminPerm();
@@ -502,6 +506,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @param maxJobs Maximum matching jobs to search for
      * @throws IOException when unable to write response
      */
+    @GET
     @Restricted(NoExternalUse.class)
     public void doGetMatchingJobs(@QueryParameter(required = true) String pattern,
                                   @QueryParameter() int maxJobs) throws IOException {
@@ -688,8 +693,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       return Messages.RoleBasedAuthorizationStrategy_DisplayName();
     }
 
-
+    @RequirePOST
     public FormValidation doCheckForWhitespace(@QueryParameter String value) {
+      checkAdminPerm();
       if (value==null || value.trim().equals(value)) {
         return FormValidation.ok();
       } else {
@@ -879,7 +885,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * @return Sid of the current user
      */
     private String getCurrentUser() {
-      PrincipalSid currentUser = new PrincipalSid(Hudson.getAuthentication());
+      PrincipalSid currentUser = new PrincipalSid(Jenkins.getAuthentication2());
       return currentUser.getPrincipal();
     }
 
