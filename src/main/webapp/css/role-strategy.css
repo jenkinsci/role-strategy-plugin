@@ -23,10 +23,16 @@
  * THE SOFTWARE.
  */
  
-.global-matrix-authorization-strategy-table .caption-row TH span {
-  writing-mode: vertical-rl;
+.global-matrix-authorization-strategy-table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 1px solid #D3D7CF;
 }
 
+.global-matrix-authorization-strategy-table .caption-row TH span {
+  writing-mode: vertical-rl;
+  padding-top: 3px;
+}
 
 .global-matrix-authorization-strategy-table .group-row TD {
   vertical-align: middle;
@@ -35,6 +41,7 @@
 
 .global-matrix-authorization-strategy-table .group-row TD span {
   writing-mode: vertical-rl;
+  padding-top: 3px;
 }
 
 .global-matrix-authorization-strategy-table TD.start {
@@ -43,23 +50,26 @@
   border-bottom: 1px solid transparent;
 }
 
-.global-matrix-authorization-strategy-table .caption-row th, .group-row td {
-  padding: 3px;
+.global-matrix-authorization-strategy-table TD.stop {
+  border-top: 1px solid transparent;
+  border-right: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  white-space: nowrap;
+}
+
+label.attach-previous {
+  margin-left: 0;
+}
+
+.global-matrix-authorization-strategy-table th, .global-matrix-authorization-strategy-table td {
+  padding: 0px 3px;
 }
 
 .highlighted {
   background-color: #FFF9C9;
 }
 
-
-.global-matrix-authorization-strategy-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  border: 1px solid #D3D7CF;
-}
-
-.global-matrix-authorization-strategy-table TH {
-  padding: 0.2em;
+.global-matrix-authorization-strategy-table TH, .global-matrix-authorization-strategy-table TD {
   border: 1px solid #D3D7CF;
 }
 
@@ -70,25 +80,9 @@
 
 .global-matrix-authorization-strategy-table .caption-row TH {
   font-weight: lighter;
-  padding: 0;
-}
-
-.global-matrix-authorization-strategy-table .caption-row TH span {
-  writing-mode: vertical-rl;
-}
-
-.global-matrix-authorization-strategy-table TD {
-  border: 1px solid #D3D7CF;
 }
 
 .global-matrix-authorization-strategy-table TD.left-most {
   text-align: left;
-  border-left: none;
 }
 
-.global-matrix-authorization-strategy-table TD.stop {
-  border-top: 1px solid transparent;
-  border-right: 1px solid transparent;
-  border-bottom: 1px solid transparent;
-  white-space: nowrap;
-}
