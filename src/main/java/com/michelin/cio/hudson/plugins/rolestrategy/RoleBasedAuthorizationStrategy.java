@@ -43,13 +43,16 @@ import hudson.model.AbstractItem;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
+import hudson.model.Item;
 import hudson.model.Job;
+import hudson.model.Run;
 import hudson.model.User;
+import hudson.model.View;
+import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
-import hudson.security.PermissionScope;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import hudson.security.UserMayOrMayNotExistException2;
@@ -891,16 +894,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public List<PermissionGroup> getGroups(@NonNull String type) {
         List<PermissionGroup> groups = new ArrayList<>();
         List<PermissionGroup> filterGroups = new ArrayList<>(PermissionGroup.getAll());
-        PermissionScope scope = PermissionScope.JENKINS;
         switch (type) {
             case GLOBAL:
-                scope = PermissionScope.JENKINS;
                 break;
             case PROJECT:
-                scope = PermissionScope.ITEM_GROUP;
+                filterGroups.remove(PermissionGroup.get(Hudson.class));
+                filterGroups.remove(PermissionGroup.get(Computer.class));
                 break;
             case SLAVE:
-                scope = PermissionScope.COMPUTER;
+                filterGroups.remove(PermissionGroup.get(Permission.class));
+                filterGroups.remove(PermissionGroup.get(Hudson.class));
+                filterGroups.remove(PermissionGroup.get(View.class));
+
+                // Project, SCM and Run permissions
+                filterGroups.remove(PermissionGroup.get(Item.class));
+                filterGroups.remove(PermissionGroup.get(SCM.class));
+                filterGroups.remove(PermissionGroup.get(Run.class));
                 break;
             default:
                 filterGroups = new ArrayList<>();
@@ -908,9 +917,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         for (PermissionGroup group : filterGroups) {
             if (group == PermissionGroup.get(Permission.class)) {
-                continue;
-            }
-            if (!group.hasPermissionContainedBy(scope)) {
                 continue;
             }
             for (Permission p : group.getPermissions()) {
