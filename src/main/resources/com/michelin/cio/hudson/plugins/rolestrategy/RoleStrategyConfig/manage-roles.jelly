@@ -39,7 +39,6 @@
         </j:choose>
         <st:include it="${app}" page="sidepanel.jelly"/>
         <l:main-panel>
-          <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
 
@@ -114,10 +113,10 @@
               </f:rowSet>
             </f:section>
             <l:isAdmin>
-              <f:block>
+              <f:bottomButtonBar>
                 <f:submit value="${%Save}" />
                 <f:apply />
-              </f:block>
+              </f:bottomButtonBar>
             </l:isAdmin>
           </f:form>
         </l:main-panel>
