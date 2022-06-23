@@ -55,7 +55,7 @@ public class BuildableJobMacro extends RoleMacroExtension {
     @Override
     public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
         if (Job.class.isAssignableFrom(item.getClass())) {
-            Job job = (Job)item;
+            Job<?, ?> job = (Job<?, ?>)item;
             return job.isBuildable();
         }
         else {
