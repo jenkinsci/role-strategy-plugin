@@ -129,7 +129,7 @@
             table.insertBefore(copy,table.childNodes[table.rows.length-1]);
           </j:if>
           tableHighlighter.scan(copy);
-          Behaviour.applySubtree(findAncestor(table,"TABLE"));
+          Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
         });
       })();
 
