@@ -42,7 +42,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Class representing a role, which holds a set of {@link Permission}s.
  * @author Thomas Maurel
  */
-public final class Role implements Comparable<Role> {
+public final class Role implements Comparable {
   public static final String GLOBAL_ROLE_PATTERN = ".*";
 
   private static final Logger LOGGER = Logger.getLogger(Role.class.getName());
@@ -177,10 +177,14 @@ public final class Role implements Comparable<Role> {
    * @return Comparison of role names
    */
   @Override
-  public int compareTo(@NonNull Role o) {
+  public int compareTo(@NonNull Object o) {
     Objects.requireNonNull(o);
-
-    return name.compareTo(((Role)o).name);
+    
+    if (o instanceof Role) {
+      return name.compareTo(((Role)o).name);
+    }
+    
+    return -1;
   }
 
     @Override
