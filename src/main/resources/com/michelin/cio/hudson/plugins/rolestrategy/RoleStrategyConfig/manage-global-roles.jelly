@@ -49,7 +49,7 @@
             ${g.title}
           </td>
         </j:forEach>
-        <l:isAdmin><td class="stop" /></l:isAdmin>
+        <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
       </tr>
       <!-- The second row for individual permission -->
       <tr class="caption-row">
@@ -57,7 +57,7 @@
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
               <th class="pane" tooltip="${p.description}">
-                ${p.name}
+                <span>${p.name}</span>
               </th>
             </j:if>
           </j:forEach>
@@ -84,12 +84,12 @@
             <j:forEach var="p" items="${g.permissions}">
               <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
                 <th class="pane" tooltip="${p.description}">
-                  ${p.name}
+                  <span>${p.name}</span>
                 </th>
               </j:if>
             </j:forEach>
           </j:forEach>
-          <l:isAdmin><td class="stop" /></l:isAdmin>
+          <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
         </tr>
         <tr class="group-row">
           <j:forEach var="g" items="${globalGroups}">

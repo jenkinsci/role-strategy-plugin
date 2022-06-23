@@ -50,7 +50,6 @@ import hudson.model.User;
 import hudson.model.View;
 import hudson.scm.SCM;
 import hudson.security.ACL;
-import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
@@ -97,7 +96,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  * @author Thomas Maurel
  */
 public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
-
+  
   public final static String GLOBAL    = "globalRoles";
   public final static String PROJECT   = "projectRoles";
   public final static String SLAVE     = "slaveRoles";
@@ -893,33 +892,39 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @Nullable
     public List<PermissionGroup> getGroups(@NonNull String type) {
-        List<PermissionGroup> groups;
+        List<PermissionGroup> groups = new ArrayList<>();
+        List<PermissionGroup> filterGroups = new ArrayList<>(PermissionGroup.getAll());
         switch (type) {
             case GLOBAL:
-                groups = new ArrayList<>(PermissionGroup.getAll());
-                groups.remove(PermissionGroup.get(Permission.class));
                 break;
             case PROJECT:
-                groups = new ArrayList<>(PermissionGroup.getAll());
-                groups.remove(PermissionGroup.get(Permission.class));
-                groups.remove(PermissionGroup.get(Hudson.class));
-                groups.remove(PermissionGroup.get(Computer.class));
-                groups.remove(PermissionGroup.get(View.class));
+                filterGroups.remove(PermissionGroup.get(Hudson.class));
+                filterGroups.remove(PermissionGroup.get(Computer.class));
                 break;
             case SLAVE:
-                groups = new ArrayList<>(PermissionGroup.getAll());
-                groups.remove(PermissionGroup.get(Permission.class));
-                groups.remove(PermissionGroup.get(Hudson.class));
-                groups.remove(PermissionGroup.get(View.class));
+                filterGroups.remove(PermissionGroup.get(Permission.class));
+                filterGroups.remove(PermissionGroup.get(Hudson.class));
+                filterGroups.remove(PermissionGroup.get(View.class));
 
                 // Project, SCM and Run permissions
-                groups.remove(PermissionGroup.get(Item.class));
-                groups.remove(PermissionGroup.get(SCM.class));
-                groups.remove(PermissionGroup.get(Run.class));
+                filterGroups.remove(PermissionGroup.get(Item.class));
+                filterGroups.remove(PermissionGroup.get(SCM.class));
+                filterGroups.remove(PermissionGroup.get(Run.class));
                 break;
             default:
-                groups = null;
+                filterGroups = new ArrayList<>();
                 break;
+        }
+        for (PermissionGroup group : filterGroups) {
+            if (group == PermissionGroup.get(Permission.class)) {
+                continue;
+            }
+            for (Permission p : group.getPermissions()) {
+                if (p.getEnabled()) {
+                    groups.add(group);
+                    break;
+                }
+            }
         }
         return groups;
     }
@@ -933,7 +938,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 }
                 return p.getEnabled();
             case PROJECT:
-                return p == Item.CREATE && p.getEnabled() || p != Item.CREATE && p.getEnabled();
+                return p.getEnabled();
             case SLAVE:
                 return p != Computer.CREATE && p.getEnabled();
             default:

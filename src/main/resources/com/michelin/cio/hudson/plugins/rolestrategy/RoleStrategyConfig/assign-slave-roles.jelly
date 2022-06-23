@@ -40,7 +40,7 @@
         </td>
         <j:forEach var="role" items="${slaveGrantedRoles}">
           <td class="pane-header">
-            ${role.key.name}
+            <span>${role.key.name}</span>
           </td>
         </j:forEach>
         <l:isAdmin><td class="stop" /></l:isAdmin>

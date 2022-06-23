@@ -79,7 +79,6 @@
             </d:tag>
           </d:taglib>
 
-          <link rel="stylesheet" href="${rootURL}${app.VIEW_RESOURCE_PATH}/hudson/security/table.css" type="text/css" />
 
           <f:form method="post" name="config" action="assignSubmit">
             <h1>
@@ -102,10 +101,10 @@
               </f:rowSet>
             </f:section>
             <l:isAdmin>
-              <f:block>
+              <f:bottomButtonBar>
                 <f:submit value="${%Save}" />
                 <f:apply />
-              </f:block>
+              </f:bottomButtonBar>
             </l:isAdmin>
           </f:form>
         </l:main-panel>
