@@ -45,6 +45,7 @@ import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.model.Item;
 import hudson.model.Job;
+import hudson.model.Node;
 import hudson.model.Run;
 import hudson.model.User;
 import hudson.model.View;
@@ -181,10 +182,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 .newInheritingACL(getRootACL());
     }
 
+
     @Override
     @NonNull
-    public ACL getACL(@NonNull Computer computer) {
-        return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
+    public ACL getACL(@NonNull Node node) {
+        return agentRoles.newMatchingRoleMap(node.getNodeName()).getACL(RoleType.Slave, node)
                 .newInheritingACL(getRootACL());
     }
 
