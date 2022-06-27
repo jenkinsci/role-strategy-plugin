@@ -40,7 +40,7 @@ import static org.junit.Assert.assertNotNull;
  * @author Oleg Nenashev
  * @since 2.11
  */
-public class RoleStrategyTest {
+public class ConfigurationAsCodeTest {
 
     @Rule
     public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();

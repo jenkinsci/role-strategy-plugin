@@ -1,0 +1,42 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors>
+    <string>jenkins.security.QueueItemAuthenticatorMonitor</string>
+  </disabledAdministrativeMonitors>
+  <version>2.303.3</version>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy">
+    <roleMap type="globalRoles">
+      <role name="admin" pattern=".*">
+        <permissions>
+          <permission>hudson.model.Hudson.Administer</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>admin</sid>
+        </assignedSIDs>
+      </role>
+      <role name="builder" pattern=".*">
+        <permissions>
+          <permission>hudson.model.Hudson.Read</permission>
+          <permission>hudson.model.Item.Read</permission>
+          <permission>hudson.model.Item.Build</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>authenticated</sid>
+        </assignedSIDs>
+      </role>
+    </roleMap>
+    <roleMap type="slaveRoles">
+      <role name="agentbuilder" pattern="TestAgent">
+        <permissions>
+          <permission>hudson.model.Computer.Build</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>tester</sid>
+        </assignedSIDs>
+      </role>
+    </roleMap>
+  </authorizationStrategy>
+</hudson>
