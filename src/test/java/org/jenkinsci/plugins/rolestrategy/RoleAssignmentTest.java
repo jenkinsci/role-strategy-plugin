@@ -1,11 +1,10 @@
 package org.jenkinsci.plugins.rolestrategy;
 
 import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import hudson.security.Permission;
 
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,14 +24,9 @@ public class RoleAssignmentTest {
     
     @LocalData
     @Test public void testRoleAssignment() {
-        SecurityContext seccon = SecurityContextHolder.getContext();
-        Authentication orig = seccon.getAuthentication();
-        seccon.setAuthentication(User.getById("alice", true).impersonate());
-        try {
+        try (ACLContext c = ACL.as(User.getById("alice", true))) {
             assertTrue(j.jenkins.hasPermission(Permission.READ));
-        } finally {
-            seccon.setAuthentication(orig);
-        }
+        } 
     }
 
 }

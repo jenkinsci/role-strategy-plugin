@@ -1,0 +1,95 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        agents:
+          - assignments:
+            - "authenticated"
+            name: "@CurrentUserIsPrimaryOwner"
+            pattern: ".*"
+            description: "User is Primary Owner"
+            permissions:
+            - "Manage ownership/Nodes"
+            - "Agent/Provision"
+            - "Agent/Configure"
+            - "Agent/ExtendedRead"
+            - "Agent/Delete"
+            - "Agent/Connect"
+            - "Agent/Build"
+            - "Agent/Disconnect"        
+          - assignments:
+            - "authenticated"
+            name: "@CurrentUserIsOwner"
+            pattern: ".*"
+            description: "User is Owner"
+            permissions:
+            - "Manage ownership/Nodes"
+            - "Agent/Provision"
+            - "Agent/Configure"
+            - "Agent/ExtendedRead"
+            - "Agent/Delete"
+            - "Agent/Connect"
+            - "Agent/Build"
+            - "Agent/Disconnect"        
+        global:
+          - assignments:
+            - "admin"
+            name: "admin"
+            pattern: ".*"
+            description: "Admin Users"
+            permissions:
+            - "Overall/Administer"
+          - assignments:
+            - "authenticated"
+            name: "reader"
+            pattern: ".*"
+            permissions:
+            - "Overall/Read"
+        items:
+          - assignments:
+            - "authenticated"
+            name: "@CurrentUserIsOwner"
+            pattern: ".*"
+            description: "User is Owner"
+            permissions:
+            - "Job/Move"
+            - "Job/Build"
+            - "Job/Create"
+            - "Job/Discover"
+            - "Job/Read"
+            - "Job/Cancel"
+            - "Job/ExtendedRead"
+            - "Job/Delete"
+            - "Job/Configure"
+            - "Job/Workspace"
+            - "Job/ViewStatus"  # System for test
+          - assignments:
+            - "authenticated"
+            name: "@CurrentUserIsPrimaryOwner"
+            pattern: ".*"
+            description: "User is Primary Owner"
+            permissions:
+            - "Job/Move"
+            - "Job/Build"
+            - "Job/Create"
+            - "Job/Discover"
+            - "Manage ownership/Jobs"
+            - "Job/Read"
+            - "Job/Cancel"
+            - "Job/ExtendedRead"
+            - "Job/Delete"
+            - "Job/Configure"
+            - "Job/Workspace"
+            - "Job/ViewStatus"  # System for test
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "1234"
+        - id: "nodePrimaryTester"
+          password: "nodePrimaryTester"
+        - id: "nodeSecondaryTester"
+          password: "nodeSecondaryTester"
+

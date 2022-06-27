@@ -71,8 +71,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -182,6 +180,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                 .newInheritingACL(getRootACL());
     }
 
+
+    @Override
+    @NonNull
+    public ACL getACL(@NonNull Computer computer) {
+        return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer)
+                .newInheritingACL(getRootACL());
+    }
 
     @Override
     @NonNull
