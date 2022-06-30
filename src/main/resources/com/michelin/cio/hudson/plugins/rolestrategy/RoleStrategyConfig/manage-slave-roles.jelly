@@ -69,14 +69,14 @@
       <j:set var="nbSlaveRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"
+          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"
                          project="${false}"/>
         </tr>
         <j:set var="nbSlaveRoles" value="${nbSlaveRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${false}" type="${it.strategy.SLAVE}" />
+        <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
       </tr>
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
       <j:if test="${nbSlaveRoles ge 20}">
@@ -177,6 +177,12 @@
           child.next().appendChild(hidden);
 
           copy.setAttribute("name",'['+name+']');
+
+          var children = copy.childNodes;
+          children.forEach(function(item){
+            item.outerHTML = item.outerHTML.replace("{{ROLE}}", name).replace("{{PATTERN}}", pattern);
+          });
+
           <j:if test="${nbSlaveRoles lt 20}">
             table.appendChild(copy);
           </j:if>

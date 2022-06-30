@@ -60,7 +60,9 @@
                   </l:isAdmin>
                 </td>
               <td class="left-most">${title}</td>
+              <j:set var="pattern" value=""/>
               <j:if test="${!attrs.global}">
+                <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt; : ${attrs.pattern}"/>
                 <td width="*" class="in-place-edit">
                   <j:if test="${attrs.project}">
                     <a href="#" class="patternAnchor">&quot;${h.escape(attrs.role.pattern.toString())}&quot;</a>
@@ -76,7 +78,7 @@
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-                    <td width="*">                   
+                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt; : ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt; : ${attrs.title} ${pattern}">
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>

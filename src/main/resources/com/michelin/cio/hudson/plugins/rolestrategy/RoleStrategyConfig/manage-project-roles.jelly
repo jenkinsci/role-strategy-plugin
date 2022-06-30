@@ -66,14 +66,14 @@
       <j:set var="nbProjectRoles" value="${0}" />
       <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}">
         <tr name="[${role.key.name}]" class="permission-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}"
+          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}"
                          project="${true}"/>
         </tr>
         <j:set var="nbProjectRoles" value="${nbProjectRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${false}" type="${it.strategy.PROJECT}" />
+        <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" />
       </tr>
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
       <j:if test="${nbProjectRoles ge 20}">
@@ -172,6 +172,11 @@
           hidden.setAttribute('type', 'hidden');
           hidden.setAttribute('value', pattern);
           child.next().appendChild(hidden);
+
+          var children = copy.childNodes;
+          children.forEach(function(item){
+            item.outerHTML = item.outerHTML.replace("{{ROLE}}", name).replace("{{PATTERN}}", pattern);
+          });
 
           copy.setAttribute("name",'['+name+']');
           <j:if test="${nbProjectRoles lt 20}">

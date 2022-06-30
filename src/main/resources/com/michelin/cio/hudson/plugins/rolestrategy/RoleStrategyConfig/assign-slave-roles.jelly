@@ -121,7 +121,6 @@
           var children = copy.childNodes;
           children.forEach(function(item){
             item.outerHTML= item.outerHTML.replace("{{USER}}", name);
-            
           });
 
           <j:if test="${nbAssignedSlaveRoles lt 19}">
