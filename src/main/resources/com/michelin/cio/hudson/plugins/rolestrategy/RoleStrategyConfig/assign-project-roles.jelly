@@ -84,7 +84,7 @@
   </l:isAdmin>
 
     <script>
-      var tableHighlighter;
+      var itemTableHighlighter;
       (function() {
         <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
         var master = document.getElementById('${id}');
@@ -129,13 +129,13 @@
           <j:if test="${nbAssignedProjectsRoles ge 19}">
             table.insertBefore(copy,table.childNodes[table.rows.length-1]);
           </j:if>
-          tableHighlighter.scan(copy);
+          itemTableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
         });
       })();
 
       Event.observe(window, 'load', function(event) {
-         tableHighlighter = new TableHighlighter('projectRoles', 0, 1);
+         itemTableHighlighter = new TableHighlighter('projectRoles', 0, 1);
       });
 
       var deleteAssignedProjectRole = function(e) {

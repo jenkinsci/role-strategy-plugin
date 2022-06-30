@@ -84,7 +84,7 @@
   </l:isAdmin>
 
     <script>
-      var tableHighlighter;
+      var globalTableHighlighter;
       (function() {
         <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
         var master = document.getElementById('${id}');
@@ -128,13 +128,13 @@
           <j:if test="${nbAssignedGlobalRoles ge 19}">
             table.insertBefore(copy,table.childNodes[table.rows.length-1]);
           </j:if>
-          tableHighlighter.scan(copy);
+          globalTableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
         });
       })();
 
       Event.observe(window, 'load', function(event) {
-         tableHighlighter = new TableHighlighter('globalRoles', 0, 1);
+         globalTableHighlighter = new TableHighlighter('globalRoles', 0, 1);
       });
 
       var deleteAssignedGlobalRole = function(e) {
