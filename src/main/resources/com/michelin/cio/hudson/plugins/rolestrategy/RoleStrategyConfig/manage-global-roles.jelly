@@ -71,7 +71,7 @@
         <j:set var="nbGlobalRoles" value="${nbGlobalRoles+1}"/>
       </j:forEach>
       <tr id="${id}" style="display:none" class="permission-row">
-        <local:roleRow role="${null}" global="${true}" type="${it.strategy.GLOBAL}" />
+        <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" />
       </tr>
       <!-- The last two rows are used to repeat the header if necessary (if more than 20 lines) -->
       <j:if test="${nbGlobalRoles ge 20}">
@@ -149,6 +149,12 @@
           copy.removeAttribute("id");
           copy.removeAttribute("style");
           copy.childNodes[1].innerHTML = name;
+
+          var children = copy.childNodes;
+          children.forEach(function(item){
+            item.outerHTML= item.outerHTML.replace("{{ROLE}}", name);
+          });
+
           copy.setAttribute("name",'['+name+']');
           <j:if test="${nbGlobalRoles lt 20}">
             table.appendChild(copy);

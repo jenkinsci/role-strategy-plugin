@@ -117,7 +117,6 @@
           var children = copy.childNodes;
           children.forEach(function(item){
             item.outerHTML= item.outerHTML.replace("{{USER}}", name);
-            
           });
 
 
