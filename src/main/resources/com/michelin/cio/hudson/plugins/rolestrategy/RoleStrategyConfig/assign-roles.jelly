@@ -5,7 +5,7 @@
   - Thomas Maurel, Romain Seguy
   -
   - Parts:
-  -   Slave ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+  -   Node ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -42,13 +42,6 @@
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
 
-          <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
-          <j:set var="projectGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
-          <j:set var="slaveGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
-          
-          <j:set var="globalSIDs" value="${it.strategy.getSIDs(it.strategy.GLOBAL)}"/>
-          <j:set var="projectSIDs" value="${it.strategy.getSIDs(it.strategy.PROJECT)}"/>
-          <j:set var="slaveSIDs" value="${it.strategy.getSIDs(it.strategy.SLAVE)}"/>
           
           <j:if test="${empty(descriptorPath)}">
             <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
@@ -97,7 +90,7 @@
             </f:section>
              <f:section title="${%Node roles}">
               <f:rowSet name="slaveRoles">
-                <f:block><st:include page="assign-slave-roles.jelly" optional="true" /></f:block>
+                <f:block><st:include page="assign-agent-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
             <l:isAdmin>

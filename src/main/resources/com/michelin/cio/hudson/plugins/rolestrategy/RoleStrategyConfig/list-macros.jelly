@@ -61,7 +61,7 @@
                 <tr name="Caption" class="group-row">
                     <td class="pane-header blank">GLOBAL</td>
                     <td class="pane-header blank">PROJECT</td>
-                    <td class="pane-header blank">SLAVE</td>                    
+                    <td class="pane-header blank">AGENT</td>                    
                 </tr>
                 <j:forEach var="macroExt" items="${items}">
                     <tr name="test" class="permission-row">

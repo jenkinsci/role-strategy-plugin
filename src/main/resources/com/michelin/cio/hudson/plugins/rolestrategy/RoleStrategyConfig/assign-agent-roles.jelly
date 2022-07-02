@@ -29,8 +29,10 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="id" value="${h.generateId()}"/>
+  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
+  <j:set var="agentSIDs" value="${it.strategy.getSIDs(it.strategy.SLAVE)}"/>
 
-  <table id="slaveRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="agentRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
       <tr class="group-row">
@@ -38,19 +40,19 @@
         <td class="pane-header blank">
           ${%User/group}
         </td>
-        <j:forEach var="role" items="${slaveGrantedRoles}">
+        <j:forEach var="role" items="${agentGrantedRoles}">
           <td class="pane-header">
             <span>${role.key.name}</span>
           </td>
         </j:forEach>
         <l:isAdmin><td class="stop" /></l:isAdmin>
       </tr>
-      <j:set var="nbAssignedSlaveRoles" value="${0}" />
-      <j:forEach var="sid" items="${slaveSIDs}">
+      <j:set var="nbAssignedAgentRoles" value="${0}" />
+      <j:forEach var="sid" items="${agentSIDs}">
         <tr name="[${sid}]" class="permission-row">
           <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.SLAVE}"/>
         </tr>
-        <j:set var="nbAssignedSlaveRoles" value="${nbAssignedSlaveRoles+1}" />
+        <j:set var="nbAssignedAgentRoles" value="${nbAssignedAgentRoles+1}" />
       </j:forEach>
       <tr name="anonymous">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.SLAVE}"/>
@@ -59,13 +61,13 @@
         <local:userRow title="{{USER}}" global="${false}"  type="${it.strategy.SLAVE}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
-      <j:if test="${nbAssignedSlaveRoles ge 19}">
+      <j:if test="${nbAssignedAgentRoles ge 19}">
         <tr class="group-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
           </td>
-          <j:forEach var="role" items="${slaveGrantedRoles}">
+          <j:forEach var="role" items="${agentGrantedRoles}">
             <td class="pane-header">
               ${role.key.name}
             </td>
@@ -123,10 +125,10 @@
             item.outerHTML= item.outerHTML.replace("{{USER}}", name);
           });
 
-          <j:if test="${nbAssignedSlaveRoles lt 19}">
+          <j:if test="${nbAssignedAgentRoles lt 19}">
             table.appendChild(copy);
           </j:if>
-          <j:if test="${nbAssignedSlaveRoles ge 19}">
+          <j:if test="${nbAssignedAgentRoles ge 19}">
             table.insertBefore(copy,table.childNodes[table.rows.length-1]);
           </j:if>
           agentTableHighlighter.scan(copy);
@@ -135,10 +137,10 @@
       })();
 
       Event.observe(window, 'load', function(event) {
-         agentTableHighlighter = new TableHighlighter('slaveRoles', 0, 1);
+         agentTableHighlighter = new TableHighlighter('agentRoles', 0, 1);
       });
 
-      var deleteAssignedSlaveRole = function(e) {
+      var deleteAssignedAgentRole = function(e) {
         e.onclick = function() {
           var tr = findAncestor(this,"TR");
           tr.parentNode.removeChild(tr);
@@ -147,9 +149,9 @@
         e = null; <!-- avoid memory leak -->
       }
       Behaviour.register({
-        "#slaveRoles TD.start A" : deleteAssignedSlaveRole,
-        "#slaveRoles TD.stop A" : deleteAssignedSlaveRole,
-        "#slaveRoles TR.permission-row" : function(e) {
+        "#agentRoles TD.start A" : deleteAssignedAgentRole,
+        "#agentRoles TD.stop A" : deleteAssignedAgentRole,
+        "#agentRoles TR.permission-row" : function(e) {
           FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
         }
       });
