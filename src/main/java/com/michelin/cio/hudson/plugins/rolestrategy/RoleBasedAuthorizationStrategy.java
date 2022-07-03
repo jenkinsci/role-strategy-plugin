@@ -528,6 +528,29 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         writer.close();
     }
 
+    /**
+     * API method to get a list of agents matching a pattern
+     * Example: curl -X GET localhost:8080/role-strategy/strategy/getMatchingAgents?pattern=^linux.*
+     *
+     * @param pattern Pattern to match against
+     * @param maxAgents Maximum matching agents to search for
+     * @throws IOException when unable to write response
+     */
+    @GET
+    @Restricted(NoExternalUse.class)
+    public void doGetMatchingAgents(@QueryParameter(required = true) String pattern,
+                                  @QueryParameter() int maxAgents) throws IOException {
+        checkAdminPerm();
+        List<String> matchingAgents = RoleMap.getMatchingAgentNames(Pattern.compile(pattern), maxAgents);
+        JSONObject responseJson = new JSONObject();
+        responseJson.put("matchingAgents", matchingAgents);
+        StaplerResponse response = Stapler.getCurrentResponse();
+        response.setContentType("application/json;charset=UTF-8");
+        Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
+        responseJson.write(writer);
+        writer.close();
+    }
+
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 

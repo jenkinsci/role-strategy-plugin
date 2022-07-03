@@ -63,12 +63,7 @@
                   <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(attrs.role.pattern.toString())}"/>
                 </j:if>
                 <td width="*" class="in-place-edit">
-                  <j:if test="${attrs.project}">
-                    <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
-                  </j:if>
-                  <j:if test="${!attrs.project}">
-                    &quot;${h.escape(attrs.role.pattern.toString())}&quot;
-                  </j:if>
+                  <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
                   <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                 </td>
               </j:if>
