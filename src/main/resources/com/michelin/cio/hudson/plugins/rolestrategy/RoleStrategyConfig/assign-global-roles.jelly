@@ -27,6 +27,8 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
     <j:set var="id" value="${h.generateId()}"/>
+    <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
+    <j:set var="globalSIDs" value="${it.strategy.getSIDs(it.strategy.GLOBAL)}"/>
 
     <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 

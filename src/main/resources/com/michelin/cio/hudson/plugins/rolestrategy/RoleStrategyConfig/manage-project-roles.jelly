@@ -26,6 +26,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
+  <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
   <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->

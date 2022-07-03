@@ -5,7 +5,7 @@
   - Thomas Maurel, Romain Seguy, Timothy Bingaman
   -
   - Parts:
-  -   Slave ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
+  -   Node ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -41,10 +41,6 @@
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
-
-          <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
-          <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
-          <j:set var="slaveGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
 
           <j:if test="${empty(descriptorPath)}">
             <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
@@ -111,7 +107,7 @@
             </f:section>
             <f:section title="${%Node roles}">
               <f:rowSet name="slaveRoles">
-                <f:block><st:include page="manage-slave-roles.jelly" optional="true" /></f:block>
+                <f:block><st:include page="manage-agent-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
             <l:isAdmin>

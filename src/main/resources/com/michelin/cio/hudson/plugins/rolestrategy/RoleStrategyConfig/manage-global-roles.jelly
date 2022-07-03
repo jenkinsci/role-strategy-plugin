@@ -29,6 +29,8 @@
   <j:set var="id" value="${h.generateId()}"/>
   <!-- TODO: add warning to the UI for versions which have no administrative monitors? -->
 
+  <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
+  
   <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row shows grouping -->
