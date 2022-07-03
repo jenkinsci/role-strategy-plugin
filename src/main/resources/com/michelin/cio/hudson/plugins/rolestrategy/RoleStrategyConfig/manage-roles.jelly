@@ -59,9 +59,12 @@
               <j:set var="pattern" value=""/>
               <j:if test="${!attrs.global}">
                 <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt; : ${attrs.pattern}"/>
+                <j:if test="${attrs.pattern != '{{PATTERN}}'}">
+                  <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(attrs.role.pattern.toString())}"/>
+                </j:if>
                 <td width="*" class="in-place-edit">
                   <j:if test="${attrs.project}">
-                    <a href="#" class="patternAnchor">&quot;${h.escape(attrs.role.pattern.toString())}&quot;</a>
+                    <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
                   </j:if>
                   <j:if test="${!attrs.project}">
                     &quot;${h.escape(attrs.role.pattern.toString())}&quot;
@@ -74,7 +77,7 @@
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt; : ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt; : ${attrs.title} ${pattern}">
+                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt; : ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt; : ${h.escape(attrs.title)} ${pattern}">
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>

@@ -117,12 +117,12 @@
             copy = master.cloneNode(true); <!-- for IE -->
           copy.removeAttribute("id");
           copy.removeAttribute("style");
-          copy.childNodes[1].innerHTML = name;
+          copy.childNodes[1].innerHTML = escapeHTML(name);
           copy.setAttribute("name",'['+name+']');
 
           var children = copy.childNodes;
           children.forEach(function(item){
-            item.outerHTML= item.outerHTML.replace("{{USER}}", name);
+            item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
           });
 
           <j:if test="${nbAssignedAgentRoles lt 19}">
