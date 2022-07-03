@@ -172,7 +172,6 @@
           child.innerHTML = escapeHTML(name);
           var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
           child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
-          bindAgentListenerToPattern(child.next().children[0]);
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
@@ -186,6 +185,10 @@
           children.forEach(function(item){
             item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
           });
+
+          child = copy.childNodes[1];
+          var link = child.next().children[0];
+          bindAgentListenerToPattern(link);
 
           <j:if test="${nbAgentRoles lt 20}">
             table.appendChild(copy);
@@ -220,10 +223,10 @@
             if(matchingAgents != null) {
               showAgentsModal(matchingAgents);
             } else {
-              showErrorMessageModal();
+              showAgentErrorMessageModal();
             }
           },
-          onFailure: showErrorMessageModal
+          onFailure: showAgentErrorMessageModal
         });
       }
 
@@ -241,9 +244,10 @@
         alert(modalText);
       }
 
-      var showErrorMessageModal = function() {
+      var showAgentErrorMessageModal = function() {
         alert('Unable to fetch matching Agents.');
       }
+
       Event.observe(window, 'load', function(event) {
          agentTableHighlighter = new TableHighlighter('agentRoles', 3, 2);
          // Show agents matching a pattern on click

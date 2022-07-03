@@ -126,7 +126,7 @@
     </f:entry>
   </l:isAdmin>
     <script>
-      var tableHighlighter;
+      var projecttableHighlighter;
       (function() {
         <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
         var master = document.getElementById('${id}');
@@ -166,7 +166,6 @@
           child.innerHTML = escapeHTML(name);
           var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
           child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
-          bindListenerToPattern(child.next().children[0]);
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
@@ -178,6 +177,10 @@
           children.forEach(function(item){
             item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
           });
+
+          child = copy.childNodes[1];
+          var link = child.next().children[0];
+          bindListenerToPattern(link);
 
           copy.setAttribute("name",'['+name+']');
           <j:if test="${nbProjectRoles lt 20}">
