@@ -529,11 +529,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * API method to get a list of jobs matching a pattern
-     * Example: curl -X GET localhost:8080/role-strategy/strategy/getMatchingJobs?pattern=^staging.*
+     * API method to get a list of agents matching a pattern
+     * Example: curl -X GET localhost:8080/role-strategy/strategy/getMatchingAgents?pattern=^linux.*
      *
      * @param pattern Pattern to match against
-     * @param maxJobs Maximum matching jobs to search for
+     * @param maxAgents Maximum matching agents to search for
      * @throws IOException when unable to write response
      */
     @GET
