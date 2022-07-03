@@ -34,6 +34,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.model.Node;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -437,6 +438,23 @@ public class RoleMap {
         matchingJobNames.add(i.getFullName());
       }
       return matchingJobNames;
+  }
+
+  /**
+   * Get all agent names matching the given pattern, viewable to the requesting user
+   * @param pattern Pattern to match against
+   * @param maxAgents Max matching agents to look for
+   * @return List of matching agent names
+   */
+  public static List<String> getMatchingAgentNames(Pattern pattern, int maxAgents) {
+      List<String> matchingAgentNames = new ArrayList<>();
+      for (Node node: Jenkins.get().getNodes()) {
+        if (pattern.matcher(node.getNodeName()).matches()) {
+          matchingAgentNames.add(node.getNodeName());
+          if (matchingAgentNames.size() >= maxAgents) break;
+        }
+      }
+      return matchingAgentNames;
   }
 
   /**

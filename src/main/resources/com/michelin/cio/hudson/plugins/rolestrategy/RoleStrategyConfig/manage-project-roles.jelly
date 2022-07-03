@@ -242,7 +242,8 @@
          projecttableHighlighter = new TableHighlighter('projectRoles', 3, 2);
 
          // Show jobs matching a pattern on click
-         var patterns = document.getElementsByClassName('patternAnchor');
+         var projectRolesTable = document.getElementById('projectRoles')
+         var patterns = projectRolesTable.getElementsByClassName('patternAnchor');
          for(var i = 0; i != patterns.length; i++) {
            bindListenerToPattern(patterns[i]);
          }
@@ -266,6 +267,7 @@
           }
           else {
             this.innerHTML = '<a href="#" class="patternAnchor">&quot;' + this.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
+            bindListenerToPattern(this.children[0]);
           }
           return false;
         }

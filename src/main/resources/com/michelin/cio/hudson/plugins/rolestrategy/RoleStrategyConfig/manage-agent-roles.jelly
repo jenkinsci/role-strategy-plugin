@@ -170,7 +170,9 @@
           var child = copy.childNodes[1];
           var doubleQuote = '"';
           child.innerHTML = escapeHTML(name);
-          child.next().innerHTML = doubleQuote + escapeHTML(pattern) + doubleQuote;
+          var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
+          child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
+          bindAgentListenerToPattern(child.next().children[0]);
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
@@ -196,8 +198,61 @@
         });
       })();
 
+      var bindAgentListenerToPattern = function(elem) {
+        elem.addEventListener('click', showMatchingAgents);
+      }
+
+      var showMatchingAgents = function() {
+        var pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
+        var maxAgents = 10;    // Maximum agents to search for
+        var url = 'strategy/getMatchingAgents';
+        reqParams = {
+          'pattern' : pattern,
+          'maxAgents' : maxAgents
+        }
+
+        new Ajax.Request(url, {
+          method: 'get',
+          parameters: reqParams,
+          onSuccess: function(req) {
+            var matchingAgents = req.responseText.evalJSON().matchingAgents;
+
+            if(matchingAgents != null) {
+              showAgentsModal(matchingAgents);
+            } else {
+              showErrorMessageModal();
+            }
+          },
+          onFailure: showErrorMessageModal
+        });
+      }
+
+      var showAgentsModal = function(agents) {
+        modalText = '';
+        if(agents.length > 0) {
+          modalText += 'Matching Agents:\n\n';
+          for(var i = 0; i != agents.length; i++) {
+            modalText += ' - ' + agents[i] + '\n';
+          }
+        } else {
+          modalText += 'No matching Agents found.';
+        }
+        modalText += '\n\n';
+        alert(modalText);
+      }
+
+      var showErrorMessageModal = function() {
+        alert('Unable to fetch matching Agents.');
+      }
       Event.observe(window, 'load', function(event) {
          agentTableHighlighter = new TableHighlighter('agentRoles', 3, 2);
+         // Show agents matching a pattern on click
+         var agentRolesTable = document.getElementById('agentRoles')
+         var patterns = agentRolesTable.getElementsByClassName('patternAnchor');
+         for(var i = 0; i != patterns.length; i++) {
+           bindAgentListenerToPattern(patterns[i]);
+         }
+         
       });
 
       var deleteAgentRole = function(e) {
@@ -217,7 +272,9 @@
             this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
           }
           else {
-            this.innerHTML = this.childNodes[0].value.escapeHTML() + '<input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
+            this.innerHTML = '<a href="#" class="patternAnchor">&quot;' + this.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
+            child = this.children[0];
+            bindAgentListenerToPattern(this.children[0]);
           }
           return false;
         }
