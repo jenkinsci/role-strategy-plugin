@@ -163,8 +163,8 @@
 
           var child = copy.childNodes[1];
           var doubleQuote = '"';
-          child.innerHTML = name;
-          var patternString = doubleQuote + pattern + doubleQuote;
+          child.innerHTML = escapeHTML(name);
+          var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
           child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
           bindListenerToPattern(child.next().children[0]);
 
@@ -176,7 +176,7 @@
 
           var children = copy.childNodes;
           children.forEach(function(item){
-            item.outerHTML = item.outerHTML.replace("{{ROLE}}", name).replace("{{PATTERN}}", pattern);
+            item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
           });
 
           copy.setAttribute("name",'['+name+']');

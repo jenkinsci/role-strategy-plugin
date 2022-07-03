@@ -169,8 +169,8 @@
 
           var child = copy.childNodes[1];
           var doubleQuote = '"';
-          child.innerHTML = name;
-          child.next().innerHTML = doubleQuote + pattern + doubleQuote;
+          child.innerHTML = escapeHTML(name);
+          child.next().innerHTML = doubleQuote + escapeHTML(pattern) + doubleQuote;
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
@@ -182,7 +182,7 @@
 
           var children = copy.childNodes;
           children.forEach(function(item){
-            item.outerHTML = item.outerHTML.replace("{{ROLE}}", name).replace("{{PATTERN}}", pattern);
+            item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
           });
 
           <j:if test="${nbAgentRoles lt 20}">

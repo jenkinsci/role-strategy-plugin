@@ -150,11 +150,11 @@
             copy = master.cloneNode(true); <!-- for IE -->
           copy.removeAttribute("id");
           copy.removeAttribute("style");
-          copy.childNodes[1].innerHTML = name;
+          copy.childNodes[1].innerHTML = escapeHTML(name);
 
           var children = copy.childNodes;
           children.forEach(function(item){
-            item.outerHTML= item.outerHTML.replace("{{ROLE}}", name);
+            item.outerHTML= item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name));
           });
 
           copy.setAttribute("name",'['+name+']');
