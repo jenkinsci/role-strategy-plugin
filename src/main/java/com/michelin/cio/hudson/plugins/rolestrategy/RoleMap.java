@@ -135,9 +135,7 @@ public class RoleMap {
     // or a permission implying the given permission
     new RoleWalker() {
       public void perform(Role current) {
-        String mySid = sid;
         if (current.hasAnyPermission(permissions)) {
-          Set<String> r = grantedRoles.get(current);
           if (grantedRoles.get(current).contains(sid)) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
