@@ -67,12 +67,12 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         }
 
         String fullName = name;
-        if (StringUtils.isNotBlank(parentName)) 
-        {
+        if (StringUtils.isNotBlank(parentName)) {
             fullName = parentName + "/" + name;
         }
+        
         AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
-        if (auth instanceof RoleBasedAuthorizationStrategy){
+        if (auth instanceof RoleBasedAuthorizationStrategy) {
             Authentication a = Jenkins.getAuthentication2();
             String principal = new PrincipalSid(a).getPrincipal();
             RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
@@ -80,28 +80,14 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
             List<String> authorities = a.getAuthorities().stream().map(x -> x.getAuthority()).collect(Collectors.toList());
             
             //first check global role
-            if (global.hasPermission(principal, Item.CREATE, RoleType.Global, null)) {
-                return;
-            }
-            for (String group: authorities) {
-              if (global.hasPermission(group, Item.CREATE, RoleType.Global, null)) {
-                return;
-              }
+            if (hasCreatePermission(global, principal, authorities, RoleType.Global)) {
+              return;
             }
 
             // check if user has anywhere else create permissions
             RoleMap item = rbas.getRoleMap(RoleType.Project);
-            if (!item.hasPermission(principal, Item.CREATE, RoleType.Project, null)) {
-              boolean found = false;
-              for (String group: authorities) {
-                if (item.hasPermission(group, Item.CREATE, RoleType.Global, null)) {
-                  found = true;
-                  break;
-                }
-              }
-              if (!found) {
-                throw new Failure(Messages.RoleBasedProjectNamingStrategy_NoPermissions());
-              }
+            if (!hasCreatePermission(item, principal, authorities, RoleType.Project)) {
+              throw new Failure(Messages.RoleBasedProjectNamingStrategy_NoPermissions());
             }
 
             // check project role with pattern
@@ -139,6 +125,18 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         } 
     }
 
+    private boolean hasCreatePermission(RoleMap roleMap, String principal, List<String> authorities, RoleType roleType) {
+      if (roleMap.hasPermission(principal, Item.CREATE, roleType, null)) {
+        return true;
+      }
+      for (String group: authorities) {
+        if (roleMap.hasPermission(group, Item.CREATE, roleType, null)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    
     @Override
     public boolean isForceExistingJobs() {
         return forceExistingJobs;
