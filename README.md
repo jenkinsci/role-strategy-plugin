@@ -34,11 +34,15 @@ After the installation, the plugin can be configured using the _Manage and Assig
 
 You can define roles by using the _Manages Roles_ screen. It is possible to define global and project/agent-specific roles.
 
-* Global roles apply to any item in Jenkins and override *anything* you specify in the Project Roles. That is, when you give a role the right to Job-Read in the Global Roles, then this role is allowed to read all Jobs, no matter what you specify in the Project Roles.
+* Global roles apply to any item in Jenkins and override *anything* you specify in the Project Roles. That is, when you give a role the right to `Job/Read` in the Global Roles, then this role is allowed to read all Jobs,
+  no matter what you specify in the Project Roles. Giving `Job/Create` in a global role will allow to create jobs of any name.
 * For project and agent roles you can set a regular expression pattern for matching items. The regular expression aimed at matching the full item name.
   * For example, if you set the field to `Roger-.*`, then the role will match all jobs which name starts with `Roger-`. 
   * Patterns are case-sensitive. To perform a case-insensitive match, use `(?i)` notation: upper, `Roger-.*` vs. lower, `roger-.*` vs. case-insensitive, `(?i)roger-.*`. 
-  * Folders can be matched using expressions like `^foo/bar.*`
+  * Folders can be matched using expressions like `^foo/bar.*`.
+  * Create permissions on item level can only reliably work when the `Naming Strategy` is set to `Role-Based strategy` in the global configuration for `Restrict project naming`. You should see a warning in the adminstrative monitors if it is not enabled.
+    Only jobs matching the pattern can be created.
+    When granting `Job/Create` you should also grant `Job/Configure` and `Job/Read` otherwise you will be able to create new jobs but you will not be able to configure them. Global Permissions are not required.
   
 ![Managing roles](/docs/images/manageRoles.png)
 
