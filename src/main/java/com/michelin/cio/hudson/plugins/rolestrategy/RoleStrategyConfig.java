@@ -139,11 +139,6 @@ public class RoleStrategyConfig extends ManagementLink {
     }
   }
 
-  @Restricted(NoExternalUse.class)
-  public boolean getNameingStrategyIsSet() {
-    return Jenkins.get().getProjectNamingStrategy() instanceof RoleBasedProjectNamingStrategy;
-  }
-  
   /**
    * Called on roles management form submission.
    */
