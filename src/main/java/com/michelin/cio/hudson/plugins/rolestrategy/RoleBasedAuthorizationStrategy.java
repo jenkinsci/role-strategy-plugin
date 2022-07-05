@@ -280,9 +280,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
     /**
-     * API method to add roles
+     * API method to add a role.
      * <p>
-     * example: {@code curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
+     * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
      * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"}
      *
      * @param type          (globalRoles, projectRoles)
@@ -334,9 +334,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * API method to get role.
+     * API method to get the granted permissions of a role and the SIDs assigned to it.
+     * <p>
      * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getRole
      * ?type=globalRoles&roleName=admin'}
+     * <p>
+     * Returns json with granted permissions and assigned sids.<br>
+     * Example:<pre>{@code
+     *   {
+     *     "permissionIds": {
+     *         "hudson.model.Hudson.Read":true,
+     *         "hudson.model.Item.Read":true,
+     *         "hudson.model.Item.Build":true,
+     *      },
+     *      "sids": ["user1", "group1"]
+     *   }
+     * }
+     * </pre>
+     *
      *
      * @param type (globalRoles, projectRoles, slaveRoles)
      * @param roleName name of role (single, no list)
@@ -373,6 +388,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to remove roles.
+     * <p>
      * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
      * roleNames=ADM,DEV"}
      *
@@ -400,6 +416,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to assign SID to role.
+     * <p>
      * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
      * &amp;sid=username"}
      *
@@ -437,7 +454,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to delete a SID from all granted roles.
-     * Example: curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"
+     * <p>
+     * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"}
      *
      * @param type (globalRoles, projectRoles, slaveRoles)
      * @param sid  user ID to remove
@@ -454,8 +472,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * API method to unassign group/user with a role
-     * Example: curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD&amp;sid=username"
+     * API method to remove a SID from a role.
+     * <p>
+     * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD&amp;sid=username"}
      *
      * @param type (globalRoles, projectRoles, slaveRoles)
      * @param roleName unassign role with sid
@@ -478,9 +497,19 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * API method to get all groups/users with their role in any role type
-     * Example: curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=projectRoles
-     *
+     * API method to get all roles and the SIDs assigned to the roles for a roletype
+     * <p>
+     * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getAllRoles?type=projectRoles}
+     * <p>
+     * Returns a json with roles and sids<br>
+     * Example: 
+     * <pre>{@code 
+     *   { 
+     *     "role2": ["user1", "user2"],
+     *     "role2": ["group1", "user2"]
+     *   }
+     * }</pre>
+     * 
      * @param type (globalRoles by default, projectRoles, slaveRoles)
      *
      * @since 2.6.0
@@ -507,7 +536,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to get a list of jobs matching a pattern
-     * Example: curl -X GET localhost:8080/role-strategy/strategy/getMatchingJobs?pattern=^staging.*
+     * <p>
+     * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getMatchingJobs?pattern=^staging.*}
      *
      * @param pattern Pattern to match against
      * @param maxJobs Maximum matching jobs to search for
@@ -530,7 +560,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     /**
      * API method to get a list of agents matching a pattern
-     * Example: curl -X GET localhost:8080/role-strategy/strategy/getMatchingAgents?pattern=^linux.*
+     * <p>
+     * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getMatchingAgents?pattern=^linux.*}
      *
      * @param pattern Pattern to match against
      * @param maxAgents Maximum matching agents to search for
