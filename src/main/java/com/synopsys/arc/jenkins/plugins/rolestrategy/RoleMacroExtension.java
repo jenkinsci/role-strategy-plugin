@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.macros.StubMacro;
@@ -39,48 +40,59 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public abstract class RoleMacroExtension implements ExtensionPoint, IMacroExtension {
 
-    private static final Map<String, RoleMacroExtension> NAME_CACHE =
-            new ConcurrentHashMap<>();
+  private static final Map<String, RoleMacroExtension> NAME_CACHE = new ConcurrentHashMap<>();
 
-    private static final Map<String, Macro> MACRO_CACHE = new ConcurrentHashMap<>();
+  private static final Map<String, Macro> MACRO_CACHE = new ConcurrentHashMap<>();
 
-    private static void updateRegistry() {
-        NAME_CACHE.clear();
-        for (RoleMacroExtension ext : all()) {
-            NAME_CACHE.put(ext.getName(), ext);
-        }
+  private static void updateRegistry() {
+    NAME_CACHE.clear();
+    for (RoleMacroExtension ext : all()) {
+      NAME_CACHE.put(ext.getName(), ext);
     }
+  }
 
-    @CheckForNull
-    public static Macro getMacro(String unparsedMacroString) {
-        if (MACRO_CACHE.containsKey(unparsedMacroString)) {
-            return MACRO_CACHE.get(unparsedMacroString);
-        }
-        try {
-            Macro m = Macro.parse(unparsedMacroString);
-            MACRO_CACHE.put(unparsedMacroString, m);
-            return m;
-        } catch (MacroException ex) {
-            MACRO_CACHE.put(unparsedMacroString, null);
-            return null;
-        }
+  /**
+   * Parse Macro and return it.
+   *
+   * @param unparsedMacroString String to parse
+   * @return parsed Macro
+   */
+  @CheckForNull
+  public static Macro getMacro(String unparsedMacroString) {
+    if (MACRO_CACHE.containsKey(unparsedMacroString)) {
+      return MACRO_CACHE.get(unparsedMacroString);
     }
+    try {
+      Macro m = Macro.parse(unparsedMacroString);
+      MACRO_CACHE.put(unparsedMacroString, m);
+      return m;
+    } catch (MacroException ex) {
+      MACRO_CACHE.put(unparsedMacroString, null);
+      return null;
+    }
+  }
 
-    public static RoleMacroExtension getMacroExtension(String macroName) {
-        //TODO: the method is not thread-safe
-        if (NAME_CACHE.isEmpty()) {
-            updateRegistry();
-        }
-        RoleMacroExtension ext = NAME_CACHE.get(macroName);
-        return ext != null ? ext : StubMacro.Instance;
+  /**
+   * Get Macro with the given name.
+   *
+   * @param macroName Name of Macro
+   * @return RoleMacroExtension
+   */
+  public static RoleMacroExtension getMacroExtension(String macroName) {
+    // TODO: the method is not thread-safe
+    if (NAME_CACHE.isEmpty()) {
+      updateRegistry();
     }
+    RoleMacroExtension ext = NAME_CACHE.get(macroName);
+    return ext != null ? ext : StubMacro.Instance;
+  }
 
-    /**
-     * Get list of all registered {@link RoleMacroExtension}s.
-     *
-     * @return List of {@link RoleMacroExtension}s.
-     */
-    public static ExtensionList<RoleMacroExtension> all() {
-        return ExtensionList.lookup(RoleMacroExtension.class);
-    }
+  /**
+   * Get list of all registered {@link RoleMacroExtension}s.
+   *
+   * @return List of {@link RoleMacroExtension}s.
+   */
+  public static ExtensionList<RoleMacroExtension> all() {
+    return ExtensionList.lookup(RoleMacroExtension.class);
+  }
 }

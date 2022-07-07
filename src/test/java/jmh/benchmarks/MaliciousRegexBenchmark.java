@@ -3,6 +3,7 @@ package jmh.benchmarks;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import hudson.model.User;
+import java.util.Random;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
@@ -18,68 +19,66 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.Random;
-
 @JmhBenchmark
 public class MaliciousRegexBenchmark {
-    private static final String testUser = "user33";
+  private static final String testUser = "user33";
 
-    public static class JenkinsState extends JmhBenchmarkState {
-        @Override
-        public void setup() throws Exception {
-            Jenkins jenkins = getJenkins();
-            jenkins.setSecurityRealm(new JenkinsRule().createDummySecurityRealm());
-            RoleBasedAuthorizationStrategy rbas = new RoleBasedAuthorizationStrategy();
-            jenkins.setAuthorizationStrategy(rbas);
-            for (int i = 0; i < 200; i++) {
-                jenkins.createProject(Folder.class, "Foooooolder" + i);
-            }
+  public static class JenkinsState extends JmhBenchmarkState {
+    @Override
+    public void setup() throws Exception {
+      Jenkins jenkins = getJenkins();
+      jenkins.setSecurityRealm(new JenkinsRule().createDummySecurityRealm());
+      RoleBasedAuthorizationStrategy rbas = new RoleBasedAuthorizationStrategy();
+      jenkins.setAuthorizationStrategy(rbas);
+      for (int i = 0; i < 200; i++) {
+        jenkins.createProject(Folder.class, "Foooooolder" + i);
+      }
 
-            Random rand = new Random(33);
-            for (int i = 0; i < 300; i++) {
-                if (rand.nextBoolean()) {
-                    rbas.doAddRole(RoleBasedAuthorizationStrategy.PROJECT, "role" + i,
-                            "hudson.model.Item.Discover,hudson.model.Item.Read,hudson.model.Item.Build",
-                            "true", "F(o+)+lder[" + rand.nextInt(10) + rand.nextInt(10) + "]{1,2}");
-                }
-                rbas.doAssignRole(RoleBasedAuthorizationStrategy.PROJECT, "role" + i, "user" + i);
-            }
+      Random rand = new Random(33);
+      for (int i = 0; i < 300; i++) {
+        if (rand.nextBoolean()) {
+          rbas.doAddRole(RoleBasedAuthorizationStrategy.PROJECT, "role" + i,
+              "hudson.model.Item.Discover,hudson.model.Item.Read,hudson.model.Item.Build", "true",
+              "F(o+)+lder[" + rand.nextInt(10) + rand.nextInt(10) + "]{1,2}");
         }
+        rbas.doAssignRole(RoleBasedAuthorizationStrategy.PROJECT, "role" + i, "user" + i);
+      }
+    }
+  }
+
+  @State(Scope.Thread)
+  public static class ThreadState {
+    @Setup(Level.Iteration)
+    public void setup() {
+      SecurityContext securityContext = SecurityContextHolder.getContext();
+      securityContext.setAuthentication(User.getById(testUser, true).impersonate());
+    }
+  }
+
+  @State(Scope.Thread)
+  public static class WebClientState {
+    JenkinsRule.WebClient webClient = null;
+
+    @Setup(Level.Iteration)
+    public void setup() throws Exception {
+      JmhJenkinsRule jenkinsRule = new JmhJenkinsRule();
+      webClient = jenkinsRule.createWebClient();
+      webClient.login(testUser);
     }
 
-    @State(Scope.Thread)
-    public static class ThreadState {
-        @Setup(Level.Iteration)
-        public void setup() {
-            SecurityContext securityContext = SecurityContextHolder.getContext();
-            securityContext.setAuthentication(User.getById(testUser, true).impersonate());
-        }
+    @TearDown(Level.Iteration)
+    public void tearDown() {
+      webClient.close();
     }
+  }
 
-    @State(Scope.Thread)
-    public static class WebClientState {
-        JenkinsRule.WebClient webClient = null;
+  @Benchmark
+  public void benchmarkPermissionCheck(JenkinsState state, ThreadState threadState, Blackhole blackhole) {
+    blackhole.consume(state.getJenkins().getAllItems()); // checks for READ permission
+  }
 
-        @Setup(Level.Iteration)
-        public void setup() throws Exception {
-            JmhJenkinsRule jenkinsRule = new JmhJenkinsRule();
-            webClient = jenkinsRule.createWebClient();
-            webClient.login(testUser);
-        }
-
-        @TearDown(Level.Iteration)
-        public void tearDown() {
-            webClient.close();
-        }
-    }
-
-    @Benchmark
-    public void benchmarkPermissionCheck(JenkinsState state, ThreadState threadState, Blackhole blackhole) {
-        blackhole.consume(state.getJenkins().getAllItems()); // checks for READ permission
-    }
-
-    @Benchmark
-    public void benchmarkPageLoad(JenkinsState state, WebClientState webClientState) throws Exception {
-        webClientState.webClient.goTo("");
-    }
+  @Benchmark
+  public void benchmarkPageLoad(JenkinsState state, WebClientState webClientState) throws Exception {
+    webClientState.webClient.goTo("");
+  }
 }

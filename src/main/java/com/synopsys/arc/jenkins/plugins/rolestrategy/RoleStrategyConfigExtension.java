@@ -21,13 +21,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- * Stub class, which stores jelly files for RoleStrategyPlugin
+ * Stub class, which stores jelly files for RoleStrategyPlugin.
+ *
  * @author Oleg Nenashev
  * @since 2.1.0
  * @deprecated the class is not used anywhere, just a stub
@@ -35,7 +37,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Deprecated
 @Restricted(NoExternalUse.class)
 public class RoleStrategyConfigExtension {
-    public String getCompanyName(){
-        return "Synopsys";
-    }
+  public String getCompanyName() {
+    return "Synopsys";
+  }
 }

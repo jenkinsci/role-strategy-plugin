@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -29,42 +30,49 @@ import hudson.security.Permission;
 
 /**
  * Interface for Role-based plug-in Macro extensions.
+ *
  * @see RoleMacroExtension
  * @see UserMacroExtension
  * @author Oleg Nenashev
  * @since 2.1.0
  */
+@SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public interface IMacroExtension {
 
-    /**
-     * Get name of the appropriate macro.
-     * @return Name of the macro
-     */
-    String getName();
+  /**
+   * Get name of the appropriate macro.
+   *
+   * @return Name of the macro
+   */
+  String getName();
 
-    /**
-     * Check if the macro extension is applicable to specified role type
-     * @param roleType Type to be checked
-     * @return {@code true} if the macro is applicable to the specified role type
-     */
-    //TODO: fix naming conventions
-    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
-    boolean IsApplicable(RoleType roleType);
+  /**
+   * Check if the macro extension is applicable to specified role type.
+   *
+   * @param roleType Type to be checked
+   * @return {@code true} if the macro is applicable to the specified role type
+   */
+  // TODO: fix naming conventions
+  @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
+  @SuppressWarnings("checkstyle:MethodName")
+  boolean IsApplicable(RoleType roleType);
 
-    /**
-     * Returns description of the macro (including parameters).
-     * @return Description of the macro
-     */
-    String getDescription();
+  /**
+   * Returns description of the macro (including parameters).
+   *
+   * @return Description of the macro
+   */
+  String getDescription();
 
-    /**
-     * Check if user belongs to specified Macro
-     * @param sid SID to be checked
-     * @param p Permission
-     * @param type Type of the role to be checked
-     * @param item Item
-     * @param macro Macro with parameters
-     * @return True if user satisfies macro's requirements
-     */
-    boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro);
+  /**
+   * Check if user belongs to specified Macro.
+   *
+   * @param sid   SID to be checked
+   * @param p     Permission
+   * @param type  Type of the role to be checked
+   * @param item  Item
+   * @param macro Macro with parameters
+   * @return True if user satisfies macro's requirements
+   */
+  boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro);
 }

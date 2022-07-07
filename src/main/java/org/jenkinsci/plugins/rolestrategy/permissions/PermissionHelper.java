@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package org.jenkinsci.plugins.rolestrategy.permissions;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -32,66 +33,65 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-
 import jenkins.model.Jenkins;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Helper methods for dangerous permission handling.
+ *
  * @author Oleg Nenashev
  */
 @Restricted(NoExternalUse.class)
 public class PermissionHelper {
 
-    /**
-     * List of the dangerous permissions, which need to be suppressed by the plugin.
-     */
-    @SuppressWarnings("deprecation")
-    @Restricted(NoExternalUse.class)
-    public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            Jenkins.RUN_SCRIPTS,
-            PluginManager.CONFIGURE_UPDATECENTER,
-            PluginManager.UPLOAD_PLUGINS)));
+  /**
+   * List of the dangerous permissions, which need to be suppressed by the plugin.
+   */
+  @SuppressWarnings("deprecation")
+  @Restricted(NoExternalUse.class)
+  public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(
+      new HashSet<>(Arrays.asList(Jenkins.RUN_SCRIPTS, PluginManager.CONFIGURE_UPDATECENTER, PluginManager.UPLOAD_PLUGINS)));
 
-    private PermissionHelper() {
-        // Cannot be constructed
+  private PermissionHelper() {
+    // Cannot be constructed
+  }
+
+  /**
+   * Convert a set of string to a collection of permissions. Dangerous permissions will be checked.
+   *
+   * @param permissionIds Permission IDs
+   * @return Created set of permissions
+   * @throws SecurityException Permission is rejected, because it is dangerous.
+   */
+  @NonNull
+  public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds) throws SecurityException {
+    if (permissionIds == null) {
+      return Collections.emptySet();
     }
 
-    /**
-     * Convert a set of string to a collection of permissions.
-     * Dangerous permissions will be checked.
-     * @param permissionIds Permission IDs
-     * @throws SecurityException Permission is rejected, because it is dangerous.
-     * @return Created set of permissions
-     */
-    @NonNull
-    public static Set<Permission> fromStrings(@CheckForNull Collection<String> permissionIds) throws SecurityException {
-        if (permissionIds == null) {
-            return Collections.emptySet();
-        }
-
-        HashSet<Permission> res = new HashSet<>(permissionIds.size());
-        for (String permission : permissionIds) {
-            final Permission p = Permission.fromId(permission);
-            if (p == null) {
-                // throw IllegalArgumentException?
-                continue;
-            }
-            if (isDangerous(p)) {
-                throw new SecurityException("Rejected dangerous permission: " + permission);
-            }
-            res.add(p);
-        }
-        return res;
+    HashSet<Permission> res = new HashSet<>(permissionIds.size());
+    for (String permission : permissionIds) {
+      final Permission p = Permission.fromId(permission);
+      if (p == null) {
+        // throw IllegalArgumentException?
+        continue;
+      }
+      if (isDangerous(p)) {
+        throw new SecurityException("Rejected dangerous permission: " + permission);
+      }
+      res.add(p);
     }
+    return res;
+  }
 
-    /**
-     * Check if the permissions is dangerous.
-     * @param p Permission
-     * @return {@code true} if the permission is considered as dangerous.
-     */
-    public static boolean isDangerous(@NonNull Permission p) {
-        return DANGEROUS_PERMISSIONS.contains(p);
-    }
+  /**
+   * Check if the permissions is dangerous.
+   *
+   * @param p Permission
+   * @return {@code true} if the permission is considered as dangerous.
+   */
+  public static boolean isDangerous(@NonNull Permission p) {
+    return DANGEROUS_PERMISSIONS.contains(p);
+  }
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE suppressions PUBLIC
+        "-//Puppy Crawl//DTD Suppressions 1.0//EN"
+        "http://www.puppycrawl.com/dtds/suppressions_1_0.dtd">
+
+<suppressions>
+  
+    <suppress checks="JavadocParagraph"
+              files=".*.java"/>
+    <suppress checks=".+"
+              files="Messages.java"/>
+    <suppress checks=".+"
+              files="InjectedTest.java"/>
+    <suppress checks=".+"
+              files="[/\\]generated-sources[/\\]"/>
+    <suppress checks=".+"
+              files="[/\\]generated-test-sources[/\\]"/>
+    <suppress checks="(MissingJavadoc.*|MemberName|AbbreviationAsWordInName|VariableDeclarationUsageDistance)"
+              files="[\\/]src[\\/]test[\\/].*"/>
+    <suppress checks="CustomImportOrder"
+              files="AuthorizeProjectTest.java"/>
+    <suppress checks="Indentation"
+              files="Security2182Test.java"/>
+</suppressions>

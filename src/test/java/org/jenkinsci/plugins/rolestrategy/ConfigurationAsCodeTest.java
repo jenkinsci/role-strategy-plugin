@@ -1,10 +1,21 @@
 package org.jenkinsci.plugins.rolestrategy;
 
+import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
+import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
+import static io.jenkins.plugins.casc.misc.Util.toYamlString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
+import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-
 import hudson.model.Computer;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
@@ -24,114 +35,102 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 
-import static io.jenkins.plugins.casc.misc.Util.getJenkinsRoot;
-import static io.jenkins.plugins.casc.misc.Util.toStringFromYamlFile;
-import static io.jenkins.plugins.casc.misc.Util.toYamlString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
-import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 /**
+ * Configuration as code test.
+ *
  * @author Oleg Nenashev
  * @since 2.11
  */
 public class ConfigurationAsCodeTest {
 
-    @Rule
-    public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
+  @Rule
+  public JenkinsConfiguredWithCodeRule jcwcRule = new JenkinsConfiguredWithCodeRule();
 
-    @Test
-    public void shouldReturnCustomConfigurator() {
-        ConfiguratorRegistry registry = ConfiguratorRegistry.get();
-        Configurator c = registry.lookup(RoleBasedAuthorizationStrategy.class);
-        assertNotNull("Failed to find configurator for RoleBasedAuthorizationStrategy", c);
-        assertEquals("Retrieved wrong configurator", RoleBasedAuthorizationStrategyConfigurator.class, c.getClass());
-    }
+  @Test
+  public void shouldReturnCustomConfigurator() {
+    ConfiguratorRegistry registry = ConfiguratorRegistry.get();
+    Configurator c = registry.lookup(RoleBasedAuthorizationStrategy.class);
+    assertNotNull("Failed to find configurator for RoleBasedAuthorizationStrategy", c);
+    assertEquals("Retrieved wrong configurator", RoleBasedAuthorizationStrategyConfigurator.class, c.getClass());
+  }
 
-    @Test
-    @Issue("Issue #48")
-    @ConfiguredWithCode("Configuration-as-Code.yml")
-    public void shouldReadRolesCorrectly() throws Exception {
-        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-        User admin = User.getById("admin", false);
-        User user1 = User.getById("user1", false);
-        User user2 = User.getById("user2", true);
-        assertNotNull(admin);
-        assertNotNull(user1);
-        Computer agent1 = j.jenkins.getComputer("agent1");
-        Computer agent2 = j.jenkins.getComputer("agent2");
-        Folder folderA = j.jenkins.createProject(Folder.class, "A");
-        FreeStyleProject jobA1 = folderA.createProject(FreeStyleProject.class, "1");
-        Folder folderB = j.jenkins.createProject(Folder.class, "B");
-        FreeStyleProject jobB2 = folderB.createProject(FreeStyleProject.class, "2");
+  @Test
+  @Issue("Issue #48")
+  @ConfiguredWithCode("Configuration-as-Code.yml")
+  public void shouldReadRolesCorrectly() throws Exception {
+    jcwcRule.jenkins.setSecurityRealm(jcwcRule.createDummySecurityRealm());
+    User admin = User.getById("admin", false);
+    User user1 = User.getById("user1", false);
+    User user2 = User.getById("user2", true);
+    assertNotNull(admin);
+    assertNotNull(user1);
+    Computer agent1 = jcwcRule.jenkins.getComputer("agent1");
+    Computer agent2 = jcwcRule.jenkins.getComputer("agent2");
+    Folder folderA = jcwcRule.jenkins.createProject(Folder.class, "A");
+    FreeStyleProject jobA1 = folderA.createProject(FreeStyleProject.class, "1");
+    Folder folderB = jcwcRule.jenkins.createProject(Folder.class, "B");
+    FreeStyleProject jobB2 = folderB.createProject(FreeStyleProject.class, "2");
 
-        AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
-        assertThat("Authorization Strategy has been read incorrectly",
-            s, instanceOf(RoleBasedAuthorizationStrategy.class));
-        RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
+    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-        Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
-        assertThat(globalRoles.size(), equalTo(2));
+    Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    assertThat(globalRoles.size(), equalTo(2));
 
-        // Admin has configuration access
-        assertHasPermission(admin, j.jenkins, Jenkins.ADMINISTER, Jenkins.READ);
-        assertHasPermission(user1, j.jenkins, Jenkins.READ);
-        assertHasNoPermission(user1, j.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
-        assertHasNoPermission(user2, j.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
+    // Admin has configuration access
+    assertHasPermission(admin, jcwcRule.jenkins, Jenkins.ADMINISTER, Jenkins.READ);
+    assertHasPermission(user1, jcwcRule.jenkins, Jenkins.READ);
+    assertHasNoPermission(user1, jcwcRule.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
+    assertHasNoPermission(user2, jcwcRule.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
 
-        // Folder A is restricted to admin
-        assertHasPermission(admin, folderA, Item.CONFIGURE);
-        assertHasPermission(user1, folderA, Item.READ, Item.DISCOVER);
-        assertHasNoPermission(user1, folderA, Item.CONFIGURE, Item.DELETE, Item.BUILD);
+    // Folder A is restricted to admin
+    assertHasPermission(admin, folderA, Item.CONFIGURE);
+    assertHasPermission(user1, folderA, Item.READ, Item.DISCOVER);
+    assertHasNoPermission(user1, folderA, Item.CONFIGURE, Item.DELETE, Item.BUILD);
 
-        // But they have access to jobs in Folder A
-        assertHasPermission(admin, folderA, Item.CONFIGURE, Item.CANCEL);
-        assertHasPermission(user1, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
-        assertHasPermission(user2, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
-        assertHasNoPermission(user1, folderA, Item.CANCEL);
+    // But they have access to jobs in Folder A
+    assertHasPermission(admin, folderA, Item.CONFIGURE, Item.CANCEL);
+    assertHasPermission(user1, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
+    assertHasPermission(user2, jobA1, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD, Item.DELETE);
+    assertHasNoPermission(user1, folderA, Item.CANCEL);
 
-        // FolderB is editable by user2, but he cannot delete it
-        assertHasPermission(user2, folderB, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD);
-        assertHasNoPermission(user2, folderB, Item.DELETE);
-        assertHasNoPermission(user1, folderB, Item.CONFIGURE, Item.BUILD, Item.DELETE);
+    // FolderB is editable by user2, but he cannot delete it
+    assertHasPermission(user2, folderB, Item.READ, Item.DISCOVER, Item.CONFIGURE, Item.BUILD);
+    assertHasNoPermission(user2, folderB, Item.DELETE);
+    assertHasNoPermission(user1, folderB, Item.CONFIGURE, Item.BUILD, Item.DELETE);
 
-        // Only user1 can run on agent1, but he still cannot configure it
-        assertHasPermission(admin, agent1, Computer.CONFIGURE, Computer.DELETE, Computer.BUILD);
-        assertHasPermission(user1, agent1, Computer.BUILD);
-        assertHasNoPermission(user1, agent1, Computer.CONFIGURE, Computer.DISCONNECT);
+    // Only user1 can run on agent1, but he still cannot configure it
+    assertHasPermission(admin, agent1, Computer.CONFIGURE, Computer.DELETE, Computer.BUILD);
+    assertHasPermission(user1, agent1, Computer.BUILD);
+    assertHasNoPermission(user1, agent1, Computer.CONFIGURE, Computer.DISCONNECT);
 
-        // Same user still cannot build on agent2
-        assertHasNoPermission(user1, agent2, Computer.BUILD);
-    }
+    // Same user still cannot build on agent2
+    assertHasNoPermission(user1, agent2, Computer.BUILD);
+  }
 
-    @Test
-    @ConfiguredWithCode("Configuration-as-Code.yml")
-    public void shouldExportRolesCorrect() throws Exception {
-        ConfiguratorRegistry registry = ConfiguratorRegistry.get();
-        ConfigurationContext context = new ConfigurationContext(registry);
-        CNode yourAttribute = getJenkinsRoot(context).get("authorizationStrategy");
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code.yml")
+  public void shouldExportRolesCorrect() throws Exception {
+    ConfiguratorRegistry registry = ConfiguratorRegistry.get();
+    ConfigurationContext context = new ConfigurationContext(registry);
+    CNode yourAttribute = getJenkinsRoot(context).get("authorizationStrategy");
 
-        String exported = toYamlString(yourAttribute);
-        String expected = toStringFromYamlFile(this, "Configuration-as-Code-Export.yml");
+    String exported = toYamlString(yourAttribute);
+    String expected = toStringFromYamlFile(this, "Configuration-as-Code-Export.yml");
 
-        assertThat(exported, is(expected));
-    }
+    assertThat(exported, is(expected));
+  }
 
-    @Test
-    @Issue("Issue #214")
-    @ConfiguredWithCode("Configuration-as-Code2.yml")
-    public void shouldHandleNullItemsAndAgentsCorrectly() {
-        AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
-        assertThat("Authorization Strategy has been read incorrectly",
-            s, instanceOf(RoleBasedAuthorizationStrategy.class));
-        RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+  @Test
+  @Issue("Issue #214")
+  @ConfiguredWithCode("Configuration-as-Code2.yml")
+  public void shouldHandleNullItemsAndAgentsCorrectly() {
+    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
+    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-        Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
-        assertThat(globalRoles.size(), equalTo(2));
-    }
+    Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    assertThat(globalRoles.size(), equalTo(2));
+  }
 }
