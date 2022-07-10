@@ -4,17 +4,10 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
-
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
+import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
-
 import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.User;
@@ -24,13 +17,17 @@ import hudson.security.AuthorizationStrategy;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import jenkins.model.ProjectNamingStrategy;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 
-public class RoleBasedProjectNamingStrategyTest
-{
-  
+public class RoleBasedProjectNamingStrategyTest {
+
   @Rule
   public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
-  
+
   private DummySecurityRealm securityRealm;
   private User userGlobal;
   private User userJobCreate;
@@ -53,7 +50,7 @@ public class RoleBasedProjectNamingStrategyTest
     securityRealm.addGroups("userJobCreateGroup", "groupJobCreate");
     securityRealm.addGroups("userReadGroup", "groupRead");
   }
-  
+
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
   public void createPermission() {
@@ -124,10 +121,10 @@ public class RoleBasedProjectNamingStrategyTest
 
   private void checkName(User user, final String jobName, final String parentName) {
     try (ACLContext c = ACL.as(user)) {
-        ProjectNamingStrategy pns = j.jenkins.getProjectNamingStrategy();
-        assertThat(pns, instanceOf(RoleBasedProjectNamingStrategy.class));
-        RoleBasedProjectNamingStrategy rbpns = (RoleBasedProjectNamingStrategy) pns;
-        rbpns.checkName(parentName, jobName);
+      ProjectNamingStrategy pns = j.jenkins.getProjectNamingStrategy();
+      assertThat(pns, instanceOf(RoleBasedProjectNamingStrategy.class));
+      RoleBasedProjectNamingStrategy rbpns = (RoleBasedProjectNamingStrategy) pns;
+      rbpns.checkName(parentName, jobName);
     }
   }
 
