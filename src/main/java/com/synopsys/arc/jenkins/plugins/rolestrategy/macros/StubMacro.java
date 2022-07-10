@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
@@ -31,37 +32,37 @@ import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
 /**
- * A stub for non-existent macros.
- * Always returns false during permissions check.
+ * A stub for non-existent macros. Always returns false during permissions check.
+ *
  * @author Oleg Nenashev
  * @since 2.1.0
  */
 public final class StubMacro extends RoleMacroExtension {
-    public static final StubMacro Instance = new StubMacro();
-    
-    private StubMacro() {
-    }
-    
-    @Override
-    public String getName() {
-        return "Stub";
-    }
+  public static final StubMacro Instance = new StubMacro();
 
-    //TODO: fix naming conventions
-    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
-    @Override
-    public boolean IsApplicable(RoleType roleType) {
-        return false;
-    }
+  private StubMacro() {
+  }
 
-    @Override
-    public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
-        return false;
-    }
+  @Override
+  public String getName() {
+    return "Stub";
+  }
 
-    @Override
-    public String getDescription() {
-        return "Just a stub";
-    }
+  // TODO: fix naming conventions
+  @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
+  @Override
+  public boolean IsApplicable(RoleType roleType) {
+    return false;
+  }
+
+  @Override
+  public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
+    return false;
+  }
+
+  @Override
+  public String getDescription() {
+    return "Just a stub";
+  }
 
 }

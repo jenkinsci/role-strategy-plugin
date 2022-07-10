@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
@@ -34,37 +35,37 @@ import hudson.security.Permission;
 
 /**
  * Applies permissions to buildable jobs only.
+ *
  * @author Oleg Nenashev
  * @since 2.1.0
  */
 @Extension
 public class BuildableJobMacro extends RoleMacroExtension {
 
-    @Override
-    public String getName() {
-        return "BuildableJob";
-    }
+  @Override
+  public String getName() {
+    return "BuildableJob";
+  }
 
-    //TODO: fix naming conventions
-    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
-    @Override
-    public boolean IsApplicable(RoleType roleType) {
-        return roleType == RoleType.Project;
-    }
+  // TODO: fix naming conventions
+  @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
+  @Override
+  public boolean IsApplicable(RoleType roleType) {
+    return roleType == RoleType.Project;
+  }
 
-    @Override
-    public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
-        if (Job.class.isAssignableFrom(item.getClass())) {
-            Job<?, ?> job = (Job<?, ?>)item;
-            return job.isBuildable();
-        }
-        else {
-            return false;
-        }
+  @Override
+  public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
+    if (Job.class.isAssignableFrom(item.getClass())) {
+      Job<?, ?> job = (Job<?, ?>) item;
+      return job.isBuildable();
+    } else {
+      return false;
     }
+  }
 
-    @Override
-    public String getDescription() {
-        return "Filters out unbuildable jobs"; 
-    }
+  @Override
+  public String getDescription() {
+    return "Filters out unbuildable items, e.g. folders";
+  }
 }

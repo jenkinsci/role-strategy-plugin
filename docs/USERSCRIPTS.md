@@ -1,8 +1,7 @@
 Greasemonkey Addons
 ======
 
-The management interface becomes difficult to use with a large number of users and/or roles. 
-Several Greasemonkey userscripts exist to make the UI easier to use (Jira issue):
+These addons are obsolete. The functionality is now directly built into the plugin.
 
 ## Jenkins Role Strategy UI enhancer
 

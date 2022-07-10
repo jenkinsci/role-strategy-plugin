@@ -21,28 +21,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 /**
  * Macro exception.
+ *
  * @author Oleg Nenashev
  * @since 2.1.0
  */
 public class MacroException extends Exception {
-    MacroExceptionCode errorCode;
+  MacroExceptionCode errorCode;
 
-    public MacroException(MacroExceptionCode code, String message) {
-        super(message);
-        this.errorCode = code;
-    }
+  public MacroException(MacroExceptionCode code, String message) {
+    super(message);
+    this.errorCode = code;
+  }
 
-    public MacroExceptionCode getErrorCode() {
-        return errorCode;
-    }
+  public MacroExceptionCode getErrorCode() {
+    return errorCode;
+  }
 
-    @Override
-    public String getMessage() {
-        return "<"+errorCode+">: " + super.getMessage();
-    }
+  @Override
+  public String getMessage() {
+    return "<" + errorCode + ">: " + super.getMessage();
+  }
 
 }

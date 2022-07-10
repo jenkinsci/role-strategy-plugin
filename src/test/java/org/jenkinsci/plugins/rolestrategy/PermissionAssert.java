@@ -21,58 +21,60 @@
 
 package org.jenkinsci.plugins.rolestrategy;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-
 /**
  * Provides asserts for {@link hudson.security.Permission} checks.
+ *
  * @author Oleg Nenashev
  */
 public class PermissionAssert {
 
-    public static void assertHasPermission(User user, final Permission permission, final AccessControlled ... items) {
-        for (AccessControlled item : items) {
-            assertPermission(user, item, permission);
-        }
+  public static void assertHasPermission(User user, final Permission permission, final AccessControlled... items) {
+    for (AccessControlled item : items) {
+      assertPermission(user, item, permission);
     }
+  }
 
-    public static void assertHasPermission(User user, final AccessControlled item, final Permission ... permissions) {
-        for (Permission permission : permissions) {
-            assertPermission(user, item, permission);
-        }
+  public static void assertHasPermission(User user, final AccessControlled item, final Permission... permissions) {
+    for (Permission permission : permissions) {
+      assertPermission(user, item, permission);
     }
+  }
 
-    public static void assertHasNoPermission(User user, final Permission permission, final AccessControlled ... items) {
-        for (AccessControlled item : items) {
-            assertNoPermission(user, item, permission);
-        }
+  public static void assertHasNoPermission(User user, final Permission permission, final AccessControlled... items) {
+    for (AccessControlled item : items) {
+      assertNoPermission(user, item, permission);
     }
+  }
 
-    public static void assertHasNoPermission(User user, final AccessControlled item, final Permission ... permissions) {
-        for (Permission permission : permissions) {
-            assertNoPermission(user, item, permission);
-        }
+  public static void assertHasNoPermission(User user, final AccessControlled item, final Permission... permissions) {
+    for (Permission permission : permissions) {
+      assertNoPermission(user, item, permission);
     }
+  }
 
-    private static void assertPermission(User user, final AccessControlled item, final Permission p) {
-        assertThat("User '" + user + "' has no " + p.getId() + " permission for " + item + ", but it should according to security settings",
-                hasPermission(user, item, p), equalTo(true));
-    }
+  private static void assertPermission(User user, final AccessControlled item, final Permission p) {
+    assertThat("User '" + user + "' has no " + p.getId() + " permission for " + item + ", but it should according to security settings",
+        hasPermission(user, item, p), equalTo(true));
+  }
 
-    private static void assertNoPermission(User user, final AccessControlled item, final Permission p) {
-        assertThat("User '" + user + "' has the " + p.getId() + " permission for " + item + ", but it should not according to security settings",
-                hasPermission(user, item, p), equalTo(false));
-    }
+  private static void assertNoPermission(User user, final AccessControlled item, final Permission p) {
+    assertThat(
+        "User '" + user + "' has the " + p.getId() + " permission for " + item + ", but it should not according to security settings",
+        hasPermission(user, item, p), equalTo(false));
+  }
 
-    private static boolean hasPermission(User user, final AccessControlled item, final Permission p) {
-        try (ACLContext c = ACL.as(user)) {
-            return item.hasPermission(p);
-        }
+  private static boolean hasPermission(User user, final AccessControlled item, final Permission p) {
+    try (ACLContext c = ACL.as(user)) {
+      return item.hasPermission(p);
     }
+  }
 }

@@ -35,28 +35,27 @@ import hudson.ExtensionList;
 import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
+import hudson.util.FormApply;
 import java.io.IOException;
 import javax.servlet.ServletException;
-
-import hudson.util.FormApply;
 import jenkins.model.Jenkins;
-
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
-import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * Add the role management link to the Manage Hudson page.
+ *
  * @author Thomas Maurel
  */
 @Extension
 public class RoleStrategyConfig extends ManagementLink {
 
   /**
-   * Provides the icon for the Manage Hudson page link
+   * Provides the icon for the Manage Hudson page link.
+   *
    * @return Path to the icon
    */
   @Override
@@ -77,6 +76,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * URL name for the strategy management.
+   *
    * @return Path to the strategy admin panel
    */
   @Override
@@ -84,12 +84,14 @@ public class RoleStrategyConfig extends ManagementLink {
     return "role-strategy";
   }
 
+  @Override
   public String getCategoryName() {
     return "SECURITY";
   }
 
   /**
    * Text displayed in the Manage Hudson panel.
+   *
    * @return Link text in the Admin panel
    */
   @Override
@@ -99,6 +101,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * Text displayed for the roles assignment panel.
+   *
    * @return Title of the Role assignment panel
    */
   public String getAssignRolesName() {
@@ -107,6 +110,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * Text displayed for the roles management panel.
+   *
    * @return Title of the Role management panel
    */
   public String getManageRolesName() {
@@ -115,6 +119,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * The description of the link.
+   *
    * @return The description of the link
    */
   @Override
@@ -124,17 +129,18 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * Retrieve the {@link RoleBasedAuthorizationStrategy} object from the Hudson instance.
-   * <p>Used by the views to build matrix.</p>
-   * @return The {@link RoleBasedAuthorizationStrategy} object.
-   *         {@code null} if the strategy is not used.
+   * <p>
+   * Used by the views to build matrix.
+   * </p>
+   *
+   * @return The {@link RoleBasedAuthorizationStrategy} object. {@code null} if the strategy is not used.
    */
   @CheckForNull
   public AuthorizationStrategy getStrategy() {
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy) {
       return strategy;
-    }
-    else {
+    } else {
       return null;
     }
   }
@@ -152,15 +158,16 @@ public class RoleStrategyConfig extends ManagementLink {
     FormApply.success(".").generateResponse(req, rsp, this);
   }
 
-//  no configuration on this page for submission
-//  public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException, ServletException, FormException {
-//    Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-//
-//    // TODO: Macros Enable/Disable
-//
-//    // Redirect to the plugin index page
-//    FormApply.success(".").generateResponse(req, rsp, this);
-//  }
+  // no configuration on this page for submission
+  // public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException,
+  // ServletException, FormException {
+  // Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
+  //
+  // // TODO: Macros Enable/Disable
+  //
+  // // Redirect to the plugin index page
+  // FormApply.success(".").generateResponse(req, rsp, this);
+  // }
 
   /**
    * Called on role's assignment form submission.
@@ -174,27 +181,27 @@ public class RoleStrategyConfig extends ManagementLink {
     FormApply.success(".").generateResponse(req, rsp, this);
   }
 
-    public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
-        return RoleMacroExtension.all();
-    }
+  public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
+    return RoleMacroExtension.all();
+  }
 
-    /**
-     * @deprecated The extension is not implemented
-     */
-    @Deprecated
-    public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
-        return UserMacroExtension.all();
-    }
+  /*
+   * @deprecated The extension is not implemented
+   */
+  @Deprecated
+  public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
+    return UserMacroExtension.all();
+  }
 
-    public final RoleType getGlobalRoleType() {
-        return RoleType.Global;
-    }
+  public final RoleType getGlobalRoleType() {
+    return RoleType.Global;
+  }
 
-    public final RoleType getProjectRoleType() {
-        return RoleType.Project;
-    }
+  public final RoleType getProjectRoleType() {
+    return RoleType.Project;
+  }
 
-    public final RoleType getSlaveRoleType() {
-        return RoleType.Slave;
-    }
+  public final RoleType getSlaveRoleType() {
+    return RoleType.Slave;
+  }
 }
