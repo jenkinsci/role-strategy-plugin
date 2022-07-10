@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
@@ -32,34 +33,35 @@ import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
 /**
- * Demo macro for the Role-Based plugin.
- * Allows to set specific rights for the logged users
+ * Demo macro for the Role-Based plugin. Allows to set specific rights for the logged users
+ *
  * @author Oleg Nenashev
  * @since 2.1.0
  * @deprecated Not supported at current version
  */
 //@Extension
+@Deprecated
 public class LoggedUserMacro extends UserMacroExtension {
 
-    @Override
-    public String getName() {
-        return "Logged";
-    }
+  @Override
+  public String getName() {
+    return "Logged";
+  }
 
-    //TODO: fix naming conventions
-    @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
-    @Override
-    public boolean IsApplicable(RoleType roleType) {
-        return true;
-    }
+  // TODO: fix naming conventions
+  @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
+  @Override
+  public boolean IsApplicable(RoleType roleType) {
+    return true;
+  }
 
-    @Override
-    public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
-        return User.current() != null;
-    }
+  @Override
+  public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
+    return User.current() != null;
+  }
 
-    @Override
-    public String getDescription() {
-        return "Check if user is logged in";
-    }
+  @Override
+  public String getDescription() {
+    return "Check if user is logged in";
+  }
 }

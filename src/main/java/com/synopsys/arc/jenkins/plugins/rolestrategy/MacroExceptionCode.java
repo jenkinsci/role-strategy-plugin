@@ -21,16 +21,15 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 /**
  * Contains type of macro exception.
+ *
  * @author Oleg Nenashev
  * @since 2.1.0
  */
 public enum MacroExceptionCode {
-    UnknownError,
-    Not_Macro,
-    WrongFormat,
-    Wrong_arguments
+  UnknownError, Not_Macro, WrongFormat, Wrong_arguments
 }
