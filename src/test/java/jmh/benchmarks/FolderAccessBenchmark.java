@@ -64,8 +64,11 @@ public class FolderAccessBenchmark {
       Random random = new Random(100L);
 
       /*
-       * This configuration was provided by @Straber. Structure: 10 parent folders each containing 5 child folders => total 50
-       * child folders each child folder contains 5 projects For each child folder, there are 3 roles: admin, maintainer, user
+       * This configuration was provided by @Straber.
+       * Structure:
+       * - 10 parent folders each containing 5 child folders => total 50 child folders
+       * - each child folder contains 5 projects
+       * - For each child folder, there are 3 roles: admin, maintainer, user
        * Total 100 users
        */
       for (int i = 0; i < 10; i++) {
@@ -81,12 +84,6 @@ public class FolderAccessBenchmark {
             }
           }
 
-          Role userRole = new Role(String.format("user%d-%d", i, j), "TopFolder" + i + "(/BottomFolder" + j + "/.*)?", userPermissions, "");
-          Role maintainerRole = new Role(String.format("maintainer%d-%d", i, j), "TopFolder" + i + "/BottomFolder" + j + "(/.*)",
-              maintainerPermissions, "");
-          Role adminRole = new Role(String.format("admin%d-%d", i, j), "TopFolder" + i + "/BottomFolder" + j + "(/.*)", adminPermissions,
-              "");
-
           Set<String> users = new HashSet<>();
           for (int k = 0; k < random.nextInt(5); k++) {
             users.add("user" + random.nextInt(100));
@@ -97,6 +94,12 @@ public class FolderAccessBenchmark {
           maintainers.add("user" + random.nextInt(100));
 
           Set<String> admin = Collections.singleton("user" + random.nextInt(100));
+
+          Role userRole = new Role(String.format("user%d-%d", i, j), "TopFolder" + i + "(/BottomFolder" + j + "/.*)?", userPermissions, "");
+          Role maintainerRole = new Role(String.format("maintainer%d-%d", i, j), "TopFolder" + i + "/BottomFolder" + j + "(/.*)",
+              maintainerPermissions, "");
+          Role adminRole = new Role(String.format("admin%d-%d", i, j), "TopFolder" + i + "/BottomFolder" + j + "(/.*)", adminPermissions,
+              "");
 
           projectRoles.put(userRole, users);
           projectRoles.put(maintainerRole, maintainers);

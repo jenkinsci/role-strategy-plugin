@@ -22,16 +22,16 @@ import org.jvnet.hudson.test.JenkinsRule.WebClient;
 
 public class OwnershipTest {
   @Rule
-  public JenkinsConfiguredWithCodeRule jccRule = new JenkinsConfiguredWithCodeRule();
+  public JenkinsConfiguredWithCodeRule jcwcRule = new JenkinsConfiguredWithCodeRule();
 
   @Test
   @ConfiguredWithCode("OwnershipTest.yml")
   public void currentUserIsPrimaryOwnerGrantsPermissions() throws Exception {
-    Node n = jccRule.createOnlineSlave();
+    Node n = jcwcRule.createOnlineSlave();
     n.getNodeProperties().add(new OwnerNodeProperty(n, new OwnershipDescription(true, "nodePrimaryTester", null)));
     String nodeUrl = n.toComputer().getUrl();
 
-    WebClient wc = jccRule.createWebClient();
+    WebClient wc = jcwcRule.createWebClient();
     wc.withThrowExceptionOnFailingStatusCode(false);
     wc.login("nodePrimaryTester", "nodePrimaryTester");
     HtmlPage managePage = wc.withThrowExceptionOnFailingStatusCode(false).goTo(String.format("%sconfigure", nodeUrl));
@@ -57,12 +57,12 @@ public class OwnershipTest {
   @Test
   @ConfiguredWithCode("OwnershipTest.yml")
   public void currentUserIsSecondaryOwnerGrantsPermissions() throws Exception {
-    Node n = jccRule.createOnlineSlave();
+    Node n = jcwcRule.createOnlineSlave();
     n.getNodeProperties()
         .add(new OwnerNodeProperty(n, new OwnershipDescription(true, "nodePrimaryTester", Collections.singleton("nodeSecondaryTester"))));
     String nodeUrl = n.toComputer().getUrl();
 
-    WebClient wc = jccRule.createWebClient();
+    WebClient wc = jcwcRule.createWebClient();
     wc.withThrowExceptionOnFailingStatusCode(false);
     wc.login("nodeSecondaryTester", "nodeSecondaryTester");
     HtmlPage managePage = wc.withThrowExceptionOnFailingStatusCode(false).goTo(String.format("%sconfigure", nodeUrl));

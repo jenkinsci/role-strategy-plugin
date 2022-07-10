@@ -8,13 +8,14 @@ import jenkins.model.Jenkins;
 import org.jvnet.hudson.test.JenkinsRule;
 
 /**
- * Extension of {@link JenkinsRule} to allow it to be used from JMH benchmarks. This class should be instantiated only
+ * Extension of {@link JenkinsRule} to allow it to be used from JMH benchmarks.
+ *
+ * <p>This class should be instantiated only
  * when the Jenkins instance is confirmed to exist.
  */
 public class JmhJenkinsRule extends JenkinsRule {
   private final Jenkins jenkins;
 
-  /** Constructor. */
   public JmhJenkinsRule() {
     super();
     jenkins = Objects.requireNonNull(Jenkins.getInstanceOrNull());

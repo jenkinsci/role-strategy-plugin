@@ -37,52 +37,24 @@ import hudson.security.Permission;
  */
 public class PermissionAssert {
 
-  /**
-   * Assert user has permission on a list of items.
-   *
-   * @param user       User
-   * @param permission Permission
-   * @param items      List of items
-   */
   public static void assertHasPermission(User user, final Permission permission, final AccessControlled... items) {
     for (AccessControlled item : items) {
       assertPermission(user, item, permission);
     }
   }
 
-  /**
-   * Assert user has all given permissions on item.
-   *
-   * @param user        User
-   * @param item        Item
-   * @param permissions List of permissions
-   */
   public static void assertHasPermission(User user, final AccessControlled item, final Permission... permissions) {
     for (Permission permission : permissions) {
       assertPermission(user, item, permission);
     }
   }
 
-  /**
-   * Assert user has no permission on a list of items.
-   *
-   * @param user       User
-   * @param permission Permission
-   * @param items      List of items
-   */
   public static void assertHasNoPermission(User user, final Permission permission, final AccessControlled... items) {
     for (AccessControlled item : items) {
       assertNoPermission(user, item, permission);
     }
   }
 
-  /**
-   * Assert user has none of the given permissions on an items.
-   *
-   * @param user        User
-   * @param item        Items
-   * @param permissions List of Permission
-   */
   public static void assertHasNoPermission(User user, final AccessControlled item, final Permission... permissions) {
     for (Permission permission : permissions) {
       assertNoPermission(user, item, permission);
