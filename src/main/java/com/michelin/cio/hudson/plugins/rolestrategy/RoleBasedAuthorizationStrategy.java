@@ -289,8 +289,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   /**
    * API method to add a role.
    *
-   * <p>
-   * Example:
+   * <p>Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
    * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"}
    *
@@ -304,8 +303,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doAddRole(@QueryParameter(required = true) String type, @QueryParameter(required = true) String roleName,
-      @QueryParameter(required = true) String permissionIds, @QueryParameter(required = true) String overwrite,
+  public void doAddRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String permissionIds,
+      @QueryParameter(required = true) String overwrite,
       @QueryParameter(required = false) String pattern) throws IOException {
     checkAdminPerm();
 
@@ -371,7 +372,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @GET
   @Restricted(NoExternalUse.class)
-  public void doGetRole(@QueryParameter(required = true) String type, @QueryParameter(required = true) String roleName) throws IOException {
+  public void doGetRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName) throws IOException {
     checkAdminPerm();
     JSONObject responseJson = new JSONObject();
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
@@ -441,7 +443,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doAssignRole(@QueryParameter(required = true) String type, @QueryParameter(required = true) String roleName,
+  public void doAssignRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String sid) throws IOException {
     checkAdminPerm();
     final RoleType roleType = RoleType.fromString(type);
@@ -478,7 +481,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doDeleteSid(@QueryParameter(required = true) String type, @QueryParameter(required = true) String sid) throws IOException {
+  public void doDeleteSid(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String sid) throws IOException {
     checkAdminPerm();
     getRoleMap(RoleType.fromString(type)).deleteSids(sid);
     persistChanges();
@@ -499,7 +503,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doUnassignRole(@QueryParameter(required = true) String type, @QueryParameter(required = true) String roleName,
+  public void doUnassignRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String sid) throws IOException {
     checkAdminPerm();
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
@@ -563,7 +568,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @GET
   @Restricted(NoExternalUse.class)
-  public void doGetMatchingJobs(@QueryParameter(required = true) String pattern, @QueryParameter() int maxJobs) throws IOException {
+  public void doGetMatchingJobs(@QueryParameter(required = true) String pattern,
+      @QueryParameter() int maxJobs) throws IOException {
     checkAdminPerm();
     List<String> matchingJobs = RoleMap.getMatchingJobNames(Pattern.compile(pattern), maxJobs);
     JSONObject responseJson = new JSONObject();
@@ -587,7 +593,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @GET
   @Restricted(NoExternalUse.class)
-  public void doGetMatchingAgents(@QueryParameter(required = true) String pattern, @QueryParameter() int maxAgents) throws IOException {
+  public void doGetMatchingAgents(@QueryParameter(required = true) String pattern,
+      @QueryParameter() int maxAgents) throws IOException {
     checkAdminPerm();
     List<String> matchingAgents = RoleMap.getMatchingAgentNames(Pattern.compile(pattern), maxAgents);
     JSONObject responseJson = new JSONObject();
