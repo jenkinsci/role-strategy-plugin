@@ -49,7 +49,7 @@ public class ConfigurationAsCodeTest {
   @Test
   public void shouldReturnCustomConfigurator() {
     ConfiguratorRegistry registry = ConfiguratorRegistry.get();
-    Configurator c = registry.lookup(RoleBasedAuthorizationStrategy.class);
+    Configurator<?> c = registry.lookup(RoleBasedAuthorizationStrategy.class);
     assertNotNull("Failed to find configurator for RoleBasedAuthorizationStrategy", c);
     assertEquals("Retrieved wrong configurator", RoleBasedAuthorizationStrategyConfigurator.class, c.getClass());
   }
@@ -81,8 +81,8 @@ public class ConfigurationAsCodeTest {
     // Admin has configuration access
     assertHasPermission(admin, jcwcRule.jenkins, Jenkins.ADMINISTER, Jenkins.READ);
     assertHasPermission(user1, jcwcRule.jenkins, Jenkins.READ);
-    assertHasNoPermission(user1, jcwcRule.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
-    assertHasNoPermission(user2, jcwcRule.jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
+    assertHasNoPermission(user1, jcwcRule.jenkins, Jenkins.ADMINISTER);
+    assertHasNoPermission(user2, jcwcRule.jenkins, Jenkins.ADMINISTER);
 
     // Folder A is restricted to admin
     assertHasPermission(admin, folderA, Item.CONFIGURE);

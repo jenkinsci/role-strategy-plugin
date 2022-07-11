@@ -3,13 +3,12 @@ package jmh.benchmarks;
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import hudson.model.User;
+import hudson.security.ACL;
 import java.util.Random;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
 import jmh.JmhJenkinsRule;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
@@ -50,8 +49,7 @@ public class MaliciousRegexBenchmark {
   public static class ThreadState {
     @Setup(Level.Iteration)
     public void setup() {
-      SecurityContext securityContext = SecurityContextHolder.getContext();
-      securityContext.setAuthentication(User.getById(testUser, true).impersonate());
+      ACL.as(User.getById(testUser, true));
     }
   }
 

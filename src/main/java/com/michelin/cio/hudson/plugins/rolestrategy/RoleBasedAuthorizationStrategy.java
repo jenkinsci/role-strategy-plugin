@@ -26,7 +26,6 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -741,22 +740,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * Updates macro roles.
-   *
-   * @since 2.1.0
-   */
-  void renewMacroRoles() {
-    // TODO: add mandatory roles
-
-    // Check role extensions
-    for (UserMacroExtension userExt : UserMacroExtension.all()) {
-      if (userExt.IsApplicable(RoleType.Global)) {
-        getRoleMap(RoleType.Global).getSids().contains(userExt.getName());
-      }
-    }
-  }
-
-  /**
    * Control job create using {@link org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy}.
    *
    * @since 2.2.0
@@ -907,7 +890,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
       }
 
-      strategy.renewMacroRoles();
       return strategy;
     }
 
