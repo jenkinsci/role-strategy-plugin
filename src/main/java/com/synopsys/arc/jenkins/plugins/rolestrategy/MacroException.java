@@ -30,6 +30,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
  * @author Oleg Nenashev
  * @since 2.1.0
  */
+@SuppressWarnings("serial")
 public class MacroException extends Exception {
   MacroExceptionCode errorCode;
 

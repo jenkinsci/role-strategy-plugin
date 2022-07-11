@@ -12,9 +12,6 @@ import java.util.TreeMap;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
@@ -23,6 +20,9 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @JmhBenchmark
 public class PermissionBenchmark {
@@ -52,7 +52,7 @@ public class PermissionBenchmark {
     public void setup() {
       securityContext = SecurityContextHolder.getContext();
       originalAuthentication = securityContext.getAuthentication();
-      securityContext.setAuthentication(User.getById("alice", true).impersonate());
+      securityContext.setAuthentication(User.getById("alice", true).impersonate2());
     }
 
     @TearDown(Level.Iteration)

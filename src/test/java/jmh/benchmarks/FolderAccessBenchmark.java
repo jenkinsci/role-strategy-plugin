@@ -7,6 +7,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import hudson.model.FreeStyleProject;
 import hudson.model.TopLevelItem;
 import hudson.model.User;
+import hudson.security.ACL;
 import hudson.security.Permission;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -23,8 +24,6 @@ import java.util.TreeMap;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
@@ -48,7 +47,6 @@ public class FolderAccessBenchmark {
       Jenkins jenkins = Objects.requireNonNull(Jenkins.getInstanceOrNull());
       jenkins.setSecurityRealm(new JenkinsRule().createDummySecurityRealm());
 
-      Map<String, RoleMap> rbasMap = new HashMap<>(1);
       SortedMap<Role, Set<String>> projectRoles = new TreeMap<>();
 
       Set<String> userPermissions = new HashSet<>();
@@ -108,6 +106,7 @@ public class FolderAccessBenchmark {
         topFolders.add(folder);
       }
 
+      Map<String, RoleMap> rbasMap = new HashMap<>(1);
       projectRoleMap = new RoleMap(projectRoles);
       rbasMap.put(RoleBasedAuthorizationStrategy.PROJECT, projectRoleMap);
       RoleBasedAuthorizationStrategy rbas = new RoleBasedAuthorizationStrategy(rbasMap);
@@ -122,8 +121,7 @@ public class FolderAccessBenchmark {
   public static class ThreadState {
     @Setup(Level.Iteration)
     public void setup() {
-      SecurityContext securityContext = SecurityContextHolder.getContext();
-      securityContext.setAuthentication(User.getById("user33", true).impersonate());
+      ACL.as(User.getById("user33", true));
     }
   }
 
