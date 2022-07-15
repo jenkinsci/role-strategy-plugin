@@ -26,7 +26,14 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
+  <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
+  <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
+
+  <div id="itemRoleInputFilter">
+    <f:entry title="${%Filter by Role}">
+      <input id="itemRoleInput" class="jenkins-input setting-input"/>
+    </f:entry>
+  </div>  
   <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
@@ -38,7 +45,7 @@
         <td rowspan="2" class="pane-header blank">
           ${%Pattern}
         </td>
-        <j:forEach var="g" items="${projectGroups}">
+        <j:forEach var="g" items="${itemPermissionGroups}">
           <j:set var="cnt" value="${0}" />
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
@@ -54,7 +61,7 @@
       </tr>
       <!-- The second row for individual permission -->
       <tr class="caption-row">
-        <j:forEach var="g" items="${projectGroups}">
+        <j:forEach var="g" items="${itemPermissionGroups}">
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
               <th class="pane" tooltip="${p.description}">
@@ -64,20 +71,18 @@
           </j:forEach>
         </j:forEach>
       </tr>
-      <j:set var="nbProjectRoles" value="${0}" />
-      <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}">
+      <j:forEach var="role" items="${itemGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row">
           <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}"
                          project="${true}"/>
         </tr>
-        <j:set var="nbProjectRoles" value="${nbProjectRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
         <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" />
       </tr>
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
-      <j:if test="${nbProjectRoles ge 20}">
+      <j:if test="${itemGrantedRoles.size() ge 20}">
         <tr class="caption-row">
           <td rowspan="2" class="start" />
           <td rowspan="2" class="pane-header blank">
@@ -86,7 +91,7 @@
           <td rowspan="2" class="pane-header blank">
             ${%Pattern}
           </td>
-          <j:forEach var="g" items="${projectGroups}">
+          <j:forEach var="g" items="${itemPermissionGroups}">
             <j:forEach var="p" items="${g.permissions}">
               <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
                 <th class="pane" tooltip="${p.description}">
@@ -97,7 +102,7 @@
           </j:forEach>
         </tr>
         <tr class="group-row">
-          <j:forEach var="g" items="${projectGroups}">
+          <j:forEach var="g" items="${itemPermissionGroups}">
             <j:set var="cnt" value="${0}" />
             <j:forEach var="p" items="${g.permissions}">
               <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
@@ -126,7 +131,11 @@
     </f:entry>
   </l:isAdmin>
     <script>
+      <j:if test="${itemGrantedRoles.size() lt 10}">
+        document.getElementById('itemRoleInputFilter').style.display = "none"
+      </j:if>
       var projecttableHighlighter;
+      var itemRoleCount = ${itemGrantedRoles.size()};
       (function() {
         <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
         var master = document.getElementById('${id}');
@@ -183,14 +192,19 @@
           bindListenerToPattern(link);
 
           copy.setAttribute("name",'['+name+']');
-          <j:if test="${nbProjectRoles lt 20}">
+          <j:if test="${itemGrantedRoles.size() lt 20}">
             table.appendChild(copy);
           </j:if>
-          <j:if test="${nbProjectRoles ge 20}">
+          <j:if test="${itemGrantedRoles.size() ge 20}">
             table.insertBefore(copy,table.childNodes[table.rows.length-2]);
           </j:if>
           projecttableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
+          itemRoleCount++;
+          if (itemRoleCount >= 10) {
+            document.getElementById('itemRoleInputFilter').style.display = "block";
+          }
+          
         });
       })();
 
@@ -252,16 +266,34 @@
          }
       });
 
-      var deleteProjectRole = function(e) {
+      var itemRoleFilter = function(e) {
+        e.onkeyup = function() {
+            let filter = document.getElementById("itemRoleInput").value.toUpperCase();
+            let table = document.getElementById("projectRoles");
+            filterRoles(filter, table);
+        }
+        e = null;
+      }
+
+      var deleteItemRole = function(e) {
         e.onclick = function() {
           var tr = findAncestor(this,"TR");
           tr.parentNode.removeChild(tr);
+          itemRoleCount--;
+          if (itemRoleCount &lt; 10) {
+            document.getElementById('itemRoleInputFilter').style.display = "none";
+            document.getElementById('itemRoleInput').value = "";
+            event = new Event("keyup");
+            document.getElementById('itemRoleInput').dispatchEvent(event);
+          }
           return false;
         }
         e = null; <!-- avoid memory leak -->
       }
-      Behaviour.register({"#projectRoles TD.stop A" : deleteProjectRole});
-      Behaviour.register({"#projectRoles TD.start A" : deleteProjectRole});
+      Behaviour.register({"#projectRoles TD.stop A" : deleteItemRole,
+                          "#projectRoles TD.start A" : deleteItemRole,
+                          "#itemRoleInput" : itemRoleFilter,
+      });
 
       Behaviour.register({"#projectRoles TD.in-place-edit" : function(e) {
         e.ondblclick = function() {

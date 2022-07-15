@@ -28,7 +28,18 @@
 
   <j:set var="id" value="${h.generateId()}"/>
   <j:set var="projectSIDs" value="${it.strategy.getSIDs(it.strategy.PROJECT)}"/>
-  <j:set var="projectGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
+  <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
+
+  <div id="itemUserInputFilter">
+    <f:entry title="${%Filter by User}">
+      <input id="itemUserInput" class="jenkins-input setting-input"/>
+    </f:entry>
+  </div>
+  <div id="itemRoleInputFilter">
+    <f:entry title="${%Filter by Role}">
+      <input id="itemRoleInput" class="jenkins-input setting-input"/>
+    </f:entry>
+  </div>
 
   <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
@@ -38,19 +49,17 @@
         <td class="pane-header blank">
           ${%User/group}
         </td>
-        <j:forEach var="role" items="${projectGrantedRoles}">
+        <j:forEach var="role" items="${itemGrantedRoles}">
           <td class="pane-header">
             <span>${role.key.name}</span>
           </td>
         </j:forEach>
-        <l:isAdmin><td class="stop" /></l:isAdmin>
+        <td class="stop" />
       </tr>
-      <j:set var="nbAssignedProjectsRoles" value="${0}" />
       <j:forEach var="sid" items="${projectSIDs}">
         <tr name="[${sid}]" class="permission-row">
           <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
         </tr>
-        <j:set var="nbAssignedProjectsRoles" value="${nbAssignedProjectsRoles+1}" />
       </j:forEach>
       <tr name="anonymous">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
@@ -59,18 +68,18 @@
         <local:userRow title="{{USER}}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
-      <j:if test="${nbAssignedProjectsRoles ge 19}">
+      <j:if test="${projectSIDs.size() ge 20}">
         <tr class="group-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
           </td>
-          <j:forEach var="role" items="${projectGrantedRoles}">
+          <j:forEach var="role" items="${itemGrantedRoles}">
             <td class="pane-header">
-              ${role.key.name}
+              <span>${role.key.name}</span>
             </td>
           </j:forEach>
-          <l:isAdmin><td class="stop" /></l:isAdmin>
+          <td class="stop" />
         </tr>
       </j:if>
     </table>
@@ -86,6 +95,14 @@
   </l:isAdmin>
 
     <script>
+      <j:if test="${itemGrantedRoles.size() &lt; 10}">
+        document.getElementById('itemRoleInputFilter').style.display = "none"
+      </j:if>
+      <j:if test="${projectSIDs.size() &lt; 10}">
+        document.getElementById('itemUserInputFilter').style.display = "none"
+      </j:if>
+      var itemSidCount = ${projectSIDs.size()};
+
       var itemTableHighlighter;
       (function() {
         <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
@@ -124,14 +141,18 @@
 
           copy.childNodes[1].innerHTML = escapeHTML(name);
           copy.setAttribute("name",'['+name+']');
-          <j:if test="${nbAssignedProjectsRoles lt 19}">
+          <j:if test="${projectSIDs.size() lt 20}">
             table.appendChild(copy);
           </j:if>
-          <j:if test="${nbAssignedProjectsRoles ge 19}">
+          <j:if test="${projectSIDs.size() ge 20}">
             table.insertBefore(copy,table.childNodes[table.rows.length-1]);
           </j:if>
           itemTableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
+          itemSidCount++;
+          if (itemSidCount >= 10) {
+            document.getElementById('itemUserInputFilter').style.display = "block";
+          }
         });
       })();
 
@@ -139,10 +160,33 @@
          itemTableHighlighter = new TableHighlighter('projectRoles', 0, 1);
       });
 
+      var itemUserFilter = function(e) {
+        e.onkeyup = function() {
+            var filter = document.getElementById("itemUserInput").value.toUpperCase();
+            var rows = document.getElementById("projectRoles");
+            filterUsers(filter, rows);
+        }
+      }
+
+      var itemRoleFilter = function(e) {
+        e.onkeyup = function() {
+            var filter = document.getElementById("itemRoleInput").value.toUpperCase();
+            var table = document.getElementById("projectRoles");
+            filterRoles(filter, table);
+        }
+      }
+
       var deleteAssignedProjectRole = function(e) {
         e.onclick = function() {
           var tr = findAncestor(this,"TR");
           tr.parentNode.removeChild(tr);
+          itemSidCount--;
+          if (itemSidCount &lt; 10) {
+            document.getElementById('itemUserInputFilter').style.display = "none";
+            document.getElementById('itemUserInput').value = "";
+            event = new Event("keyup");
+            document.getElementById('itemUserInput').dispatchEvent(event);
+          }
           return false;
         }
         e = null; <!-- avoid memory leak -->
@@ -152,7 +196,9 @@
         "#projectRoles TD.stop A" : deleteAssignedProjectRole,
         "#projectRoles TR.permission-row" : function(e) {
           FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
-        }
+        },
+        "#itemUserInput" : itemUserFilter,
+        "#itemRoleInput" : itemRoleFilter,
       });
     </script>
 </j:jelly>
