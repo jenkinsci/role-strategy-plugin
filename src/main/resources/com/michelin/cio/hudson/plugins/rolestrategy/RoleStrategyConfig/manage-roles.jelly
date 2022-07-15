@@ -41,6 +41,7 @@
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/manageFilters.js" />
 
           <j:if test="${empty(descriptorPath)}">
             <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
