@@ -50,8 +50,13 @@
           ${%User/group}
         </td>
         <j:forEach var="role" items="${itemGrantedRoles}">
+          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+          <j:forEach var="p" items="${role.key.permissions}">
+            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+          </j:forEach>
+          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
           <td class="pane-header">
-            <span>${role.key.name}</span>
+            <span tooltip="${permissionList}">${role.key.name}</span>
           </td>
         </j:forEach>
         <td class="stop" />

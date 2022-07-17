@@ -58,14 +58,18 @@
                 </td>
               <td class="left-most">${title}</td>
               <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
-                <td width="*" tooltip="&lt;b&gt;Role&lt;/b&gt; : ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;User&lt;/b&gt; : ${h.escape(attrs.title)} &lt;br/&gt;">
+                <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(r.key.pattern.toString())}"/>
+                <j:if test="${attrs.type == it.strategy.GLOBAL}">
+                  <j:set var="pattern" value=""/>
+                </j:if>
+                <td width="*" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">                  
                   <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
                 </td>
               </j:forEach>
               <td class="stop">
                 <l:isAdmin>
                   <a href="#">
-                    <l:icon alt="remove" class="icon-stop icon-sm"/>
+                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                   </a>
                 </l:isAdmin>
               </td>
