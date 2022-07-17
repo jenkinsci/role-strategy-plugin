@@ -119,7 +119,7 @@
       </j:if>
     </table>
   <l:isAdmin>
-    <br /><br />
+    <br />
     <f:entry title="${%Role to add}">
       <f:textbox type="text" id="${id}text" />
     </f:entry>
@@ -214,21 +214,23 @@
 
       var showMatchingProjects = function() {
         var pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
-        var maxJobs = 10;    // Maximum jobs to search for
+        var maxItems = 10;    // Maximum items to search for
         var url = 'strategy/getMatchingJobs';
         reqParams = {
           'pattern' : pattern,
-          'maxJobs' : maxJobs
+          'maxJobs' : maxItems
         }
 
         new Ajax.Request(url, {
           method: 'get',
           parameters: reqParams,
           onSuccess: function(req) {
-            var matchingJobs = req.responseText.evalJSON().matchingJobs;
+            var responseJson = req.responseText.evalJSON();
+            var matchingItems = responseJson.matchingJobs;
+            var itemCount = responseJson.itemCount;
 
-            if(matchingJobs != null) {
-              showJobsModal(matchingJobs);
+            if(matchingItems != null) {
+              showItemsModal(matchingItems, itemCount);
             } else {
               showErrorMessageModal();
             }
@@ -237,15 +239,19 @@
         });
       }
 
-      var showJobsModal = function(jobs) {
-        modalText = '';
-        if(jobs.length > 0) {
-          modalText += 'Matching Projects:\n\n';
-          for(var i = 0; i != jobs.length; i++) {
-            modalText += ' - ' + jobs[i] + '\n';
+      var showItemsModal = function(items, itemCount) {
+        var modalText = '';
+        if(items.length > 0) {
+          if (itemCount > items.length) {
+            modalText += 'First 10 (out of ' + itemCount + ') matching Items:\n\n';
+          } else {
+            modalText += 'Matching Items:\n\n';
+          }
+          for(var i = 0; i != items.length; i++) {
+            modalText += ' - ' + items[i] + '\n';
           }
         } else {
-          modalText += 'No matching Projects found.';
+          modalText += 'No matching Items found.';
         }
         modalText += '\n\n';
         alert(modalText);
