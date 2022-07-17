@@ -65,6 +65,8 @@ import org.acegisecurity.acls.sid.Sid;
 import org.acegisecurity.userdetails.UserDetails;
 import org.jenkinsci.plugins.rolestrategy.Settings;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.springframework.dao.DataAccessException;
 
@@ -448,7 +450,9 @@ public class RoleMap {
    * @param pattern Pattern to match against
    * @param maxJobs Max matching jobs to look for
    * @return List of matching job names
+   * @deprecated No replacement available. It was never intended for public usage.
    */
+  @Deprecated
   public static List<String> getMatchingJobNames(Pattern pattern, int maxJobs) {
     List<String> matchingJobNames = new ArrayList<>();
     for (Item i : Jenkins.get().allItems(Item.class, i -> pattern.matcher(i.getFullName()).matches())) {
@@ -461,12 +465,34 @@ public class RoleMap {
   }
 
   /**
+   * Get all job names matching the given pattern, viewable to the requesting user.
+   *
+   * @param matchedItems List that will take the matched item names
+   * @param pattern Pattern to match against
+   * @param maxJobs Max matching jobs to look for
+   * @return Number of matched jobs
+   */
+  @Restricted(NoExternalUse.class)
+  static int getMatchingItemNames(@NonNull List<String> matchedItems, Pattern pattern, int maxJobs) {
+    int count = 0;
+    for (Item i : Jenkins.get().allItems(Item.class, i -> pattern.matcher(i.getFullName()).matches())) {
+      if (matchedItems.size() < maxJobs) {
+        matchedItems.add(i.getFullName());
+      }
+      count++;
+    }
+    return count;
+  }
+
+  /**
    * Get all agent names matching the given pattern, viewable to the requesting user.
    *
    * @param pattern   Pattern to match against
    * @param maxAgents Max matching agents to look for
    * @return List of matching agent names
+   * @deprecated No replacement available. It was never intended for public usage.
    */
+  @Deprecated
   public static List<String> getMatchingAgentNames(Pattern pattern, int maxAgents) {
     List<String> matchingAgentNames = new ArrayList<>();
     for (Node node : Jenkins.get().getNodes()) {
@@ -478,6 +504,28 @@ public class RoleMap {
       }
     }
     return matchingAgentNames;
+  }
+
+  /**
+   * Get all agent names matching the given pattern, viewable to the requesting user.
+   *
+   * @param matchingAgentNames List that will take the matched agent names
+   * @param pattern   Pattern to match against
+   * @param maxAgents Max matching agents to look for
+   * @return List of matching agent names
+   */
+  @Restricted(NoExternalUse.class)
+  static int getMatchingAgentNames(@NonNull List<String> matchingAgentNames, Pattern pattern, int maxAgents) {
+    int count = 0;
+    for (Node node : Jenkins.get().getNodes()) {
+      if (pattern.matcher(node.getNodeName()).matches()) {
+        if (matchingAgentNames.size() < maxAgents) {
+          matchingAgentNames.add(node.getNodeName());
+        }
+        count++;
+      }
+    }
+    return count;
   }
 
   /**
