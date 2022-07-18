@@ -63,14 +63,12 @@ label.attach-previous {
 
 .global-matrix-authorization-strategy-table th, .global-matrix-authorization-strategy-table td {
   padding: 0px 3px;
+  border: 1px solid #D3D7CF;
+  vertical-align: middle;
 }
 
 .highlighted {
   background-color: #FFF9C9;
-}
-
-.global-matrix-authorization-strategy-table TH, .global-matrix-authorization-strategy-table TD {
-  border: 1px solid #D3D7CF;
 }
 
 .global-matrix-authorization-strategy-table TD.blank {
@@ -86,3 +84,21 @@ label.attach-previous {
   text-align: left;
 }
 
+.global-matrix-authorization-strategy-table div.pattern-cell {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
+.global-matrix-authorization-strategy-table div.pattern-cell img {
+  margin-right: 3px; cursor: pointer;
+}
+
+.global-matrix-authorization-strategy-table div.pattern-cell span {
+  white-space: nowrap;
+}
+
+.jenkins-checkbox {
+	vertical-align: middle;
+	margin: 3px 0px;
+}
