@@ -172,24 +172,24 @@
 
           var child = copy.childNodes[1];
           var doubleQuote = '"';
-          child.innerHTML = escapeHTML(name);
+          child.textContent = escapeHTML(name);
           var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
-          child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
+          var spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
+          spanElement.innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
           hidden.setAttribute('type', 'hidden');
           hidden.setAttribute('value', pattern);
-          child.next().appendChild(hidden);
+          spanElement.appendChild(hidden);
 
           var children = copy.childNodes;
           children.forEach(function(item){
             item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
           });
 
-          child = copy.childNodes[1];
-          var link = child.next().children[0];
-          bindListenerToPattern(link);
+          spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
+          bindListenerToPattern(spanElement.childNodes[0]);
 
           copy.setAttribute("name",'['+name+']');
           <j:if test="${itemGrantedRoles.size() lt 20}">
@@ -301,14 +301,16 @@
                           "#itemRoleInput" : itemRoleFilter,
       });
 
-      Behaviour.register({"#projectRoles TD.in-place-edit" : function(e) {
-        e.ondblclick = function() {
-          if(this.childNodes.length == 2) {
-            this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
+      Behaviour.register({"#projectRoles img.icon-pencil" : function(e) {
+        e.onclick = function() {
+          inputNode = this.parentNode.childNodes[1];
+          if(inputNode.childNodes.length == 2) {
+            inputNode.innerHTML = '<input onkeypress="" type="text" name="[pattern]" value="' + inputNode.childNodes[1].value + '" size="' + (inputNode.childNodes[1].value.length+10) + '"/>';
+            inputNode.childNodes[0].onkeypress=preventFormSubmit;
           }
           else {
-            this.innerHTML = '<a href="#" class="patternAnchor">&quot;' + this.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
-            bindListenerToPattern(this.children[0]);
+            inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + inputNode.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + inputNode.childNodes[0].value + '"/>';
+            bindListenerToPattern(inputNode.children[0]);
           }
           return false;
         }

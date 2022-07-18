@@ -81,4 +81,16 @@ var escapeHTML = function(unsafe) {
         return '&#039;';
     }
   });
-};      
+};
+
+var preventFormSubmit = function(e) {
+  var key = e.charCode || e.keyCode || 0;     
+  if (key == 13) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var inputNode = e.target.parentNode;
+    inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + inputNode.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + inputNode.childNodes[0].value + '"/>';
+    bindListenerToPattern(inputNode.children[0]);
+  }
+};
+ 

@@ -56,16 +56,21 @@
                     </a>
                   </l:isAdmin>
                 </td>
-              <td class="left-most">${title}</td>
+              <td class="left-most" style="white-space: nowrap;">${title}</td>
               <j:set var="pattern" value=""/>
               <j:if test="${!attrs.global}">
                 <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${attrs.pattern}"/>
                 <j:if test="${attrs.pattern != '{{PATTERN}}'}">
                   <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(attrs.role.pattern.toString())}"/>
                 </j:if>
-                <td width="*" class="in-place-edit">
-                  <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
-                  <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                <td width="*">
+                  <div class="pattern-cell">
+                      <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
+                      <span>
+                        <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
+                        <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                      </span>
+                  </div>
                 </td>
               </j:if>
                                    
