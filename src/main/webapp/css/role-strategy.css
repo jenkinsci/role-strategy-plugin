@@ -34,6 +34,10 @@
   padding-top: 3px;
 }
 
+.global-matrix-authorization-strategy-table .caption-row {
+  border-right: hidden;
+}
+
 .global-matrix-authorization-strategy-table .group-row TD {
   vertical-align: middle;
   text-align: center;
