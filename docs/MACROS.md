@@ -12,6 +12,8 @@ which makes decisions according to instance and parameters.
 
 * `@BuildableJob` - checks if the job is buildable
 * `@Folder` - checks if the item is a folder
+* `@ContainedInView` - Grants permission to all jobs contained in a ListView. Pass the views as parameters to the macro. Prepend with the folder name if the view is below a folder. 
+Views with "," in the name are not supported as the "," would be interpreted as separator for views. View names are case sensitive.
 * Macros for integration with [Ownership Plugin](https://plugins.jenkins.io/ownership). 
   See [Ownership-based Security](https://github.com/jenkinsci/ownership-plugin/blob/master/doc/OwnershipBasedSecurity.md)
 
@@ -31,5 +33,6 @@ Examples:
 
 * `@BuildableJob` - Primitive macro invocation. Such invocation can be used only once in each roles category.
 * `@BuildableJob:1` - Macro with id
+* `@ContainedInView(view1, folder/view1)` - Includes all items that are contained in "view1" and "folder/view1"
 * `@ParameterizedMacro(param1)` - Invokes macro with one parameter
 * `@ParameterizedMacro:2(param1,param2)` - Invokes macro with two parameters. Id prevents naming conflicts

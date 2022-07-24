@@ -36,6 +36,7 @@ import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
 import hudson.model.User;
+import hudson.model.View;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import hudson.security.SidACL;
@@ -116,6 +117,30 @@ public class RoleMap {
     for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
       this.grantedRoles.put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
+  }
+
+  /**
+   * Checks is the given sid has the permission to read Views.
+   *
+   * @param sid The sid to check.
+   * @return true if sid has {@link View.READ} permission
+   */
+  @Restricted(NoExternalUse.class)
+  public boolean hasViewReadPermission(String sid) {
+    final boolean[] hasPermission = { false };
+
+    new RoleWalker() {
+      @Override
+      public void perform(Role current) {
+        if (current.hasPermission(View.READ)) {
+          if (grantedRoles.get(current).contains(sid)) {
+            hasPermission[0] = true;
+            abort();
+          }
+        }
+      }
+    };
+    return hasPermission[0];
   }
 
   /**

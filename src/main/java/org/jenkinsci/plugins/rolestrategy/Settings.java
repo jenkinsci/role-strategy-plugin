@@ -40,6 +40,23 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public class Settings {
 
   /**
+   * Defines maximum size of the View cache. This cache is being used when
+   * the macro {@code ContainedInView} is used. Changing of this option requires a Jenkins restart.
+   *
+   * @since 550
+   */
+  public static final int VIEW_CACHE_MAX_SIZE = Integer.getInteger(Settings.class.getName() + ".viewCacheMaxSize", 100);
+
+  /**
+   * Defines lifetime of entries in the View cache. This cache is being used when
+   * the macro {@code ContainedInView} is used. Changing of this option requires a Jenkins restart.
+   *
+   * @since 550
+   */
+  public static final int VIEW_CACHE_EXPIRATION_TIME_SEC = Integer.getInteger(
+      Settings.class.getName() + ".viewCacheExpircationTimeSec", 30);
+
+  /**
    * Defines maximum size of the User details cache. This cache is being used when
    * {@link #TREAT_USER_AUTHORITIES_AS_ROLES} is enabled. Changing of this option requires Jenkins restart.
    *
