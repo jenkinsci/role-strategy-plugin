@@ -202,7 +202,7 @@
         "#globalRoles TD.start A" : deleteAssignedGlobalRole,
         "#globalRoles TD.stop A" : deleteAssignedGlobalRole,
         "#globalRoles TR.permission-row" : function(e) {
-          FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
+          FastFormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
         },
         "#globalUserInput" : globalUserFilter,
         "#globalRoleInput" : globalRoleFilter,

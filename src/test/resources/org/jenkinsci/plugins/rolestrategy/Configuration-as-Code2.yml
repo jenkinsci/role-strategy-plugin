@@ -1,6 +1,7 @@
 jenkins:
   authorizationStrategy:
     roleBased:
+      parallelChecks: 5
       roles:
         global:
           - name: "admin"

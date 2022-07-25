@@ -123,6 +123,26 @@ public class ConfigurationAsCodeTest {
   }
 
   @Test
+  @ConfiguredWithCode("Configuration-as-Code.yml")
+  public void shouldUseDefaultForParallelChecks() throws Exception {
+    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
+    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+
+    assertThat(rbas.getParallelChecks(), is(1));
+  }
+
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code2.yml")
+  public void shouldUseConfiguredForParallelChecks() throws Exception {
+    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
+    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+
+    assertThat(rbas.getParallelChecks(), is(5));
+  }
+
+  @Test
   @Issue("Issue #214")
   @ConfiguredWithCode("Configuration-as-Code2.yml")
   public void shouldHandleNullItemsAndAgentsCorrectly() {

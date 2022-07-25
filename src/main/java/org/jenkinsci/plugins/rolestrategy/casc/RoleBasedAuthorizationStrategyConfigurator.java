@@ -13,7 +13,9 @@ import io.jenkins.plugins.casc.Configurator;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map.Entry;
@@ -61,12 +63,17 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   @Override
   @NonNull
   public Set<Attribute<RoleBasedAuthorizationStrategy, ?>> describe() {
-    return Collections.singleton(new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
-      List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Global));
-      List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Slave));
-      List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Project));
-      return new GrantedRoles(globalRoles, projectRoles, agentRoles);
-    }));
+    return new HashSet<>(
+        Arrays.asList(
+            new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
+              List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Global));
+              List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Slave));
+              List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Project));
+              return new GrantedRoles(globalRoles, projectRoles, agentRoles);
+            }),
+            new Attribute<RoleBasedAuthorizationStrategy, Integer>("parallelChecks", Integer.class).getter(target -> {
+              return target.getParallelChecks();
+            })));
   }
 
   @CheckForNull

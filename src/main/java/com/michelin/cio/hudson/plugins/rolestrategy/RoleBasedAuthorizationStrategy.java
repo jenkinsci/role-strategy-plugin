@@ -101,9 +101,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final String MACRO_ROLE = "roleMacros";
   public static final String MACRO_USER = "userMacros";
 
+  private static final String PARALLEL_CHECKS = "parallelChecks";
+
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
+
+  private Integer parallelChecks = 1;
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -128,6 +132,19 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     map = grantedRoles.get(PROJECT);
     itemRoles = map == null ? new RoleMap() : map;
+  }
+
+  /**
+   * Sets the number of parallel executions when validating the users/group on the assign roles page.
+   *
+   * @param parallelChecks number of parallel checks
+   */
+  public void setParallelChecks(int parallelChecks) {
+    this.parallelChecks = parallelChecks;
+  }
+
+  public Integer getParallelChecks() {
+    return parallelChecks;
   }
 
   /**
@@ -631,6 +648,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
       RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) source;
+      writer.startNode(PARALLEL_CHECKS);
+      writer.setValue(Integer.toString(strategy.getParallelChecks()));
+      writer.endNode();
 
       // Role maps
       Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
@@ -672,8 +692,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
       final Map<String, RoleMap> roleMaps = new HashMap<>();
+      int parallelChecks = 1;
       while (reader.hasMoreChildren()) {
         reader.moveDown();
+
+        if (reader.getNodeName().equals(PARALLEL_CHECKS)) {
+          parallelChecks = Integer.parseInt(reader.getValue());
+        }
 
         // roleMaps
         if (reader.getNodeName().equals("roleMap")) {
@@ -719,7 +744,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         reader.moveUp();
       }
 
-      return new RoleBasedAuthorizationStrategy(roleMaps);
+      RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(roleMaps);
+      strategy.setParallelChecks(parallelChecks);
+
+      return strategy;
     }
 
     protected RoleBasedAuthorizationStrategy create() {
@@ -853,6 +881,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       // specifics forms, and we need to handle it.
       if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
+        strategy.setParallelChecks(((RoleBasedAuthorizationStrategy) oldStrategy).getParallelChecks());
 
         JSONObject globalRoles = formData.getJSONObject(GLOBAL);
         for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) globalRoles.getJSONObject("data").entrySet()) {
@@ -893,6 +922,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         Role adminRole = createAdminRole();
         strategy.addRole(RoleType.Global, adminRole);
         strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
+      }
+
+      if (formData.has(PARALLEL_CHECKS)) {
+        strategy.setParallelChecks(formData.getInt(PARALLEL_CHECKS));
       }
 
       return strategy;

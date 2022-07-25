@@ -96,4 +96,68 @@ var preventFormSubmit = function(e) {
     bindListenerToPattern(inputNode.children[0]);
   }
 };
- 
+
+
+// Form check code
+//========================================================
+var FastFormChecker = {
+    // pending requests
+    queue : [],
+    parallelChecks : 1,
+
+    // conceptually boolean, but doing so create concurrency problem.
+    // that is, during unit tests, the AJAX.send works synchronously, so
+    // the onComplete happens before the send method returns. On a real environment,
+    // more likely it's the other way around. So setting a boolean flag to true or false
+    // won't work.
+    inProgress : 0,
+
+    /**
+     * Schedules a form field check. Executions are serialized to reduce the bandwidth impact.
+     *
+     * @param url
+     *      Remote doXYZ URL that performs the check. Query string should include the field value.
+     * @param method
+     *      HTTP method. GET or POST. I haven't confirmed specifics, but some browsers seem to cache GET requests.
+     * @param target
+     *      HTML element whose innerHTML will be overwritten when the check is completed.
+     */
+    delayedCheck : function(url, method, target) {
+        if(url==null || method==null || target==null)
+            return; // don't know whether we should throw an exception or ignore this. some broken plugins have illegal parameters
+        this.queue.push({url:url, method:method, target:target});
+        this.schedule();
+    },
+
+    sendRequest : function(url, params) {
+        if (params.method != "get") {
+            var idx = url.indexOf('?');
+            params.parameters = url.substring(idx + 1);
+            url = url.substring(0, idx);
+        }
+        new Ajax.Request(url, params);
+    },
+
+    schedule : function() {
+        if (this.inProgress>=this.parallelChecks)  return;
+        if (this.queue.length == 0) return;
+
+        var next = this.queue.shift();
+        this.sendRequest(next.url, {
+            method : next.method,
+            onComplete : function(x) {
+                // updateValidationArea is only available in Jenkins 2.355+
+                if (typeof(updateValidationArea) === typeof(Function)) {
+                    updateValidationArea(next.target, x.responseText);
+                } else {
+                    applyErrorMessage(next.target, x);
+                } 
+                FastFormChecker.inProgress--;
+                FastFormChecker.schedule();
+                layoutUpdateCallback.call();
+            }
+        });
+        this.inProgress++;
+    }
+}
+

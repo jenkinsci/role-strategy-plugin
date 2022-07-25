@@ -1,0 +1,11 @@
+<div>
+  On the assign roles page, the entered names are checked in the background if they do exist and if it is a user or a group.
+  This is done serially by default, which can take a lot of time (>10min for 300 users) when the security realm (e.g. Active Directory or LDAP) is slow and many users/groups
+  are added to the roles.<br/>
+  By increasing this value, the users/groups are checked in parallel.<br/>
+  Also check if the security realm offers caching of users (e.g. AD has this) and enable it.
+  <h5>Warning</h5>
+  Increasing this value to more than 5 without using http2 can have side effects as browsers limit the number of parallel connections to the same site.
+  By using <a href="https://www.jenkins.io/doc/book/installing/initial-settings/#using-http2">HTTP/2</a> for Jenkins a significant reduction of the total time to check all names
+  can be expected with a higher value.
+</div>
