@@ -90,6 +90,7 @@ public class ContainedInViewMacro extends RoleMacroExtension {
   }
 
   @Override
+  @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "we know that the cache has no null entries")
   public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled accessControlledItem, Macro macro) {
     if (accessControlledItem instanceof Item) {
       Item item = (Item) accessControlledItem;
@@ -118,6 +119,9 @@ public class ContainedInViewMacro extends RoleMacroExtension {
     ViewGroup vg = view.getOwner();
 
     RoleBasedAuthorizationStrategy rbas = RoleBasedAuthorizationStrategy.getInstance();
+    if (rbas == null) {
+      return false;
+    }
     if (vg instanceof Item) {
       AbstractItem item = (AbstractItem) vg;
       RoleMap roleMap = rbas.getRoleMap(RoleType.Project).newMatchingRoleMap(item.getFullName());
