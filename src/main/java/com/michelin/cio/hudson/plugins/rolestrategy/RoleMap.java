@@ -123,7 +123,7 @@ public class RoleMap {
    * Checks is the given sid has the permission to read Views.
    *
    * @param sid The sid to check.
-   * @return true if sid has {@link View.READ} permission
+   * @return true if sid has View.READ permission
    */
   @Restricted(NoExternalUse.class)
   public boolean hasViewReadPermission(String sid) {
