@@ -34,43 +34,41 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 import org.jvnet.hudson.test.recipes.LocalData;
-import org.springframework.security.core.Authentication;
 
 public class AuthorizeProjectTest {
 
   @Rule
-  public JenkinsRule j = new JenkinsRule();
+  public JenkinsRule jenkinsRule = new JenkinsRule();
 
-  private Slave n;
-  private FreeStyleProject p;
+  private Slave node;
+  private FreeStyleProject project;
   private AuthorizationCheckBuilder checker;
 
   @Before
   @LocalData
   public void setup() throws Exception {
-    Authentication a = j.jenkins.getAuthentication2();
     QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(Collections.emptyMap()));
-    n = j.createSlave("TestAgent", null, null);
-    j.waitOnline(n);
-    p = j.createFreeStyleProject();
-    p.setAssignedNode(n);
-    p.addProperty(new AuthorizeProjectProperty(new TriggeringUsersAuthorizationStrategy()));
+    node = jenkinsRule.createSlave("TestAgent", null, null);
+    jenkinsRule.waitOnline(node);
+    project = jenkinsRule.createFreeStyleProject();
+    project.setAssignedNode(node);
+    project.addProperty(new AuthorizeProjectProperty(new TriggeringUsersAuthorizationStrategy()));
     checker = new AuthorizationCheckBuilder();
-    p.getBuildersList().add(checker);
-    DummySecurityRealm sr = j.createDummySecurityRealm();
-    j.jenkins.setSecurityRealm(sr);
+    project.getBuildersList().add(checker);
+    DummySecurityRealm sr = jenkinsRule.createDummySecurityRealm();
+    jenkinsRule.jenkins.setSecurityRealm(sr);
   }
 
   @Test
   @LocalData
   public void agentBuildPermissionsAllowsToBuildOnAgent() throws Exception {
     try (ACLContext c = ACL.as(User.getById("tester", true))) {
-      p.scheduleBuild2(0, new Cause.UserIdCause());
+      project.scheduleBuild2(0, new Cause.UserIdCause());
     }
-    j.waitUntilNoActivity();
-    FreeStyleBuild b = p.getLastBuild();
+    jenkinsRule.waitUntilNoActivity();
+    FreeStyleBuild b = project.getLastBuild();
     assertThat(b, is(not(nullValue())));
-    j.assertBuildStatusSuccess(b);
+    jenkinsRule.assertBuildStatusSuccess(b);
     assertThat(checker.userName, is("tester"));
   }
 
@@ -78,10 +76,10 @@ public class AuthorizeProjectTest {
   @LocalData
   public void missingAgentBuildPermissionsBlockBuild() throws Exception {
     try (ACLContext c = ACL.as(User.getById("reader", true))) {
-      p.scheduleBuild2(0, new Cause.UserIdCause());
+      project.scheduleBuild2(0, new Cause.UserIdCause());
     }
     TimeUnit.SECONDS.sleep(15);
-    Item qi = p.getQueueItem();
+    Item qi = project.getQueueItem();
     assertThat(qi.getCauseOfBlockage().toString(), containsString("‘reader’ lacks permission to run on ‘TestAgent’"));
   }
 

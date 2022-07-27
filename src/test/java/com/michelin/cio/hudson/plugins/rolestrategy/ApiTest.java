@@ -19,15 +19,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
-import org.acegisecurity.Authentication;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockFolder;
+import org.springframework.security.core.Authentication;
 
 /**
  * Tests for {@link RoleBasedAuthorizationStrategy} Web API Methods.
@@ -48,8 +46,6 @@ public class ApiTest {
     RoleBasedAuthorizationStrategy.getInstance().doAddRole("globalRoles", "adminRole",
         "hudson.model.Hudson.Read,hudson.model.Hudson.Administer,hudson.security.Permission.GenericRead", "false", "");
     RoleBasedAuthorizationStrategy.getInstance().doAssignRole("globalRoles", "adminRole", "adminUser");
-    SecurityContext securityContext = SecurityContextHolder.getContext();
-    securityContext.setAuthentication(User.getById("adminUser", true).impersonate());
     webClient = jenkinsRule.createWebClient();
     webClient.login("adminUser", "adminUser");
   }
@@ -60,8 +56,8 @@ public class ApiTest {
     String roleName = "new-role";
     String pattern = "test-folder.*";
     // Adding role via web request
-    URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
-    WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(
         Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("roleName", roleName),
             new NameValuePair("permissionIds",
@@ -89,8 +85,8 @@ public class ApiTest {
   public void testGetRole() throws IOException {
     String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getRole?type=" + RoleType.Global.getStringType()
         + "&roleName=adminRole";
-    URL apiURL = new URL(url);
-    WebRequest request = new WebRequest(apiURL, HttpMethod.GET);
+    URL apiUrl = new URL(url);
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
     Page page = webClient.getPage(request);
 
     // Verifying that web request is successful and that the role is found
@@ -105,15 +101,15 @@ public class ApiTest {
   public void testAssignRole() throws IOException {
     String roleName = "new-role";
     String sid = "alice";
-    Authentication alice = User.getById(sid, true).impersonate();
+    Authentication alice = User.getById(sid, true).impersonate2();
     // Confirming that alice does not have access before assigning
     MockFolder folder = jenkinsRule.createFolder("test-folder");
-    assertFalse(folder.hasPermission(alice, Item.CONFIGURE));
+    assertFalse(folder.hasPermission2(alice, Item.CONFIGURE));
 
     // Assigning role using web request
     testAddRole(); // adds a role "new-role" that has configure access on "test-folder.*"
-    URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole");
-    WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
         new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
     Page page = webClient.getPage(request);
@@ -133,7 +129,7 @@ public class ApiTest {
     }
     assertTrue(found);
     // Verifying that ACL is updated
-    assertTrue(folder.hasPermission(alice, Item.CONFIGURE));
+    assertTrue(folder.hasPermission2(alice, Item.CONFIGURE));
   }
 
   @Test
@@ -159,8 +155,8 @@ public class ApiTest {
       assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains("alice"));
     }
     // Verifying that ACL is updated
-    Authentication alice = User.getById("alice", false).impersonate();
+    Authentication alice = User.getById("alice", false).impersonate2();
     Item folder = jenkinsRule.jenkins.getItemByFullName("test-folder");
-    assertFalse(folder.hasPermission(alice, Item.CONFIGURE));
+    assertFalse(folder.hasPermission2(alice, Item.CONFIGURE));
   }
 }

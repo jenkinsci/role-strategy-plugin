@@ -11,6 +11,7 @@ which makes decisions according to instance and parameters.
 ## Available macros
 
 * `@BuildableJob` - checks if the job is buildable
+* `@Folder` - checks if the item is a folder
 * Macros for integration with [Ownership Plugin](https://plugins.jenkins.io/ownership). 
   See [Ownership-based Security](https://github.com/jenkinsci/ownership-plugin/blob/master/doc/OwnershipBasedSecurity.md)
 

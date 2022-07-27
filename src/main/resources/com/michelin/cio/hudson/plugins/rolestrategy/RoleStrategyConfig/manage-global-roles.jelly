@@ -29,8 +29,14 @@
   <j:set var="id" value="${h.generateId()}"/>
   <!-- TODO: add warning to the UI for versions which have no administrative monitors? -->
 
-  <j:set var="globalGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
+  <j:set var="globalPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
+  <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
   
+  <div id="globalRoleInputFilter">
+    <f:entry title="${%Filter by Role}">
+      <input id="globalRoleInput" class="jenkins-input setting-input"/>
+    </f:entry>
+  </div>  
   <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row shows grouping -->
@@ -39,7 +45,7 @@
         <td rowspan="2" class="pane-header blank">
           ${%Role}
         </td>
-        <j:forEach var="g" items="${globalGroups}">
+        <j:forEach var="g" items="${globalPermissionGroups}">
           <j:set var="cnt" value="${0}" />
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
@@ -55,7 +61,7 @@
       </tr>
       <!-- The second row for individual permission -->
       <tr class="caption-row">
-        <j:forEach var="g" items="${globalGroups}">
+        <j:forEach var="g" items="${globalPermissionGroups}">
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
               <th class="pane" tooltip="${p.description}">
@@ -65,24 +71,22 @@
           </j:forEach>
         </j:forEach>
       </tr>
-      <j:set var="nbGlobalRoles" value="${0}" />
-      <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}">
+      <j:forEach var="role" items="${globalGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row">
           <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" />
         </tr>
-        <j:set var="nbGlobalRoles" value="${nbGlobalRoles+1}"/>
       </j:forEach>
       <tr id="${id}" style="display:none" class="permission-row">
         <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" />
       </tr>
       <!-- The last two rows are used to repeat the header if necessary (if more than 20 lines) -->
-      <j:if test="${nbGlobalRoles ge 20}">
+      <j:if test="${globalGrantedRoles.size() ge 20}">
         <tr class="caption-row">
           <td rowspan="2" class="start" />
           <td rowspan="2" class="pane-header blank">
             ${%Role}
           </td>
-          <j:forEach var="g" items="${globalGroups}">
+          <j:forEach var="g" items="${globalPermissionGroups}">
             <j:forEach var="p" items="${g.permissions}">
               <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
                 <th class="pane" tooltip="${p.description}">
@@ -94,7 +98,7 @@
           <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
         </tr>
         <tr class="group-row">
-          <j:forEach var="g" items="${globalGroups}">
+          <j:forEach var="g" items="${globalPermissionGroups}">
             <j:set var="cnt" value="${0}" />
             <j:forEach var="p" items="${g.permissions}">
               <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
@@ -111,7 +115,7 @@
     </table>
 
   <l:isAdmin>
-    <br /><br />
+    <br />
     <f:entry title="${%Role to add}">
       <f:textbox type="text" id="${id}text" />
     </f:entry>
@@ -121,7 +125,11 @@
   </l:isAdmin>
 
     <script>
+      <j:if test="${globalGrantedRoles.size() lt 10}">
+        document.getElementById('globalRoleInputFilter').style.display = "none"
+      </j:if>
       var tableHighlighter;
+      var globalRoleCount = ${globalGrantedRoles.size()};
       (function() {
         <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
         var master = document.getElementById('${id}');
@@ -158,14 +166,18 @@
           });
 
           copy.setAttribute("name",'['+name+']');
-          <j:if test="${nbGlobalRoles lt 20}">
+          <j:if test="${globalGrantedRoles.size() lt 20}">
             table.appendChild(copy);
           </j:if>
-          <j:if test="${nbGlobalRoles ge 20}">
+          <j:if test="${globalGrantedRoles.size() ge 20}">
             table.insertBefore(copy,table.childNodes[table.rows.length-2]);
           </j:if>
           tableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
+          globalRoleCount++;
+          if (globalRoleCount >= 10) {
+            document.getElementById('globalRoleInputFilter').style.display = "block";
+          }
         });
       })();
 
@@ -173,15 +185,33 @@
          tableHighlighter = new TableHighlighter('globalRoles', 2, 2);
       });
 
+      var globalRoleFilter = function(e) {
+        e.onkeyup = function() {
+            let filter = document.getElementById("globalRoleInput").value.toUpperCase();
+            let table = document.getElementById("globalRoles");
+            filterRoles(filter, table);
+        }
+        e = null;
+      }
+      
       var deleteGlobalRole = function(e) {
         e.onclick = function() {
           var tr = findAncestor(this,"TR");
           tr.parentNode.removeChild(tr);
+          globalRoleCount--;
+          if (globalRoleCount &lt; 10) {
+            document.getElementById('globalRoleInputFilter').style.display = "none";
+            document.getElementById('globalRoleInput').value = "";
+            event = new Event("keyup");
+            document.getElementById('globalRoleInput').dispatchEvent(event);
+          }
           return false;
         }
         e = null; <!-- avoid memory leak -->
       }
-      Behaviour.register({"#globalRoles TD.stop A" : deleteGlobalRole});
-      Behaviour.register({"#globalRoles TD.start A" : deleteGlobalRole});
+      Behaviour.register({"#globalRoles TD.stop A" : deleteGlobalRole,
+                          "#globalRoles TD.start A" : deleteGlobalRole,
+                          "#globalRoleInput" : globalRoleFilter,
+      });
     </script>
 </j:jelly>

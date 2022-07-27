@@ -26,7 +26,6 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
@@ -558,13 +557,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to get a list of jobs matching a pattern.
+   * API method to get a list of items matching a pattern.
    *
    * <p>
    * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getMatchingJobs?pattern=^staging.*}
    *
    * @param pattern Pattern to match against
-   * @param maxJobs Maximum matching jobs to search for
+   * @param maxJobs Maximum matching items to search for
    * @throws IOException when unable to write response
    */
   @GET
@@ -572,9 +571,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doGetMatchingJobs(@QueryParameter(required = true) String pattern,
       @QueryParameter() int maxJobs) throws IOException {
     checkAdminPerm();
-    List<String> matchingJobs = RoleMap.getMatchingJobNames(Pattern.compile(pattern), maxJobs);
+    List<String> matchingItems = new ArrayList<>();
+    int itemCount = RoleMap.getMatchingItemNames(matchingItems, Pattern.compile(pattern), maxJobs);
     JSONObject responseJson = new JSONObject();
-    responseJson.put("matchingJobs", matchingJobs);
+    responseJson.put("matchingJobs", matchingItems);
+    responseJson.put("itemCount", itemCount);
     StaplerResponse response = Stapler.getCurrentResponse();
     response.setContentType("application/json;charset=UTF-8");
     Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
@@ -597,9 +598,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doGetMatchingAgents(@QueryParameter(required = true) String pattern,
       @QueryParameter() int maxAgents) throws IOException {
     checkAdminPerm();
-    List<String> matchingAgents = RoleMap.getMatchingAgentNames(Pattern.compile(pattern), maxAgents);
+    List<String> matchingAgents = new ArrayList<>();
+    int agentCount = RoleMap.getMatchingAgentNames(matchingAgents, Pattern.compile(pattern), maxAgents);
     JSONObject responseJson = new JSONObject();
     responseJson.put("matchingAgents", matchingAgents);
+    responseJson.put("agentCount", agentCount);
     StaplerResponse response = Stapler.getCurrentResponse();
     response.setContentType("application/json;charset=UTF-8");
     Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
@@ -739,22 +742,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     // Nothing to do here, not a Role strategy
     return null;
-  }
-
-  /**
-   * Updates macro roles.
-   *
-   * @since 2.1.0
-   */
-  void renewMacroRoles() {
-    // TODO: add mandatory roles
-
-    // Check role extensions
-    for (UserMacroExtension userExt : UserMacroExtension.all()) {
-      if (userExt.IsApplicable(RoleType.Global)) {
-        getRoleMap(RoleType.Global).getSids().contains(userExt.getName());
-      }
-    }
   }
 
   /**
@@ -908,7 +895,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
       }
 
-      strategy.renewMacroRoles();
       return strategy;
     }
 

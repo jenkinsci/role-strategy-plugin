@@ -25,20 +25,20 @@ public class Security2182Test {
   private static final String JOB_CONTENT = "Full project name: folder/job";
 
   @Rule
-  public JenkinsRule j = new JenkinsRule();
+  public JenkinsRule jenkinsRule = new JenkinsRule();
 
   @Test
   @LocalData
   public void testQueuePath() throws Exception {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-    Folder folder = j.jenkins.createProject(Folder.class, "folder");
+    jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+    Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
     job.save();
 
     job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
     Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
-    final JenkinsRule.WebClient webClient = j.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+    final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
     final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");
     final String contentAsString = htmlPage.getWebResponse().getContentAsString();
     assertThat(contentAsString, not(containsString(JOB_CONTENT))); // Fails while unfixed
@@ -47,15 +47,15 @@ public class Security2182Test {
   @Test
   @LocalData
   public void testQueueContent() throws Exception {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-    Folder folder = j.jenkins.createProject(Folder.class, "folder");
+    jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+    Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
     job.save();
 
     job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
     Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
-    final JenkinsRule.WebClient webClient = j.createWebClient();
+    final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient();
     final Page page = webClient.goTo("queue/api/xml/", "application/xml");
     final String xml = page.getWebResponse().getContentAsString();
     assertThat(xml, not(containsString("job/folder/job/job"))); // Fails while unfixed
@@ -64,8 +64,8 @@ public class Security2182Test {
   @Test
   @LocalData
   public void testExecutorsPath() throws Exception {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-    Folder folder = j.jenkins.createProject(Folder.class, "folder");
+    jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+    Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
     job.getBuildersList().add(new SleepBuilder(100000));
     job.save();
@@ -73,7 +73,7 @@ public class Security2182Test {
     final FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
     final int number = build.getExecutor().getNumber();
 
-    final JenkinsRule.WebClient webClient = j.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+    final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
     final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");
     final String contentAsString = htmlPage.getWebResponse().getContentAsString();
     assertThat(contentAsString, not(containsString(BUILD_CONTENT))); // Fails while unfixed
@@ -82,16 +82,15 @@ public class Security2182Test {
   @Test
   @LocalData
   public void testExecutorsContent() throws Exception {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-    Folder folder = j.jenkins.createProject(Folder.class, "folder");
+    jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+    Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
     job.getBuildersList().add(new SleepBuilder(10000));
     job.save();
 
-    final FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
-    final int number = build.getExecutor().getNumber();
+    job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
 
-    final JenkinsRule.WebClient webClient = j.createWebClient();
+    final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient();
     final Page page = webClient.goTo("computer/(master)/api/xml?depth=1", "application/xml");
     final String xml = page.getWebResponse().getContentAsString();
     assertThat(xml, not(containsString("job/folder/job/job"))); // Fails while unfixed
@@ -100,8 +99,8 @@ public class Security2182Test {
   @Test
   @LocalData
   public void testWidgets() throws Exception {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-    Folder folder = j.jenkins.createProject(Folder.class, "folder");
+    jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+    Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
     job.getBuildersList().add(new SleepBuilder(100000));
     job.save();
@@ -110,7 +109,7 @@ public class Security2182Test {
     job.scheduleBuild2(0, new Cause.UserIdCause("admin")); // schedule an additional queue item
     Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length); // expect there to be one queue item
 
-    final JenkinsRule.WebClient webClient = j.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+    final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
 
     final HtmlPage htmlPage = webClient.goTo("");
     final String contentAsString = htmlPage.getWebResponse().getContentAsString();
@@ -124,9 +123,9 @@ public class Security2182Test {
     try {
       System.setProperty(propertyName, "false");
 
-      j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
-      User root = User.getOrCreateByIdOrFullName("admin");
-      Folder folder = j.jenkins.createProject(Folder.class, "folder");
+      jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+      User.getOrCreateByIdOrFullName("admin");
+      Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
       FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
       job.getBuildersList().add(new SleepBuilder(100000));
       job.save();
@@ -134,7 +133,7 @@ public class Security2182Test {
       job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
       Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
-      final JenkinsRule.WebClient webClient = j.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+      final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
 
       { // queue related assertions
         final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");

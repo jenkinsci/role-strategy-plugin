@@ -41,6 +41,7 @@
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/manageFilters.js" />
 
           <j:if test="${empty(descriptorPath)}">
             <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
@@ -55,16 +56,21 @@
                     </a>
                   </l:isAdmin>
                 </td>
-              <td class="left-most">${title}</td>
+              <td class="left-most" style="white-space: nowrap;">${title}</td>
               <j:set var="pattern" value=""/>
               <j:if test="${!attrs.global}">
-                <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt; : ${attrs.pattern}"/>
+                <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${attrs.pattern}"/>
                 <j:if test="${attrs.pattern != '{{PATTERN}}'}">
-                  <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(attrs.role.pattern.toString())}"/>
+                  <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(attrs.role.pattern.toString())}"/>
                 </j:if>
-                <td width="*" class="in-place-edit">
-                  <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
-                  <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                <td width="*">
+                  <div class="pattern-cell">
+                      <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
+                      <span>
+                        <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
+                        <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                      </span>
+                  </div>
                 </td>
               </j:if>
                                    
@@ -72,7 +78,7 @@
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt; : ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt; : ${h.escape(attrs.title)} ${pattern}">
+                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}">
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>
@@ -81,7 +87,7 @@
               <l:isAdmin>
                 <td class="stop">
                   <a href="#">
-                    <l:icon alt="remove" class="icon-stop icon-sm"/>
+                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                   </a>
                 </td>
               </l:isAdmin>

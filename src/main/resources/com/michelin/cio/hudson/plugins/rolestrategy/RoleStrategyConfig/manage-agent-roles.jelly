@@ -117,18 +117,18 @@
         </tr>
       </j:if>
     </table>
-  <l:isAdmin>
-    <br /><br />
-    <f:entry title="${%Role to add}">
-      <f:textbox type="text" id="${id}text" />
-    </f:entry>
-    <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-      <f:textbox type="text" id="${id}pattern" checkUrl="'${descriptorPath}/checkPattern?value='+escape(this.value)"/>
-    </f:entry>
-    <f:entry>
-      <input type="button" value="${%Add}" id="${id}button"/>
-    </f:entry>
-  </l:isAdmin>
+    <l:isAdmin>
+      <br />
+      <f:entry title="${%Role to add}">
+        <f:textbox type="text" id="${id}text" />
+      </f:entry>
+      <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
+        <f:textbox type="text" id="${id}pattern" checkUrl="'${descriptorPath}/checkPattern?value='+escape(this.value)"/>
+      </f:entry>
+      <f:entry>
+        <input type="button" value="${%Add}" id="${id}button"/>
+      </f:entry>
+    </l:isAdmin>
     
     <script>
       var agentTableHighlighter;
@@ -169,15 +169,16 @@
 
           var child = copy.childNodes[1];
           var doubleQuote = '"';
-          child.innerHTML = escapeHTML(name);
+          child.textContent = escapeHTML(name);
           var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
-          child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
+          var spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
+          spanElement.innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
           hidden.setAttribute('type', 'hidden');
           hidden.setAttribute('value', pattern);
-          child.next().appendChild(hidden);
+          spanElement.appendChild(hidden);
 
           copy.setAttribute("name",'['+name+']');
 
@@ -186,9 +187,8 @@
             item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
           });
 
-          child = copy.childNodes[1];
-          var link = child.next().children[0];
-          bindAgentListenerToPattern(link);
+          spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
+          bindAgentListenerToPattern(spanElement.childNodes[0]);
 
           <j:if test="${nbAgentRoles lt 20}">
             table.appendChild(copy);
@@ -218,10 +218,12 @@
           method: 'get',
           parameters: reqParams,
           onSuccess: function(req) {
-            var matchingAgents = req.responseText.evalJSON().matchingAgents;
+            var responseJson = req.responseText.evalJSON()
+            var matchingAgents = responseJson.matchingAgents;
+            var agentCount = responseJson.agentCount;
 
             if(matchingAgents != null) {
-              showAgentsModal(matchingAgents);
+              showAgentsModal(matchingAgents, agentCount);
             } else {
               showAgentErrorMessageModal();
             }
@@ -230,10 +232,14 @@
         });
       }
 
-      var showAgentsModal = function(agents) {
+      var showAgentsModal = function(agents, agentCount) {
         modalText = '';
         if(agents.length > 0) {
-          modalText += 'Matching Agents:\n\n';
+          if (agentCount > agents.length) {
+            modalText += 'First 10 (out of ' + agentCount + ') matching Agents:\n\n';
+          } else {
+            modalText += 'Matching Agents:\n\n';
+          }
           for(var i = 0; i != agents.length; i++) {
             modalText += ' - ' + agents[i] + '\n';
           }
@@ -270,15 +276,17 @@
       Behaviour.register({"#agentRoles TD.stop A" : deleteAgentRole});
       Behaviour.register({"#agentRoles TD.start A" : deleteAgentRole});
 
-      Behaviour.register({"#agentRoles TD.in-place-edit" : function(e) {
-        e.ondblclick = function() {
-          if(this.childNodes.length == 2) {
-            this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
+      Behaviour.register({"#agentRoles img.icon-pencil" : function(e) {
+        e.onclick = function() {
+          inputNode = this.parentNode.childNodes[1];
+          if(inputNode.childNodes.length == 2) {
+            inputNode.innerHTML = '<input type="text" name="[pattern]" value="' + inputNode.childNodes[1].value + '" size="' + (inputNode.childNodes[1].value.length+10) + '"/>';
+            inputNode.childNodes[0].onkeypress=preventFormSubmit;
           }
           else {
-            this.innerHTML = '<a href="#" class="patternAnchor">&quot;' + this.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
-            child = this.children[0];
-            bindAgentListenerToPattern(this.children[0]);
+            inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + inputNode.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + inputNode.childNodes[0].value + '"/>';
+            child = inputNode.children[0];
+            bindAgentListenerToPattern(inputNode.children[0]);
           }
           return false;
         }

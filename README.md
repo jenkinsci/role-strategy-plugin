@@ -58,6 +58,8 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 
 * User groups represent authorities provided by the Security Realm (e.g. Active Directory or LDAP plugin can provide groups)
 * There are also two built-in groups: `authenticated` (users who logged in) and `anonymous` (any user, including ones who have not logged in)
+* Hovering over the header row will show a tooltip with the permissions associated to the role and the pattern.
+* Hovering over a checkbox will show a tooltip with role, user/group and pattern.
 
 ![Assign roles](/docs/images/assignRoles.png)
 

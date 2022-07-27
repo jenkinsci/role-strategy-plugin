@@ -15,18 +15,18 @@ import org.jvnet.hudson.test.recipes.LocalData;
 public class RoleAssignmentTest {
 
   @Rule
-  public JenkinsRule j = new JenkinsRule();
+  public JenkinsRule jenkinsRule = new JenkinsRule();
 
   @Before
   public void initSecurityRealm() {
-    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+    jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
   }
 
   @LocalData
   @Test
   public void testRoleAssignment() {
     try (ACLContext c = ACL.as(User.getById("alice", true))) {
-      assertTrue(j.jenkins.hasPermission(Permission.READ));
+      assertTrue(jenkinsRule.jenkins.hasPermission(Permission.READ));
     }
   }
 

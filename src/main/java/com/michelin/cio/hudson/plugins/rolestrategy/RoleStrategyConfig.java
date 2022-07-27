@@ -39,6 +39,8 @@ import hudson.util.FormApply;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
@@ -52,6 +54,18 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  */
 @Extension
 public class RoleStrategyConfig extends ManagementLink {
+
+  // TODO: Remove and replace with symbol-edit once one a sufficiently new Jenkins (e.g. 2.346.1)
+  static {
+    IconSet.icons
+        .addIcon(new Icon("icon-pencil icon-sm", "plugin/role-strategy/images/pencil.svg", Icon.ICON_SMALL_STYLE));
+    IconSet.icons
+        .addIcon(new Icon("icon-pencil icon-md", "plugin/role-strategy/images/pencil.svg", Icon.ICON_MEDIUM_STYLE));
+    IconSet.icons
+        .addIcon(new Icon("icon-pencil icon-ld", "plugin/role-strategy/images/pencil.svg", Icon.ICON_LARGE_STYLE));
+    IconSet.icons
+        .addIcon(new Icon("icon-pencil icon-xlg", "plugin/role-strategy/images/pencil.svg", Icon.ICON_XLARGE_STYLE));
+  }
 
   /**
    * Provides the icon for the Manage Hudson page link.

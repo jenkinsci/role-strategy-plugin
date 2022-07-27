@@ -26,7 +26,14 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="projectGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
+  <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
+  <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
+
+  <div id="itemRoleInputFilter">
+    <f:entry title="${%Filter by Role}">
+      <input id="itemRoleInput" class="jenkins-input setting-input"/>
+    </f:entry>
+  </div>  
   <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
@@ -38,7 +45,7 @@
         <td rowspan="2" class="pane-header blank">
           ${%Pattern}
         </td>
-        <j:forEach var="g" items="${projectGroups}">
+        <j:forEach var="g" items="${itemPermissionGroups}">
           <j:set var="cnt" value="${0}" />
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
@@ -54,7 +61,7 @@
       </tr>
       <!-- The second row for individual permission -->
       <tr class="caption-row">
-        <j:forEach var="g" items="${projectGroups}">
+        <j:forEach var="g" items="${itemPermissionGroups}">
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
               <th class="pane" tooltip="${p.description}">
@@ -64,20 +71,18 @@
           </j:forEach>
         </j:forEach>
       </tr>
-      <j:set var="nbProjectRoles" value="${0}" />
-      <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}">
+      <j:forEach var="role" items="${itemGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row">
           <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}"
                          project="${true}"/>
         </tr>
-        <j:set var="nbProjectRoles" value="${nbProjectRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row">
         <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" />
       </tr>
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
-      <j:if test="${nbProjectRoles ge 20}">
+      <j:if test="${itemGrantedRoles.size() ge 20}">
         <tr class="caption-row">
           <td rowspan="2" class="start" />
           <td rowspan="2" class="pane-header blank">
@@ -86,7 +91,7 @@
           <td rowspan="2" class="pane-header blank">
             ${%Pattern}
           </td>
-          <j:forEach var="g" items="${projectGroups}">
+          <j:forEach var="g" items="${itemPermissionGroups}">
             <j:forEach var="p" items="${g.permissions}">
               <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
                 <th class="pane" tooltip="${p.description}">
@@ -97,7 +102,7 @@
           </j:forEach>
         </tr>
         <tr class="group-row">
-          <j:forEach var="g" items="${projectGroups}">
+          <j:forEach var="g" items="${itemPermissionGroups}">
             <j:set var="cnt" value="${0}" />
             <j:forEach var="p" items="${g.permissions}">
               <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
@@ -114,7 +119,7 @@
       </j:if>
     </table>
   <l:isAdmin>
-    <br /><br />
+    <br />
     <f:entry title="${%Role to add}">
       <f:textbox type="text" id="${id}text" />
     </f:entry>
@@ -126,7 +131,11 @@
     </f:entry>
   </l:isAdmin>
     <script>
+      <j:if test="${itemGrantedRoles.size() lt 10}">
+        document.getElementById('itemRoleInputFilter').style.display = "none"
+      </j:if>
       var projecttableHighlighter;
+      var itemRoleCount = ${itemGrantedRoles.size()};
       (function() {
         <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
         var master = document.getElementById('${id}');
@@ -163,34 +172,39 @@
 
           var child = copy.childNodes[1];
           var doubleQuote = '"';
-          child.innerHTML = escapeHTML(name);
+          child.textContent = escapeHTML(name);
           var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
-          child.next().innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
+          var spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
+          spanElement.innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
 
           var hidden = document.createElement('input');
           hidden.setAttribute('name', '[pattern]');
           hidden.setAttribute('type', 'hidden');
           hidden.setAttribute('value', pattern);
-          child.next().appendChild(hidden);
+          spanElement.appendChild(hidden);
 
           var children = copy.childNodes;
           children.forEach(function(item){
             item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
           });
 
-          child = copy.childNodes[1];
-          var link = child.next().children[0];
-          bindListenerToPattern(link);
+          spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
+          bindListenerToPattern(spanElement.childNodes[0]);
 
           copy.setAttribute("name",'['+name+']');
-          <j:if test="${nbProjectRoles lt 20}">
+          <j:if test="${itemGrantedRoles.size() lt 20}">
             table.appendChild(copy);
           </j:if>
-          <j:if test="${nbProjectRoles ge 20}">
+          <j:if test="${itemGrantedRoles.size() ge 20}">
             table.insertBefore(copy,table.childNodes[table.rows.length-2]);
           </j:if>
           projecttableHighlighter.scan(copy);
           Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
+          itemRoleCount++;
+          if (itemRoleCount >= 10) {
+            document.getElementById('itemRoleInputFilter').style.display = "block";
+          }
+          
         });
       })();
 
@@ -200,21 +214,23 @@
 
       var showMatchingProjects = function() {
         var pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
-        var maxJobs = 10;    // Maximum jobs to search for
+        var maxItems = 10;    // Maximum items to search for
         var url = 'strategy/getMatchingJobs';
         reqParams = {
           'pattern' : pattern,
-          'maxJobs' : maxJobs
+          'maxJobs' : maxItems
         }
 
         new Ajax.Request(url, {
           method: 'get',
           parameters: reqParams,
           onSuccess: function(req) {
-            var matchingJobs = req.responseText.evalJSON().matchingJobs;
+            var responseJson = req.responseText.evalJSON();
+            var matchingItems = responseJson.matchingJobs;
+            var itemCount = responseJson.itemCount;
 
-            if(matchingJobs != null) {
-              showJobsModal(matchingJobs);
+            if(matchingItems != null) {
+              showItemsModal(matchingItems, itemCount);
             } else {
               showErrorMessageModal();
             }
@@ -223,15 +239,19 @@
         });
       }
 
-      var showJobsModal = function(jobs) {
-        modalText = '';
-        if(jobs.length > 0) {
-          modalText += 'Matching Projects:\n\n';
-          for(var i = 0; i != jobs.length; i++) {
-            modalText += ' - ' + jobs[i] + '\n';
+      var showItemsModal = function(items, itemCount) {
+        var modalText = '';
+        if(items.length > 0) {
+          if (itemCount > items.length) {
+            modalText += 'First 10 (out of ' + itemCount + ') matching Items:\n\n';
+          } else {
+            modalText += 'Matching Items:\n\n';
+          }
+          for(var i = 0; i != items.length; i++) {
+            modalText += ' - ' + items[i] + '\n';
           }
         } else {
-          modalText += 'No matching Projects found.';
+          modalText += 'No matching Items found.';
         }
         modalText += '\n\n';
         alert(modalText);
@@ -252,25 +272,45 @@
          }
       });
 
-      var deleteProjectRole = function(e) {
+      var itemRoleFilter = function(e) {
+        e.onkeyup = function() {
+            let filter = document.getElementById("itemRoleInput").value.toUpperCase();
+            let table = document.getElementById("projectRoles");
+            filterRoles(filter, table);
+        }
+        e = null;
+      }
+
+      var deleteItemRole = function(e) {
         e.onclick = function() {
           var tr = findAncestor(this,"TR");
           tr.parentNode.removeChild(tr);
+          itemRoleCount--;
+          if (itemRoleCount &lt; 10) {
+            document.getElementById('itemRoleInputFilter').style.display = "none";
+            document.getElementById('itemRoleInput').value = "";
+            event = new Event("keyup");
+            document.getElementById('itemRoleInput').dispatchEvent(event);
+          }
           return false;
         }
         e = null; <!-- avoid memory leak -->
       }
-      Behaviour.register({"#projectRoles TD.stop A" : deleteProjectRole});
-      Behaviour.register({"#projectRoles TD.start A" : deleteProjectRole});
+      Behaviour.register({"#projectRoles TD.stop A" : deleteItemRole,
+                          "#projectRoles TD.start A" : deleteItemRole,
+                          "#itemRoleInput" : itemRoleFilter,
+      });
 
-      Behaviour.register({"#projectRoles TD.in-place-edit" : function(e) {
-        e.ondblclick = function() {
-          if(this.childNodes.length == 2) {
-            this.innerHTML = '<input type="text" name="[pattern]" value="' + this.childNodes[1].value + '" size="' + (this.childNodes[1].value.length+10) + '"/>';
+      Behaviour.register({"#projectRoles img.icon-pencil" : function(e) {
+        e.onclick = function() {
+          inputNode = this.parentNode.childNodes[1];
+          if(inputNode.childNodes.length == 2) {
+            inputNode.innerHTML = '<input onkeypress="" type="text" name="[pattern]" value="' + inputNode.childNodes[1].value + '" size="' + (inputNode.childNodes[1].value.length+10) + '"/>';
+            inputNode.childNodes[0].onkeypress=preventFormSubmit;
           }
           else {
-            this.innerHTML = '<a href="#" class="patternAnchor">&quot;' + this.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + this.childNodes[0].value + '"/>';
-            bindListenerToPattern(this.children[0]);
+            inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + inputNode.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + inputNode.childNodes[0].value + '"/>';
+            bindListenerToPattern(inputNode.children[0]);
           }
           return false;
         }

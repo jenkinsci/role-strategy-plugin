@@ -15,6 +15,7 @@ import hudson.model.Computer;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.User;
+import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import io.jenkins.plugins.casc.misc.jmh.CascJmhBenchmarkState;
 import java.util.Map;
@@ -22,8 +23,6 @@ import java.util.Objects;
 import java.util.Set;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.model.Jenkins;
-import org.acegisecurity.context.SecurityContext;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
@@ -65,7 +64,7 @@ public class CascBenchmark {
       // Admin has configuration access
       assertHasPermission(admin, jenkins, Jenkins.ADMINISTER, Jenkins.READ);
       assertHasPermission(user1, jenkins, Jenkins.READ);
-      assertHasNoPermission(user1, jenkins, Jenkins.ADMINISTER, Jenkins.RUN_SCRIPTS);
+      assertHasNoPermission(user1, jenkins, Jenkins.ADMINISTER);
 
       // Folder A is restricted to admin
       assertHasPermission(admin, folderA, Item.CONFIGURE);
@@ -111,8 +110,7 @@ public class CascBenchmark {
   public static class AuthenticationThreadState {
     @Setup(Level.Iteration)
     public void setup() {
-      SecurityContext securityContext = SecurityContextHolder.getContext();
-      securityContext.setAuthentication(User.getById("user2", true).impersonate());
+      ACL.as(User.getById("user2", true));
     }
   }
 

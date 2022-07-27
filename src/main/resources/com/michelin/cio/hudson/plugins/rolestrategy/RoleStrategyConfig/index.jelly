@@ -47,13 +47,13 @@
             </h1>
 
             <table style="padding-left: 2em;" id="management-links">
-              <local:feature icon="fingerprint.png" href="manage-roles" title="${it.manageRolesName}">
+              <local:feature icon="icon-fingerprint" href="manage-roles" title="${it.manageRolesName}">
                 ${%Manage Roles}
               </local:feature>
-              <local:feature icon="user.png" href="assign-roles" title="${it.assignRolesName}">
+              <local:feature icon="icon-user" href="assign-roles" title="${it.assignRolesName}">
                 ${%Assign Roles}
               </local:feature>              
-              <local:feature icon="plugin.png" href="list-macros" title="${%Role Strategy Macros}">
+              <local:feature icon="icon-plugin" href="list-macros" title="${%Role Strategy Macros}">
                 ${%Provides info about macro usage and available macros}
               </local:feature>
             </table>

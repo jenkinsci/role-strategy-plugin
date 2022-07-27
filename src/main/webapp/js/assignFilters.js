@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev, Synopsys Inc.
+ * Copyright (c) 2022, Markus Winter
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,30 +22,36 @@
  * THE SOFTWARE.
  */
 
-package com.synopsys.arc.jenkins.plugins.rolestrategy;
-
-/**
- * Macro exception.
- *
- * @author Oleg Nenashev
- * @since 2.1.0
- */
-@SuppressWarnings("serial")
-public class MacroException extends Exception {
-  MacroExceptionCode errorCode;
-
-  public MacroException(MacroExceptionCode code, String message) {
-    super(message);
-    this.errorCode = code;
+function filterUsers(filter, table) {
+  for (var i = 1; i < table.rows.length; i++) {
+    var row = table.rows[i];
+    if (row.classList.contains("group-row")) {
+      continue;
+    }
+    var userCell = row.cells[1].textContent.toUpperCase();
+    if (userCell.indexOf(filter) > -1) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }      
   }
+}
 
-  public MacroExceptionCode getErrorCode() {
-    return errorCode;
+function filterRoles(filter, table) {
+  var rowCount = table.rows.length;
+  var startColumn = 2; // column 0 is the delete button, column 1 contains the user/group
+  var endColumn = table.rows[0].cells.length - 2; // last column is the delete button
+  for (var c = startColumn; c <= endColumn; c++) {
+    var shouldFilter = true;
+    if (table.rows[0].cells[c].textContent.toUpperCase().indexOf(filter) > -1) {
+      shouldFilter = false;
+    }
+    for (var r = 0; r < rowCount; r++) {
+      if (shouldFilter) {
+        table.rows[r].cells[c].style.display = "none";
+      } else {
+        table.rows[r].cells[c].style.display = "";
+      }
+    }
   }
-
-  @Override
-  public String getMessage() {
-    return "<" + errorCode + ">: " + super.getMessage();
-  }
-
 }

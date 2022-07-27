@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev, Synopsys Inc.
+ * Copyright (c) 2022, Markus Winter
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,30 +22,17 @@
  * THE SOFTWARE.
  */
 
-package com.synopsys.arc.jenkins.plugins.rolestrategy;
-
-/**
- * Macro exception.
- *
- * @author Oleg Nenashev
- * @since 2.1.0
- */
-@SuppressWarnings("serial")
-public class MacroException extends Exception {
-  MacroExceptionCode errorCode;
-
-  public MacroException(MacroExceptionCode code, String message) {
-    super(message);
-    this.errorCode = code;
+function filterRoles(filter, table) {
+  for (var i = 2; i < table.rows.length; i++) {
+    var row = table.rows[i];
+    if (!row.classList.contains("permission-row")) {
+      continue;
+    }
+    var userCell = row.cells[1].textContent.toUpperCase();
+    if (userCell.indexOf(filter) > -1) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }      
   }
-
-  public MacroExceptionCode getErrorCode() {
-    return errorCode;
-  }
-
-  @Override
-  public String getMessage() {
-    return "<" + errorCode + ">: " + super.getMessage();
-  }
-
 }
