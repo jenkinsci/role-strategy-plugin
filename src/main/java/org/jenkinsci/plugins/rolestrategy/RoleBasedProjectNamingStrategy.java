@@ -4,6 +4,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -103,7 +104,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       ArrayList<String> badList = new ArrayList<>(roles.size());
       for (SortedMap.Entry<Role, Set<String>> entry : roles.entrySet()) {
         Role key = entry.getKey();
-        if (key.hasPermission(Item.CREATE)) {
+        if (!Macro.isMacro(key) && key.hasPermission(Item.CREATE)) {
           Set<String> sids = entry.getValue();
           Pattern namePattern = key.getPattern();
           if (StringUtils.isNotBlank(namePattern.toString())) {
@@ -125,7 +126,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       }
       String error;
       if (badList != null && !badList.isEmpty()) {
-        error = Messages.RoleBasedProjectNamingStrategy_JobNameConventionNotApplyed(name, badList.toString());
+        error = Messages.RoleBasedProjectNamingStrategy_JobNameConventionNotApplyed(fullName, badList.toString());
       } else {
         error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();
       }

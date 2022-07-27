@@ -139,7 +139,7 @@ public class RoleMap {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
-              if (macro != null) {
+              if (controlledItem != null && macro != null) {
                 RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
                 if (macroExtension.IsApplicable(roleType)
                     && macroExtension.hasPermission(sid, permission, roleType, controlledItem, macro)) {
