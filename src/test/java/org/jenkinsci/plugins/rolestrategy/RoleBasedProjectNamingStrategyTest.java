@@ -103,6 +103,31 @@ public class RoleBasedProjectNamingStrategyTest {
   }
 
   @Test
+  @ConfiguredWithCode("Configuration-as-Code-Macro.yml")
+  public void macroRolesDoNotGrantCreate() {
+    AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly",
+        s, instanceOf(RoleBasedAuthorizationStrategy.class));
+
+    checkName(userJobCreate, "jobAllowed", null);
+    checkName(userJobCreate, "jobAllowed", "folder");
+    checkName(userJobCreateGroup, "jobAllowed", null);
+    checkName(userJobCreateGroup, "jobAllowed", "folder");
+    Failure f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "jobAllowed", "folder2"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", null));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", "folder"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "jobAllowed", "folder2"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+  }
+
+  @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
   public void readUserCantCreateAllowedJobs() {
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
