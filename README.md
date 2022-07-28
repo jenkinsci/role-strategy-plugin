@@ -43,7 +43,9 @@ You can define roles by using the _Manages Roles_ screen. It is possible to defi
     vs. case-insensitive, `(?i)roger-.*`. 
   * Folders can be matched using expressions like `^foo/bar.*`. To access jobs inside a folder, the folder itself must also be accessible to the
     user. This can be achieved with a single pattern like `(?i)folder($|/.*)` when the permissions on the folder can be the same as for the jobs.
-    If different permissions need to be configured 2 different roles need to be created, e.g. `(?i)folder` and `(?i)folder/.*`
+    If different permissions need to be configured 2 different roles need to be created, e.g. `(?i)folder` and `(?i)folder/.*`. Note that job names
+    inside folders are case-sensitive, though this is probably a bug in the folders plugin [JENKINS-67695](https://issues.jenkins.io/browse/JENKINS-67695).
+    Case sensitivity can be enabled with `(?-i)`, e.g. `(?i)folder/(?-i).*`
   * Create permissions on item level can only reliably work when the `Naming Strategy` is set to `Role-Based strategy` in the global configuration
     for `Restrict project naming`. You should see a warning in the administrative monitors if it is not enabled.
     Only jobs matching the pattern can be created. When granting `Job/Create` you should also grant `Job/Configure` and `Job/Read` otherwise you will
