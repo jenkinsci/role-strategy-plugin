@@ -41,13 +41,31 @@
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
-          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/assignFilters.js" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableAssign.js" />
         
           <j:if test="${empty(descriptorPath)}">
             <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
           </j:if>
 
           <d:taglib uri="local">
+            <d:tag name="addButtons">
+              <input type="button" class="${attrs.type}-add-button" value="${%Add User}" id="${attrs.id}button-user" 
+                  data-type="USER"
+                  data-table-id="${attrs.id}"
+                  data-size="${attrs.sids.size()}" 
+                  data-prompt="${%promptUser}"
+                  data-empty-message="${%emptyUser}"
+                  data-error-message="${%userExists}"
+              />
+              <input type="button" class="${attrs.type}-add-button" value="${%Add Group}" id="${attrs.id}button-group"
+                  data-type="GROUP"
+                  data-table-id="${attrs.id}"
+                  data-size="${attrs.sids.size()}" 
+                  data-prompt="${%promptGroup}"
+                  data-empty-message="${%emptyGroup}"
+                  data-error-message="${%groupExists}"
+              />
+            </d:tag>
             <d:tag name="userRow">
                 <td class="start">
                   <l:isAdmin>
@@ -87,12 +105,14 @@
                 <f:block><st:include page="assign-global-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
+            <br/>
             <f:section title="${%Item roles}">
               <f:rowSet name="projectRoles">
                 <f:block><st:include page="assign-project-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-             <f:section title="${%Node roles}">
+            <br/>
+            <f:section title="${%Node roles}">
               <f:rowSet name="slaveRoles">
                 <f:block><st:include page="assign-agent-roles.jelly" optional="true" /></f:block>
               </f:rowSet>

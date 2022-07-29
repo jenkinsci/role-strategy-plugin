@@ -50,23 +50,21 @@
             <span tooltip="${permissionList}">${role.key.name}</span>
           </td>
         </j:forEach>
-        <l:isAdmin><td class="stop" /></l:isAdmin>
+        <td class="stop"/>
       </tr>
-      <j:set var="nbAssignedAgentRoles" value="${0}" />
       <j:forEach var="sid" items="${agentSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row">
+        <tr name="[${sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
           <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.SLAVE}"/>
         </tr>
-        <j:set var="nbAssignedAgentRoles" value="${nbAssignedAgentRoles+1}" />
       </j:forEach>
       <tr name="anonymous" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.SLAVE}"/>
       </tr>
-      <tr id="${id}" style="display:none" class="permission-row highlight-row">
+      <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" global="${false}"  type="${it.strategy.SLAVE}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
-      <j:if test="${nbAssignedAgentRoles ge 19}">
+      <j:if test="${agentSIDs.size() ge 20}">
         <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
@@ -77,70 +75,22 @@
               ${role.key.name}
             </td>
           </j:forEach>
-          <l:isAdmin><td class="stop" /></l:isAdmin>
+          <td class="stop" />
         </tr>
       </j:if>
     </table>
 
-  <l:isAdmin>
-    <br /><br />
-    <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
-      <f:textbox type="text" id="${id}text" checkUrl="'${descriptorPath}/checkForWhitespace?value='+escape(this.value)" />
-    </f:entry>
-    <f:entry>
-      <input type="button" value="${%Add}" id="${id}button"/>
-    </f:entry>
-  </l:isAdmin>
+    <l:isAdmin>
+      <br/>
+      <local:addButtons type="agent" sids="${agentSIDs}" id="${id}"/>
+    </l:isAdmin>
 
     <script>
-      var agentTableHighlighter;
-      (function() {
-        <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
-        var master = document.getElementById('${id}');
-        var table = master.parentNode;
-        table.removeChild(master);
+      var agentMaster = document.getElementById('${id}');
+      var agentTable = agentMaster.parentNode;
+      agentTable.removeChild(agentMaster);
 
-        var btn = $$('${id}button');
-        if (!btn) {
-            return;
-        }
-        makeButton(btn, function (e) {
-          <!-- when 'add' is clicked... -->
-          var name = $$('${id}text').value.trim();
-          if(name=="") {
-            alert("Please enter a role name");
-            return;
-          }
-          if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
-            alert("Entry for '"+name+"' already exists");
-            return;
-          }
-
-          if(document.importNode!=null)
-            copy = document.importNode(master,true);
-          else
-            copy = master.cloneNode(true); <!-- for IE -->
-          copy.removeAttribute("id");
-          copy.removeAttribute("style");
-          copy.childNodes[1].innerHTML = escapeHTML(name);
-          copy.setAttribute("name",'['+name+']');
-
-          var children = copy.childNodes;
-          children.forEach(function(item){
-            item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
-          });
-
-          <j:if test="${nbAssignedAgentRoles lt 19}">
-            table.appendChild(copy);
-          </j:if>
-          <j:if test="${nbAssignedAgentRoles ge 19}">
-            table.insertBefore(copy,table.childNodes[table.rows.length-1]);
-          </j:if>
-          agentTableHighlighter.scan(copy);
-          Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
-        });
-      })();
-
+      var agentTableHighlighter
       Event.observe(window, 'load', function(event) {
          agentTableHighlighter = new TableHighlighter('agentRoles', 0);
       });
@@ -153,12 +103,19 @@
         }
         e = null; <!-- avoid memory leak -->
       }
+      
       Behaviour.register({
         "#agentRoles TD.start A" : deleteAssignedAgentRole,
         "#agentRoles TD.stop A" : deleteAssignedAgentRole,
-        "#agentRoles TR.permission-row" : function(e) {
-          FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
-        }
       });
+
+      Behaviour.specify(
+        ".agent-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
+          makeButton(e,function(e) {
+            addButtonAction(e, agentMaster, agentTable, agentTableHighlighter);
+          });
+        } 
+      );
+      
     </script>
 </j:jelly>

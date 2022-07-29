@@ -32,12 +32,12 @@
 
   <div id="itemUserInputFilter">
     <f:entry title="${%Filter by User}">
-      <input id="itemUserInput" class="jenkins-input setting-input"/>
+      <input id="itemUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="projectRoles"/>
     </f:entry>
   </div>
   <div id="itemRoleInputFilter">
     <f:entry title="${%Filter by Role}">
-      <input id="itemRoleInput" class="jenkins-input setting-input"/>
+      <input id="itemRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="projectRoles"/>
     </f:entry>
   </div>
 
@@ -62,14 +62,14 @@
         <td class="stop" />
       </tr>
       <j:forEach var="sid" items="${projectSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row">
+        <tr name="[${sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
           <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
         </tr>
       </j:forEach>
       <tr name="anonymous" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
-      <tr id="${id}" style="display:none" class="permission-row highlight-row">
+      <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
@@ -89,15 +89,10 @@
       </j:if>
     </table>
 
-  <l:isAdmin>
-    <br /><br />
-    <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
-      <f:textbox type="text" id="${id}text" checkUrl="'${descriptorPath}/checkForWhitespace?value='+escape(this.value)" />
-    </f:entry>
-    <f:entry>
-      <input type="button" value="${%Add}" id="${id}button"/>
-    </f:entry>
-  </l:isAdmin>
+    <l:isAdmin>
+      <br/>
+      <local:addButtons type="item" sids="${projectSIDs}" id="${id}"/>
+    </l:isAdmin>
 
     <script>
       <j:if test="${itemGrantedRoles.size() &lt; 10}">
@@ -106,80 +101,17 @@
       <j:if test="${projectSIDs.size() &lt; 10}">
         document.getElementById('itemUserInputFilter').style.display = "none"
       </j:if>
+      
       var itemSidCount = ${projectSIDs.size()};
+      var itemMaster = document.getElementById('${id}');
+      var itemTable = itemMaster.parentNode;
+      itemTable.removeChild(itemMaster);
 
       var itemTableHighlighter;
-      (function() {
-        <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
-        var master = document.getElementById('${id}');
-        var table = master.parentNode;
-        table.removeChild(master);
-
-        var btn = $$('${id}button');
-        if (!btn) {
-          return;
-        }
-        makeButton(btn, function (e) {
-          <!-- when 'add' is clicked... -->
-          var name = $$('${id}text').value.trim();
-          if(name=="") {
-            alert("Please enter a role name");
-            return;
-          }
-          if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
-            alert("Entry for '"+name+"' already exists");
-            return;
-          }
-
-          if(document.importNode!=null)
-            copy = document.importNode(master,true);
-          else
-            copy = master.cloneNode(true); <!-- for IE -->
-          copy.removeAttribute("id");
-          copy.removeAttribute("style");
-          
-          var children = copy.childNodes;
-          children.forEach(function(item){
-            item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
-          });
-
-
-          copy.childNodes[1].innerHTML = escapeHTML(name);
-          copy.setAttribute("name",'['+name+']');
-          <j:if test="${projectSIDs.size() lt 20}">
-            table.appendChild(copy);
-          </j:if>
-          <j:if test="${projectSIDs.size() ge 20}">
-            table.insertBefore(copy,table.childNodes[table.rows.length-1]);
-          </j:if>
-          itemTableHighlighter.scan(copy);
-          Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
-          itemSidCount++;
-          if (itemSidCount >= 10) {
-            document.getElementById('itemUserInputFilter').style.display = "block";
-          }
-        });
-      })();
 
       Event.observe(window, 'load', function(event) {
          itemTableHighlighter = new TableHighlighter('projectRoles', 0);
       });
-
-      var itemUserFilter = function(e) {
-        e.onkeyup = function() {
-            var filter = document.getElementById("itemUserInput").value.toUpperCase();
-            var rows = document.getElementById("projectRoles");
-            filterUsers(filter, rows);
-        }
-      }
-
-      var itemRoleFilter = function(e) {
-        e.onkeyup = function() {
-            var filter = document.getElementById("itemRoleInput").value.toUpperCase();
-            var table = document.getElementById("projectRoles");
-            filterRoles(filter, table);
-        }
-      }
 
       var deleteAssignedProjectRole = function(e) {
         e.onclick = function() {
@@ -199,11 +131,18 @@
       Behaviour.register({
         "#projectRoles TD.start A" : deleteAssignedProjectRole,
         "#projectRoles TD.stop A" : deleteAssignedProjectRole,
-        "#projectRoles TR.permission-row" : function(e) {
-          FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
-        },
-        "#itemUserInput" : itemUserFilter,
-        "#itemRoleInput" : itemRoleFilter,
       });
+
+      Behaviour.specify(
+        ".item-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
+          makeButton(e,function(e) {
+            addButtonAction(e, itemMaster, itemTable, itemTableHighlighter);
+            itemSidCount++;
+            if (itemSidCount >= 10) {
+              document.getElementById('itemUserInputFilter').style.display = "block";
+            }
+          });
+        } 
+      );
     </script>
 </j:jelly>
