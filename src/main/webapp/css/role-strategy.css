@@ -73,6 +73,7 @@ label.attach-previous {
 
 .highlighted {
   background-color: #FFF9C9;
+  color: var(--black);
 }
 
 .global-matrix-authorization-strategy-table TD.blank {
