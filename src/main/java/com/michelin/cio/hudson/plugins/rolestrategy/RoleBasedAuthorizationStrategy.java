@@ -947,11 +947,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     private Role createAdminRole() {
       Set<Permission> permissions = new HashSet<>();
-      for (PermissionGroup group : getGroups(GLOBAL)) {
-        for (Permission permission : group) {
-          permissions.add(permission);
-        }
-      }
+      permissions.add(Jenkins.ADMINISTER);
       return new Role("admin", permissions);
     }
 
