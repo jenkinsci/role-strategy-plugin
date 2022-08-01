@@ -553,6 +553,7 @@ public class RoleMap {
      */
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
+    @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
       String effectiveSid = ignoresCase ? toString(sid).toLowerCase() : toString(sid);
       if (RoleMap.this.hasPermission(effectiveSid, permission, roleType, item)) {
