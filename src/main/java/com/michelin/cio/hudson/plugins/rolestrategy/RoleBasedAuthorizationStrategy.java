@@ -25,6 +25,7 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleStrategyProperties;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
@@ -105,6 +106,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
 
+  private RoleStrategyProperties globalProperties = RoleStrategyProperties.DEFAULT;
+
   /**
    * Create new RoleBasedAuthorizationStrategy.
    */
@@ -130,6 +133,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     itemRoles = map == null ? new RoleMap() : map;
   }
 
+  public RoleStrategyProperties getGlobalProperties() {
+    return globalProperties;
+  }
+
+  public void setGlobalProperties(RoleStrategyProperties prop) {
+      globalProperties = prop;
+  }
+
   /**
    * Get the root ACL.
    *
@@ -138,7 +149,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Override
   @NonNull
   public SidACL getRootACL() {
-    return globalRoles.getACL(RoleType.Global, null);
+    RoleMap root = getRoleMap(RoleType.fromString(GLOBAL));
+    return root.getACL(RoleType.Global, null, globalProperties.isConvertSidsToLowerCase());
   }
 
   /**
@@ -164,6 +176,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
+   private ACL getACL(String roleMapName, String itemName, RoleType roleType, AccessControlled item)
+   {
+     SidACL acl;
+     RoleMap roleMap = grantedRoles.get(roleMapName);
+     if(roleMap == null) {
+       acl = getRootACL();
+     }
+     else {
+       // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
+       acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item, globalProperties.isConvertSidsToLowerCase()).newInheritingACL(getRootACL());
+     }
+     return acl;
+   }
+
+   /**
    * Get the specific ACL for projects.
    *
    * @param project The access-controlled project
@@ -623,6 +650,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * </p>
    */
   public static class ConverterImpl implements Converter {
+
+    private static final String GLOBAL_PROPERTIES_NODE = "globalProperties";
+
     @Override
     public boolean canConvert(Class type) {
       return type == RoleBasedAuthorizationStrategy.class;
@@ -631,6 +661,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
       RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) source;
+
+      // Marshal properties
+      writer.startNode(GLOBAL_PROPERTIES_NODE);
+      context.convertAnother(strategy.getGlobalProperties());
+      writer.endNode();
 
       // Role maps
       Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
@@ -671,9 +706,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     @Override
     public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
+
       final Map<String, RoleMap> roleMaps = new HashMap<>();
+      RoleBasedAuthorizationStrategy strategy = create();
+
       while (reader.hasMoreChildren()) {
         reader.moveDown();
+
+        // read global properties
+        if (reader.getNodeName().equals(GLOBAL_PROPERTIES_NODE)) {
+          Object prop = context.convertAnother(context.currentObject(), RoleStrategyProperties.class);
+          strategy.setGlobalProperties((RoleStrategyProperties) prop);
+        }
 
         // roleMaps
         if (reader.getNodeName().equals("roleMap")) {
@@ -893,6 +937,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         Role adminRole = createAdminRole();
         strategy.addRole(RoleType.Global, adminRole);
         strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
+      }
+      strategy.renewMacroRoles();
+
+      // global properties
+      if (formData.containsKey("globalProperties")) {
+        RoleStrategyProperties prop = req.bindJSON(RoleStrategyProperties.class, formData.getJSONObject("globalProperties"));
+        strategy.setGlobalProperties(prop);
       }
 
       return strategy;

@@ -234,9 +234,8 @@ public class RoleMap {
    *
    * @return ACL for the current {@link RoleMap}
    */
-  @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-  public SidACL getACL(RoleType roleType, AccessControlled controlledItem) {
-    return new AclImpl(roleType, controlledItem);
+  public SidACL getACL(RoleType roleType, AccessControlled controlledItem, boolean ignoresCase) {
+    return new AclImpl(roleType, controlledItem, ignoresCase);
   }
 
   /**
@@ -533,10 +532,13 @@ public class RoleMap {
 
     AccessControlled item;
     RoleType roleType;
+    /**Makes SID to convert all SIDs to lower-case*/
+    boolean ignoresCase;
 
-    public AclImpl(RoleType roleType, AccessControlled item) {
-      this.item = item;
-      this.roleType = roleType;
+    public AclImpl(RoleType roleType, AccessControlled item, boolean ignoresCase) {
+        this.item = item;
+        this.roleType = roleType;
+        this.ignoresCase = ignoresCase;
     }
 
     /**
@@ -551,9 +553,9 @@ public class RoleMap {
      */
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
-    @CheckForNull
-    protected Boolean hasPermission(Sid sid, Permission permission) {
-      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item)) {
+    protected Boolean hasPermission(Sid p, Permission permission) {
+      String effectiveSID = ignoresCase ? toString(p).toLowerCase() : toString(p);
+      if(RoleMap.this.hasPermission(effectiveSID, permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))
@@ -578,7 +580,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item)) {
+          if (roleMapProject.hasPermission(effectiveSID, permission, RoleType.Project, item)) {
             return true;
           }
         }
