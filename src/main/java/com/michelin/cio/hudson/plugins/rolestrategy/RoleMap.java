@@ -532,13 +532,12 @@ public class RoleMap {
 
     AccessControlled item;
     RoleType roleType;
-    /**Makes SID to convert all SIDs to lower-case*/
-    boolean ignoresCase;
+    boolean ignoresCase;  // Makes SID to convert all SIDs to lower-case
 
     public AclImpl(RoleType roleType, AccessControlled item, boolean ignoresCase) {
-        this.item = item;
-        this.roleType = roleType;
-        this.ignoresCase = ignoresCase;
+      this.item = item;
+      this.roleType = roleType;
+      this.ignoresCase = ignoresCase;
     }
 
     /**
@@ -553,9 +552,9 @@ public class RoleMap {
      */
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
-    protected Boolean hasPermission(Sid p, Permission permission) {
-      String effectiveSID = ignoresCase ? toString(p).toLowerCase() : toString(p);
-      if(RoleMap.this.hasPermission(effectiveSID, permission, roleType, item)) {
+    protected Boolean hasPermission(Sid sid, Permission permission) {
+      String effectiveSID = ignoresCase ? toString(sid).toLowerCase() : toString(sid);
+      if (RoleMap.this.hasPermission(effectiveSID, permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))

@@ -138,7 +138,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   public void setGlobalProperties(RoleStrategyProperties prop) {
-      globalProperties = prop;
+    globalProperties = prop;
   }
 
   /**
@@ -176,21 +176,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   private ACL getACL(String roleMapName, String itemName, RoleType roleType, AccessControlled item)
-   {
-     SidACL acl;
-     RoleMap roleMap = grantedRoles.get(roleMapName);
-     if(roleMap == null) {
-       acl = getRootACL();
-     }
-     else {
-       // Create a sub-RoleMap matching the project name, and create an inheriting from root ACL
-       acl = roleMap.newMatchingRoleMap(itemName).getACL(roleType, item, globalProperties.isConvertSidsToLowerCase()).newInheritingACL(getRootACL());
-     }
-     return acl;
-   }
-
-   /**
    * Get the specific ACL for projects.
    *
    * @param project The access-controlled project
@@ -205,19 +190,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Override
   @NonNull
   public ACL getACL(@NonNull AbstractItem project) {
-    return itemRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project).newInheritingACL(getRootACL());
+    return itemRoles.newMatchingRoleMap(project.getFullName()).getACL(
+      RoleType.Project, project, globalProperties.isConvertSidsToLowerCase()).newInheritingACL(getRootACL());
   }
 
   @Override
   @NonNull
   public ACL getACL(@NonNull Computer computer) {
-    return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer).newInheritingACL(getRootACL());
+    return agentRoles.newMatchingRoleMap(computer.getName()).getACL(
+      RoleType.Slave, computer, globalProperties.isConvertSidsToLowerCase()).newInheritingACL(getRootACL());
   }
 
   @Override
   @NonNull
   public ACL getACL(@NonNull Node node) {
-    return agentRoles.newMatchingRoleMap(node.getNodeName()).getACL(RoleType.Slave, node).newInheritingACL(getRootACL());
+    return agentRoles.newMatchingRoleMap(node.getNodeName()).getACL(
+      RoleType.Slave, node, globalProperties.isConvertSidsToLowerCase()).newInheritingACL(getRootACL());
   }
 
   /**
@@ -708,7 +696,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
 
       final Map<String, RoleMap> roleMaps = new HashMap<>();
-      RoleBasedAuthorizationStrategy strategy = create();
+      RoleStrategyProperties properties = null;
 
       while (reader.hasMoreChildren()) {
         reader.moveDown();
@@ -716,7 +704,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         // read global properties
         if (reader.getNodeName().equals(GLOBAL_PROPERTIES_NODE)) {
           Object prop = context.convertAnother(context.currentObject(), RoleStrategyProperties.class);
-          strategy.setGlobalProperties((RoleStrategyProperties) prop);
+          properties = (RoleStrategyProperties) prop;
         }
 
         // roleMaps
@@ -763,7 +751,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         reader.moveUp();
       }
 
-      return new RoleBasedAuthorizationStrategy(roleMaps);
+      RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(roleMaps);
+
+      if (properties != null) {
+        strategy.setGlobalProperties(properties);
+      }
+
+      return strategy;
     }
 
     protected RoleBasedAuthorizationStrategy create() {
@@ -938,11 +932,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy.addRole(RoleType.Global, adminRole);
         strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
       }
-      strategy.renewMacroRoles();
 
       // global properties
       if (formData.containsKey("globalProperties")) {
-        RoleStrategyProperties prop = req.bindJSON(RoleStrategyProperties.class, formData.getJSONObject("globalProperties"));
+        RoleStrategyProperties prop = req.bindJSON(
+                RoleStrategyProperties.class, formData.getJSONObject("globalProperties"));
         strategy.setGlobalProperties(prop);
       }
 

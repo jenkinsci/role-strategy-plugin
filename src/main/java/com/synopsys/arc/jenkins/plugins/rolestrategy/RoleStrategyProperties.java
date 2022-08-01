@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
@@ -32,35 +33,41 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Class, which stores global configuration of Role-Strategy security.
- * @author Oleg Nenashev <nenashev@synopsys.com>
+ *
  */
 public class RoleStrategyProperties implements Describable<RoleStrategyProperties>, Serializable {
-    /**Default value, which preserves legacy behavior*/
-    public static final RoleStrategyProperties DEFAULT = new RoleStrategyProperties(false);
-    
-    boolean convertSidsToLowerCase;    
 
-    @DataBoundConstructor
-    public RoleStrategyProperties(boolean convertSidsToLowerCase) {
-        this.convertSidsToLowerCase = convertSidsToLowerCase;
-    }
+  /* Default value, which preserves legacy behavior */
+  public static final RoleStrategyProperties DEFAULT = new RoleStrategyProperties(false);
 
-    public boolean isConvertSidsToLowerCase() {
-        return convertSidsToLowerCase;
-    }
+  private boolean convertSidsToLowerCase;
+
+  @DataBoundConstructor
+  public RoleStrategyProperties(boolean convertSidsToLowerCase) {
+    this.convertSidsToLowerCase = convertSidsToLowerCase;
+  }
+
+  public boolean isConvertSidsToLowerCase() {
+    return convertSidsToLowerCase;
+  }
+
+  @Override
+  public Descriptor<RoleStrategyProperties> getDescriptor() {
+    return DESCRIPTOR;
+  }
+
+  public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
+
+  /**
+   * Default DescriptorImpl.
+   */
+  @Extension
+  public static final class DescriptorImpl extends Descriptor<RoleStrategyProperties> {
 
     @Override
-    public Descriptor<RoleStrategyProperties> getDescriptor() {
-        return DESCRIPTOR;
+    public String getDisplayName() {
+      return Messages.RoleStrategyProperties_DisplayName();
     }
+  }
 
-    public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
-    @Extension
-    public static final class DescriptorImpl extends Descriptor<RoleStrategyProperties> {
-
-        @Override
-        public String getDisplayName() {
-            return Messages.RoleStrategyProperties_DisplayName();
-        }    
-    }
 }
