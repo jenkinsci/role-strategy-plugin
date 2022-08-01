@@ -234,6 +234,7 @@ public class RoleMap {
    *
    * @return ACL for the current {@link RoleMap}
    */
+  @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
   public SidACL getACL(RoleType roleType, AccessControlled controlledItem, boolean ignoresCase) {
     return new AclImpl(roleType, controlledItem, ignoresCase);
   }
@@ -553,8 +554,8 @@ public class RoleMap {
     @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      String effectiveSID = ignoresCase ? toString(sid).toLowerCase() : toString(sid);
-      if (RoleMap.this.hasPermission(effectiveSID, permission, roleType, item)) {
+      String effectiveSid = ignoresCase ? toString(sid).toLowerCase() : toString(sid);
+      if (RoleMap.this.hasPermission(effectiveSid, permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))
@@ -579,7 +580,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(effectiveSID, permission, RoleType.Project, item)) {
+          if (roleMapProject.hasPermission(effectiveSid, permission, RoleType.Project, item)) {
             return true;
           }
         }

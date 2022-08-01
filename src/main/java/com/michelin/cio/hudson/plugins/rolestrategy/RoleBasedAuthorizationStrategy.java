@@ -105,8 +105,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
-
-  private RoleStrategyProperties globalProperties = RoleStrategyProperties.DEFAULT;
+  private RoleStrategyProperties globalProperties;
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -115,6 +114,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     agentRoles = new RoleMap();
     globalRoles = new RoleMap();
     itemRoles = new RoleMap();
+    globalProperties = RoleStrategyProperties.DEFAULT;
   }
 
   /**
@@ -131,6 +131,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     map = grantedRoles.get(PROJECT);
     itemRoles = map == null ? new RoleMap() : map;
+
+    globalProperties = RoleStrategyProperties.DEFAULT;
+  }
+
+  /**
+   * Creates a new {@link RoleBasedAuthorizationStrategy}.
+   *
+   * @param grantedRoles the roles in the strategy
+   * @param prop global properties
+   */
+  public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles, RoleStrategyProperties prop) {
+    RoleMap map = grantedRoles.get(SLAVE);
+    agentRoles = map == null ? new RoleMap() : map;
+
+    map = grantedRoles.get(GLOBAL);
+    globalRoles = map == null ? new RoleMap() : map;
+
+    map = grantedRoles.get(PROJECT);
+    itemRoles = map == null ? new RoleMap() : map;
+
+    globalProperties = prop == null ? RoleStrategyProperties.DEFAULT : prop;
   }
 
   public RoleStrategyProperties getGlobalProperties() {
@@ -696,15 +717,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
 
       final Map<String, RoleMap> roleMaps = new HashMap<>();
-      RoleStrategyProperties properties = null;
+      RoleStrategyProperties props = null;
 
       while (reader.hasMoreChildren()) {
         reader.moveDown();
 
         // read global properties
         if (reader.getNodeName().equals(GLOBAL_PROPERTIES_NODE)) {
-          Object prop = context.convertAnother(context.currentObject(), RoleStrategyProperties.class);
-          properties = (RoleStrategyProperties) prop;
+          props = (RoleStrategyProperties) context.convertAnother(
+                  context.currentObject(), RoleStrategyProperties.class);
         }
 
         // roleMaps
@@ -751,13 +772,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         reader.moveUp();
       }
 
-      RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(roleMaps);
-
-      if (properties != null) {
-        strategy.setGlobalProperties(properties);
-      }
-
-      return strategy;
+      return new RoleBasedAuthorizationStrategy(roleMaps, props);
     }
 
     protected RoleBasedAuthorizationStrategy create() {
