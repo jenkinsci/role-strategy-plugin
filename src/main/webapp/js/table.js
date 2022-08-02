@@ -43,8 +43,10 @@ class TableHighlighter {
             td.addEventListener('mouseover', this.highlight);
             td.addEventListener('mouseout', this.highlight);
             // For Jenkins 2.335+
-            td.nextSibling.addEventListener('mouseover', this.highlight);
-            td.nextSibling.addEventListener('mouseout', this.highlight);
+            if (td.nextSibling != null) {
+              td.nextSibling.addEventListener('mouseover', this.highlight);
+              td.nextSibling.addEventListener('mouseout', this.highlight);
+            }
         }
     };
 
