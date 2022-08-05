@@ -49,17 +49,15 @@
 
           <d:taglib uri="local">
             <d:tag name="addButtons">
-              <input type="button" class="${attrs.type}-add-button" value="${%Add User}" id="${attrs.id}button-user" 
+              <input type="button" class="role-strategy-add-button" value="${%Add User}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
                   data-type="USER"
-                  data-table-id="${attrs.id}"
                   data-size="${attrs.sids.size()}" 
                   data-prompt="${%promptUser}"
                   data-empty-message="${%emptyUser}"
                   data-error-message="${%userExists}"
               />
-              <input type="button" class="${attrs.type}-add-button" value="${%Add Group}" id="${attrs.id}button-group"
+              <input type="button" class="role-strategy-add-button" value="${%Add Group}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
                   data-type="GROUP"
-                  data-table-id="${attrs.id}"
                   data-size="${attrs.sids.size()}" 
                   data-prompt="${%promptGroup}"
                   data-empty-message="${%emptyGroup}"

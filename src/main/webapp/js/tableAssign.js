@@ -22,6 +22,12 @@
  * THE SOFTWARE.
  */
 
+// number of lines required for the user filter to get enabled
+var filterLimit = 10;
+// number of lines required for the footer to get displayed
+var footerLimit = 20;
+
+
 function filterUsers(filter, table) {
   for (var i = 1; i < table.rows.length; i++) {
     var row = table.rows[i];
@@ -57,12 +63,57 @@ function filterRoles(filter, table) {
 }
 
 
+Behaviour.specify(".user-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
+  e.onkeyup = function() {
+      let filter = e.value.toUpperCase();
+      let table = document.getElementById(e.getAttribute("data-table-id"));
+      filterUsers(filter, table);
+  }
+});
+
+
+Behaviour.specify(".role-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
+  e.onkeyup = function() {
+      let filter = e.value.toUpperCase();
+      let table = document.getElementById(e.getAttribute("data-table-id"));
+      filterRoles(filter, table);
+  }
+});
+
+
+Behaviour.specify(
+  ".role-strategy-add-button", "RoleBasedAuthorizationStrategy", 0, function(elem) {
+    makeButton(elem, function(e) {
+      let tableId = elem.getAttribute("data-table-id");
+      let table = document.getElementById(tableId);
+      let masterId = elem.getAttribute("data-master-id");
+      let master = window[masterId];
+      let highlighter = window[elem.getAttribute("data-highlighter")];
+      addButtonAction(e, master, table, highlighter);
+      let tbody = table.tBodies[0];
+      if (tbody.children.length >= filterLimit) {
+        let userfilters = document.querySelectorAll(".user-filter")
+        for (var q=0;q<userfilters.length;++q) {
+          let filter = userfilters[q];
+          if (filter.getAttribute("data-table-id") === tableId) {
+            filter.style.display = "block";
+          }
+        }
+      }
+      if (tbody.children.length >= footerLimit) {
+        table.tFoot.style.display = "table-footer-group";
+      }
+    });
+  } 
+);
+
 addButtonAction = function (e, master, table, tableHighlighter) {
-    var dataReference = e.target;
-    var type = dataReference.getAttribute('data-type');
-    var size = parseInt(dataReference.getAttribute('data-size'));
+    let dataReference = e.target;
+    let type = dataReference.getAttribute('data-type');
+    let size = parseInt(dataReference.getAttribute('data-size'));
+    let tbody = table.tBodies[0];
     
-    var name = prompt(dataReference.getAttribute('data-prompt')).trim();
+    let name = prompt(dataReference.getAttribute('data-prompt')).trim();
     if (name=="") {
       alert(dataReference.getAttribute('data-empty-message'));
       return;
@@ -76,43 +127,48 @@ addButtonAction = function (e, master, table, tableHighlighter) {
     copy.removeAttribute("id");
     copy.removeAttribute("style");
     
-    var children = copy.childNodes;
+    let children = copy.childNodes;
     children.forEach(function(item){
       item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
     });
     
     copy.childNodes[1].innerHTML = escapeHTML(name);
     copy.setAttribute("name",'['+type+':'+name+']');
-    if (size < 20) {
-      table.appendChild(copy);
-    } else {
-      table.insertBefore(copy,table.childNodes[table.rows.length-1]);
-    }
-    Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
+    tbody.appendChild(copy);
+    Behaviour.applySubtree(table, true);
     tableHighlighter.scan(copy);
 }
 
 
-Behaviour.specify(".user-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
-  e.onkeyup = function() {
-      var filter = e.value.toUpperCase();
-      var table = document.getElementById(e.getAttribute("data-table-id"));
-      filterUsers(filter, table);
+Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+  e.onclick = function() {
+    let table = findAncestor(this,"TABLE");
+    let tableId = table.getAttribute("id");
+    let tr = findAncestor(this,"TR");
+    parent = tr.parentNode;
+    parent.removeChild(tr);
+    if (parent.children.length < filterLimit) {
+      let userfilters = document.querySelectorAll(".user-filter")
+      for (var q=0;q<userfilters.length;++q) {
+        let filter = userfilters[q];
+        if (filter.getAttribute("data-table-id") === tableId) {
+          filter.style.display = "none";
+          let inputs = filter.getElementsByTagName("INPUT");
+          inputs[0].value=""
+          let event = new Event("keyup");
+          inputs[0].dispatchEvent(event);
+        }
+      }
+    }
+    if (parent.children.length < footerLimit) {
+      table.tFoot.style.display = "none";
+    }
+    return false;
   }
 });
 
 
-Behaviour.specify(".role-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
-  e.onkeyup = function() {
-      var filter = e.value.toUpperCase();
-      var table = document.getElementById(e.getAttribute("data-table-id"));
-      filterRoles(filter, table);
-  }
-});
-
-
-Behaviour.specify(
-  ".global-matrix-authorization-strategy-table TR.permission-row", "RoleBasedAuthorizationStrategy", 0, function(e) {
+Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row", "RoleBasedAuthorizationStrategy", 0, function(e) {
     if (e.getAttribute('name') === '__unused__') {
           return;
     }
@@ -120,7 +176,7 @@ Behaviour.specify(
       FormChecker.delayedCheck(e.getAttribute('data-descriptor-url') + "/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
       e.setAttribute('data-checked', 'true');
     }
-  });
+});
 
   
 /*

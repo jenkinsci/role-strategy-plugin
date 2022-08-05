@@ -27,40 +27,43 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="id" value="${h.generateId()}"/>
+  <j:set var="tableid" value="projectRoles"/>
   <j:set var="projectSIDs" value="${it.strategy.getSIDs(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
 
-  <div id="itemUserInputFilter">
+  <div id="itemUserInputFilter" data-table-id="${tableid}" class="user-filter">
     <f:entry title="${%Filter by User}">
-      <input id="itemUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="projectRoles"/>
+      <input id="itemUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>
-  <div id="itemRoleInputFilter">
+  <div id="itemRoleInputFilter" data-table-id="${tableid}" class="role-filter">
     <f:entry title="${%Filter by Role}">
-      <input id="itemRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="projectRoles"/>
+      <input id="itemRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>
 
-  <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row highlight-row">
-        <td class="start" />
-        <td class="pane-header blank">
-          ${%User/group}
-        </td>
-        <j:forEach var="role" items="${itemGrantedRoles}">
-          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-          <j:forEach var="p" items="${role.key.permissions}">
-            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
-          </j:forEach>
-          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
-          <td class="pane-header">
-            <span tooltip="${permissionList}">${role.key.name}</span>
-          </td>
-        </j:forEach>
-        <td class="stop" />
-      </tr>
+      <thead>
+	      <tr class="group-row">
+	        <td class="start" />
+	        <td class="pane-header blank">
+	          ${%User/group}
+	        </td>
+	        <j:forEach var="role" items="${itemGrantedRoles}">
+	          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+	          <j:forEach var="p" items="${role.key.permissions}">
+	            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+	          </j:forEach>
+	          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+	          <td class="pane-header">
+	            <span tooltip="${permissionList}">${role.key.name}</span>
+	          </td>
+	        </j:forEach>
+	        <td class="stop" />
+	      </tr>
+	    </thead>
       <tr name="[USER:anonymous]" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.PROJECT}" permissionType="USER"/>
       </tr>
@@ -78,8 +81,12 @@
         <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
-      <j:if test="${projectSIDs.size() ge 20}">
-        <tr class="group-row highlight-row">
+      <j:set var="hidefooter" value=""/>
+      <j:if test="${projectSIDs.size() lt 18}">
+        <j:set var="hidefooter" value="default-hidden"/>
+      </j:if>
+      <tfoot class="${hidefooter}">
+        <tr class="group-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -91,12 +98,12 @@
           </j:forEach>
           <td class="stop" />
         </tr>
-      </j:if>
+      </tfoot>
     </table>
 
     <l:isAdmin>
       <br/>
-      <local:addButtons type="projectRoles" sids="${projectSIDs}" id="${id}"/>
+      <local:addButtons sids="${projectSIDs}" tableid="${tableid}" id="itemMaster" highlighter="itemTableHighlighter"/>
     </l:isAdmin>
 
     <script>
@@ -107,7 +114,6 @@
         document.getElementById('itemUserInputFilter').style.display = "none"
       </j:if>
       
-      var itemSidCount = ${projectSIDs.size()};
       var itemMaster = document.getElementById('${id}');
       var itemTable = itemMaster.parentNode;
       itemTable.removeChild(itemMaster);
@@ -115,39 +121,12 @@
       var itemTableHighlighter;
 
       Event.observe(window, 'load', function(event) {
+<<<<<<< HEAD
          itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+=======
+         itemTableHighlighter = new TableHighlighter('${tableid}', 0, 1);
+>>>>>>> 19f471c (cleanup and move javascript from jelly to js file)
       });
 
-      var deleteAssignedProjectRole = function(e) {
-        e.onclick = function() {
-          var tr = findAncestor(this,"TR");
-          tr.parentNode.removeChild(tr);
-          itemSidCount--;
-          if (itemSidCount &lt; 10) {
-            document.getElementById('itemUserInputFilter').style.display = "none";
-            document.getElementById('itemUserInput').value = "";
-            event = new Event("keyup");
-            document.getElementById('itemUserInput').dispatchEvent(event);
-          }
-          return false;
-        }
-        e = null; <!-- avoid memory leak -->
-      }
-      Behaviour.register({
-        "#projectRoles TD.start A.remove" : deleteAssignedProjectRole,
-        "#projectRoles TD.stop A.remove" : deleteAssignedProjectRole,
-      });
-
-      Behaviour.specify(
-        ".projectRoles-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
-          makeButton(e,function(e) {
-            addButtonAction(e, itemMaster, itemTable, itemTableHighlighter);
-            itemSidCount++;
-            if (itemSidCount >= 10) {
-              document.getElementById('itemUserInputFilter').style.display = "block";
-            }
-          });
-        } 
-      );
     </script>
 </j:jelly>

@@ -29,29 +29,32 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="id" value="${h.generateId()}"/>
+  <j:set var="tableid" value="agentRoles"/>
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
   <j:set var="agentSIDs" value="${it.strategy.getSIDs(it.strategy.SLAVE)}"/>
 
-  <table id="agentRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row highlight-row">
-        <td class="start" />
-        <td class="pane-header blank">
-          ${%User/group}
-        </td>
-        <j:forEach var="role" items="${agentGrantedRoles}">
-          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-          <j:forEach var="p" items="${role.key.permissions}">
-            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
-          </j:forEach>
-          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
-          <td class="pane-header">
-            <span tooltip="${permissionList}">${role.key.name}</span>
-          </td>
-        </j:forEach>
-        <td class="stop"/>
-      </tr>
+      <thead>
+	      <tr class="group-row">
+	        <td class="start" />
+	        <td class="pane-header blank">
+	          ${%User/group}
+	        </td>
+	        <j:forEach var="role" items="${agentGrantedRoles}">
+	          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+	          <j:forEach var="p" items="${role.key.permissions}">
+	            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+	          </j:forEach>
+	          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+	          <td class="pane-header">
+	            <span tooltip="${permissionList}">${role.key.name}</span>
+	          </td>
+	        </j:forEach>
+	        <td class="stop"/>
+	      </tr>
+	    </thead>
       <tr name="[USER:anonymous]" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.SLAVE}" permissionType="USER"/>
       </tr>
@@ -69,8 +72,12 @@
         <local:userRow title="{{USER}}" type="${it.strategy.SLAVE}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
-      <j:if test="${agentSIDs.size() ge 20}">
-        <tr class="group-row highlight-row">
+      <j:set var="hidefooter" value=""/>
+      <j:if test="${agentSIDs.size() lt 18}">
+        <j:set var="hidefooter" value="default-hidden"/>
+      </j:if>
+      <tfoot class="${hidefooter}">
+        <tr class="group-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -82,12 +89,12 @@
           </j:forEach>
           <td class="stop" />
         </tr>
-      </j:if>
+      </tfoot>
     </table>
 
     <l:isAdmin>
       <br/>
-      <local:addButtons type="agentRoles" sids="${agentSIDs}" id="${id}" roles="${agentGrantedRoles}"/>
+      <local:addButtons sids="${agentSIDs}" tableid="${tableid}" id="agentMaster" roles="${agentGrantedRoles}" highlighter="agentTableHighlighter"/>
     </l:isAdmin>
 
     <script>
@@ -97,30 +104,12 @@
 
       var agentTableHighlighter
       Event.observe(window, 'load', function(event) {
+<<<<<<< HEAD
          agentTableHighlighter = new TableHighlighter('agentRoles', 0);
+=======
+        agentTableHighlighter = new TableHighlighter('${tableid}', 0, 1);
+>>>>>>> 19f471c (cleanup and move javascript from jelly to js file)
       });
 
-      var deleteAssignedAgentRole = function(e) {
-        e.onclick = function() {
-          var tr = findAncestor(this,"TR");
-          tr.parentNode.removeChild(tr);
-          return false;
-        }
-        e = null; <!-- avoid memory leak -->
-      }
-      
-      Behaviour.register({
-        "#agentRoles TD.start A.remove" : deleteAssignedAgentRole,
-        "#agentRoles TD.stop A.remove" : deleteAssignedAgentRole,
-      });
-
-      Behaviour.specify(
-        ".agentRoles-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
-          makeButton(e,function(e) {
-            addButtonAction(e, agentMaster, agentTable, agentTableHighlighter);
-          });
-        } 
-      );
-      
     </script>
 </j:jelly>
