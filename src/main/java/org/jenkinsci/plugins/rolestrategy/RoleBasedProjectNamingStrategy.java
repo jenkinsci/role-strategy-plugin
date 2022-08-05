@@ -1,6 +1,8 @@
 package org.jenkinsci.plugins.rolestrategy;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
 import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -87,7 +89,8 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       if (a == ACL.SYSTEM2) {
         return;
       }
-      String principal = new PrincipalSid(a).getPrincipal();
+      PermissionEntry principal = new PermissionEntry(AuthorizationType.USER, new PrincipalSid(a).getPrincipal());
+
       RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
       RoleMap global = rbas.getRoleMap(RoleType.Global);
       List<String> authorities = a.getAuthorities().stream().map(x -> x.getAuthority()).collect(Collectors.toList());
@@ -104,12 +107,12 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       }
 
       // check project role with pattern
-      SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleType.Project);
+      SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRoles(RoleType.Project);
       ArrayList<String> badList = new ArrayList<>(roles.size());
-      for (SortedMap.Entry<Role, Set<String>> entry : roles.entrySet()) {
+      for (SortedMap.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
         Role key = entry.getKey();
         if (!Macro.isMacro(key) && key.hasPermission(Item.CREATE)) {
-          Set<String> sids = entry.getValue();
+          Set<PermissionEntry> sids = entry.getValue();
           Pattern namePattern = key.getPattern();
           if (StringUtils.isNotBlank(namePattern.toString())) {
             if (namePattern.matcher(fullName).matches()) {
@@ -117,7 +120,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
                 return;
               } else {
                 for (String authority : authorities) {
-                  if (sids.contains(authority)) {
+                  if (sids.contains(new PermissionEntry(AuthorizationType.GROUP, authority))) {
                     return;
                   }
                 }
@@ -138,12 +141,12 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     }
   }
 
-  private boolean hasCreatePermission(RoleMap roleMap, String principal, List<String> authorities, RoleType roleType) {
-    if (roleMap.hasPermission(principal, Item.CREATE, roleType, null)) {
+  private boolean hasCreatePermission(RoleMap roleMap, PermissionEntry principal, List<String> authorities, RoleType roleType) {
+    if (roleMap.hasPermission(principal.getSid(), Item.CREATE, roleType, null, true)) {
       return true;
     }
     for (String group : authorities) {
-      if (roleMap.hasPermission(group, Item.CREATE, roleType, null)) {
+      if (roleMap.hasPermission(group, Item.CREATE, roleType, null, false)) {
         return true;
       }
     }

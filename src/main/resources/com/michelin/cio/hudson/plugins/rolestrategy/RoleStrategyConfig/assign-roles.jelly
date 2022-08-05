@@ -65,30 +65,64 @@
                   data-empty-message="${%emptyGroup}"
                   data-error-message="${%groupExists}"
               />
+				      <j:if test="${it.strategy.descriptor.hasAmbiguousEntries(attrs.roles)}">
+				        <div class="alert alert-warning" data-table-id="${attrs.type}">
+				          ${%ambiguous}
+				        </div>
+				      </j:if>
             </d:tag>
             <d:tag name="userRow">
-                <td class="start">
-                  <l:isAdmin>
-                    <a href="#">
-                      <l:icon alt="remove" class="icon-stop icon-sm"/>
-                    </a>
-                  </l:isAdmin>
-                </td>
-              <td class="left-most">${title}</td>
+              <j:set var="permissionEntry" value="${it.strategy.descriptor.entryFor(attrs.permissionType, attrs.sid)}"/>
+              <td class="start">
+                <l:isAdmin>
+                  <a href="#">
+                    <l:icon alt="remove" class="icon-stop icon-sm"/>
+                  </a>
+                </l:isAdmin>
+              </td>
+			        <j:choose>
+			          <j:when test="${attrs.sid == 'authenticated' and attrs.permissionType == 'GROUP'}">
+			            <td class="left-most">
+			              <span title="authenticated">
+			                <l:icon class="icon-user icon-sm" style="margin-right:0.2em"/>${%Authenticated Users}
+			              </span>
+			            </td>
+			          </j:when>
+			          <j:when test="${attrs.sid == 'anonymous' and attrs.permissionType == 'USER'}">
+			            <td class="left-most">
+			              <span title="anonymous">
+			                <l:icon class="icon-person icon-sm" style="margin-right:0.2em"/>${%Anonymous}
+			              </span>
+			            </td>
+			          </j:when>
+			          <j:otherwise>
+			            <td class="left-most">${title}</td>
+			          </j:otherwise>
+			        </j:choose>
+
               <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
                 <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(r.key.pattern.toString())}"/>
                 <j:if test="${attrs.type == it.strategy.GLOBAL}">
                   <j:set var="pattern" value=""/>
                 </j:if>
                 <td width="*" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">                  
-                  <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(attrs.sid)}"/>
+                  <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
                 </td>
               </j:forEach>
               <td class="stop">
                 <l:isAdmin>
-                  <a href="#">
+                  <a href="#" class="remove">
                     <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                   </a>
+                  <j:if test="${attrs.permissionType == 'EITHER'}">
+			              <!-- migration options -->
+			              <a href="#" class="migrate migrate_user">
+			                <l:icon alt="${%Migrate entry to user}" title="${%migrate_user(attrs.sid)}" class="icon-person icon-sm" />
+			              </a>
+			              <a href="#" class="migrate migrate_group">
+			                <l:icon alt="${%Migrate entry to group}" title="${%migrate_group(attrs.sid)}" class="icon-user icon-sm" />
+			              </a>
+                  </j:if>
                 </l:isAdmin>
               </td>
             </d:tag>

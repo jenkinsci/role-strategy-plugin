@@ -1,5 +1,7 @@
 package org.jenkinsci.plugins.rolestrategy.casc;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -9,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -58,11 +62,23 @@ public class GrantedRoles {
 
   @NonNull
   private RoleMap retrieveRoleMap(List<RoleDefinition> definitions) {
-    TreeMap<Role, Set<String>> resMap = new TreeMap<>();
+    TreeMap<Role, Set<PermissionEntry>> resMap = new TreeMap<>();
     for (RoleDefinition definition : definitions) {
-      resMap.put(definition.getRole(), definition.getAssignments());
+      Set<PermissionEntry> permissionEntries = definition.getAssignments().stream().map(parseEntry()).collect(Collectors.toSet());
+      resMap.put(definition.getRole(), permissionEntries);
     }
     return new RoleMap(resMap);
+  }
+
+  private Function<String, PermissionEntry> parseEntry() {
+
+    return text -> {
+      PermissionEntry entry = PermissionEntry.fromString(text);
+      if (entry == null) {
+        entry = new PermissionEntry(AuthorizationType.EITHER, text);
+      }
+      return entry;
+    };
   }
 
   public List<RoleDefinition> getGlobal() {

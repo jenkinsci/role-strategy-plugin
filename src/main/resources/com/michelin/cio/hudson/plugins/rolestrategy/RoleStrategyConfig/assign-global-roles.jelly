@@ -61,16 +61,21 @@
         </j:forEach>
         <l:isAdmin><td class="stop" /></l:isAdmin>
       </tr>
-      <j:forEach var="sid" items="${globalSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row" data-sid="${sid}" data-descriptor-url="${descriptorPath}">
-          <local:userRow sid="${sid}" title="${sid}" global="${true}"  type="${it.strategy.GLOBAL}"/>
-        </tr>
-      </j:forEach>
-      <tr name="anonymous" class="highlight-row">
-        <local:userRow sid="anonymous" title="${%Anonymous}" global="${true}" type="${it.strategy.GLOBAL}"/>
+      <tr name="[USER:anonymous]" class="highlight-row">
+        <local:userRow sid="anonymous" type="${it.strategy.GLOBAL}" permissionType="USER"/>
       </tr>
+      <tr name="[GROUP:authenticated]" class="highlight-row">
+        <local:userRow sid="authenticated" type="${it.strategy.GLOBAL}" permissionType="GROUP"/>
+      </tr>
+      <j:forEach var="entry" items="${globalSIDs}">
+        <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
+	        <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+	          <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" type="${it.strategy.GLOBAL}"/>
+	        </tr>
+	      </j:if>
+      </j:forEach>
       <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-        <local:userRow title="{{USER}}" global="${true}" type="${it.strategy.GLOBAL}"/>
+        <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19 lines) -->
       <j:if test="${globalSIDs.size() ge 20}">
@@ -91,7 +96,7 @@
 
     <l:isAdmin>
       <br/>
-      <local:addButtons type="global" sids="${globalSIDs}" id="${id}"/>
+      <local:addButtons type="globalRoles" sids="${globalSIDs}" id="${id}" roles="${globalGrantedRoles}"/>
     </l:isAdmin>
 
     <script>
@@ -131,12 +136,12 @@
       }
       
       Behaviour.register({
-        "#globalRoles TD.start A" : deleteAssignedGlobalRole,
-        "#globalRoles TD.stop A" : deleteAssignedGlobalRole,
+        "#globalRoles TD.start A.remove" : deleteAssignedGlobalRole,
+        "#globalRoles TD.stop A.remove" : deleteAssignedGlobalRole,
       });
 
       Behaviour.specify(
-        ".global-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
+        ".globalRoles-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
           makeButton(e,function(e) {
             addButtonAction(e, globalMaster, globalTable, globalTableHighlighter);
             globalSidCount++;

@@ -2,7 +2,7 @@ roleBased:
   roles:
     agents:
     - assignments:
-      - "user1"
+      - "USER:user1"
       description: "Agent 1"
       name: "Agent1"
       pattern: "agent1"
@@ -10,14 +10,14 @@ roleBased:
       - "Agent/Build"
     global:
     - assignments:
-      - "admin"
+      - "USER:admin"
       description: "Jenkins administrators"
       name: "admin"
       pattern: ".*"
       permissions:
       - "Overall/Administer"
     - assignments:
-      - "authenticated"
+      - "GROUP:authenticated"
       description: "Read-only users"
       name: "readonly"
       pattern: ".*"
@@ -26,8 +26,8 @@ roleBased:
       - "Job/Read"
     items:
     - assignments:
-      - "user1"
-      - "user2"
+      - "USER:user1"
+      - "USER:user2"
       description: "Jobs in Folder A, but not the folder itself"
       name: "FolderA"
       pattern: "A/.*"
@@ -36,7 +36,7 @@ roleBased:
       - "Job/Delete"
       - "Job/Configure"
     - assignments:
-      - "user2"
+      - "USER:user2"
       description: "Jobs in Folder B, but not the folder itself"
       name: "FolderB"
       pattern: "B.*"

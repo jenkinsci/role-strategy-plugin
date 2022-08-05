@@ -49,7 +49,7 @@ public class ApiTest {
     // Adding admin role and assigning adminUser
     RoleBasedAuthorizationStrategy.getInstance().doAddRole("globalRoles", "adminRole",
         "hudson.model.Hudson.Read,hudson.model.Hudson.Administer,hudson.security.Permission.GenericRead", "false", "");
-    RoleBasedAuthorizationStrategy.getInstance().doAssignRole("globalRoles", "adminRole", "adminUser");
+    RoleBasedAuthorizationStrategy.getInstance().doAssignRole("globalRoles", "adminRole", "USER:adminUser");
     webClient = jenkinsRule.createWebClient();
     webClient.login("adminUser", "adminUser");
   }
@@ -72,9 +72,9 @@ public class ApiTest {
 
     // Verifying that the role is in
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<String>> grantedRoles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> grantedRoles = strategy.getGrantedRoles(RoleType.Project);
     boolean foundRole = false;
-    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
       Role role = entry.getKey();
       if (role.getName().equals("new-role") && role.getPattern().pattern().equals(pattern)) {
         foundRole = true;
@@ -105,6 +105,7 @@ public class ApiTest {
   public void testAssignRole() throws IOException {
     String roleName = "new-role";
     String sid = "alice";
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
     Authentication alice = User.getById(sid, true).impersonate2();
     // Confirming that alice does not have access before assigning
     MockFolder folder = jenkinsRule.createFolder("test-folder");
@@ -115,18 +116,18 @@ public class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
+        new NameValuePair("roleName", roleName), new NameValuePair("sid", "USER:" + sid)));
     Page page = webClient.getPage(request);
     assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
 
     // Verifying that alice is assigned to the role "new-role"
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<String>> roles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
     boolean found = false;
-    for (Map.Entry<Role, Set<String>> entry : roles.entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
-      Set<String> sids = entry.getValue();
-      if (role.getName().equals(roleName) && sids.contains(sid)) {
+      Set<PermissionEntry> sids = entry.getValue();
+      if (role.getName().equals(roleName) && sids.contains(sidEntry)) {
         found = true;
         break;
       }
@@ -142,21 +143,22 @@ public class ApiTest {
 
     String roleName = "new-role";
     String sid = "alice";
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
     testAssignRole(); // assign alice to a role named "new-role" that has configure access to "test-folder.*"
     URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignRole");
     WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
+        new NameValuePair("roleName", roleName), new NameValuePair("sid", "USER:" + sid)));
     Page page = webClient.getPage(request);
     assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
 
     // Verifying that alice no longer has permissions
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<String>> roles = strategy.getGrantedRoles(RoleType.Project);
-    for (Map.Entry<Role, Set<String>> entry : roles.entrySet()) {
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
-      Set<String> sids = entry.getValue();
-      assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains("alice"));
+      Set<PermissionEntry> sids = entry.getValue();
+      assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains(sidEntry));
     }
     // Verifying that ACL is updated
     Authentication alice = User.getById("alice", false).impersonate2();

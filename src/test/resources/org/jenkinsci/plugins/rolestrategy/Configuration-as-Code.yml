@@ -8,14 +8,14 @@ jenkins:
             permissions:
               - "Overall/Administer"
             assignments:
-              - "admin"
+              - "USER:admin"
           - name: "readonly"
             description: "Read-only users"
             permissions:
               - "Overall/Read"
               - "Job/Read"
             assignments:
-              - "authenticated"
+              - "GROUP:authenticated"
         items:
           - name: "FolderA"
             description: "Jobs in Folder A, but not the folder itself"
@@ -25,8 +25,8 @@ jenkins:
               - "Job/Build"
               - "Job/Delete"
             assignments:
-              - "user1"
-              - "user2"
+              - "USER:user1"
+              - "USER:user2"
           - name: "FolderB"
             description: "Jobs in Folder B, but not the folder itself"
             pattern: "B.*"
@@ -34,7 +34,7 @@ jenkins:
               - "Job/Configure"
               - "Job/Build"
             assignments:
-              - "user2"
+              - "USER:user2"
         agents:
           - name: "Agent1"
             description: "Agent 1"
@@ -42,7 +42,7 @@ jenkins:
             permissions:
               - "Agent/Build"
             assignments:
-              - "user1"
+              - "USER:user1"
 
   # System for test
   securityRealm:

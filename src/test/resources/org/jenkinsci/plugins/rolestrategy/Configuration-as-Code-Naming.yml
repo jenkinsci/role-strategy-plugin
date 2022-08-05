@@ -8,22 +8,22 @@ jenkins:
             permissions:
               - "Overall/Administer"
             assignments:
-              - "admin"
+              - "USER:admin"
           - name: "readonly"
             description: "Read-only users"
             permissions:
               - "Overall/Read"
               - "Job/Read"
             assignments:
-              - "authenticated"
+              - "GROUP:authenticated"
           - name: "jobcreate"
             description: "Create Job User"
             permissions:
               - "Job/Create"
               - "Job/Configure"
             assignments:
-              - "userGlobal"
-              - "groupGlobal"
+              - "USER:userGlobal"
+              - "USER:groupGlobal"
         items:
           - name: "jobcreate"
             description: "Can create jobs"
@@ -35,8 +35,8 @@ jenkins:
               - "Job/Create"
               - "Job/Read"
             assignments:
-              - "userJobCreate"
-              - "groupJobCreate"
+              - "USER:userJobCreate"
+              - "GROUP:groupJobCreate"
           - name: "folderjobcreate"
             description: "Can create jobs in a folder"
             pattern: "^folder/job.*"
@@ -47,8 +47,8 @@ jenkins:
               - "Job/Create"
               - "Job/Read"
             assignments:
-              - "userJobCreate"
-              - "groupJobCreate"
+              - "USER:userJobCreate"
+              - "GROUP:groupJobCreate"
           - name: "jobread"
             description: "Can only read jobs"
             pattern: "^job.*"
@@ -56,8 +56,8 @@ jenkins:
               - "Job/Build"
               - "Job/Read"
             assignments:
-              - "userRead"
-              - "groupRead"
+              - "USER:userRead"
+              - "GROUP:groupRead"
 
   # System for test
   securityRealm:

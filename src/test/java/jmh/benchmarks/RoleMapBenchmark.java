@@ -1,5 +1,7 @@
 package jmh.benchmarks;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -79,11 +81,11 @@ abstract class RoleMapBenchmarkState extends JmhBenchmarkState {
 
   @Override
   public void setup() throws Exception {
-    SortedMap<Role, Set<String>> map = new TreeMap<>();
+    SortedMap<Role, Set<PermissionEntry>> map = new TreeMap<>();
     final int roleCount = getRoleCount();
     for (int i = 0; i < roleCount; i++) {
       Role role = new Role("role" + i, ".*", new HashSet<>(Arrays.asList("hudson.model.Item.Discover", "hudson.model.Item.Configure")), "");
-      map.put(role, Collections.singleton("user" + i));
+      map.put(role, Collections.singleton(new PermissionEntry(AuthorizationType.USER, "user" + i)));
     }
     roleMap = new RoleMap(map);
 

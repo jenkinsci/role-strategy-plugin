@@ -59,6 +59,7 @@
   border-right: 1px solid transparent;
   border-bottom: 1px solid transparent;
   white-space: nowrap;
+  text-align: left;
 }
 
 label.attach-previous {
@@ -106,4 +107,19 @@ label.attach-previous {
 .jenkins-checkbox {
 	vertical-align: middle;
 	margin: 3px 0px;
+}
+
+@keyframes highlightentry {
+  from { background: #C4C080; }
+  to { background: transparent; }
+}
+
+.highlight-entry {
+  -webkit-animation: highlightentry 5s;
+  -moz-animation: highlightentry 5s;
+  animation: highlightentry 5s;
+}
+
+.alert {
+	margin-top: 10px;
 }

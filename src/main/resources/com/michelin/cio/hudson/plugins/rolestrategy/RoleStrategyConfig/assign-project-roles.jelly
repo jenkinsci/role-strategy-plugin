@@ -61,16 +61,21 @@
         </j:forEach>
         <td class="stop" />
       </tr>
-      <j:forEach var="sid" items="${projectSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-          <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
-        </tr>
-      </j:forEach>
-      <tr name="anonymous" class="highlight-row">
-        <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
+      <tr name="[USER:anonymous]" class="highlight-row">
+        <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.PROJECT}" permissionType="USER"/>
       </tr>
+      <tr name="[GROUP:authenticated]" class="highlight-row">
+        <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.PROJECT}" permissionType="GROUP"/>
+      </tr>
+      <j:forEach var="entry" items="${projectSIDs}">
+        <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
+	        <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+	          <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" type="${it.strategy.PROJECT}"/>
+	        </tr>
+	      </j:if>
+      </j:forEach>
       <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-        <local:userRow title="{{USER}}" global="${false}" type="${it.strategy.PROJECT}"/>
+        <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${projectSIDs.size() ge 20}">
@@ -91,7 +96,7 @@
 
     <l:isAdmin>
       <br/>
-      <local:addButtons type="item" sids="${projectSIDs}" id="${id}"/>
+      <local:addButtons type="projectRoles" sids="${projectSIDs}" id="${id}"/>
     </l:isAdmin>
 
     <script>
@@ -129,12 +134,12 @@
         e = null; <!-- avoid memory leak -->
       }
       Behaviour.register({
-        "#projectRoles TD.start A" : deleteAssignedProjectRole,
-        "#projectRoles TD.stop A" : deleteAssignedProjectRole,
+        "#projectRoles TD.start A.remove" : deleteAssignedProjectRole,
+        "#projectRoles TD.stop A.remove" : deleteAssignedProjectRole,
       });
 
       Behaviour.specify(
-        ".item-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
+        ".projectRoles-add-button", "RoleBasedAuthorizationStrategy", 0, function(e) {
           makeButton(e,function(e) {
             addButtonAction(e, itemMaster, itemTable, itemTableHighlighter);
             itemSidCount++;

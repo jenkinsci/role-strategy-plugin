@@ -61,6 +61,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
+import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
 import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.jenkinsci.plugins.rolestrategy.Settings;
@@ -82,7 +83,7 @@ public class RoleMap {
   /**
    * Map associating each {@link Role} with the concerned {@link User}s/groups.
    */
-  private final SortedMap<Role, Set<String>> grantedRoles;
+  private final SortedMap<Role, Set<PermissionEntry>> grantedRoles;
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
@@ -112,9 +113,9 @@ public class RoleMap {
    * @param grantedRoles Roles to be granted.
    */
   @DataBoundConstructor
-  public RoleMap(@NonNull SortedMap<Role, Set<String>> grantedRoles) {
+  public RoleMap(@NonNull SortedMap<Role, Set<PermissionEntry>> grantedRoles) {
     this();
-    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
       this.grantedRoles.put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
   }
@@ -125,24 +126,39 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   @Restricted(NoExternalUse.class)
-  public boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
+  public boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem, boolean principal) {
     final Set<Permission> permissions = getImplyingPermissions(permission);
     final boolean[] hasPermission = { false };
 
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
     new RoleWalker() {
+
+      @CheckForNull
+      private PermissionEntry hasPermission(Role current, String sid, boolean principal) {
+        PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, sid);
+        if (grantedRoles.get(current).contains(entry)) {
+          return entry;
+        }
+        entry = new PermissionEntry(AuthorizationType.EITHER, sid);
+        if (grantedRoles.get(current).contains(entry)) {
+          return entry;
+        }
+        return null;
+      }
+
       @Override
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
-          if (grantedRoles.get(current).contains(sid)) {
+          PermissionEntry entry = hasPermission(current, sid, principal);
+          if (grantedRoles.get(current).contains(entry)) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
               if (controlledItem != null && macro != null) {
                 RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
                 if (macroExtension.IsApplicable(roleType)
-                    && macroExtension.hasPermission(sid, permission, roleType, controlledItem, macro)) {
+                    && macroExtension.hasPermission(entry, permission, roleType, controlledItem, macro)) {
                   hasPermission[0] = true;
                   abort();
                 }
@@ -257,7 +273,7 @@ public class RoleMap {
    * @param role The {@link Role} to assign the sid to
    * @param sid  The sid to assign
    */
-  public void assignRole(Role role, String sid) {
+  public void assignRole(Role role, PermissionEntry sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
       matchingRoleMapCache.invalidateAll();
@@ -271,8 +287,8 @@ public class RoleMap {
    * @param sid  The sid to assign
    * @since 2.6.0
    */
-  public void unAssignRole(Role role, String sid) {
-    Set<String> sids = grantedRoles.get(role);
+  public void unAssignRole(Role role, PermissionEntry sid) {
+    Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(sid);
       matchingRoleMapCache.invalidateAll();
@@ -296,9 +312,9 @@ public class RoleMap {
    *
    * @param sid The sid for which you want to clear the {@link Role}s
    */
-  public void deleteSids(String sid) {
-    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
-      Set<String> sids = entry.getValue();
+  public void deleteSids(PermissionEntry sid) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
+      Set<PermissionEntry> sids = entry.getValue();
       sids.remove(sid);
     }
     matchingRoleMapCache.invalidateAll();
@@ -307,12 +323,12 @@ public class RoleMap {
   /**
    * Clear specific role associated to the given sid.
    *
-   * @param sid      The sid for thwich you want to clear the {@link Role}s
-   * @param rolename The role for thwich you want to clear the {@link Role}s
+   * @param sid      The sid for wich you want to clear the {@link Role}s
+   * @param rolename The role for wich you want to clear the {@link Role}s
    * @since 2.6.0
    */
-  public void deleteRoleSid(String sid, String rolename) {
-    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
+  public void deleteRoleSid(PermissionEntry sid, String rolename) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
       Role role = entry.getKey();
       if (role.getName().equals(rolename)) {
         unAssignRole(role, sid);
@@ -325,7 +341,7 @@ public class RoleMap {
    * Clear all the sids for each {@link Role} of the {@link RoleMap}.
    */
   public void clearSids() {
-    for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : this.grantedRoles.entrySet()) {
       Role role = entry.getKey();
       this.clearSidsForRole(role);
     }
@@ -362,7 +378,7 @@ public class RoleMap {
    *
    * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
    */
-  public SortedMap<Role, Set<String>> getGrantedRoles() {
+  public SortedMap<Role, Set<PermissionEntry>> getGrantedRoles() {
     return Collections.unmodifiableSortedMap(this.grantedRoles);
   }
 
@@ -380,7 +396,7 @@ public class RoleMap {
    *
    * @return A sorted set containing all the sids, minus the {@code Anonymous} sid
    */
-  public SortedSet<String> getSids() {
+  public SortedSet<PermissionEntry> getSids() {
     return this.getSids(false);
   }
 
@@ -390,14 +406,14 @@ public class RoleMap {
    * @param includeAnonymous True if you want the {@code Anonymous} sid to be included in the set
    * @return A sorted set containing all the sids
    */
-  public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = new TreeSet<>();
-    for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
+  public SortedSet<PermissionEntry> getSids(Boolean includeAnonymous) {
+    TreeSet<PermissionEntry> sids = new TreeSet<>();
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : this.grantedRoles.entrySet()) {
       sids.addAll(entry.getValue());
     }
     // Remove the anonymous sid if asked to
     if (!includeAnonymous) {
-      sids.remove("anonymous");
+      sids.remove(new PermissionEntry(AuthorizationType.USER, "anonymous"));
     }
     return Collections.unmodifiableSortedSet(sids);
   }
@@ -409,7 +425,7 @@ public class RoleMap {
    * @return A sorted set containing all the sids. {@code null} if the role is missing.
    */
   @CheckForNull
-  public Set<String> getSidsForRole(String roleName) {
+  public Set<PermissionEntry> getSidsForRole(String roleName) {
     Role role = this.getRole(roleName);
     if (role != null) {
       return Collections.unmodifiableSet(this.grantedRoles.get(role));
@@ -429,7 +445,7 @@ public class RoleMap {
   }
 
   private RoleMap createMatchingRoleMap(String itemNamePrefix) {
-    SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
+    SortedMap<Role, Set<PermissionEntry>> roleMap = new TreeMap<>();
     new RoleWalker() {
       @Override
       public void perform(Role current) {
@@ -466,8 +482,8 @@ public class RoleMap {
    * Get all job names matching the given pattern, viewable to the requesting user.
    *
    * @param matchedItems List that will take the matched item names
-   * @param pattern Pattern to match against
-   * @param maxJobs Max matching jobs to look for
+   * @param pattern      Pattern to match against
+   * @param maxJobs      Max matching jobs to look for
    * @return Number of matched jobs
    */
   @Restricted(NoExternalUse.class)
@@ -508,8 +524,8 @@ public class RoleMap {
    * Get all agent names matching the given pattern, viewable to the requesting user.
    *
    * @param matchingAgentNames List that will take the matched agent names
-   * @param pattern   Pattern to match against
-   * @param maxAgents Max matching agents to look for
+   * @param pattern            Pattern to match against
+   * @param maxAgents          Max matching agents to look for
    * @return List of matching agent names
    */
   @Restricted(NoExternalUse.class)
@@ -553,7 +569,8 @@ public class RoleMap {
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item)) {
+      boolean principal = sid instanceof PrincipalSid ? true : false;
+      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item, principal)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))
@@ -578,7 +595,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item)) {
+          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item, principal)) {
             return true;
           }
         }
