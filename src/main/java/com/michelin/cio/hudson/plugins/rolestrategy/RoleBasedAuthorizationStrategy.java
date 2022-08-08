@@ -295,6 +295,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
   }
 
+  private static void persistChanges() throws IOException {
+    instance().save();
+  }
+
+  private static Jenkins instance() {
+    return Jenkins.get();
+  }
+
+  private static void checkAdminPerm() {
+    instance().checkPermission(Jenkins.ADMINISTER);
+  }
+
   /**
    * API method to add a role.
    *
@@ -346,6 +358,269 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
+   * API method to remove roles.
+   *
+   * <p>
+   * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
+   * roleNames=ADM,DEV"}
+   *
+   * @param type      (globalRoles, projectRoles, slaveRoles)
+   * @param roleNames comma separated list of roles to remove from type
+   * @throws IOException in case saving changes fails
+   * @since 2.5.0
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doRemoveRoles(@QueryParameter(required = true) String type, @QueryParameter(required = true) String roleNames)
+      throws IOException {
+    checkAdminPerm();
+
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
+    String[] split = roleNames.split(",");
+    for (String roleName : split) {
+      Role role = roleMap.getRole(roleName);
+      if (role != null) {
+        roleMap.removeRole(role);
+      }
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to assign a SID to role.
+   *
+   * Will create an entry of type EITHER.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
+   * &amp;sid=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName name of role (single, no list)
+   * @param sid      user ID (single, no list)
+   * @throws IOException in case saving changes fails
+   * @since 2.5.0
+   * @deprecated Use {@link doAssignUserRole} or {@link doAssignGroupRole} to create unambiguous entries
+   */
+  @Deprecated
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doAssignRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String sid) throws IOException {
+    checkAdminPerm();
+    final RoleType roleType = RoleType.fromString(type);
+    Role role = getRoleMap(roleType).getRole(roleName);
+    if (role != null) {
+      assignRole(roleType, role, new PermissionEntry(AuthorizationType.EITHER, sid));
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to assign a User to role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/assignUserRole --data "type=globalRoles&amp;roleName=ADM
+   * &amp;user=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName name of role (single, no list)
+   * @param user     user ID (single, no list)
+   * @throws IOException in case saving changes fails
+   * @since 2.5.0
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doAssignUserRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String user) throws IOException {
+    checkAdminPerm();
+    final RoleType roleType = RoleType.fromString(type);
+    Role role = getRoleMap(roleType).getRole(roleName);
+    if (role != null) {
+      assignRole(roleType, role, new PermissionEntry(AuthorizationType.USER, user));
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to assign a Group to role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/assignGroupRole --data "type=globalRoles&amp;roleName=ADM
+   * &amp;group=groupname"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName name of role (single, no list)
+   * @param group    group ID (single, no list)
+   * @throws IOException in case saving changes fails
+   * @since 2.5.0
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doAssignGroupRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String group) throws IOException {
+    checkAdminPerm();
+    final RoleType roleType = RoleType.fromString(type);
+    Role role = getRoleMap(roleType).getRole(roleName);
+    if (role != null) {
+      assignRole(roleType, role, new PermissionEntry(AuthorizationType.GROUP, group));
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to delete a SID from all granted roles.
+   * Only SIDS of type EITHER with the given name will be deleted.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"}
+   *
+   * @param type (globalRoles, projectRoles, slaveRoles)
+   * @param sid  user/group ID to remove
+   * @throws IOException in case saving changes fails
+   * @since 2.4.1
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteSid(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String sid) throws IOException {
+    checkAdminPerm();
+    getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.EITHER, sid));
+    persistChanges();
+  }
+
+  /**
+   * API method to delete a user from all granted roles.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/deleteUser --data "type=globalRoles&amp;user=username"}
+   *
+   * @param type (globalRoles, projectRoles, slaveRoles)
+   * @param user user ID to remove
+   * @throws IOException in case saving changes fails
+   * @since 2.4.1
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteUser(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String user) throws IOException {
+    checkAdminPerm();
+    getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.USER, user));
+    persistChanges();
+  }
+
+  /**
+   * API method to delete a group from all granted roles.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/deleteGroup --data "type=globalRoles&amp;group=groupname"}
+   *
+   * @param type  (globalRoles, projectRoles, slaveRoles)
+   * @param group group ID to remove
+   * @throws IOException in case saving changes fails
+   * @since 2.4.1
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteGroup(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String group) throws IOException {
+    checkAdminPerm();
+    getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.GROUP, group));
+    persistChanges();
+  }
+
+  /**
+   * API method to remove a SID from a role.
+   * Only entries of type EITHER will be removed.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD&amp;sid=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName unassign role with sid
+   * @param sid      user ID to remove
+   * @throws IOException in case saving changes fails
+   * @since 2.6.0
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doUnassignRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String sid) throws IOException {
+    checkAdminPerm();
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
+    Role role = roleMap.getRole(roleName);
+    if (role != null) {
+      roleMap.deleteRoleSid(new PermissionEntry(AuthorizationType.EITHER, sid), role.getName());
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to remove a user from a role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignUserRole --data "type=globalRoles&amp;roleName=AMD&amp;user=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName unassign role with sid
+   * @param user     user ID to remove
+   * @throws IOException in case saving changes fails
+   * @since TODO
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doUnassignUserRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String user) throws IOException {
+    checkAdminPerm();
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
+    Role role = roleMap.getRole(roleName);
+    if (role != null) {
+      roleMap.deleteRoleSid(new PermissionEntry(AuthorizationType.USER, user), role.getName());
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to remove a user from a role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignGroupRole --data "type=globalRoles&amp;roleName=AMD&amp;user=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName unassign role with sid
+   * @param group    user ID to remove
+   * @throws IOException in case saving changes fails
+   * @since TODO
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doUnassignGroupRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String group) throws IOException {
+    checkAdminPerm();
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
+    Role role = roleMap.getRole(roleName);
+    if (role != null) {
+      roleMap.deleteRoleSid(new PermissionEntry(AuthorizationType.GROUP, group), role.getName());
+    }
+    persistChanges();
+  }
+
+  /**
    * API method to get the granted permissions of a role and the SIDs assigned to it.
    *
    * <p>
@@ -363,7 +638,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *         "hudson.model.Item.Read":true,
    *         "hudson.model.Item.Build":true,
    *      },
-   *      "sids": ["user1", "group1"]
+   *      "sids": [{"type":"USER","sid":"user1"}, {"type":"USER","sid":"user2"}]
    *   }
    * }
    * </pre>
@@ -403,126 +678,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to remove roles.
-   *
-   * <p>
-   * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/removeRoles --data "type=globalRoles&amp;
-   * roleNames=ADM,DEV"}
-   *
-   * @param type      (globalRoles, projectRoles, slaveRoles)
-   * @param roleNames comma separated list of roles to remove from type
-   * @throws IOException in case saving changes fails
-   * @since 2.5.0
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doRemoveRoles(@QueryParameter(required = true) String type, @QueryParameter(required = true) String roleNames)
-      throws IOException {
-    checkAdminPerm();
-
-    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-    String[] split = roleNames.split(",");
-    for (String roleName : split) {
-      Role role = roleMap.getRole(roleName);
-      if (role != null) {
-        roleMap.removeRole(role);
-      }
-    }
-    persistChanges();
-  }
-
-  /**
-   * API method to assign SID to role.
-   *
-   * <p>
-   * Example:
-   * {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
-   * &amp;sid=username"}
-   *
-   * @param type     (globalRoles, projectRoles, slaveRoles)
-   * @param roleName name of role (single, no list)
-   * @param sid      user ID (single, no list)
-   * @throws IOException in case saving changes fails
-   * @since 2.5.0
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doAssignRole(@QueryParameter(required = true) String type,
-      @QueryParameter(required = true) String roleName,
-      @QueryParameter(required = true) String sid) throws IOException {
-    checkAdminPerm();
-    final RoleType roleType = RoleType.fromString(type);
-    Role role = getRoleMap(roleType).getRole(roleName);
-    if (role != null) {
-      PermissionEntry pe = PermissionEntry.fromString(sid);
-      assignRole(roleType, role, pe);
-    }
-    persistChanges();
-  }
-
-  private static void persistChanges() throws IOException {
-    instance().save();
-  }
-
-  private static Jenkins instance() {
-    return Jenkins.get();
-  }
-
-  private static void checkAdminPerm() {
-    instance().checkPermission(Jenkins.ADMINISTER);
-  }
-
-  /**
-   * API method to delete a SID from all granted roles.
-   *
-   * <p>
-   * Example:
-   * {@code curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"}
-   *
-   * @param type (globalRoles, projectRoles, slaveRoles)
-   * @param sid  user ID to remove
-   * @throws IOException in case saving changes fails
-   * @since 2.4.1
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doDeleteSid(@QueryParameter(required = true) String type,
-      @QueryParameter(required = true) String sid) throws IOException {
-    checkAdminPerm();
-    PermissionEntry pe = PermissionEntry.fromString(sid);
-    getRoleMap(RoleType.fromString(type)).deleteSids(pe);
-    persistChanges();
-  }
-
-  /**
-   * API method to remove a SID from a role.
-   *
-   * <p>
-   * Example:
-   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD&amp;sid=username"}
-   *
-   * @param type     (globalRoles, projectRoles, slaveRoles)
-   * @param roleName unassign role with sid
-   * @param sid      user ID to remove
-   * @throws IOException in case saving changes fails
-   * @since 2.6.0
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doUnassignRole(@QueryParameter(required = true) String type,
-      @QueryParameter(required = true) String roleName,
-      @QueryParameter(required = true) String sid) throws IOException {
-    checkAdminPerm();
-    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-    Role role = roleMap.getRole(roleName);
-    if (role != null) {
-      PermissionEntry pe = PermissionEntry.fromString(sid);
-      roleMap.deleteRoleSid(pe, role.getName());
-    }
-    persistChanges();
-  }
-
-  /**
    * API method to get all roles and the SIDs assigned to the roles for a roletype.
    *
    * <p>
@@ -534,8 +689,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * <pre>{@code
    *   {
-   *     "role2": ["user1", "user2"],
-   *     "role2": ["group1", "user2"]
+   *     "role2": [{"type":"USER","sid":"user1"}, {"type":"USER","sid":"user2"}],
+   *     "role2": [{"type":"GROUP","sid":"group1"}, {"type":"USER","sid":"user2"}]
    *   }
    * }</pre>
    *

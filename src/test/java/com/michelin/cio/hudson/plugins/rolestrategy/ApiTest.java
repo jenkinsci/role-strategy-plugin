@@ -28,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 import org.jvnet.hudson.test.MockFolder;
 import org.springframework.security.core.Authentication;
 
@@ -39,17 +40,19 @@ public class ApiTest {
   @Rule
   public final JenkinsRule jenkinsRule = new JenkinsRule();
   private JenkinsRule.WebClient webClient;
+  private DummySecurityRealm securityRealm;
 
   @Before
   public void setUp() throws Exception {
     // Setting up jenkins configurations
-    jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
+    securityRealm = jenkinsRule.createDummySecurityRealm();
+    jenkinsRule.jenkins.setSecurityRealm(securityRealm);
     jenkinsRule.jenkins.setAuthorizationStrategy(new RoleBasedAuthorizationStrategy());
     jenkinsRule.jenkins.setCrumbIssuer(null);
     // Adding admin role and assigning adminUser
     RoleBasedAuthorizationStrategy.getInstance().doAddRole("globalRoles", "adminRole",
         "hudson.model.Hudson.Read,hudson.model.Hudson.Administer,hudson.security.Permission.GenericRead", "false", "");
-    RoleBasedAuthorizationStrategy.getInstance().doAssignRole("globalRoles", "adminRole", "USER:adminUser");
+    RoleBasedAuthorizationStrategy.getInstance().doAssignUserRole("globalRoles", "adminRole", "adminUser");
     webClient = jenkinsRule.createWebClient();
     webClient.login("adminUser", "adminUser");
   }
@@ -105,7 +108,7 @@ public class ApiTest {
   public void testAssignRole() throws IOException {
     String roleName = "new-role";
     String sid = "alice";
-    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.EITHER, sid);
     Authentication alice = User.getById(sid, true).impersonate2();
     // Confirming that alice does not have access before assigning
     MockFolder folder = jenkinsRule.createFolder("test-folder");
@@ -116,7 +119,7 @@ public class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("sid", "USER:" + sid)));
+        new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
     Page page = webClient.getPage(request);
     assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
 
@@ -143,12 +146,144 @@ public class ApiTest {
 
     String roleName = "new-role";
     String sid = "alice";
-    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.EITHER, sid);
     testAssignRole(); // assign alice to a role named "new-role" that has configure access to "test-folder.*"
     URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignRole");
     WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("sid", "USER:" + sid)));
+        new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
+    Page page = webClient.getPage(request);
+    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+
+    // Verifying that alice no longer has permissions
+    RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
+      Role role = entry.getKey();
+      Set<PermissionEntry> sids = entry.getValue();
+      assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains(sidEntry));
+    }
+    // Verifying that ACL is updated
+    Authentication alice = User.getById("alice", false).impersonate2();
+    Item folder = jenkinsRule.jenkins.getItemByFullName("test-folder");
+    assertFalse(folder.hasPermission2(alice, Item.CONFIGURE));
+  }
+
+  @Test
+  public void testAssignUserRole() throws IOException {
+    String roleName = "new-role";
+    String sid = "alice";
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
+    Authentication alice = User.getById(sid, true).impersonate2();
+    // Confirming that alice does not have access before assigning
+    MockFolder folder = jenkinsRule.createFolder("test-folder");
+    assertFalse(folder.hasPermission2(alice, Item.CONFIGURE));
+
+    // Assigning role using web request
+    testAddRole(); // adds a role "new-role" that has configure access on "test-folder.*"
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignUserRole");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
+        new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
+    Page page = webClient.getPage(request);
+    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+
+    // Verifying that alice is assigned to the role "new-role"
+    RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    boolean found = false;
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
+      Role role = entry.getKey();
+      Set<PermissionEntry> sids = entry.getValue();
+      if (role.getName().equals(roleName) && sids.contains(sidEntry)) {
+        found = true;
+        break;
+      }
+    }
+    assertTrue(found);
+    // Verifying that ACL is updated
+    assertTrue(folder.hasPermission2(alice, Item.CONFIGURE));
+  }
+
+  @Test
+  public void testUnassignUserRole() throws IOException {
+
+    String roleName = "new-role";
+    String sid = "alice";
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
+    testAssignUserRole(); // assign alice to a role named "new-role" that has configure access to "test-folder.*"
+    URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignUserRole");
+    WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+    request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
+        new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
+    Page page = webClient.getPage(request);
+    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+
+    // Verifying that alice no longer has permissions
+    RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
+      Role role = entry.getKey();
+      Set<PermissionEntry> sids = entry.getValue();
+      assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains(sidEntry));
+    }
+    // Verifying that ACL is updated
+    Authentication alice = User.getById("alice", false).impersonate2();
+    Item folder = jenkinsRule.jenkins.getItemByFullName("test-folder");
+    assertFalse(folder.hasPermission2(alice, Item.CONFIGURE));
+  }
+
+  @Test
+  public void testAssignGroupRole() throws IOException {
+    String roleName = "new-role";
+    String sid = "alice";
+    String group = "group";
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.GROUP, group);
+    User user = User.getById(sid, true);
+    securityRealm.addGroups(sid, group);
+    Authentication alice = user.impersonate2();
+    // Confirming that alice does not have access before assigning
+    MockFolder folder = jenkinsRule.createFolder("test-folder");
+    assertFalse(folder.hasPermission2(alice, Item.CONFIGURE));
+
+    // Assigning role using web request
+    testAddRole(); // adds a role "new-role" that has configure access on "test-folder.*"
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignGroupRole");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
+        new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
+    Page page = webClient.getPage(request);
+    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+
+    // Verifying that alice is assigned to the role "new-role"
+    RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    boolean found = false;
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
+      Role role = entry.getKey();
+      Set<PermissionEntry> sids = entry.getValue();
+      if (role.getName().equals(roleName) && sids.contains(sidEntry)) {
+        found = true;
+        break;
+      }
+    }
+    assertTrue(found);
+    // Verifying that ACL is updated
+    assertTrue(folder.hasPermission2(alice, Item.CONFIGURE));
+  }
+
+  @Test
+  public void testUnassignGroupRole() throws IOException {
+
+    String roleName = "new-role";
+    String sid = "alice";
+    String group = "group";
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
+    testAssignGroupRole(); // assign alice to a role named "new-role" that has configure access to "test-folder.*"
+    URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignGroupRole");
+    WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
+    request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
+        new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
     Page page = webClient.getPage(request);
     assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
 
