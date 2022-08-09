@@ -136,6 +136,16 @@ public class RoleMap {
     // or a permission implying the given permission
     new RoleWalker() {
 
+      /**
+       * Checks whether the given sid is granted permission.
+       * First checks if there is a dedicated match for user/group.
+       * If not checks if there is an entry for either.
+       *
+       * @param current The current role
+       * @param sid The sid to checked
+       * @param principal If the sid is a user or a group.
+       * @return The PermissionEntry that matched or null if nothing matched.
+       */
       @CheckForNull
       private PermissionEntry hasPermission(Role current, String sid, boolean principal) {
         PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, sid);
@@ -153,7 +163,7 @@ public class RoleMap {
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
           PermissionEntry entry = hasPermission(current, sid, principal);
-          if (grantedRoles.get(current).contains(entry)) {
+          if (entry != null) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());

@@ -571,7 +571,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * <p>
    * Example:
-   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignUserRole --data "type=globalRoles&amp;roleName=AMD&amp;user=username"}
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignUserRole --data
+   *   "type=globalRoles&amp;roleName=AMD&amp;user=username"}
    *
    * @param type     (globalRoles, projectRoles, slaveRoles)
    * @param roleName unassign role with sid
@@ -598,7 +599,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * <p>
    * Example:
-   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignGroupRole --data "type=globalRoles&amp;roleName=AMD&amp;user=username"}
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignGroupRole --data
+   *   "type=globalRoles&amp;roleName=AMD&amp;user=username"}
    *
    * @param type     (globalRoles, projectRoles, slaveRoles)
    * @param roleName unassign role with sid

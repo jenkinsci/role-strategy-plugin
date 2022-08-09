@@ -87,7 +87,8 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
       Role role = roleSetEntry.getKey();
       List<String> permissions = role.getPermissions().stream()
           .map(permission -> permission.group.getId() + "/" + permission.name).collect(Collectors.toList());
-      List<String> assignements = roleSetEntry.getValue().stream().map(entry -> entry.getType().toPrefix() + entry.getSid()).collect(Collectors.toList());
+      List<String> assignements = roleSetEntry.getValue().stream().map(entry -> entry.getType().toPrefix() + entry.getSid())
+          .collect(Collectors.toList());
       return new RoleDefinition(role.getName(), role.getDescription(), role.getPattern().pattern(), permissions, assignements);
     };
   }
