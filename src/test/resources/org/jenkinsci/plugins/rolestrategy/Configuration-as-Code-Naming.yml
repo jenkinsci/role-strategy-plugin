@@ -23,7 +23,8 @@ jenkins:
               - "Job/Configure"
             assignments:
               - "USER:userGlobal"
-              - "USER:groupGlobal"
+              - "GROUP:groupGlobal"
+              - "EITHER:eitherGlobal"
         items:
           - name: "jobcreate"
             description: "Can create jobs"
@@ -37,6 +38,7 @@ jenkins:
             assignments:
               - "USER:userJobCreate"
               - "GROUP:groupJobCreate"
+              - "EITHER:eitherJobCreate"
           - name: "folderjobcreate"
             description: "Can create jobs in a folder"
             pattern: "^folder/job.*"
@@ -49,6 +51,7 @@ jenkins:
             assignments:
               - "USER:userJobCreate"
               - "GROUP:groupJobCreate"
+              - "EITHER:eitherJobCreate"
           - name: "jobread"
             description: "Can only read jobs"
             pattern: "^job.*"
@@ -58,6 +61,7 @@ jenkins:
             assignments:
               - "USER:userRead"
               - "GROUP:groupRead"
+              - "EITHER:eitherRead"
 
   # System for test
   securityRealm:

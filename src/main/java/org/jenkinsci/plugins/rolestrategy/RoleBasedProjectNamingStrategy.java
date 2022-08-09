@@ -116,14 +116,8 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
           Pattern namePattern = key.getPattern();
           if (StringUtils.isNotBlank(namePattern.toString())) {
             if (namePattern.matcher(fullName).matches()) {
-              if (sids.contains(principal)) {
+              if (hasAnyPermission(principal, authorities, sids)) {
                 return;
-              } else {
-                for (String authority : authorities) {
-                  if (sids.contains(new PermissionEntry(AuthorizationType.GROUP, authority))) {
-                    return;
-                  }
-                }
               }
             } else {
               badList.add(namePattern.toString());
@@ -139,6 +133,21 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       }
       throw new Failure(error);
     }
+  }
+
+  private boolean hasAnyPermission(PermissionEntry principal, List<String> authorities, Set<PermissionEntry> sids) {
+    PermissionEntry eitherUser = new PermissionEntry(AuthorizationType.EITHER, principal.getSid());
+    if (sids.contains(principal) || sids.contains(eitherUser)) {
+      return true;
+    } else {
+      for (String authority : authorities) {
+        if (sids.contains(new PermissionEntry(AuthorizationType.GROUP, authority))
+            || sids.contains(new PermissionEntry(AuthorizationType.EITHER, authority))) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   private boolean hasCreatePermission(RoleMap roleMap, PermissionEntry principal, List<String> authorities, RoleType roleType) {
