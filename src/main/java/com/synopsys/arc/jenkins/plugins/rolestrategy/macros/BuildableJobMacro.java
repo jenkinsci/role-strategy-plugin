@@ -69,4 +69,5 @@ public class BuildableJobMacro extends RoleMacroExtension {
   public String getDescription() {
     return "Filters out unbuildable items, e.g. folders";
   }
+
 }

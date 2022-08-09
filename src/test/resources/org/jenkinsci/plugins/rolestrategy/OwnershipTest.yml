@@ -4,7 +4,7 @@ jenkins:
       roles:
         agents:
           - assignments:
-            - "authenticated"
+            - "GROUP:authenticated"
             name: "@CurrentUserIsPrimaryOwner"
             pattern: ".*"
             description: "User is Primary Owner"
@@ -18,7 +18,7 @@ jenkins:
             - "Agent/Build"
             - "Agent/Disconnect"        
           - assignments:
-            - "authenticated"
+            - "GROUP:authenticated"
             name: "@CurrentUserIsOwner"
             pattern: ".*"
             description: "User is Owner"
@@ -33,21 +33,21 @@ jenkins:
             - "Agent/Disconnect"        
         global:
           - assignments:
-            - "admin"
+            - "USER:admin"
             name: "admin"
             pattern: ".*"
             description: "Admin Users"
             permissions:
             - "Overall/Administer"
           - assignments:
-            - "authenticated"
+            - "GROUP:authenticated"
             name: "reader"
             pattern: ".*"
             permissions:
             - "Overall/Read"
         items:
           - assignments:
-            - "authenticated"
+            - "GROUP:authenticated"
             name: "@CurrentUserIsOwner"
             pattern: ".*"
             description: "User is Owner"
@@ -64,7 +64,7 @@ jenkins:
             - "Job/Workspace"
             - "Job/ViewStatus"  # System for test
           - assignments:
-            - "authenticated"
+            - "GROUP:authenticated"
             name: "@CurrentUserIsPrimaryOwner"
             pattern: ".*"
             description: "User is Primary Owner"

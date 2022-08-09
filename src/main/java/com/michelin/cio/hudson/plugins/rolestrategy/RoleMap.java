@@ -26,12 +26,14 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.IMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Util;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
@@ -157,10 +159,19 @@ public class RoleMap {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
               if (controlledItem != null && macro != null) {
                 RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                if (macroExtension.IsApplicable(roleType)
-                    && macroExtension.hasPermission(entry, permission, roleType, controlledItem, macro)) {
-                  hasPermission[0] = true;
-                  abort();
+                if (macroExtension.IsApplicable(roleType)) {
+                  if (Util.isOverridden(IMacroExtension.class, macroExtension.getClass(), "hasPermission", PermissionEntry.class,
+                      Permission.class, RoleType.class, AccessControlled.class, Macro.class)) {
+                    if (macroExtension.hasPermission(entry, permission, roleType, controlledItem, macro)) {
+                      hasPermission[0] = true;
+                      abort();
+                    }
+                  } else {
+                    if (macroExtension.hasPermission(entry.getSid(), permission, roleType, controlledItem, macro)) {
+                      hasPermission[0] = true;
+                      abort();
+                    }
+                  }
                 }
               }
             } else {
