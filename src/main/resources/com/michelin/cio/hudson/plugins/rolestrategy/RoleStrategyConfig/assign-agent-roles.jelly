@@ -35,7 +35,7 @@
   <table id="agentRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row">
+      <tr class="group-row highlight-row">
         <td class="start" />
         <td class="pane-header blank">
           ${%User/group}
@@ -54,20 +54,20 @@
       </tr>
       <j:set var="nbAssignedAgentRoles" value="${0}" />
       <j:forEach var="sid" items="${agentSIDs}">
-        <tr name="[${sid}]" class="permission-row">
+        <tr name="[${sid}]" class="permission-row highlight-row">
           <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.SLAVE}"/>
         </tr>
         <j:set var="nbAssignedAgentRoles" value="${nbAssignedAgentRoles+1}" />
       </j:forEach>
-      <tr name="anonymous">
+      <tr name="anonymous" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.SLAVE}"/>
       </tr>
-      <tr id="${id}" style="display:none" class="permission-row">
+      <tr id="${id}" style="display:none" class="permission-row highlight-row">
         <local:userRow title="{{USER}}" global="${false}"  type="${it.strategy.SLAVE}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${nbAssignedAgentRoles ge 19}">
-        <tr class="group-row">
+        <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -142,7 +142,7 @@
       })();
 
       Event.observe(window, 'load', function(event) {
-         agentTableHighlighter = new TableHighlighter('agentRoles', 0, 1);
+         agentTableHighlighter = new TableHighlighter('agentRoles', 0);
       });
 
       var deleteAssignedAgentRole = function(e) {

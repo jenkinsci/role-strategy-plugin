@@ -44,7 +44,7 @@
   <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row">
+      <tr class="group-row highlight-row">
         <td class="start" />
         <td class="pane-header blank">
           ${%User/group}
@@ -62,19 +62,19 @@
         <td class="stop" />
       </tr>
       <j:forEach var="sid" items="${projectSIDs}">
-        <tr name="[${sid}]" class="permission-row">
+        <tr name="[${sid}]" class="permission-row highlight-row">
           <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
         </tr>
       </j:forEach>
-      <tr name="anonymous">
+      <tr name="anonymous" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
-      <tr id="${id}" style="display:none" class="permission-row">
+      <tr id="${id}" style="display:none" class="permission-row highlight-row">
         <local:userRow title="{{USER}}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
       <j:if test="${projectSIDs.size() ge 20}">
-        <tr class="group-row">
+        <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -162,7 +162,7 @@
       })();
 
       Event.observe(window, 'load', function(event) {
-         itemTableHighlighter = new TableHighlighter('projectRoles', 0, 1);
+         itemTableHighlighter = new TableHighlighter('projectRoles', 0);
       });
 
       var itemUserFilter = function(e) {

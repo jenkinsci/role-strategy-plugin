@@ -24,47 +24,47 @@
 
 class TableHighlighter {
 
-    constructor(id, decalx, decaly) {
-        this.table = $(id);
-        this.decalx = decalx;
-        this.decaly = decaly;
-        var trs = $$('#'+this.table.id+' tr');
-        for (var p=this.decaly;p<trs.length;++p){
-            this.scan(trs[p]);
-        }
-    };
+  constructor(id, decalx) {
+    this.table = $(id);
+    this.decalx = decalx;
+    let trs = $$('#'+this.table.id+' tbody tr');
+    for (let row of trs){
+        this.scan(row);
+    }
+  };
 
-    scan(tr) {
-        var element = $(tr);
-        var descendants = element.getElementsByTagName('input');
-        for (var q=0;q<descendants.length;++q) {
-            var td = $(descendants[q]);
-            // before 2.335 -- TODO remove once baseline is new enough
-            td.addEventListener('mouseover', this.highlight);
-            td.addEventListener('mouseout', this.highlight);
-            // For Jenkins 2.335+
-            if (td.nextSibling != null) {
-              td.nextSibling.addEventListener('mouseover', this.highlight);
-              td.nextSibling.addEventListener('mouseout', this.highlight);
-            }
-        }
-    };
+  scan(tr) {
+    let element = $(tr);
+    let descendants = element.getElementsByTagName('input');
+    for (let descendant of descendants) {
+      let td = $(descendant);
+      // before 2.335 -- TODO remove once baseline is new enough
+      td.addEventListener('mouseover', this.highlight);
+      td.addEventListener('mouseout', this.highlight);
+      // For Jenkins 2.335+
+      if (td.nextSibling != null) {
+        td.nextSibling.addEventListener('mouseover', this.highlight);
+        td.nextSibling.addEventListener('mouseout', this.highlight);
+      }
+    }
+  };
 
-    highlight = e => {
-        var td = findAncestor(Event.element(e), "TD")
-        var tr = td.parentNode;
-        var trs = $$('#'+this.table.id+' tr');
-        var position = td.previousSiblings().length;
+  highlight = e => {
+    let td = findAncestor(Event.element(e), "TD")
+    let tr = td.parentNode;
+    let trs = $$('#'+this.table.id+' tr.highlight-row');
+    let position = td.previousSiblings().length;
 
-        for (var p=this.decaly-1;p<trs.length;++p){
-            var element = $(trs[p]);
-            var num = position;
-            if (p==1) num = num - this.decalx;
-            element.immediateDescendants()[num ].toggleClassName('highlighted');
-        }
-        tr.toggleClassName('highlighted');
-    };
-
+    let p = 0;
+    for (let row of trs){
+      let num = position;
+        if (p==0) num = num - this.decalx;
+        p++;
+        let imd = row.immediateDescendants();
+        row.immediateDescendants()[num].toggleClassName('highlighted');
+    }
+    tr.toggleClassName('highlighted');
+  };
 };
 
 var doubleEscapeHTML = function(unsafe) {
@@ -89,7 +89,7 @@ var escapeHTML = function(unsafe) {
 };
 
 var preventFormSubmit = function(e) {
-  var key = e.charCode || e.keyCode || 0;     
+  let key = e.charCode || e.keyCode || 0;
   if (key == 13) {
     e.preventDefault();
     e.stopImmediatePropagation();
