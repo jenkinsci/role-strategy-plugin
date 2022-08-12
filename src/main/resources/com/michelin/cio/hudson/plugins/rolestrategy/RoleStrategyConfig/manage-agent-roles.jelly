@@ -30,10 +30,13 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="agentGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
+  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
+  <j:set var="tableid" value="agentRoles"/>
   
-  <table id="agentRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
-      <!-- The first row will show grouping -->
+    <!-- The first row will show grouping -->
+    <thead>
       <tr class="group-row">
         <td rowspan="2" class="start" />
         <td rowspan="2" class="pane-header blank">
@@ -57,7 +60,7 @@
         <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
       </tr>
       <!-- The second row for individual permission -->
-      <tr class="caption-row">
+      <tr class="caption-row highlight-row">
         <j:forEach var="g" items="${agentGroups}">
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
@@ -68,21 +71,26 @@
           </j:forEach>
         </j:forEach>
       </tr>
-      <j:set var="nbAgentRoles" value="${0}" />
-      <j:forEach var="role" items="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}">
-        <tr name="[${role.key.name}]" class="permission-row">
+    </thead>
+    <tbody>
+      <j:forEach var="role" items="${agentGrantedRoles}">
+        <tr name="[${role.key.name}]" class="permission-row highlight-row">
           <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"
                          project="${false}"/>
         </tr>
-        <j:set var="nbAgentRoles" value="${nbAgentRoles+1}"/>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
-      <tr id="${id}" style="display:none" class="permission-row">
+      <tr id="${id}" style="display:none" class="permission-row highlight-row">
         <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
       </tr>
+    </tbody>
+    <j:set var="hidefooter" value=""/>
+    <j:if test="${agentGrantedRoles.size() lt 20}">
+      <j:set var="hidefooter" value="default-hidden"/>
+    </j:if>
+    <tfoot class="${hidefooter}">
       <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
-      <j:if test="${nbAgentRoles ge 20}">
-        <tr class="caption-row">
+        <tr class="caption-row highlight-row">
           <td rowspan="2" class="start" />
           <td rowspan="2" class="pane-header blank">
             ${%Role}
@@ -115,100 +123,35 @@
           </j:forEach>
           <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
         </tr>
-      </j:if>
-    </table>
-    <l:isAdmin>
-      <br />
-      <f:entry title="${%Role to add}">
-        <f:textbox type="text" id="${id}text" />
-      </f:entry>
-      <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-        <f:textbox type="text" id="${id}pattern" checkUrl="'${descriptorPath}/checkPattern?value='+escape(this.value)"/>
-      </f:entry>
-      <f:entry>
-        <input type="button" value="${%Add}" id="${id}button"/>
-      </f:entry>
-    </l:isAdmin>
+    </tfoot>
+  </table>
+  <l:isAdmin>
+    <br/>
+    <f:entry title="${%Role to add}">
+      <f:textbox type="text" id="${tableid}text" />
+    </f:entry>
+    <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
+      <f:textbox type="text" id="${tableid}pattern" checkUrl="'${descriptorPath}/checkPattern?value='+escape(this.value)"/>
+    </f:entry>
+    <f:entry>
+      <local:addButton id="agentMaster" tableid="${tableid}" highlighter="agentTableHighlighter"/>
+    </f:entry>
+  </l:isAdmin>
     
     <script>
       var agentTableHighlighter;
-      (function() {
-        <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
-        var master = document.getElementById('${id}');
-        var table = master.parentNode;
-        table.removeChild(master);
-
-        var btn = $$('${id}button');
-        if (!btn) {
-            return;
-        }
-        makeButton(btn, function (e) {
-          <!-- when 'add' is clicked... -->
-          var name = $$('${id}text').value;
-          var pattern = $$('${id}pattern').value;
-          if(name=="") {
-            alert("Please enter a role name");
-            return;
-          }
-          if(pattern=="") {
-            alert("Please enter a pattern");
-            return;
-          }
-
-          if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
-            alert("Entry for '"+name+"' already exists");
-            return;
-          }
-
-          if(document.importNode!=null)
-            copy = document.importNode(master,true);
-          else
-            copy = master.cloneNode(true); <!-- for IE -->
-          copy.removeAttribute("id");
-          copy.removeAttribute("style");
-
-          var child = copy.childNodes[1];
-          var doubleQuote = '"';
-          child.textContent = escapeHTML(name);
-          var patternString = doubleQuote + escapeHTML(pattern) + doubleQuote;
-          var spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
-          spanElement.innerHTML = '<a href="#" class="patternAnchor">' + patternString + '</a>';
-
-          var hidden = document.createElement('input');
-          hidden.setAttribute('name', '[pattern]');
-          hidden.setAttribute('type', 'hidden');
-          hidden.setAttribute('value', pattern);
-          spanElement.appendChild(hidden);
-
-          copy.setAttribute("name",'['+name+']');
-
-          var children = copy.childNodes;
-          children.forEach(function(item){
-            item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
-          });
-
-          spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
-          bindAgentListenerToPattern(spanElement.childNodes[0]);
-
-          <j:if test="${nbAgentRoles lt 20}">
-            table.appendChild(copy);
-          </j:if>
-          <j:if test="${nbAgentRoles ge 20}">
-            table.insertBefore(copy,table.childNodes[table.rows.length-2]);
-          </j:if>
-          agentTableHighlighter.scan(copy);
-          Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
-        });
-      })();
+      var agentMaster = document.getElementById('${id}');
+      var tbody = agentMaster.parentNode;
+      tbody.removeChild(agentMaster);
 
       var bindAgentListenerToPattern = function(elem) {
         elem.addEventListener('click', showMatchingAgents);
       }
 
       var showMatchingAgents = function() {
-        var pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
-        var maxAgents = 10;    // Maximum agents to search for
-        var url = 'strategy/getMatchingAgents';
+        let pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
+        let maxAgents = 10;    // Maximum agents to search for
+        let url = 'strategy/getMatchingAgents';
         reqParams = {
           'pattern' : pattern,
           'maxAgents' : maxAgents
@@ -218,11 +161,11 @@
           method: 'get',
           parameters: reqParams,
           onSuccess: function(req) {
-            var responseJson = req.responseText.evalJSON()
-            var matchingAgents = responseJson.matchingAgents;
-            var agentCount = responseJson.agentCount;
+            let responseJson = req.responseText.evalJSON()
+            let matchingAgents = responseJson.matchingAgents;
+            let agentCount = responseJson.agentCount;
 
-            if(matchingAgents != null) {
+            if (matchingAgents != null) {
               showAgentsModal(matchingAgents, agentCount);
             } else {
               showAgentErrorMessageModal();
@@ -233,15 +176,15 @@
       }
 
       var showAgentsModal = function(agents, agentCount) {
-        modalText = '';
-        if(agents.length > 0) {
+        let modalText = '';
+        if (agents.length > 0) {
           if (agentCount > agents.length) {
             modalText += 'First 10 (out of ' + agentCount + ') matching Agents:\n\n';
           } else {
             modalText += 'Matching Agents:\n\n';
           }
-          for(var i = 0; i != agents.length; i++) {
-            modalText += ' - ' + agents[i] + '\n';
+          for (let agent of agents) {
+            modalText += ' - ' + agent + '\n';
           }
         } else {
           modalText += 'No matching Agents found.';
@@ -255,42 +198,14 @@
       }
 
       Event.observe(window, 'load', function(event) {
-         agentTableHighlighter = new TableHighlighter('agentRoles', 3, 2);
+         agentTableHighlighter = new TableHighlighter('${tableid}', 3);
          // Show agents matching a pattern on click
-         var agentRolesTable = document.getElementById('agentRoles')
-         var patterns = agentRolesTable.getElementsByClassName('patternAnchor');
-         for(var i = 0; i != patterns.length; i++) {
+         let agentRolesTable = document.getElementById('${tableid}')
+         let patterns = agentRolesTable.getElementsByClassName('patternAnchor');
+         for (let pattern of patterns) {
            bindAgentListenerToPattern(patterns[i]);
          }
          
       });
-
-      var deleteAgentRole = function(e) {
-        e.onclick = function() {
-          var tr = findAncestor(this,"TR");
-          tr.parentNode.removeChild(tr);
-          return false;
-        }
-        e = null; <!-- avoid memory leak -->
-      }
-      Behaviour.register({"#agentRoles TD.stop A" : deleteAgentRole});
-      Behaviour.register({"#agentRoles TD.start A" : deleteAgentRole});
-
-      Behaviour.register({"#agentRoles img.icon-pencil" : function(e) {
-        e.onclick = function() {
-          inputNode = this.parentNode.childNodes[1];
-          if(inputNode.childNodes.length == 2) {
-            inputNode.innerHTML = '<input type="text" name="[pattern]" value="' + inputNode.childNodes[1].value + '" size="' + (inputNode.childNodes[1].value.length+10) + '"/>';
-            inputNode.childNodes[0].onkeypress=preventFormSubmit;
-          }
-          else {
-            inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + inputNode.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + inputNode.childNodes[0].value + '"/>';
-            child = inputNode.children[0];
-            bindAgentListenerToPattern(inputNode.children[0]);
-          }
-          return false;
-        }
-        e = null; <!-- again and again, avoid memory leak -->
-      }});
     </script>
 </j:jelly>

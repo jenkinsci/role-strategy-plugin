@@ -44,7 +44,7 @@
     <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row">
+      <tr class="group-row highlight-row">
         <td class="start" />
         <td class="pane-header blank">
           ${%User/group}
@@ -62,19 +62,19 @@
         <l:isAdmin><td class="stop" /></l:isAdmin>
       </tr>
       <j:forEach var="sid" items="${globalSIDs}">
-        <tr name="[${sid}]" class="permission-row">
+        <tr name="[${sid}]" class="permission-row highlight-row">
           <local:userRow sid="${sid}" title="${sid}" global="${true}"  type="${it.strategy.GLOBAL}"/>
         </tr>
       </j:forEach>
-      <tr name="anonymous">
+      <tr name="anonymous" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
-      <tr id="${id}" style="display:none" class="permission-row">
+      <tr id="${id}" style="display:none" class="permission-row highlight-row">
         <local:userRow title="{{USER}}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19 lines) -->
       <j:if test="${globalSIDs.size() ge 20}">
-        <tr class="group-row">
+        <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -162,7 +162,7 @@
       })();
 
       Event.observe(window, 'load', function(event) {
-         globalTableHighlighter = new TableHighlighter('globalRoles', 0, 1);
+         globalTableHighlighter = new TableHighlighter('globalRoles', 0);
       });
 
       var globalUserFilter = function(e) {
