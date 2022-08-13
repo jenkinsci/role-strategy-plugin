@@ -51,21 +51,50 @@ Behaviour.specify(".row-input-filter", "RoleBasedAuthorizationStrategy", 0, func
 
 Behaviour.specify("img.icon-pencil", 'RoleBasedAuthorizationStrategy', 0, function (e) {
   e.onclick = function () {
-    inputNode = this.parentNode.childNodes[1];
+    let inputNode = this.parentNode.childNodes[1];
     if (inputNode.childNodes.length == 2) {
       inputNode.innerHTML = '<input onkeypress="" type="text" name="[pattern]" value="' + inputNode.childNodes[1].value + '" size="' + (inputNode.childNodes[1].value.length + 10) + '"/>';
       inputNode.childNodes[0].onkeypress = preventFormSubmit;
     } else {
-      inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + inputNode.childNodes[0].value.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + inputNode.childNodes[0].value + '"/>';
-      if (findAncestor(this,"TABLE").getAttribute('id') === "projectRoles") {
-        bindListenerToPattern(inputNode.children[0]);
-      } else {
-        bindAgentListenerToPattern(inputNode.children[0]);
-      }
+      endPatternInput(inputNode);
     }
     return false;
   }
 });
+
+
+endPatternInput = function(inputNode) {
+  let pattern = inputNode.childNodes[0].value;
+  inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + pattern.escapeHTML() + '&quot;</a><input type="hidden" name="[pattern]" value="' + pattern + '"/>';
+  if (findAncestor(inputNode,"TABLE").getAttribute('id') === "projectRoles") {
+    bindListenerToPattern(inputNode.children[0]);
+  } else {
+    bindAgentListenerToPattern(inputNode.children[0]);
+  }
+  updateTooltips(inputNode, pattern);
+}
+
+preventFormSubmit = function(e) {
+  var key = e.charCode || e.keyCode || 0;     
+  if (key == 13) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    var inputNode = e.target.parentNode;
+    endPatternInput(inputNode);
+  }
+};
+
+updateTooltips = function(inputNode, pattern) {
+  let row = findAncestor(inputNode, "TR");
+  for (td of row.getElementsByTagName('TD')) {
+    let tooltipTemplate = td.getAttribute("data-tooltip-template");
+    if (tooltipTemplate != null) {
+      let tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", doubleEscapeHTML(pattern));
+      td.setAttribute("tooltip", tooltip);
+    }
+  }
+  Behaviour.applySubtree(findAncestor(inputNode,"TABLE"),true);
+}
 
 
 Behaviour.specify(
@@ -137,7 +166,7 @@ addButtonAction = function (e, master, table, tableHighlighter, tableId) {
 
   let children = copy.childNodes;
   children.forEach(function(item){
-    item.outerHTML = item.outerHTML.replace("{{ROLE}}", doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
+    item.outerHTML = item.outerHTML.replace(/{{ROLE}}/g, doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
   });
 
   if (tableId !== "globalRoles") {

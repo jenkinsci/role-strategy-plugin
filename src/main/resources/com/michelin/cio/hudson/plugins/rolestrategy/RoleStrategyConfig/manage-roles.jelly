@@ -61,8 +61,10 @@
                 </td>
               <td class="left-most" style="white-space: nowrap;">${title}</td>
               <j:set var="pattern" value=""/>
+              <j:set var="patternTemplate" value=""/>
               <j:if test="${!attrs.global}">
                 <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${attrs.pattern}"/>
+                <j:set var="patternTemplate" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: {{PATTERNTEMPLATE}}"/>
                 <j:if test="${attrs.pattern != '{{PATTERN}}'}">
                   <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(attrs.role.pattern.toString())}"/>
                 </j:if>
@@ -81,7 +83,8 @@
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}">
+                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}" 
+                        data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>
