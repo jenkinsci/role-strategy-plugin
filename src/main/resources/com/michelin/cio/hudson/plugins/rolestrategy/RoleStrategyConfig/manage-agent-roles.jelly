@@ -203,7 +203,7 @@
          let agentRolesTable = document.getElementById('${tableid}')
          let patterns = agentRolesTable.getElementsByClassName('patternAnchor');
          for (let pattern of patterns) {
-           bindAgentListenerToPattern(patterns[i]);
+           bindAgentListenerToPattern(pattern);
          }
          
       });
