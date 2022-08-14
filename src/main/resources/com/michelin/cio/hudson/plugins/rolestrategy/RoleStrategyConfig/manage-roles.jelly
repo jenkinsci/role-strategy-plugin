@@ -73,7 +73,7 @@
                       <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
                       <span>
                         <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
-                        <input type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                        <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                       </span>
                   </div>
                 </td>
@@ -83,8 +83,12 @@
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-                    <td width="*" tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}" 
-                        data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
+                    <td width="*"
+                        class="permissionInput"
+                        data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
+                        data-permission-id="${p.id}"
+                        tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}"
+                        data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>

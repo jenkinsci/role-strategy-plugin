@@ -71,6 +71,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
@@ -78,6 +79,7 @@ import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
@@ -1028,6 +1030,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         default:
           return false;
       }
+    }
+
+    /**
+     * Returns a String with the permissions that imply the given permission.
+     *
+     * @param p Permission
+     * @return String with implying permission
+     */
+    @Restricted(DoNotUse.class)
+    public String impliedByList(Permission p) {
+      List<Permission> impliedBys = new ArrayList<>();
+      while (p.impliedBy != null) {
+        p = p.impliedBy;
+        impliedBys.add(p);
+      }
+      return StringUtils.join(impliedBys.stream().map(Permission::getId).collect(Collectors.toList()), " ");
     }
 
     /**
