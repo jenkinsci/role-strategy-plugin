@@ -1,5 +1,7 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -10,6 +12,7 @@ import com.gargoylesoftware.htmlunit.Page;
 import com.gargoylesoftware.htmlunit.WebRequest;
 import com.gargoylesoftware.htmlunit.util.NameValuePair;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import hudson.PluginManager;
 import hudson.model.Item;
 import hudson.model.User;
 import java.io.IOException;
@@ -19,6 +22,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -158,5 +162,28 @@ public class ApiTest {
     Authentication alice = User.getById("alice", false).impersonate2();
     Item folder = jenkinsRule.jenkins.getItemByFullName("test-folder");
     assertFalse(folder.hasPermission2(alice, Item.CONFIGURE));
+  }
+
+  @Test
+  public void ignoreDangerousPermissionInAddRole() throws IOException {
+    String roleName = "new-role";
+    // Adding role via web request
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(
+        Arrays.asList(new NameValuePair("type", RoleType.Global.getStringType()), new NameValuePair("roleName", roleName),
+            new NameValuePair("permissionIds",
+                "hudson.model.Hudson.RunScripts,hudson.model.Hudson.ConfigureUpdateCenter,"
+                + "hudson.model.Hudson.UploadPlugins,hudson.model.Item.Read"),
+            new NameValuePair("overwrite", "false")));
+    Page page = webClient.getPage(request);
+    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+
+    // Verifying that the role is in
+    RoleBasedAuthorizationStrategy rbas = RoleBasedAuthorizationStrategy.getInstance();
+    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(PluginManager.CONFIGURE_UPDATECENTER), is(false));
+    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(PluginManager.UPLOAD_PLUGINS), is(false));
+    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(Jenkins.RUN_SCRIPTS), is(false));
+    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(Item.READ), is(true));
   }
 }

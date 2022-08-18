@@ -291,11 +291,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   /**
    * API method to add a role.
    *
+   * <p>Unknown and dangerous permissions are ignored.
+   *
    * <p>Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
    * permissionIds=hudson.model.Item.Discover,hudson.model.Item.ExtendedRead&amp;overwrite=true"}
    *
-   * @param type          (globalRoles, projectRoles)
+   *
+   * @param type          (globalRoles, projectRoles, slaveRoles)
    * @param roleName      Name of role
    * @param permissionIds Comma separated list of IDs for given roleName
    * @param overwrite     Overwrite existing role
@@ -319,17 +322,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       pttrn = pattern;
     }
 
-    ArrayList<String> permissionList = new ArrayList<>(Arrays.asList(permissionIds.split(",")));
+    List<String> permissionList = Arrays.asList(permissionIds.split(","));
 
-    Set<Permission> permissionSet = new HashSet<>();
-    for (String p : permissionList) {
-      Permission temp = Permission.fromId(p);
-      if (temp == null) {
-        throw new IOException("Cannot find permission for id=" + p + ", role name=" + roleName + " role type=" + type);
-      } else {
-        permissionSet.add(temp);
-      }
-    }
+    Set<Permission> permissionSet = PermissionHelper.fromStrings(permissionList, true);
     Role role = new Role(roleName, pttrn, permissionSet);
     RoleType roleType = RoleType.fromString(type);
     if (overwriteb) {
@@ -692,10 +687,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               reader.moveDown();
               while (reader.hasMoreChildren()) {
                 reader.moveDown();
-                Permission p = Permission.fromId(reader.getValue());
+                Permission p = PermissionHelper.resolvePermissionFromString(reader.getValue());
                 if (p != null) {
                   permissions.add(p);
                 }
+
                 reader.moveUp();
               }
               reader.moveUp();
