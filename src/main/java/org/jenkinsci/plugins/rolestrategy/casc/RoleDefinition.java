@@ -3,10 +3,13 @@ package org.jenkinsci.plugins.rolestrategy.casc;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.security.Permission;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -58,18 +61,9 @@ public class RoleDefinition {
    */
   public final Role getRole() {
     if (role == null) {
-      HashSet<String> resolvedIds = new HashSet<>();
-      for (String id : permissions) {
-        if (id != null) {
-          String resolvedId = PermissionFinder.findPermissionId(id);
-          if (resolvedId != null) {
-            resolvedIds.add(resolvedId);
-          } else {
-            throw new IllegalStateException("Cannot resolve permission for ID: " + id);
-          }
-        }
-      }
-      role = new Role(name, pattern, resolvedIds, description);
+      Set<Permission> resolvedPermissions = PermissionHelper.fromStrings(permissions, false);
+      Pattern p = Pattern.compile(pattern != null ? pattern : Role.GLOBAL_ROLE_PATTERN);
+      role = new Role(name, p, resolvedPermissions, description);
     }
     return role;
   }

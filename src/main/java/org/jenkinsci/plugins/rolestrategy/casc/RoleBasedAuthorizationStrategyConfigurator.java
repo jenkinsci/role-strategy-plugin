@@ -15,7 +15,6 @@ import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
@@ -86,7 +85,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     return roleSetEntry -> {
       Role role = roleSetEntry.getKey();
       List<String> permissions = role.getPermissions().stream()
-          .map(permission -> permission.group.title.toString(Locale.US) + "/" + permission.name).collect(Collectors.toList());
+          .map(permission -> permission.group.getId() + "/" + permission.name).collect(Collectors.toList());
       return new RoleDefinition(role.getName(), role.getDescription(), role.getPattern().pattern(), permissions, roleSetEntry.getValue());
     };
   }

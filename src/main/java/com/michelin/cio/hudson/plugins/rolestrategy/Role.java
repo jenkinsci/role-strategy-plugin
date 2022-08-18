@@ -96,7 +96,8 @@ public final class Role implements Comparable {
   @DataBoundConstructor
   public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set<String> permissionIds,
       @CheckForNull String description) {
-    this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds), description);
+    this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds, true),
+        description);
   }
 
   /**
@@ -106,7 +107,7 @@ public final class Role implements Comparable {
    * @param pattern     The pattern matching {@link AccessControlled} objects names
    * @param permissions The {@link Permission}s associated to the role. {@code null} permissions will be ignored.
    */
-  Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description) {
+  public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description) {
     this.name = name;
     this.pattern = pattern;
     this.description = description;

@@ -12,8 +12,16 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 public final class BenchmarkRunner {
   @Test
   public void runJmhBenchmarks() throws Exception {
-    ChainedOptionsBuilder options = new OptionsBuilder().mode(Mode.AverageTime).warmupIterations(2).timeUnit(TimeUnit.MICROSECONDS)
-        .threads(2).forks(2).shouldFailOnError(true).shouldDoGC(true).resultFormat(ResultFormatType.JSON).result("jmh-report.json");
+    ChainedOptionsBuilder options = new OptionsBuilder()
+        .mode(Mode.AverageTime)
+        .warmupIterations(2)
+        .timeUnit(TimeUnit.MICROSECONDS)
+        .threads(2)
+        .forks(2)
+        .measurementIterations(15)
+        .shouldFailOnError(true)
+        .shouldDoGC(true).resultFormat(ResultFormatType.JSON)
+        .result("jmh-report.json");
 
     BenchmarkFinder bf = new BenchmarkFinder(getClass());
     bf.findBenchmarks(options);
