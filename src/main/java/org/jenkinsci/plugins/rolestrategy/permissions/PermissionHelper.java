@@ -100,7 +100,7 @@ public class PermissionHelper {
    * @param p Permission
    * @return {@code true} if the permission is considered as dangerous.
    */
-  public static boolean isDangerous(@NonNull Permission p) {
+  public static boolean isDangerous(Permission p) {
     return DANGEROUS_PERMISSIONS.contains(p);
   }
 
@@ -143,7 +143,7 @@ public class PermissionHelper {
 
   private static @CheckForNull Permission getSafePermission(String id) {
     Permission permission = Permission.fromId(id);
-    if (isDangerous(permission)) {
+    if (permission != null && isDangerous(permission)) {
       LOGGER.log(Level.WARNING, "The permission: '"  + permission + "' is dangerous and will be ignored.");
       return null;
     }
