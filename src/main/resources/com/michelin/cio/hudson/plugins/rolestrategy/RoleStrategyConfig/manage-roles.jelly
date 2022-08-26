@@ -54,9 +54,11 @@
             <d:tag name="roleRow">
                 <td class="start">
                   <l:isAdmin>
-                    <a href="#" class="remove">
-                      <l:icon alt="remove" class="icon-stop icon-sm"/>
-                    </a>
+                    <j:if test="${(attrs.generated ?: false) == false}">
+                      <a href="#" class="remove">
+                        <l:icon alt="remove" class="icon-stop icon-sm"/>
+                      </a>
+                    </j:if>
                   </l:isAdmin>
                 </td>
               <td class="left-most" style="white-space: nowrap;">${title}</td>
@@ -70,7 +72,9 @@
                 </j:if>
                 <td width="*">
                   <div class="pattern-cell">
-                      <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
+                      <j:if test="${(attrs.generated ?: false) == false}">
+                        <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
+                      </j:if>
                       <span>
                         <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
                         <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
@@ -89,16 +93,18 @@
                         data-permission-id="${p.id}"
                         tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}"
                         data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
-                      <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
+                      <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}" readonly="${attrs.generated ?: false}"/>
                     </td>
                   </j:if>
                 </j:forEach>
               </j:forEach>
               <l:isAdmin>
                 <td class="stop">
-                  <a href="#" class="remove">
-                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
-                  </a>
+                  <j:if test="${(attrs.generated ?: false) == false}">
+                    <a href="#" class="remove">
+                      <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                    </a>
+                  </j:if>
                 </td>
               </l:isAdmin>
             </d:tag>

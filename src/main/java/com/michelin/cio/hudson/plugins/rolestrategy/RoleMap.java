@@ -252,6 +252,18 @@ public class RoleMap {
   }
 
   /**
+   * Add the given role to this {@link RoleMap} and assign the sids to it.
+   * If a role
+   *
+   * @param role The {@link Role} to add
+   * @param sids The sids associated with the {@link Role}
+   */
+  public void addRole(Role role, Set<String> sids) {
+    this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
+    matchingRoleMapCache.invalidateAll();
+  }
+
+  /**
    * Assign the sid to the given {@link Role}.
    *
    * @param role The {@link Role} to assign the sid to
@@ -435,6 +447,24 @@ public class RoleMap {
       public void perform(Role current) {
         Matcher m = current.getPattern().matcher(itemNamePrefix);
         if (m.matches()) {
+          roleMap.put(current, grantedRoles.get(current));
+        }
+      }
+    };
+    return new RoleMap(roleMap);
+  }
+
+  /**
+   * Return generated roles.
+   *
+   * @return generated roles
+   */
+  public RoleMap getGeneratedRoles() {
+    SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
+    new RoleWalker() {
+      @Override
+      public void perform(Role current) {
+        if (current.isGenerated()) {
           roleMap.put(current, grantedRoles.get(current));
         }
       }

@@ -172,6 +172,19 @@ public class RoleStrategyConfig extends ManagementLink {
     FormApply.success(".").generateResponse(req, rsp, this);
   }
 
+  /**
+   * Called on roles generator form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doTemplatesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+    // Let the strategy descriptor handle the form
+    RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
+    // Redirect to the plugin index page
+    FormApply.success(".").generateResponse(req, rsp, this);
+  }
+
   // no configuration on this page for submission
   // public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException,
   // ServletException, FormException {

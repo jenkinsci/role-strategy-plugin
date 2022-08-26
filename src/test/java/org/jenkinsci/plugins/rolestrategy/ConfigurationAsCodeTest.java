@@ -146,4 +146,18 @@ public class ConfigurationAsCodeTest {
     assertThat(rbas.getRoleMap(RoleType.Global).getRole("dangerous").hasPermission(PluginManager.UPLOAD_PLUGINS), is(false));
     assertThat(rbas.getRoleMap(RoleType.Global).getRole("dangerous").hasPermission(Jenkins.RUN_SCRIPTS), is(false));
   }
+
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code.yml")
+  public void templatesAreProperlyRead() {
+    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
+    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+
+    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team1").hasPermission(Item.CONFIGURE), is(true));
+    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#builder-team1").hasPermission(Item.CONFIGURE), is(false));
+    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#builder-team1").hasPermission(Item.BUILD), is(true));
+    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team1").getPattern().toString(), is("folder/.*"));
+    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team2").getPattern().toString(), is("folder2/.*"));
+  }
 }

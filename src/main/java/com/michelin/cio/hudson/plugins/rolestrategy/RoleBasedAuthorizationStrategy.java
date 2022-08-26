@@ -67,6 +67,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
@@ -100,12 +101,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final String GLOBAL = "globalRoles";
   public static final String PROJECT = "projectRoles";
   public static final String SLAVE = "slaveRoles";
+  public static final String PERMISSION_TEMPLATES = "permissionTemplates";
+  public static final String ROLE_TEMPLATES = "roleTemplates";
+
   public static final String MACRO_ROLE = "roleMacros";
   public static final String MACRO_USER = "userMacros";
 
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
+  private Set<PermissionTemplate> permissionTemplates = new HashSet<>();
+  private Set<RoleTemplate> roleTemplates = new HashSet<>();
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -130,6 +136,59 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     map = grantedRoles.get(PROJECT);
     itemRoles = map == null ? new RoleMap() : map;
+  }
+
+  /**
+   * Creates a new {@link RoleBasedAuthorizationStrategy}.
+   *
+   * @param grantedRoles the roles in the strategy
+   */
+  public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles, Set<PermissionTemplate> permissionTemplates,
+                                        Set<RoleTemplate> roleTemplates) {
+    RoleMap map = grantedRoles.get(SLAVE);
+    agentRoles = map == null ? new RoleMap() : map;
+
+    map = grantedRoles.get(GLOBAL);
+    globalRoles = map == null ? new RoleMap() : map;
+
+    map = grantedRoles.get(PROJECT);
+    itemRoles = map == null ? new RoleMap() : map;
+
+    this.permissionTemplates = permissionTemplates == null ? Collections.emptySet() : permissionTemplates;
+    this.roleTemplates = roleTemplates == null ? Collections.emptySet() : roleTemplates;
+    generateRolesFromTemplates();
+  }
+
+  private void generateRolesFromTemplates() {
+    Map<RoleType, RoleMap> maps = getRoleMaps();
+    RoleMap projectRoles = maps.get(RoleType.Project);
+    RoleMap generatedRoles = projectRoles.getGeneratedRoles();
+    RoleMap newGeneratedRoles = new RoleMap();
+    for (PermissionTemplate permissionTemplate : permissionTemplates) {
+      for (RoleTemplate roleTemplate : roleTemplates) {
+        String roleName = "#" + permissionTemplate.getName() + "-" + roleTemplate.getName();
+        Role role = projectRoles.getRole(roleName);
+        Set<String> sids = new HashSet<>();
+        if (role != null) {
+          Set<String> sidsForRole = projectRoles.getSidsForRole(roleName);
+          if (sidsForRole != null) {
+            sids.addAll(sidsForRole);
+          }
+          projectRoles.removeRole(role);
+        }
+        Pattern pattern = Pattern.compile(roleTemplate.getPattern());
+        role = new Role(roleName, pattern, permissionTemplate.getPermissions(), "", true);
+        newGeneratedRoles.addRole(role, sids);
+      }
+    }
+    // Remove all generated roles
+    for (Entry<Role, Set<String>> entry : generatedRoles.getGrantedRoles().entrySet()) {
+      projectRoles.removeRole(entry.getKey());
+    }
+    // add all new generated roles
+    for (Entry<Role, Set<String>> entry : newGeneratedRoles.getGrantedRoles().entrySet()) {
+      projectRoles.addRole(entry.getKey(), entry.getValue());
+    }
   }
 
   /**
@@ -234,6 +293,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   public SortedMap<Role, Set<String>> getGrantedRoles(@NonNull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
+  }
+
+  /**
+   * Get the permission templates.
+   *
+   * @return set of permission templates.
+   */
+  public Set<PermissionTemplate> getPermissionTemplates() {
+    return Collections.unmodifiableSet(permissionTemplates);
+  }
+
+  /**
+   * Get the role templates.
+   *
+   * @return set of permission templates.
+   */
+  public Set<RoleTemplate> getRoleTemplates() {
+    return Collections.unmodifiableSet(roleTemplates);
   }
 
   /**
@@ -642,6 +719,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             writer.startNode("role");
             writer.addAttribute("name", role.getName());
             writer.addAttribute("pattern", role.getPattern().pattern());
+            writer.addAttribute("generated", Boolean.toString(role.isGenerated()));
 
             writer.startNode("permissions");
             for (Permission permission : role.getPermissions()) {
@@ -664,11 +742,37 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         writer.endNode();
       }
+
+      writer.startNode(PERMISSION_TEMPLATES);
+      for (PermissionTemplate permissionTemplate : strategy.permissionTemplates) {
+        writer.startNode("template");
+        writer.addAttribute("name", permissionTemplate.getName());
+        writer.startNode("permissions");
+        for (Permission permission : permissionTemplate.getPermissions()) {
+          writer.startNode("permission");
+          writer.setValue(permission.getId());
+          writer.endNode();
+        }
+        writer.endNode(); // end permissions
+        writer.endNode(); // end template
+      }
+      writer.endNode(); // end permissionTemplates
+
+      writer.startNode(ROLE_TEMPLATES);
+      for (RoleTemplate roleTemplate : strategy.roleTemplates) {
+        writer.startNode("template");
+        writer.addAttribute("name", roleTemplate.getName());
+        writer.addAttribute("pattern", roleTemplate.getPattern());
+        writer.endNode(); // end template
+      }
+      writer.endNode(); // end roleTemplates
     }
 
     @Override
     public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
       final Map<String, RoleMap> roleMaps = new HashMap<>();
+      final Set<PermissionTemplate> permissionTemplates = new HashSet<>();
+      final Set<RoleTemplate> roleTemplates = new HashSet<>();
       while (reader.hasMoreChildren()) {
         reader.moveDown();
 
@@ -680,6 +784,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             reader.moveDown();
             String name = reader.getAttribute("name");
             String pattern = reader.getAttribute("pattern");
+            Boolean generated = Boolean.parseBoolean(reader.getAttribute("generated"));
             Set<Permission> permissions = new HashSet<>();
 
             String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
@@ -697,7 +802,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               reader.moveUp();
             }
 
-            Role role = new Role(name, pattern, permissions);
+            Role role = new Role(name, Pattern.compile(pattern), permissions, "", generated);
             map.addRole(role);
 
             next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
@@ -714,10 +819,42 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
           roleMaps.put(type, map);
         }
+
+        if (reader.getNodeName().equals(PERMISSION_TEMPLATES)) {
+          while (reader.hasMoreChildren()) {
+            reader.moveDown();
+            Set<Permission> permissions = new HashSet<>();
+            String name = reader.getAttribute("name");
+            String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
+            if (next != null && next.equals("permissions")) {
+              reader.moveDown();
+              while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                Permission p = PermissionHelper.resolvePermissionFromString(reader.getValue());
+                if (p != null) {
+                  permissions.add(p);
+                }
+                reader.moveUp();
+              }
+              reader.moveUp();
+            }
+            permissionTemplates.add(new PermissionTemplate(permissions, name));
+            reader.moveUp();
+          }
+        }
+
+        if (reader.getNodeName().equals(ROLE_TEMPLATES)) {
+          while (reader.hasMoreChildren()) {
+            reader.moveDown();
+            roleTemplates.add(new RoleTemplate(reader.getAttribute("name"), reader.getAttribute("pattern")));
+            reader.moveUp();
+          }
+        }
+
         reader.moveUp();
       }
 
-      return new RoleBasedAuthorizationStrategy(roleMaps);
+      return new RoleBasedAuthorizationStrategy(roleMaps, permissionTemplates, roleTemplates);
     }
 
     protected RoleBasedAuthorizationStrategy create() {
@@ -834,6 +971,47 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
         // Persist the data
+        persistChanges();
+      }
+    }
+
+    /**
+     * Called on role generator form submission.
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doTemplatesSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
+      checkAdminPerm();
+      req.setCharacterEncoding("UTF-8");
+      JSONObject json = req.getSubmittedForm();
+      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
+      if (json.has(PERMISSION_TEMPLATES) && json.has(ROLE_TEMPLATES) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+        RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
+
+        JSONObject permissionTemplatesJson = json.getJSONObject(PERMISSION_TEMPLATES);
+        strategy.permissionTemplates.clear();
+        for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>)
+            permissionTemplatesJson.getJSONObject("data").entrySet()) {
+          String templateName = r.getKey();
+          Set<String> permissionStrings = new HashSet<>();
+          for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
+            if (e.getValue()) {
+              permissionStrings.add(e.getKey());
+            }
+          }
+          PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
+          strategy.permissionTemplates.add(permissionTemplate);
+        }
+
+        JSONObject roleTemplatesJson = json.getJSONObject(ROLE_TEMPLATES);
+        strategy.roleTemplates.clear();
+        for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roleTemplatesJson.getJSONObject("data").entrySet()) {
+          String templateName = r.getKey();
+          String pattern = r.getValue().getString("pattern");
+          RoleTemplate roleTemplate = new RoleTemplate(templateName, pattern);
+          strategy.roleTemplates.add(roleTemplate);
+        }
+        strategy.generateRolesFromTemplates();
         persistChanges();
       }
     }

@@ -77,13 +77,13 @@
     <tbody>
       <j:forEach var="role" items="${itemGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
-          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}"
+          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" generated="${role.key.generated}" global="${false}" type="${it.strategy.PROJECT}"
                          project="${true}"/>
         </tr>
       </j:forEach>
       <j:set var="id" value="${h.generateId()}"/>
       <tr id="${id}" style="display:none" class="permission-row highlight-row">
-        <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" />
+        <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}"/>
       </tr>
     </tbody>
     <j:set var="hidefooter" value=""/>

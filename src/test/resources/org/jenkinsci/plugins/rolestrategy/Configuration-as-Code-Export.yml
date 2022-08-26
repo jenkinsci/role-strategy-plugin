@@ -1,4 +1,26 @@
 roleBased:
+  permissionTemplates:
+  - name: "admin"
+    permissions:
+    - "Job/Cancel"
+    - "Job/Build"
+    - "Run/Update"
+    - "Job/Delete"
+    - "Job/Create"
+    - "Job/Read"
+    - "Job/Configure"
+    - "Job/Workspace"
+  - name: "builder"
+    permissions:
+    - "Job/Cancel"
+    - "Job/Build"
+    - "Job/Read"
+    - "Job/Workspace"
+  roleTemplates:
+  - name: "team2"
+    pattern: "folder2/.*"
+  - name: "team1"
+    pattern: "folder/.*"
   roles:
     agents:
     - assignments:
@@ -25,6 +47,66 @@ roleBased:
       - "Overall/Read"
       - "Job/Read"
     items:
+    - assignments:
+      - "qa1"
+      name: "#QA-team1"
+      pattern: "folder/.*"
+      permissions:
+      - "Run/Update"
+      - "Job/Read"
+      - "Run/Replay"
+    - assignments:
+      - "qa2"
+      name: "#QA-team2"
+      pattern: "folder2/.*"
+      permissions:
+      - "Run/Update"
+      - "Job/Read"
+      - "Run/Replay"
+    - assignments:
+      - "admin1"
+      name: "#admin-team1"
+      pattern: "folder/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Run/Update"
+      - "Job/Delete"
+      - "Job/Create"
+      - "Job/Read"
+      - "Job/Configure"
+      - "Job/Workspace"
+    - assignments:
+      - "admin2"
+      name: "#admin-team2"
+      pattern: "folder2/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Run/Update"
+      - "Job/Delete"
+      - "Job/Create"
+      - "Job/Read"
+      - "Job/Configure"
+      - "Job/Workspace"
+    - assignments:
+      - "developer1"
+      name: "#builder-team1"
+      pattern: "folder/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Read"
+      - "Job/Workspace"
+    - assignments:
+      - "developer2"
+      name: "#builder-team2"
+      pattern: "folder2/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Read"
+      - "Job/Workspace"
     - assignments:
       - "user1"
       - "user2"

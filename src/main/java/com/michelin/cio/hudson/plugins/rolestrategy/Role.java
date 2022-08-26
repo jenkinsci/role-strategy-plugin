@@ -65,6 +65,12 @@ public final class Role implements Comparable {
   private final String description;
 
   /**
+   * Flag to indicate that the role is generated.
+   */
+  @CheckForNull
+  private final boolean generated;
+
+  /**
    * {@link Permission}s hold by the role.
    */
   private final Set<Permission> permissions = new HashSet<>();
@@ -95,9 +101,15 @@ public final class Role implements Comparable {
   // TODO: comment is used for erasure cleanup only
   @DataBoundConstructor
   public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set<String> permissionIds,
+      @CheckForNull String description, boolean generated) {
+    this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds, true),
+        description, generated);
+  }
+
+  public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set<String> permissionIds,
       @CheckForNull String description) {
     this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds, true),
-        description);
+        description, false);
   }
 
   /**
@@ -106,11 +118,26 @@ public final class Role implements Comparable {
    * @param name        The role name
    * @param pattern     The pattern matching {@link AccessControlled} objects names
    * @param permissions The {@link Permission}s associated to the role. {@code null} permissions will be ignored.
+   * @param description A description for the role
    */
   public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description) {
+    this(name, pattern, permissions, description, false);
+  }
+
+  /**
+   * Create a Role.
+   *
+   * @param name        The role name
+   * @param pattern     The pattern matching {@link AccessControlled} objects names
+   * @param permissions The {@link Permission}s associated to the role. {@code null} permissions will be ignored.
+   * @param description A description for the role
+   * @param generated   True to mark this role as generated
+   */
+  public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description, boolean generated) {
     this.name = name;
     this.pattern = pattern;
     this.description = description;
+    this.generated = generated;
     for (Permission perm : permissions) {
       if (perm == null) {
         LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
@@ -118,6 +145,10 @@ public final class Role implements Comparable {
         this.permissions.add(perm);
       }
     }
+  }
+
+  public boolean isGenerated() {
+    return generated;
   }
 
   /**
