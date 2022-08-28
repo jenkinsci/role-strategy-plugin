@@ -70,6 +70,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -128,23 +129,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param grantedRoles the roles in the strategy
    */
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
-    RoleMap map = grantedRoles.get(SLAVE);
-    agentRoles = map == null ? new RoleMap() : map;
-
-    map = grantedRoles.get(GLOBAL);
-    globalRoles = map == null ? new RoleMap() : map;
-
-    map = grantedRoles.get(PROJECT);
-    itemRoles = map == null ? new RoleMap() : map;
+    this(grantedRoles, null, null);
   }
 
   /**
    * Creates a new {@link RoleBasedAuthorizationStrategy}.
    *
    * @param grantedRoles the roles in the strategy
+   * @param permissionTemplates the permission templates in the strategy
+   * @param roleTemplates the role templates in the strategy
    */
-  public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles, Set<PermissionTemplate> permissionTemplates,
-                                        Set<RoleTemplate> roleTemplates) {
+  public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles, @CheckForNull Set<PermissionTemplate> permissionTemplates,
+                                        @CheckForNull Set<RoleTemplate> roleTemplates) {
     RoleMap map = grantedRoles.get(SLAVE);
     agentRoles = map == null ? new RoleMap() : map;
 
@@ -154,8 +150,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     map = grantedRoles.get(PROJECT);
     itemRoles = map == null ? new RoleMap() : map;
 
-    this.permissionTemplates = permissionTemplates == null ? Collections.emptySet() : permissionTemplates;
-    this.roleTemplates = roleTemplates == null ? Collections.emptySet() : roleTemplates;
+    this.permissionTemplates = permissionTemplates == null ? Collections.emptySet() : new TreeSet<>(permissionTemplates);
+    this.roleTemplates = roleTemplates == null ? Collections.emptySet() : new TreeSet<>(roleTemplates);
     generateRolesFromTemplates();
   }
 
@@ -989,7 +985,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
 
         JSONObject permissionTemplatesJson = json.getJSONObject(PERMISSION_TEMPLATES);
-        strategy.permissionTemplates.clear();
+        Set<PermissionTemplate> permissionTemplates = new TreeSet<>();
         for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>)
             permissionTemplatesJson.getJSONObject("data").entrySet()) {
           String templateName = r.getKey();
@@ -1000,17 +996,19 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             }
           }
           PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
-          strategy.permissionTemplates.add(permissionTemplate);
+          permissionTemplates.add(permissionTemplate);
         }
 
         JSONObject roleTemplatesJson = json.getJSONObject(ROLE_TEMPLATES);
-        strategy.roleTemplates.clear();
+        Set<RoleTemplate> roleTemplates = new TreeSet<>();
         for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roleTemplatesJson.getJSONObject("data").entrySet()) {
           String templateName = r.getKey();
           String pattern = r.getValue().getString("pattern");
           RoleTemplate roleTemplate = new RoleTemplate(templateName, pattern);
-          strategy.roleTemplates.add(roleTemplate);
+          roleTemplates.add(roleTemplate);
         }
+        strategy.permissionTemplates = permissionTemplates;
+        strategy.roleTemplates = roleTemplates;
         strategy.generateRolesFromTemplates();
         persistChanges();
       }

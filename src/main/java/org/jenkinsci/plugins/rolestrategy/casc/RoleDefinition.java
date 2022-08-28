@@ -13,6 +13,7 @@ import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * Role definition. Used for custom formatting
@@ -31,6 +32,8 @@ public class RoleDefinition {
   private final String description;
   @CheckForNull
   private final String pattern;
+
+  private boolean generated;
   private final Set<String> permissions;
   private final Set<String> assignments;
 
@@ -63,7 +66,7 @@ public class RoleDefinition {
     if (role == null) {
       Set<Permission> resolvedPermissions = PermissionHelper.fromStrings(permissions, false);
       Pattern p = Pattern.compile(pattern != null ? pattern : Role.GLOBAL_ROLE_PATTERN);
-      role = new Role(name, p, resolvedPermissions, description);
+      role = new Role(name, p, resolvedPermissions, description, generated);
     }
     return role;
   }
@@ -81,6 +84,15 @@ public class RoleDefinition {
   @CheckForNull
   public String getPattern() {
     return pattern;
+  }
+
+  public boolean isGenerated() {
+    return generated;
+  }
+
+  @DataBoundSetter
+  public void setGenerated(boolean generated) {
+    this.generated = generated;
   }
 
   public Set<String> getPermissions() {

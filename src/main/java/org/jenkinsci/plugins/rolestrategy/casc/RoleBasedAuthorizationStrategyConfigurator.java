@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.kohsuke.accmod.Restricted;
@@ -67,7 +68,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
 
   private static Set<PermissionTemplate> getPermissionTemplates(Mapping map, ConfigurationContext context) throws ConfiguratorException {
     final Configurator<PermissionTemplateDefinition> c = context.lookupOrFail(PermissionTemplateDefinition.class);
-    Set<PermissionTemplate> permissionTemplates = new HashSet<>();
+    Set<PermissionTemplate> permissionTemplates = new TreeSet<>();
     CNode sub = map.remove("permissionTemplates");
     if (sub != null) {
       for (CNode o : sub.asSequence()) {
@@ -80,7 +81,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
 
   private static Set<RoleTemplate> getRoleTemplates(Mapping map, ConfigurationContext context) throws ConfiguratorException {
     final Configurator<RoleTemplate> c = context.lookupOrFail(RoleTemplate.class);
-    Set<RoleTemplate> roleTemplates = new HashSet<>();
+    Set<RoleTemplate> roleTemplates = new TreeSet<>();
     CNode sub = map.remove("roleTemplates");
     if (sub != null) {
       for (CNode o : sub.asSequence()) {
@@ -141,7 +142,10 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
       Role role = roleSetEntry.getKey();
       List<String> permissions = role.getPermissions().stream()
           .map(permission -> permission.group.getId() + "/" + permission.name).collect(Collectors.toList());
-      return new RoleDefinition(role.getName(), role.getDescription(), role.getPattern().pattern(), permissions, roleSetEntry.getValue());
+      RoleDefinition rd = new RoleDefinition(role.getName(), role.getDescription(), role.getPattern().pattern(), permissions,
+          roleSetEntry.getValue());
+      rd.setGenerated(role.isGenerated());
+      return rd;
     };
   }
 }

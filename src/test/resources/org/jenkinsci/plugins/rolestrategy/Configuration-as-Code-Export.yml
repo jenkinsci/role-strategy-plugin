@@ -17,10 +17,10 @@ roleBased:
     - "Job/Read"
     - "Job/Workspace"
   roleTemplates:
-  - name: "team2"
-    pattern: "folder2/.*"
   - name: "team1"
     pattern: "folder/.*"
+  - name: "team2"
+    pattern: "folder2/.*"
   roles:
     agents:
     - assignments:
@@ -48,23 +48,8 @@ roleBased:
       - "Job/Read"
     items:
     - assignments:
-      - "qa1"
-      name: "#QA-team1"
-      pattern: "folder/.*"
-      permissions:
-      - "Run/Update"
-      - "Job/Read"
-      - "Run/Replay"
-    - assignments:
-      - "qa2"
-      name: "#QA-team2"
-      pattern: "folder2/.*"
-      permissions:
-      - "Run/Update"
-      - "Job/Read"
-      - "Run/Replay"
-    - assignments:
       - "admin1"
+      generated: true
       name: "#admin-team1"
       pattern: "folder/.*"
       permissions:
@@ -78,6 +63,7 @@ roleBased:
       - "Job/Workspace"
     - assignments:
       - "admin2"
+      generated: true
       name: "#admin-team2"
       pattern: "folder2/.*"
       permissions:
@@ -91,6 +77,7 @@ roleBased:
       - "Job/Workspace"
     - assignments:
       - "developer1"
+      generated: true
       name: "#builder-team1"
       pattern: "folder/.*"
       permissions:
@@ -100,6 +87,7 @@ roleBased:
       - "Job/Workspace"
     - assignments:
       - "developer2"
+      generated: true
       name: "#builder-team2"
       pattern: "folder2/.*"
       permissions:

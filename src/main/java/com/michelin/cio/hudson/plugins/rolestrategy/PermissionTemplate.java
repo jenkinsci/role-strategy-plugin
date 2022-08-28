@@ -1,5 +1,6 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.security.Permission;
 import java.util.Collections;
 import java.util.HashSet;
@@ -16,7 +17,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Holds a set of permissions for the role generator.
  */
 @Restricted(NoExternalUse.class)
-public class PermissionTemplate {
+public class PermissionTemplate implements Comparable<PermissionTemplate> {
 
   private static final Logger LOGGER = Logger.getLogger(PermissionTemplate.class.getName());
 
@@ -71,7 +72,7 @@ public class PermissionTemplate {
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, permissions);
+    return name.hashCode();
   }
 
   @Override
@@ -86,13 +87,11 @@ public class PermissionTemplate {
       return false;
     }
     final PermissionTemplate other = (PermissionTemplate) obj;
-    if (!Objects.equals(this.name, other.name)) {
-      return false;
-    }
-    if (!Objects.equals(this.permissions, other.permissions)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(name, other.name);
   }
 
+  @Override
+  public int compareTo(@NonNull PermissionTemplate o) {
+    return name.compareTo(o.name);
+  }
 }

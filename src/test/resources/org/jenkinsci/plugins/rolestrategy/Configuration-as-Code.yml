@@ -40,22 +40,6 @@ jenkins:
               - "authenticated"
         items:
           - assignments:
-              - "qa1"
-            name: "#QA-team1"
-            pattern: "folder/.*"
-            permissions:
-              - "Run/Update"
-              - "Job/Read"
-              - "Run/Replay"
-          - assignments:
-              - "qa2"
-            name: "#QA-team2"
-            pattern: "folder2/.*"
-            permissions:
-              - "Run/Update"
-              - "Job/Read"
-              - "Run/Replay"
-          - assignments:
               - "admin1"
             name: "#admin-team1"
             pattern: "folder/.*"
