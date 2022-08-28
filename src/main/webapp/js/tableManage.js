@@ -115,7 +115,9 @@ updateTooltip = function(tr, td, pattern) {
         input.disabled = true;
         tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", doubleEscapeHTML(pattern)).replace("{{GRANTBYOTHER}}", " is granted through another permission");;
         td.setAttribute('tooltip', tooltip); // before 2.335 -- TODO remove once baseline is new enough
-        td.nextSibling.setAttribute('tooltip', tooltip); // 2.335+
+        if (td.nextSibling != null) {
+          td.nextSibling.setAttribute('tooltip', tooltip); // 2.335+
+        }
       }
     }
   }
@@ -230,6 +232,11 @@ Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleB
 });
 
 Behaviour.specify(".global-matrix-authorization-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+  if (e.hasClassName('read-only')) {
+    // if this is a read-only UI (ExtendedRead / SystemRead), do not enable checkboxes
+    return;
+  }
+
   let row = findAncestor(e,"TR");
   let pattern = getPattern(row);
   let td = findAncestor(e,"TD");

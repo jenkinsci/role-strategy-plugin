@@ -111,8 +111,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
-  private Set<PermissionTemplate> permissionTemplates = new HashSet<>();
-  private Set<RoleTemplate> roleTemplates = new HashSet<>();
+  private Set<PermissionTemplate> permissionTemplates;
+  private Set<RoleTemplate> roleTemplates;
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -121,6 +121,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     agentRoles = new RoleMap();
     globalRoles = new RoleMap();
     itemRoles = new RoleMap();
+    permissionTemplates = new TreeSet<>();
+    roleTemplates = new TreeSet<>();
   }
 
   /**
@@ -1027,33 +1029,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       // specifics forms, and we need to handle it.
       if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
-
-        JSONObject globalRoles = formData.getJSONObject(GLOBAL);
-        for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) globalRoles.getJSONObject("data").entrySet()) {
-          String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<>();
-          for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
-            if (e.getValue()) {
-              Permission p = Permission.fromId(e.getKey());
-              permissions.add(p);
-            }
-          }
-
-          Role role = new Role(roleName, permissions);
-          strategy.addRole(RoleType.Global, role);
-          RoleMap roleMap = ((RoleBasedAuthorizationStrategy) oldStrategy).getRoleMap(RoleType.Global);
-          if (roleMap != null) {
-            Set<String> sids = roleMap.getSidsForRole(roleName);
-            if (sids != null) {
-              for (String sid : sids) {
-                strategy.assignRole(RoleType.Global, role, sid);
-              }
-            }
-          }
-        }
-
+        readRoles(formData, RoleType.Global, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
         readRoles(formData, RoleType.Project, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
         readRoles(formData, RoleType.Slave, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
+        strategy.permissionTemplates = ((RoleBasedAuthorizationStrategy) oldStrategy).permissionTemplates;
+        strategy.roleTemplates = ((RoleBasedAuthorizationStrategy) oldStrategy).roleTemplates;
       } else if (oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         // When called from Hudson Manage panel, but was already on a role-based
         // strategy
@@ -1075,23 +1055,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     private void readRoles(JSONObject formData, final RoleType roleType, RoleBasedAuthorizationStrategy targetStrategy,
         RoleBasedAuthorizationStrategy oldStrategy) {
       final String roleTypeAsString = roleType.getStringType();
-      if (!formData.has(roleTypeAsString)) {
-        assert false : "Unexistent Role type " + roleTypeAsString;
-        return;
-      }
-      JSONObject projectRoles = formData.getJSONObject(roleTypeAsString);
-      if (!projectRoles.containsKey("data")) {
+      JSONObject roles = formData.getJSONObject(roleTypeAsString);
+      if (!roles.containsKey("data")) {
         assert false : "No data at role description";
         return;
       }
 
-      for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) projectRoles.getJSONObject("data").entrySet()) {
+      for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {
         String roleName = r.getKey();
         Set<Permission> permissions = new HashSet<>();
-        String pattern = r.getValue().getString("pattern");
-        if (pattern != null) {
+        String pattern = ".*";
+        if (r.getValue().has("pattern")) {
+          pattern = r.getValue().getString("pattern");
           r.getValue().remove("pattern");
-        } else {
+        }
+        if (pattern == null) {
           pattern = ".*";
         }
         for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
@@ -1100,11 +1078,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             permissions.add(p);
           }
         }
-
-        Role role = new Role(roleName, pattern, permissions);
+        RoleMap roleMap = oldStrategy.getRoleMap(roleType);
+        boolean generated = false;
+        if (roleMap != null) {
+          Role oldRole = roleMap.getRole(roleName);
+          if (oldRole != null) {
+            generated = oldRole.isGenerated();
+          }
+        }
+        Role role = new Role(roleName, Pattern.compile(pattern), permissions, "", generated);
         targetStrategy.addRole(roleType, role);
 
-        RoleMap roleMap = oldStrategy.getRoleMap(roleType);
         if (roleMap != null) {
           Set<String> sids = roleMap.getSidsForRole(roleName);
           if (sids != null) {

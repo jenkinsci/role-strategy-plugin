@@ -31,7 +31,16 @@
   <j:set var="permissionTableid" value="permissionTemplates"/>
   <j:set var="roleTemplates" value="${it.strategy.getRoleTemplates()}"/>
   <j:set var="roleTableid" value="roleTemplates"/>
-  
+
+  <j:choose>
+    <j:when test="${app.hasPermission(app.ADMINISTER)}">
+      <j:set var="readOnlyMode" value="false" />
+    </j:when>
+    <j:otherwise>
+      <j:set var="readOnlyMode" value="true" />
+    </j:otherwise>
+  </j:choose>
+
   <d:taglib uri="local">
     <d:tag name="roleRow">
       <td class="start">
@@ -44,11 +53,13 @@
       <td class="left-most" style="white-space: nowrap;">${title}</td>
       <td width="*">
         <div class="pattern-cell">
+          <j:if test="${readOnlyMode == false}">
             <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
-            <span>
-              <a href="#" class="patternAnchor">&quot;${attrs.pattern}&quot;</a>
-              <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.pattern}" />
-            </span>
+          </j:if>
+          <span>
+            <a href="#" class="patternAnchor">&quot;${attrs.pattern}&quot;</a>
+            <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.pattern}" />
+          </span>
         </div>
       </td>
       <td class="stop">
@@ -110,7 +121,7 @@
 	  <f:section title="${%Permission Templates}">
 	    <f:rowSet name="permissionTemplates">
   
-  <table id="${permissionTableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${permissionTableid}" class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
       <!-- The first row will show grouping -->
     <thead>
@@ -336,7 +347,7 @@
         templateTableHighlighter = new TableHighlighter('${permissionTableid}', 2);
 
          // Show jobs matching a pattern on click
-         let projectRolesTable = document.getElementById('${permissionTableid}')
+         let projectRolesTable = document.getElementById('${roleTableid}')
          let patterns = projectRolesTable.getElementsByClassName('patternAnchor');
          for(let pattern of patterns) {
            bindListenerToPattern(pattern);

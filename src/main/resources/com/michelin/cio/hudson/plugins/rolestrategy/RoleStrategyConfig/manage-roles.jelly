@@ -52,16 +52,20 @@
               <input type="button" class="role-strategy-add-button" value="${%Add}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"/>
             </d:tag>
             <d:tag name="roleRow">
-                <td class="start">
-                  <l:isAdmin>
-                    <j:if test="${(attrs.generated ?: false) == false}">
-                      <a href="#" class="remove">
-                        <l:icon alt="remove" class="icon-stop icon-sm"/>
-                      </a>
-                    </j:if>
-                  </l:isAdmin>
-                </td>
-              <td class="left-most" style="white-space: nowrap;">${title}</td>
+              <td class="start">
+                <l:isAdmin>
+                  <j:if test="${(attrs.generated ?: false) == false}">
+                    <a href="#" class="remove">
+                      <l:icon alt="remove" class="icon-stop icon-sm"/>
+                    </a>
+                  </j:if>
+                </l:isAdmin>
+              </td>
+              <j:set var="generated" value="${null}"/>
+              <j:if test="${attrs.generated}">
+                <j:set var="generated" value='This role is generated'/>
+              </j:if>
+              <td class="left-most" style="white-space: nowrap;" tooltip="${generated}">${title}</td>
               <j:set var="pattern" value=""/>
               <j:set var="patternTemplate" value=""/>
               <j:if test="${!attrs.global}">
@@ -70,20 +74,24 @@
                 <j:if test="${attrs.pattern != '{{PATTERN}}'}">
                   <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(attrs.role.pattern.toString())}"/>
                 </j:if>
-                <td width="*">
+                <td width="*" tooltip="${generated}">
                   <div class="pattern-cell">
-                      <j:if test="${(attrs.generated ?: false) == false}">
+                      <j:if test="${readOnlyMode == false &amp;&amp; (attrs.generated ?: false) == false}">
                         <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
                       </j:if>
                       <span>
                         <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
-                        <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                        <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}"/>
                       </span>
                   </div>
                 </td>
               </j:if>
                                    
               <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
+              <j:set var="generated" value=""/>
+              <j:if test="${attrs.generated}">
+                <j:set var="generated" value="&lt;br/&gt;This role is generated"/>
+              </j:if>
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
@@ -91,9 +99,12 @@
                         class="permissionInput"
                         data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
                         data-permission-id="${p.id}"
-                        tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}"
+                        tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern} ${generated}"
                         data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
-                      <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}" readonly="${attrs.generated ?: false}"/>
+                      <j:set var="oldReadOnlyMode" value="${readOnlyMode}"/>
+                      <j:set var="readOnlyMode" value="${readOnlyMode || attrs.generated}"/>
+                      <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}" class="${readOnlyMode ? 'read-only' : ''}"/>
+                      <j:set var="readOnlyMode" value="${oldReadOnlyMode}"/>
                     </td>
                   </j:if>
                 </j:forEach>

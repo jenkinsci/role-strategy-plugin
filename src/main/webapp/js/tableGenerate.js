@@ -201,6 +201,11 @@ Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleB
 });
 
 Behaviour.specify(".global-matrix-authorization-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+  let table = findAncestor(e, "TABLE");
+  if (table.hasClassName('read-only')) {
+    // if this is a read-only UI (ExtendedRead / SystemRead), do not enable checkboxes
+    return;
+  }
   let row = findAncestor(e,"TR");
   let pattern = getPattern(row);
   let td = findAncestor(e,"TD");

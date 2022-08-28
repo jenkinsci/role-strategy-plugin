@@ -33,7 +33,7 @@
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
   <j:set var="tableid" value="agentRoles"/>
   
-  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
     <!-- The first row will show grouping -->
     <thead>
