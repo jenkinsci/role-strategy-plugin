@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 
 public class RoleBasedProjectNamingStrategyTest {
@@ -144,13 +145,28 @@ public class RoleBasedProjectNamingStrategyTest {
     assertThat(f.getMessage(), is("No Create Permissions!"));
   }
 
+  @Test
+  @Issue("JENKINS-69625")
+  @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
+  public void systemUserCanCreateAnyJob() {
+    checkName("jobAllowed", null);
+    checkName("jobAllowed", "folder");
+    checkName("anyJob", null);
+    checkName("anyJob", "folder");
+    checkName("anyJob", "AnyFolder");
+  }
+
   private void checkName(User user, final String jobName, final String parentName) {
     try (ACLContext c = ACL.as(user)) {
-      ProjectNamingStrategy pns = j.jenkins.getProjectNamingStrategy();
-      assertThat(pns, instanceOf(RoleBasedProjectNamingStrategy.class));
-      RoleBasedProjectNamingStrategy rbpns = (RoleBasedProjectNamingStrategy) pns;
-      rbpns.checkName(parentName, jobName);
+      checkName(jobName, parentName);
     }
+  }
+
+  private void checkName(final String jobName, final String parentName) {
+    ProjectNamingStrategy pns = j.jenkins.getProjectNamingStrategy();
+    assertThat(pns, instanceOf(RoleBasedProjectNamingStrategy.class));
+    RoleBasedProjectNamingStrategy rbpns = (RoleBasedProjectNamingStrategy) pns;
+    rbpns.checkName(parentName, jobName);
   }
 
 }

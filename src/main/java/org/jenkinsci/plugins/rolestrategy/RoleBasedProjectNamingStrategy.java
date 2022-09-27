@@ -11,6 +11,7 @@ import hudson.Extension;
 import hudson.model.Failure;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
+import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -83,6 +84,9 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
     if (auth instanceof RoleBasedAuthorizationStrategy) {
       Authentication a = Jenkins.getAuthentication2();
+      if (a == ACL.SYSTEM2) {
+        return;
+      }
       String principal = new PrincipalSid(a).getPrincipal();
       RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
       RoleMap global = rbas.getRoleMap(RoleType.Global);
