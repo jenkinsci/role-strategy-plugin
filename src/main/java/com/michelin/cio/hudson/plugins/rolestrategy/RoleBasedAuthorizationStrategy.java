@@ -160,8 +160,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * Refresh item permissions from templates.
    */
   private void refreshPermissionsFromTemplate() {
-    SortedMap<Role, Set<PermissionEntry>> roles = getGrantedRolesEntries(RoleBasedAuthorizationStrategy.PROJECT);
-    for (Role role : roles.keySet()) {
+    Set<Role> roles = getRoles(RoleType.Project);
+    for (Role role : roles) {
       role.refreshPermissionsFromTemplate(this.permissionTemplates);
     }
   }
@@ -266,7 +266,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}.
+   * Get the {@link Role Roles} and the sids assigned to them for the given {@link RoleType}.
    *
    * @param type the type of the role
    * @return roles mapped to the set of user sids assigned to that role
@@ -288,28 +288,51 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}.
+   * Get the {@link Role Roles} and the sids assigned to them for the given {@link RoleType}.
    *
    * @param type the type of the role
    * @return roles mapped to the set of user sids assigned to that role
+   * @deprecated Use {@link #getRoles(String)}
    */
+  @Deprecated
   public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries(@NonNull String type) {
     return getGrantedRolesEntries(RoleType.fromString(type));
   }
 
   /**
-   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}.
+   * Get the {@link Role Roles} and the sids assigned to them for the given {@link RoleType}.
    *
    * @param type the type of the role
    * @return roles mapped to the set of user sids assigned to that role
+   * @deprecated Use {@link #getRoles(RoleType)}
    */
+  @Deprecated
   public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries(@NonNull RoleType type) {
     return getRoleMap(type).getGrantedRolesEntries();
   }
 
+  /**
+   * Get the {@link Role Roles} for the given {@link RoleType}.
+   *
+   * @param type {@link RoleType}
+   * @return Set of {@link Role Roles}
+   */
+  public Set<Role> getRoles(@NonNull RoleType type) {
+    return getRoleMap(type).getRoles();
+  }
 
   /**
-   * Get all the SIDs referenced by specified {@link RoleMap} type.
+   * Get the {@link Role Roles} for the given {@link RoleType}.
+   *
+   * @param type type of Roles
+   * @return Set of {@link Role Roles}
+   */
+  public Set<Role> getRoles(@NonNull String type) {
+    return getRoles(RoleType.fromString(type));
+  }
+
+  /**
+   * Get all the {@link PermissionEntry PermissionEntries} referenced by the specified {@link RoleMap} type.
    *
    * @param type The object type controlled by the {@link RoleMap}
    * @return All SIDs from the specified {@link RoleMap}.
@@ -756,8 +779,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
         responseJson.put("pattern", role.getPattern().pattern());
       }
-      Map<Role, Set<PermissionEntry>> grantedRoleMap = roleMap.getGrantedRolesEntries();
-      responseJson.put("sids", grantedRoleMap.get(role));
+      responseJson.put("sids", role.getPermissionEntries());
     }
 
     Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
@@ -797,8 +819,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap = getRoleMap(RoleType.fromString(type));
     }
 
-    for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRolesEntries().entrySet()) {
-      responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
+    for (Role role : roleMap.getRoles()) {
+      responseJson.put(role.getName(), role.getPermissionEntries());
     }
 
     Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
@@ -930,8 +952,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         writer.startNode("roleMap");
         writer.addAttribute("type", map.getKey().getStringType());
 
-        for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRolesEntries().entrySet()) {
-          Role role = grantedRole.getKey();
+        for (Role role : roleMap.getRoles()) {
           if (role != null) {
             writer.startNode("role");
             writer.addAttribute("name", role.getName());
@@ -949,7 +970,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             writer.endNode();
 
             writer.startNode("assignedSIDs");
-            for (PermissionEntry entry : grantedRole.getValue()) {
+            for (PermissionEntry entry : role.getPermissionEntries()) {
               writer.startNode("sid");
               writer.addAttribute("type", entry.getType().toString());
               writer.setValue(entry.getSid());
@@ -1025,6 +1046,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
             next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
             if (next != null && next.equals("assignedSIDs")) {
+              Set<PermissionEntry> entries = new HashSet<>();
               reader.moveDown();
               while (reader.hasMoreChildren()) {
                 reader.moveDown();
@@ -1041,10 +1063,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                   }
                 }
                 PermissionEntry pe = new PermissionEntry(authType, sid);
-                map.assignRole(role, pe);
+                entries.add(pe);
                 reader.moveUp();
               }
               reader.moveUp();
+              role.setPermissionEntries(entries);
             }
             reader.moveUp();
           }
@@ -1516,9 +1539,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     @Restricted(DoNotUse.class)
-    public boolean hasAmbiguousEntries(SortedMap<Role, Set<PermissionEntry>> grantedRoles) {
-      return grantedRoles.entrySet().stream()
-          .anyMatch(entry -> entry.getValue().stream().anyMatch(pe -> pe.getType() == AuthorizationType.EITHER));
+    public boolean hasAmbiguousEntries(Set<Role> roles) {
+      return roles.stream()
+          .anyMatch(role -> role.getPermissionEntries().stream().anyMatch(pe -> pe.getType() == AuthorizationType.EITHER));
     }
   }
 }

@@ -59,7 +59,7 @@ public class CascBenchmark {
       assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
       rbas = (RoleBasedAuthorizationStrategy) s;
 
-      Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
+      Set<Role> globalRoles = rbas.getRoles(RoleType.Global);
       assertThat(Objects.requireNonNull(globalRoles).size(), equalTo(2));
 
       // Admin has configuration access

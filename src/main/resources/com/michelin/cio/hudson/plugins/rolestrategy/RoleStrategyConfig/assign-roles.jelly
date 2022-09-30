@@ -58,16 +58,16 @@
                   </td>
                   <j:forEach var="role" items="${attrs.roles}">
                     <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-                    <j:forEach var="p" items="${role.key.permissions}">
+                    <j:forEach var="p" items="${role.permissions}">
                       <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
                     </j:forEach>
                     <j:set var="patternTooltip" value=""/>
                     <j:if test="${attrs.showPattern == 'true'}">
-                      <j:set var="patternTooltip" value="  &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+                      <j:set var="patternTooltip" value="  &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.pattern.toString())}"/>
                     </j:if>
                     <j:set var="permissionList" value="${permissionList} ${patternTooltip}"/>
                     <td class="pane-header">
-                      <span data-html-tooltip="${permissionList}">${role.key.name}</span>
+                      <span data-html-tooltip="${permissionList}">${role.name}</span>
                     </td>
                   </j:forEach>
                   <l:isAdmin><td class="stop" /></l:isAdmin>
@@ -87,7 +87,7 @@
                   </td>
                   <j:forEach var="role" items="${attrs.roles}">
                     <td class="pane-header">
-                      <span>${role.key.name}</span>
+                      <span>${role.name}</span>
                     </td>
                   </j:forEach>
                   <td class="stop" />
@@ -116,7 +116,6 @@
               </j:if>
             </d:tag>
             <d:tag name="userRow">
-              <j:set var="permissionEntry" value="${it.strategy.descriptor.entryFor(attrs.permissionType, attrs.sid)}"/>
               <td class="start">
                 <l:isAdmin>
                   <j:if test="${attrs.noremove != 'true'}">
@@ -127,14 +126,14 @@
                 </l:isAdmin>
               </td>
 			        <j:choose>
-			          <j:when test="${attrs.sid == 'authenticated' and attrs.permissionType == 'GROUP'}">
+			          <j:when test="${attrs.sid == 'authenticated' and attrs.entry.type == 'GROUP'}">
 			            <td class="left-most">
 			              <div title="authenticated" class="rsp-table__cell">
 			                <l:icon src="symbol-people-outline plugin-ionicons-api" class="icon-sm"/> ${%Authenticated Users}
 			              </div>
 			            </td>
 			          </j:when>
-			          <j:when test="${attrs.sid == 'anonymous' and attrs.permissionType == 'USER'}">
+			          <j:when test="${attrs.sid == 'anonymous' and attrs.entry.type == 'USER'}">
 			            <td class="left-most">
 			              <div title="anonymous" class="rsp-table__cell">
                       <l:icon src="symbol-person-outline plugin-ionicons-api" class="icon-sm"/> ${%Anonymous}
@@ -145,14 +144,13 @@
 			            <td class="left-most">${title}</td>
 			          </j:otherwise>
 			        </j:choose>
-              <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(r.key.pattern.toString())}"/>
-              <j:forEach var="r" items="${it.strategy.getGrantedRolesEntries(attrs.type)}">
-                <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(r.key.pattern.toString())}"/>
-                <j:if test="${attrs.type == it.strategy.GLOBAL}">
+              <j:forEach var="role" items="${attrs.roles}">
+                <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(role.pattern.toString())}"/>
+                <j:if test="${attrs.showPattern == 'false'}">
                   <j:set var="pattern" value=""/>
                 </j:if>
-                <td class="rsp-highlight-input" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
-                  <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
+                <td class="rsp-highlight-input" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(role.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
+                  <f:checkbox name="[${role.name}]" checked="${role.containsPermissionEntry(entry)}"/>
                 </td>
               </j:forEach>
               <td class="stop">
@@ -160,7 +158,7 @@
                   <j:if test="${attrs.noremove != 'true'}">
                     <div class="rsp-table__cell">
                       <div class="rsp-remove">
-                        <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                        <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;${attrs.entry.description}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                       </div>
                       <j:if test="${attrs.permissionType == 'EITHER'}">
                         <!-- migration options -->

@@ -72,9 +72,8 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
    * @param name       The name of the item that should be created.
    * @throws Failure When the name is not allowed or {@code Item.CREATE} permission is missing
    */
-  // TODO: add Override once this method is implemented in Core and consumed here.
+  @Override
   public void checkName(String parentName, String name) throws Failure {
-
     if (StringUtils.isBlank(name)) {
       return;
     }
@@ -108,13 +107,12 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       }
 
       // check project role with pattern
-      SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
+      Set<Role> roles = rbas.getRoles(RoleType.Project);
       ArrayList<String> badList = new ArrayList<>(roles.size());
-      for (SortedMap.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
-        Role key = entry.getKey();
-        if (!Macro.isMacro(key) && key.hasPermission(Item.CREATE)) {
-          Set<PermissionEntry> sids = entry.getValue();
-          Pattern namePattern = key.getPattern();
+      for (Role role : roles) {
+        if (!Macro.isMacro(role) && role.hasPermission(Item.CREATE)) {
+          Set<PermissionEntry> sids = role.getPermissionEntries();
+          Pattern namePattern = role.getPattern();
           if (StringUtils.isNotBlank(namePattern.toString())) {
             if (namePattern.matcher(fullName).matches()) {
               if (hasAnyPermission(principal, authorities, sids)) {
@@ -127,7 +125,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         }
       }
       String error;
-      if (badList != null && !badList.isEmpty()) {
+      if (!badList.isEmpty()) {
         error = Messages.RoleBasedProjectNamingStrategy_JobNameConventionNotApplyed(fullName, badList.toString());
       } else {
         error = Messages.RoleBasedProjectNamingStrategy_NoPermissions();

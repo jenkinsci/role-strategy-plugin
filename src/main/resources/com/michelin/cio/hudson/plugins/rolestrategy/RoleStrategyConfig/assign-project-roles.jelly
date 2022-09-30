@@ -28,7 +28,7 @@
 
   <j:set var="tableid" value="projectRoles"/>
   <j:set var="projectSIDs" value="${it.strategy.getSidEntries(it.strategy.PROJECT)}"/>
-  <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
+  <j:set var="itemGrantedRoles" value="${it.strategy.getRoles(it.strategy.PROJECT)}"/>
   <div id="itemUserInputFilter" data-table-id="${tableid}" data-initial-size="${projectSIDs.size()}" class="user-filter">
     <f:entry title="${%Filter by User/Group}">
       <input id="itemUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
@@ -46,15 +46,15 @@
     <local:thead roles="${itemGrantedRoles}" showPattern="true"/>
     <tbody>
       <tr name="[USER:anonymous]" class="highlight-row">
-        <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.PROJECT}" permissionType="USER" typedescription="User" noremove="true"/>
+        <local:userRow sid="anonymous" title="${%Anonymous}" entry="${it.strategy.descriptor.entryFor('USER', 'anonymous')}" typedescription="User" noremove="true" showPattern="true" roles="${itemGrantedRoles}"/>
       </tr>
       <tr name="[GROUP:authenticated]" class="highlight-row">
-        <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.PROJECT}" permissionType="GROUP" typedescription="Group" noremove="true"/>
+        <local:userRow sid="authenticated" title="authenticated" entry="${it.strategy.descriptor.entryFor('GROUP', 'authenticated')}" typedescription="Group" noremove="true" showPattern="true" roles="${itemGrantedRoles}"/>
       </tr>
       <j:forEach var="entry" items="${projectSIDs}">
         <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
           <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-            <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.PROJECT}"/>
+            <local:userRow sid="${entry.sid}" title="${entry.sid}" entry="${entry}" typedescription="${entry.type.description}" showPattern="true" roles="${itemGrantedRoles}"/>
           </tr>
         </j:if>
       </j:forEach>
@@ -64,7 +64,7 @@
 
   <template id="newItemRowTemplate">
     <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-      <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}" typedescription="{{USERGROUP}}"/>
+      <local:userRow title="{{USER}}" showPattern="false"  typedescription="{{USERGROUP}}" roles="${itemGrantedRoles}"/>
     </tr>
   </template>
 

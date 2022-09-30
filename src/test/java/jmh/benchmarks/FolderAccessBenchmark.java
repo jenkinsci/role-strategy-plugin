@@ -7,6 +7,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import hudson.model.FreeStyleProject;
+import hudson.model.Item;
 import hudson.model.TopLevelItem;
 import hudson.model.User;
 import hudson.security.ACL;
@@ -21,11 +22,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
+import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
@@ -49,17 +52,16 @@ public class FolderAccessBenchmark {
       Jenkins jenkins = Objects.requireNonNull(Jenkins.getInstanceOrNull());
       jenkins.setSecurityRealm(new JenkinsRule().createDummySecurityRealm());
 
-      SortedMap<Role, Set<PermissionEntry>> projectRoles = new TreeMap<>();
+      SortedSet<Role> projectRoles = new TreeSet<>();
 
-      Set<String> userPermissions = new HashSet<>();
-      Collections.addAll(userPermissions, "hudson.model.Item.Discover", "hudson.model.Item.Read");
+      Set<Permission> userPermissions = new HashSet<>();
+      Collections.addAll(userPermissions, Item.DISCOVER, Item.READ);
 
-      Set<String> maintainerPermissions = new HashSet<>();
-      Collections.addAll(maintainerPermissions, "hudson.model.Item.Discover", "hudson.model.Item.Read", "hudson.model.Item.Create");
+      Set<Permission> maintainerPermissions = new HashSet<>();
+      Collections.addAll(maintainerPermissions, Item.DISCOVER, Item.READ, Item.CREATE);
 
-      Set<String> adminPermissions = new HashSet<>();
-      Collections.addAll(adminPermissions, "hudson.model.Item.Discover", "hudson.model.Item.Read", "hudson.model.Item.Create",
-          "hudson.model.Item.Configure");
+      Set<Permission> adminPermissions = new HashSet<>();
+      Collections.addAll(adminPermissions, Item.DISCOVER, Item.READ, Item.CREATE, Item.CONFIGURE);
 
       Random random = new Random(100L);
 
@@ -93,17 +95,21 @@ public class FolderAccessBenchmark {
           maintainers.add(new PermissionEntry(AuthorizationType.USER, "user" + random.nextInt(100)));
           maintainers.add(new PermissionEntry(AuthorizationType.USER, "user" + random.nextInt(100)));
 
-          Set<PermissionEntry> admin = Collections.singleton(new PermissionEntry(AuthorizationType.USER, "user" + random.nextInt(100)));
+          Set<PermissionEntry> admin = Collections.singleton(new PermissionEntry(AuthorizationType.USER,
+                  "user" + random.nextInt(100)));
 
-          Role userRole = new Role(String.format("user%d-%d", i, j), "TopFolder" + i + "(/BottomFolder" + j + "/.*)?", userPermissions, "");
-          Role maintainerRole = new Role(String.format("maintainer%d-%d", i, j), "TopFolder" + i + "/BottomFolder" + j + "(/.*)",
-              maintainerPermissions, "");
-          Role adminRole = new Role(String.format("admin%d-%d", i, j), "TopFolder" + i + "/BottomFolder" + j + "(/.*)", adminPermissions,
-              "");
+          Role userRole = new Role(String.format("user%d-%d", i, j),
+                  Pattern.compile("TopFolder" + i + "(/BottomFolder" + j + "/.*)?"),
+                  userPermissions, "", "", users);
+          Role maintainerRole = new Role(String.format("maintainer%d-%d", i, j),
+                  Pattern.compile("TopFolder" + i + "/BottomFolder" + j + "(/.*)"),
+                  maintainerPermissions, "", "", maintainers);
+          Role adminRole = new Role(String.format("admin%d-%d", i, j),
+                  Pattern.compile("TopFolder" + i + "/BottomFolder" + j + "(/.*)"), adminPermissions, "", "", admin);
 
-          projectRoles.put(userRole, users);
-          projectRoles.put(maintainerRole, maintainers);
-          projectRoles.put(adminRole, admin);
+          projectRoles.add(userRole);
+          projectRoles.add(maintainerRole);
+          projectRoles.add(adminRole);
         }
         topFolders.add(folder);
       }

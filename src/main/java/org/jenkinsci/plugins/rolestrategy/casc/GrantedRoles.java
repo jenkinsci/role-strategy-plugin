@@ -62,10 +62,9 @@ public class GrantedRoles {
 
   @NonNull
   private RoleMap retrieveRoleMap(Set<RoleDefinition> definitions) {
-    TreeMap<Role, Set<PermissionEntry>> resMap = new TreeMap<>();
+    TreeSet<Role> resMap = new TreeSet<>();
     for (RoleDefinition definition : definitions) {
-      resMap.put(definition.getRole(),
-              definition.getEntries().stream().map(RoleDefinition.RoleDefinitionEntry::asPermissionEntry).collect(Collectors.toSet()));
+      resMap.add(definition.getRole());
     }
     return new RoleMap(resMap);
   }

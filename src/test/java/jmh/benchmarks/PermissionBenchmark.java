@@ -10,7 +10,8 @@ import hudson.security.Permission;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
@@ -33,10 +34,11 @@ public class PermissionBenchmark {
     @Override
     public void setup() {
       Jenkins jenkins = Objects.requireNonNull(Jenkins.getInstanceOrNull());
-      Set<String> permissionSet = Collections.singleton("hudson.model.Hudson.Administer");
-      Role role = new Role("USERS", ".*", permissionSet, "description");
-      RoleMap roleMap = new RoleMap(new TreeMap<>(// expects a sorted map
-          Collections.singletonMap(role, Collections.singleton(new PermissionEntry(AuthorizationType.USER, "alice")))));
+      Set<Permission> permissionSet = Collections.singleton(Jenkins.ADMINISTER);
+      Role role = new Role("USERS", Pattern.compile(".*"), permissionSet, "description", "",
+              Collections.singleton(new PermissionEntry(AuthorizationType.USER, "alice")));
+      RoleMap roleMap = new RoleMap(new TreeSet<>(// expects a sorted set
+          Collections.singleton(role)));
 
       jenkins.setAuthorizationStrategy(
           new RoleBasedAuthorizationStrategy(Collections.singletonMap(RoleBasedAuthorizationStrategy.GLOBAL, roleMap)));

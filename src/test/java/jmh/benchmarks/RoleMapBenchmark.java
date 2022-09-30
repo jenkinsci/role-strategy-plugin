@@ -5,6 +5,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import hudson.model.Item;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 import java.lang.reflect.Method;
@@ -12,8 +13,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -81,11 +83,12 @@ abstract class RoleMapBenchmarkState extends JmhBenchmarkState {
 
   @Override
   public void setup() throws Exception {
-    SortedMap<Role, Set<PermissionEntry>> map = new TreeMap<>();
+    SortedSet<Role> map = new TreeSet<>();
     final int roleCount = getRoleCount();
     for (int i = 0; i < roleCount; i++) {
-      Role role = new Role("role" + i, ".*", new HashSet<>(Arrays.asList("hudson.model.Item.Discover", "hudson.model.Item.Configure")), "");
-      map.put(role, Collections.singleton(new PermissionEntry(AuthorizationType.USER, "user" + i)));
+      Role role = new Role("role" + i, Pattern.compile(".*"), new HashSet<>(Arrays.asList(Item.DISCOVER, Item.CONFIGURE)), "",
+          "", Collections.singleton(new PermissionEntry(AuthorizationType.USER, "user" + i)));
+      map.add(role);
     }
     roleMap = new RoleMap(map);
 

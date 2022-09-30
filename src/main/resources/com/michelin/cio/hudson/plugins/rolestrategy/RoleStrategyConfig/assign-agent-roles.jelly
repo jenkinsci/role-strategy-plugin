@@ -29,7 +29,7 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="tableid" value="agentRoles"/>
-  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
+  <j:set var="agentGrantedRoles" value="${it.strategy.getRoles(it.strategy.SLAVE)}"/>
   <j:set var="agentSIDs" value="${it.strategy.getSidEntries(it.strategy.SLAVE)}"/>
 
   <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
@@ -38,15 +38,15 @@
     <local:thead roles="${agentGrantedRoles}" showPattern="true"/>
     <tbody>
       <tr name="[USER:anonymous]" class="highlight-row">
-        <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.SLAVE}" permissionType="USER" typedescription="User" noremove="true"/>
+        <local:userRow sid="anonymous" title="${%Anonymous}" entry="${it.strategy.descriptor.entryFor('USER', 'anonymous')}" typedescription="User" noremove="true" showPattern="true" roles="${agentGrantedRoles}"/>
       </tr>
       <tr name="[GROUP:authenticated]" class="highlight-row">
-        <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.SLAVE}" permissionType="GROUP" typedescription="Group" noremove="true"/>
+        <local:userRow sid="authenticated" title="authenticated" entry="${it.strategy.descriptor.entryFor('GROUP', 'authenticated')}" typedescription="Group" noremove="true" showPattern="true" roles="${agentGrantedRoles}"/>
       </tr>
       <j:forEach var="entry" items="${agentSIDs}">
         <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
           <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-            <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.SLAVE}" showRoleName="false" showPattern="false"/>
+            <local:userRow sid="${entry.sid}" title="${entry.sid}" entry="${entry}" typedescription="${entry.type.getDescription()}" showPattern="true" roles="${agentGrantedRoles}"/>
           </tr>
         </j:if>
       </j:forEach>
@@ -56,7 +56,7 @@
 
   <template id="newAgentRowTemplate">
     <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-      <local:userRow title="{{USER}}" type="${it.strategy.SLAVE}" typedescription="{{USERGROUP}}"/>
+      <local:userRow title="{{USER}}" showPattern="true" typedescription="{{USERGROUP}}" roles="${agentGrantedRoles}"/>
     </tr>
   </template>
 

@@ -95,9 +95,9 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   public Set<Attribute<RoleBasedAuthorizationStrategy, ?>> describe() {
     return new HashSet<>(Arrays.asList(
             new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
-              SortedSet<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
-              SortedSet<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Slave));
-              SortedSet<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Project));
+              SortedSet<RoleDefinition> globalRoles = getRoleDefinitions(target.getRoles(RoleType.Global));
+              SortedSet<RoleDefinition> agentRoles = getRoleDefinitions(target.getRoles(RoleType.Slave));
+              SortedSet<RoleDefinition> projectRoles = getRoleDefinitions(target.getRoles(RoleType.Project));
               return new GrantedRoles(globalRoles, projectRoles, agentRoles);
             }),
             new MultivaluedAttribute<RoleBasedAuthorizationStrategy, PermissionTemplateDefinition>("permissionTemplates",
@@ -125,20 +125,19 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     return new PermissionTemplateDefinition(permissionTemplate.getName(), permissions);
   }
 
-  private SortedSet<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<PermissionEntry>> roleMap) {
-    if (roleMap == null) {
+  private SortedSet<RoleDefinition> getRoleDefinitions(@CheckForNull Set<Role> roles) {
+    if (roles == null) {
       return Collections.emptySortedSet();
     }
-    return new TreeSet<>(roleMap.entrySet().stream().map(getRoleDefinition()).collect(Collectors.toSet()));
+    return new TreeSet<>(roles.stream().map(getRoleDefinition()).collect(Collectors.toSet()));
   }
 
-  private Function<Map.Entry<Role, Set<PermissionEntry>>, RoleDefinition> getRoleDefinition() {
-    return roleSetEntry -> {
-      Role role = roleSetEntry.getKey();
+  private Function<Role, RoleDefinition> getRoleDefinition() {
+    return role -> {
       List<String> permissions = role.getPermissions().stream()
               .map(permission -> permission.group.title.toString(
                       Locale.US) + "/" + permission.name).collect(Collectors.toList());
-      Set<RoleDefinition.RoleDefinitionEntry> roleDefinitionEntries = roleSetEntry.getValue().stream()
+      Set<RoleDefinition.RoleDefinitionEntry> roleDefinitionEntries = role.getPermissionEntries().stream()
               .map(RoleDefinition.RoleDefinitionEntry::fromPermissionEntry)
               .collect(Collectors.toSet());
       final RoleDefinition roleDefinition = new RoleDefinition(role.getName(), role.getDescription(),

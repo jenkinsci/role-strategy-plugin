@@ -68,8 +68,8 @@ public class PermissionTemplate implements Comparable<PermissionTemplate> {
     ProjectNamingStrategy pns = Jenkins.get().getProjectNamingStrategy();
     if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
       RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
-      Map<Role, Set<PermissionEntry>> roleMap = rbas.getGrantedRolesEntries(RoleType.Project);
-      for (Role role : roleMap.keySet()) {
+      Set<Role> roles = rbas.getRoles(RoleType.Project);
+      for (Role role : roles) {
         if (Objects.equals(name, role.getTemplateName())) {
           return true;
         }

@@ -16,6 +16,7 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -102,7 +103,8 @@ public class RoleDefinition implements Comparable<RoleDefinition> {
     if (role == null) {
       Set<Permission> resolvedPermissions = PermissionHelper.fromStrings(permissions, false);
       Pattern p = Pattern.compile(pattern != null ? pattern : Role.GLOBAL_ROLE_PATTERN);
-      role = new Role(name, p, resolvedPermissions, description, templateName);
+      role = new Role(name, p, resolvedPermissions, description, templateName, entries.stream()
+              .map(RoleDefinitionEntry::asPermissionEntry).collect(Collectors.toSet()));
     }
     return role;
   }
