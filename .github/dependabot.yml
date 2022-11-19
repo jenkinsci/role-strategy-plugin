@@ -4,9 +4,11 @@ updates:
   directory: "/"
   schedule:
     interval: weekly
-  open-pull-requests-limit: 10
-  target-branch: master
+  ignore:
+    # To be lifted, once the plugin baseline is on 2.361.1 or newer
+    - dependency-name: "com.puppycrawl.tools:checkstyle"
+      versions: [">=10.0"]
 - package-ecosystem: github-actions
   directory: /
   schedule:
-    interval: daily
+    interval: weekly
