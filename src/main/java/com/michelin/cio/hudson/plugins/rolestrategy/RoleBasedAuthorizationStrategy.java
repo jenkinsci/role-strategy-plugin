@@ -1080,21 +1080,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         RoleMap roleMap = oldStrategy.getRoleMap(roleType);
         boolean generated = false;
-        if (roleMap != null) {
-          Role oldRole = roleMap.getRole(roleName);
-          if (oldRole != null) {
-            generated = oldRole.isGenerated();
-          }
+        Role oldRole = roleMap.getRole(roleName);
+        if (oldRole != null) {
+          generated = oldRole.isGenerated();
         }
         Role role = new Role(roleName, Pattern.compile(pattern), permissions, "", generated);
         targetStrategy.addRole(roleType, role);
 
-        if (roleMap != null) {
-          Set<String> sids = roleMap.getSidsForRole(roleName);
-          if (sids != null) {
-            for (String sid : sids) {
-              targetStrategy.assignRole(roleType, role, sid);
-            }
+        Set<String> sids = roleMap.getSidsForRole(roleName);
+        if (sids != null) {
+          for (String sid : sids) {
+            targetStrategy.assignRole(roleType, role, sid);
           }
         }
       }
