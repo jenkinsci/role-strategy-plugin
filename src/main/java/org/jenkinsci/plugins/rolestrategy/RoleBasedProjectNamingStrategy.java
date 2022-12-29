@@ -107,7 +107,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       }
 
       // check project role with pattern
-      SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRoles(RoleType.Project);
+      SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
       ArrayList<String> badList = new ArrayList<>(roles.size());
       for (SortedMap.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
         Role key = entry.getKey();

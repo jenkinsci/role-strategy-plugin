@@ -75,7 +75,7 @@ public class ApiTest {
 
     // Verifying that the role is in
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<PermissionEntry>> grantedRoles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> grantedRoles = strategy.getGrantedRolesEntries(RoleType.Project);
     boolean foundRole = false;
     for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
       Role role = entry.getKey();
@@ -125,7 +125,7 @@ public class ApiTest {
 
     // Verifying that alice is assigned to the role "new-role"
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleType.Project);
     boolean found = false;
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
@@ -157,7 +157,7 @@ public class ApiTest {
 
     // Verifying that alice no longer has permissions
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleType.Project);
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
       Set<PermissionEntry> sids = entry.getValue();
@@ -190,7 +190,7 @@ public class ApiTest {
 
     // Verifying that alice is assigned to the role "new-role"
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleType.Project);
     boolean found = false;
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
@@ -221,7 +221,7 @@ public class ApiTest {
 
     // Verifying that alice no longer has permissions
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleType.Project);
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
       Set<PermissionEntry> sids = entry.getValue();
@@ -257,7 +257,7 @@ public class ApiTest {
 
     // Verifying that alice is assigned to the role "new-role"
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleType.Project);
     boolean found = false;
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
@@ -289,7 +289,7 @@ public class ApiTest {
 
     // Verifying that alice no longer has permissions
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
-    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRoles(RoleType.Project);
+    SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleType.Project);
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
       Set<PermissionEntry> sids = entry.getValue();

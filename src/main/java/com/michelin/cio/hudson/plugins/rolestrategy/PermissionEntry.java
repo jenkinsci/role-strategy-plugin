@@ -33,8 +33,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * Combines sid with {@link AuthorizationType type}.
- *
- * @since 3.0
  */
 public class PermissionEntry implements Comparable<PermissionEntry> {
   private final AuthorizationType type;

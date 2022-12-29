@@ -51,14 +51,12 @@
             <d:tag name="addButtons">
               <input type="button" class="role-strategy-add-button" value="${%Add User}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
                   data-type="USER"
-                  data-size="${attrs.sids.size()}" 
                   data-prompt="${%promptUser}"
                   data-empty-message="${%emptyUser}"
                   data-error-message="${%userExists}"
               />
               <input type="button" class="role-strategy-add-button" value="${%Add Group}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
                   data-type="GROUP"
-                  data-size="${attrs.sids.size()}" 
                   data-prompt="${%promptGroup}"
                   data-empty-message="${%emptyGroup}"
                   data-error-message="${%groupExists}"
@@ -98,7 +96,7 @@
 			          </j:otherwise>
 			        </j:choose>
 
-              <j:forEach var="r" items="${it.strategy.getGrantedRoles(attrs.type)}">
+              <j:forEach var="r" items="${it.strategy.getGrantedRolesEntries(attrs.type)}">
                 <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(r.key.pattern.toString())}"/>
                 <j:if test="${attrs.type == it.strategy.GLOBAL}">
                   <j:set var="pattern" value=""/>

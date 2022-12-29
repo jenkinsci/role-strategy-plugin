@@ -110,7 +110,6 @@ Behaviour.specify(
 addButtonAction = function (e, master, table, tableHighlighter) {
     let dataReference = e.target;
     let type = dataReference.getAttribute('data-type');
-    let size = parseInt(dataReference.getAttribute('data-size'));
     let tbody = table.tBodies[0];
     
     let name = prompt(dataReference.getAttribute('data-prompt')).trim();

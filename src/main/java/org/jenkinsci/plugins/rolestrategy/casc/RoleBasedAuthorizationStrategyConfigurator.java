@@ -62,9 +62,9 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   @NonNull
   public Set<Attribute<RoleBasedAuthorizationStrategy, ?>> describe() {
     return Collections.singleton(new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
-      List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Global));
-      List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Slave));
-      List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Project));
+      List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
+      List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Slave));
+      List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Project));
       return new GrantedRoles(globalRoles, projectRoles, agentRoles);
     }));
   }

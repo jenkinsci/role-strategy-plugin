@@ -61,6 +61,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -302,16 +303,50 @@ public class RoleMap {
   }
 
   /**
-   * unAssign the sid to the given {@link Role}.
+   * Assign the sid to the given {@link Role}.
+   * Assigns are a {@link AuthorizationType#EITHER}ö
+   *
+   * @param role The {@link Role} to assign the sid to
+   * @param sid  The sid to assign
+   *
+   * @deprecated use {@link #assignRole(Role, PermissionEntry)}
+   */
+  @Deprecated
+  public void assignRole(Role role, String sid) {
+    if (this.hasRole(role)) {
+      this.grantedRoles.get(role).add(new PermissionEntry(AuthorizationType.EITHER, sid));
+      matchingRoleMapCache.invalidateAll();
+    }
+  }
+
+  /**
+   * unAssign the sid from the given {@link Role}.
    *
    * @param role The {@link Role} to unassign the sid to
-   * @param sid  The sid to assign
-   * @since 2.6.0
+   * @param sid  The sid to unassign
    */
   public void unAssignRole(Role role, PermissionEntry sid) {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(sid);
+      matchingRoleMapCache.invalidateAll();
+    }
+  }
+
+  /**
+   * unAssign the sid from the given {@link Role}.
+   * This will only unassign entries of type {@link AuthorizationType#EITHER}.
+   *
+   * @param role The {@link Role} to unassign the sid to
+   * @param sid  The sid to unassign
+   * @since 2.6.0
+   * @deprecated use {@link #unAssignRole(Role, PermissionEntry)}
+   */
+  @Deprecated
+  public void unAssignRole(Role role, String sid) {
+    Set<PermissionEntry> sids = grantedRoles.get(role);
+    if (sids != null) {
+      sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
       matchingRoleMapCache.invalidateAll();
     }
   }
@@ -342,6 +377,23 @@ public class RoleMap {
   }
 
   /**
+   * Clear all the roles associated to the given sid.
+   * This will only find sids of type {@link AuthorizationType#EITHER}
+   *
+   * @param sid The sid for which you want to clear the {@link Role}s
+   *
+   * @deprecated use {@link #deleteSids(PermissionEntry)}
+   */
+  @Deprecated
+  public void deleteSids(String sid) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
+      Set<PermissionEntry> sids = entry.getValue();
+      sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
+    }
+    matchingRoleMapCache.invalidateAll();
+  }
+
+  /**
    * Clear specific role associated to the given sid.
    *
    * @param sid      The sid for wich you want to clear the {@link Role}s
@@ -353,6 +405,28 @@ public class RoleMap {
       Role role = entry.getKey();
       if (role.getName().equals(rolename)) {
         unAssignRole(role, sid);
+        break;
+      }
+    }
+  }
+
+
+  /**
+   * Clear specific role associated to the given sid.
+   * This will only find sids of type {@link AuthorizationType#EITHER}
+   *
+   * @param sid      The sid for wich you want to clear the {@link Role}s
+   * @param rolename The role for wich you want to clear the {@link Role}s
+   * @since 2.6.0
+   * @deprecated use {@link #deleteRoleSid(PermissionEntry, String)}
+   */
+  @Deprecated
+  public void deleteRoleSid(String sid, String rolename) {
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.EITHER, sid);
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
+      Role role = entry.getKey();
+      if (role.getName().equals(rolename)) {
+        unAssignRole(role, sidEntry);
         break;
       }
     }
@@ -399,8 +473,25 @@ public class RoleMap {
    *
    * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
    */
-  public SortedMap<Role, Set<PermissionEntry>> getGrantedRoles() {
+  public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries() {
     return Collections.unmodifiableSortedMap(this.grantedRoles);
+  }
+
+  /**
+   * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
+   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   *
+   * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
+   * @deprecated use {@link #getGrantedRolesEntries()}
+   */
+  @Deprecated
+  public SortedMap<Role, Set<String>> getGrantedRoles() {
+    SortedMap<Role, Set<String>> ret = new TreeMap<>();
+    for (Map.Entry<Role, Set<PermissionEntry>> entry: this.grantedRoles.entrySet()) {
+      Set<String> eitherGrants = entry.getValue().stream().filter(it -> it.getType() == AuthorizationType.EITHER). map(PermissionEntry::getSid).collect(Collectors.toSet());
+      ret.put(entry.getKey(), eitherGrants);
+    }
+    return ret;
   }
 
   /**
@@ -417,8 +508,22 @@ public class RoleMap {
    *
    * @return A sorted set containing all the sids, minus the {@code Anonymous} sid
    */
-  public SortedSet<PermissionEntry> getSids() {
-    return this.getSids(false);
+  public SortedSet<PermissionEntry> getSidEntries() {
+    return this.getSidEntries(false);
+  }
+
+  /**
+   * Get all the sids referenced in this {@link RoleMap}, minus the {@code Anonymous} sid.
+   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   * @return A sorted set containing all the sids, minus the {@code Anonymous} sid
+   * @deprecated use {@link #getSidEntries()}
+   */
+  @Deprecated
+  public SortedSet<String> getSids() {
+    SortedSet<String> ret = new TreeSet<>(this.getSidEntries(false)
+        .stream().filter(it -> it.getType() == AuthorizationType.EITHER)
+        .map(PermissionEntry::getSid).collect(Collectors.toSet()));
+    return ret;
   }
 
   /**
@@ -427,7 +532,7 @@ public class RoleMap {
    * @param includeAnonymous True if you want the {@code Anonymous} sid to be included in the set
    * @return A sorted set containing all the sids
    */
-  public SortedSet<PermissionEntry> getSids(Boolean includeAnonymous) {
+  public SortedSet<PermissionEntry> getSidEntries(Boolean includeAnonymous) {
     TreeSet<PermissionEntry> sids = new TreeSet<>();
     for (Map.Entry<Role, Set<PermissionEntry>> entry : this.grantedRoles.entrySet()) {
       sids.addAll(entry.getValue());
@@ -439,17 +544,51 @@ public class RoleMap {
     return Collections.unmodifiableSortedSet(sids);
   }
 
+
   /**
-   * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
+   * Get all the sids referenced in this {@link RoleMap}.
+   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   *
+   * @param includeAnonymous True if you want the {@code Anonymous} sid to be included in the set
+   * @return A sorted set containing all the sids
+   * @deprecated use {@link #getSidEntries(Boolean)}
+   */
+  @Deprecated
+  public SortedSet<String> getSids(Boolean includeAnonymous) {
+    SortedSet<String> ret = new TreeSet<>(this.getSidEntries(includeAnonymous)
+        .stream().filter(it -> it.getType() == AuthorizationType.EITHER)
+        .map(PermissionEntry::getSid).collect(Collectors.toSet()));
+    return ret;
+  }
+
+  /**
+   * Get all the permission entries assigned to the {@link Role} named after the {@code roleName} param.
    *
    * @param roleName The name of the role
    * @return A sorted set containing all the sids. {@code null} if the role is missing.
    */
   @CheckForNull
-  public Set<PermissionEntry> getSidsForRole(String roleName) {
+  public Set<PermissionEntry> getSidEntriesForRole(String roleName) {
     Role role = this.getRole(roleName);
     if (role != null) {
       return Collections.unmodifiableSet(this.grantedRoles.get(role));
+    }
+    return null;
+  }
+
+  /**
+   * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
+   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   *
+   * @param roleName The name of the role
+   * @return A sorted set containing all the sids. {@code null} if the role is missing.
+   */
+  @CheckForNull
+  public Set<String> getSidsForRole(String roleName) {
+    Role role = this.getRole(roleName);
+    if (role != null) {
+      Set<PermissionEntry> ret = this.grantedRoles.get(role);
+      return ret.stream().filter(it -> it.getType() == AuthorizationType.EITHER).map(PermissionEntry::getSid).collect(Collectors.toSet());
     }
     return null;
   }

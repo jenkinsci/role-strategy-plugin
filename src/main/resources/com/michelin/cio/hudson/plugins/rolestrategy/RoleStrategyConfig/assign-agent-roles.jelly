@@ -30,8 +30,8 @@
 
   <j:set var="id" value="${h.generateId()}"/>
   <j:set var="tableid" value="agentRoles"/>
-  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
-  <j:set var="agentSIDs" value="${it.strategy.getSIDs(it.strategy.SLAVE)}"/>
+  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
+  <j:set var="agentSIDs" value="${it.strategy.getSidEntries(it.strategy.SLAVE)}"/>
 
   <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 

@@ -213,8 +213,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   private Set<String> filterRoleSids(RoleMap roleMap) {
-    return roleMap.getSids(false).stream().filter(entry -> entry.getType() != AuthorizationType.USER).map(entry -> entry.getSid())
-        .collect(Collectors.toSet());
+    return roleMap.getSidEntries(false).stream().filter(entry -> entry.getType() != AuthorizationType.USER)
+        .map(PermissionEntry::getSid).collect(Collectors.toSet());
   }
 
   /**
@@ -224,12 +224,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * @param type The object type controlled by the {@link RoleMap}
    * @return All roles from the global {@link RoleMap}.
-   * @deprecated Use {@link RoleBasedAuthorizationStrategy#getGrantedRoles(RoleType)}
+   * @deprecated Use {@link RoleBasedAuthorizationStrategy#getGrantedRolesEntries(RoleType)}
    */
   @Nullable
   @Deprecated
-  public SortedMap<Role, Set<PermissionEntry>> getGrantedRoles(String type) {
-    return getGrantedRoles(RoleType.fromString(type));
+  public SortedMap<Role, Set<String>> getGrantedRoles(String type) {
+    return getRoleMap(RoleType.fromString(type)).getGrantedRoles();
   }
 
   /**
@@ -238,10 +238,33 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param type the type of the role
    * @return roles mapped to the set of user sids assigned to that role
    * @since 2.12
+   * @deprecated use {@link #getGrantedRolesEntries(RoleType)}
    */
-  public SortedMap<Role, Set<PermissionEntry>> getGrantedRoles(@NonNull RoleType type) {
+  @Deprecated
+  public SortedMap<Role, Set<String>> getGrantedRoles(@NonNull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
   }
+
+  /**
+   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}.
+   *
+   * @param type the type of the role
+   * @return roles mapped to the set of user sids assigned to that role
+   */
+  public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries(@NonNull String type) {
+    return getGrantedRolesEntries(RoleType.fromString(type));
+  }
+
+  /**
+   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}.
+   *
+   * @param type the type of the role
+   * @return roles mapped to the set of user sids assigned to that role
+   */
+  public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries(@NonNull RoleType type) {
+    return getRoleMap(type).getGrantedRolesEntries();
+  }
+
 
   /**
    * Get all the SIDs referenced by specified {@link RoleMap} type.
@@ -251,7 +274,22 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    */
   @CheckForNull
   @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
-  public Set<PermissionEntry> getSIDs(String type) {
+  public Set<PermissionEntry> getSidEntries(String type) {
+    return getRoleMap(RoleType.fromString(type)).getSidEntries();
+  }
+
+
+  /**
+   * Get all the SIDs referenced by specified {@link RoleMap} type.
+   *
+   * @param type The object type controlled by the {@link RoleMap}
+   * @return All SIDs from the specified {@link RoleMap}.
+   * @deprecated use {@link #getSidEntries(String)}
+   */
+  @Deprecated
+  @CheckForNull
+  @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
+  public Set<String> getSIDs(String type) {
     return getRoleMap(RoleType.fromString(type)).getSids();
   }
 
@@ -669,7 +707,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
         responseJson.put("pattern", role.getPattern().pattern());
       }
-      Map<Role, Set<PermissionEntry>> grantedRoleMap = roleMap.getGrantedRoles();
+      Map<Role, Set<PermissionEntry>> grantedRoleMap = roleMap.getGrantedRolesEntries();
       responseJson.put("sids", grantedRoleMap.get(role));
     }
 
@@ -710,7 +748,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap = getRoleMap(RoleType.fromString(type));
     }
 
-    for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRolesEntries().entrySet()) {
       responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
     }
 
@@ -803,7 +841,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         writer.startNode("roleMap");
         writer.addAttribute("type", map.getKey().getStringType());
 
-        for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+        for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRolesEntries().entrySet()) {
           Role role = grantedRole.getKey();
           if (role != null) {
             writer.startNode("role");
@@ -1050,7 +1088,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           strategy.addRole(RoleType.Global, role);
           RoleMap roleMap = ((RoleBasedAuthorizationStrategy) oldStrategy).getRoleMap(RoleType.Global);
           if (roleMap != null) {
-            Set<PermissionEntry> sids = roleMap.getSidsForRole(roleName);
+            Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
             if (sids != null) {
               for (PermissionEntry sid : sids) {
                 strategy.assignRole(RoleType.Global, role, sid);
@@ -1113,7 +1151,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
         RoleMap roleMap = oldStrategy.getRoleMap(roleType);
         if (roleMap != null) {
-          Set<PermissionEntry> sids = roleMap.getSidsForRole(roleName);
+          Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
           if (sids != null) {
             for (PermissionEntry sid : sids) {
               targetStrategy.assignRole(roleType, role, sid);

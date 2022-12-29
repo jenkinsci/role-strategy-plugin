@@ -26,8 +26,6 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 /**
  * The type of object being granted authorization.
- *
- * @since 3.0
  */
 public enum AuthorizationType {
   /**

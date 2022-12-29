@@ -77,7 +77,7 @@ public class ConfigurationAsCodeTest {
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
     assertThat(globalRoles.size(), equalTo(2));
 
     // Admin has configuration access
@@ -132,7 +132,7 @@ public class ConfigurationAsCodeTest {
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
     assertThat(globalRoles.size(), equalTo(2));
   }
 
