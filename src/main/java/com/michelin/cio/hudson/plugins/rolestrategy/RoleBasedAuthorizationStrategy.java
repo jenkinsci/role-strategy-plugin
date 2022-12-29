@@ -1062,7 +1062,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
 
       for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {
-        String roleName = r.getKey();
         Set<Permission> permissions = new HashSet<>();
         String pattern = ".*";
         if (r.getValue().has("pattern")) {
@@ -1078,6 +1077,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             permissions.add(p);
           }
         }
+        String roleName = r.getKey();
         RoleMap roleMap = oldStrategy.getRoleMap(roleType);
         boolean generated = false;
         Role oldRole = roleMap.getRole(roleName);
