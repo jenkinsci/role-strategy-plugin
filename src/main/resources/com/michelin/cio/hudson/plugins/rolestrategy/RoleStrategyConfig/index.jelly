@@ -53,7 +53,7 @@
               <local:feature icon="icon-user" href="assign-roles" title="${it.assignRolesName}">
                 ${%Assign Roles}
               </local:feature>              
-              <local:feature icon="icon-gear" href="item-role-generator" title="${%Role Generator}">
+              <local:feature icon="icon-gear2" href="item-role-generator" title="${%Role Generator}">
                 ${%Generate Roles from Templates}
               </local:feature>              
               <local:feature icon="icon-plugin" href="list-macros" title="${%Role Strategy Macros}">
