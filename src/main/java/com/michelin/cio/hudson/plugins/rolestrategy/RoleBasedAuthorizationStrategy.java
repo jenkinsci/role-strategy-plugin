@@ -78,6 +78,7 @@ import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -439,7 +440,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param sid      user ID (single, no list)
    * @throws IOException in case saving changes fails
    * @since 2.5.0
-   * @deprecated Use {@link doAssignUserRole} or {@link doAssignGroupRole} to create unambiguous entries
+   * @deprecated Use {@link #doAssignUserRole} or {@link #doAssignGroupRole} to create unambiguous entries
    */
   @Deprecated
   @RequirePOST

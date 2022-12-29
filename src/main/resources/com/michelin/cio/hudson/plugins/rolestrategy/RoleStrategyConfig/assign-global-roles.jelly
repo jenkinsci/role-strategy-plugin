@@ -121,11 +121,7 @@
       var globalTableHighlighter;
       
       Event.observe(window, 'load', function(event) {
-<<<<<<< HEAD
-         globalTableHighlighter = new TableHighlighter('globalRoles', 0);
-=======
-         globalTableHighlighter = new TableHighlighter('${tableid}', 0, 1);
->>>>>>> 19f471c (cleanup and move javascript from jelly to js file)
+         globalTableHighlighter = new TableHighlighter('${tableid}', 0);
       });
 
     </script>

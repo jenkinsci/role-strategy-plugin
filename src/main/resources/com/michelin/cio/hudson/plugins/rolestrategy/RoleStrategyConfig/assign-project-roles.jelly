@@ -121,11 +121,7 @@
       var itemTableHighlighter;
 
       Event.observe(window, 'load', function(event) {
-<<<<<<< HEAD
-         itemTableHighlighter = new TableHighlighter('projectRoles', 0);
-=======
-         itemTableHighlighter = new TableHighlighter('${tableid}', 0, 1);
->>>>>>> 19f471c (cleanup and move javascript from jelly to js file)
+         itemTableHighlighter = new TableHighlighter('${tableid}', 0);
       });
 
     </script>
