@@ -43,7 +43,7 @@ public class Settings {
    * Defines maximum size of the View cache. This cache is being used when
    * the macro {@code ContainedInView} is used. Changing of this option requires a Jenkins restart.
    *
-   * @since 550
+   * @since 570
    */
   public static final int VIEW_CACHE_MAX_SIZE = Integer.getInteger(Settings.class.getName() + ".viewCacheMaxSize", 100);
 
@@ -51,7 +51,7 @@ public class Settings {
    * Defines lifetime of entries in the View cache. This cache is being used when
    * the macro {@code ContainedInView} is used. Changing of this option requires a Jenkins restart.
    *
-   * @since 550
+   * @since 570
    */
   public static final int VIEW_CACHE_EXPIRATION_TIME_SEC = Integer.getInteger(
       Settings.class.getName() + ".viewCacheExpircationTimeSec", 30);

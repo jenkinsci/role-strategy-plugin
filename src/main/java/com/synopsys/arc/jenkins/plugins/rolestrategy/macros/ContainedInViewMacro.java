@@ -102,9 +102,12 @@ public class ContainedInViewMacro extends RoleMacroExtension {
 
   @Override
   public String getDescription() {
-    return "Access items that are added to a ListView. Specify the views as parameter to the macro, e.g. <code>@ContainedInView(view1, view2)</code>. "
-        + "Prepend the folder name if the view is in a folder, e.g. <code>@ContainedInView(folder/view1)</code> (To access views inside a folder, access to the folder itself is required).<br/>"
-        + "When enabling the <dfn>Recurse in subfolders</dfn> option, make sure to also check the folders themselves for which you add items.<br/>"
+    return "Access items that are added to a ListView. Specify the views as parameter to the macro, e.g. "
+        + "<code>@ContainedInView(view1, view2)</code>. "
+        + "Prepend the folder name if the view is in a folder, e.g. <code>@ContainedInView(folder/view1)</code> "
+        + "(To access views inside a folder, access to the folder itself is required).<br/>"
+        + "When enabling the <dfn>Recurse in subfolders</dfn> option, make sure to also check the folders themselves for which you "
+        + "add items.<br/>"
         + "NestedView plugin is not supported currently as this allows to create ambiguous names for views.";
   }
 
