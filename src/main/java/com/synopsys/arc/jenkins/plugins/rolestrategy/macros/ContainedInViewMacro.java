@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2013 Oleg Nenashev, Synopsys Inc.
+ * Copyright 2022 Markus Winter
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,19 +27,15 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
-import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
-import hudson.model.AbstractItem;
 import hudson.model.Item;
 import hudson.model.ListView;
 import hudson.model.View;
-import hudson.model.ViewGroup;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.AccessControlled;
@@ -96,48 +92,20 @@ public class ContainedInViewMacro extends RoleMacroExtension {
       Item item = (Item) accessControlledItem;
       Map<View, Set<String>> items = cache.get(macro, this::getItemsForMacro);
       for (Entry<View, Set<String>> entry : items.entrySet()) {
-        if (hasViewReadPermission(entry.getKey(), sid)) {
-          if (entry.getValue().contains(item.getFullName())) {
-            return true;
-          }
+        if (entry.getValue().contains(item.getFullName())) {
+          return true;
         }
       }
     }
     return false;
   }
 
-  /**
-   * Checks if the given sid has anywhere the permission to read the view.
-   * We can't use View.hasPermission() as this would cause a cycle when the
-   * permission is not granted.
-   *
-   * @param view The View to check
-   * @param sid The sid to check
-   * @return true when sid is allowed to access the view.
-   */
-  private boolean hasViewReadPermission(View view, String sid) {
-    ViewGroup vg = view.getOwner();
-
-    RoleBasedAuthorizationStrategy rbas = RoleBasedAuthorizationStrategy.getInstance();
-    if (rbas == null) {
-      return false;
-    }
-    if (vg instanceof Item) {
-      AbstractItem item = (AbstractItem) vg;
-      RoleMap roleMap = rbas.getRoleMap(RoleType.Project).newMatchingRoleMap(item.getFullName());
-      if (roleMap.hasViewReadPermission(sid)) {
-        return true;
-      }
-    }
-    RoleMap roleMap = rbas.getRoleMap(RoleType.Global);
-    return roleMap.hasViewReadPermission(sid);
-  }
-
   @Override
   public String getDescription() {
-    return "Access items that are added to a ListView. Specify the views as parameter to the macro, e.g. @IsInView(view1, view2). "
-        + "Append the folder name if the view is in a folder, e.g. @IsInView(folder/view1). NestedView plugin is not supported "
-        + "currently as this allows to create ambigous names for views.";
+    return "Access items that are added to a ListView. Specify the views as parameter to the macro, e.g. <code>@ContainedInView(view1, view2)</code>. "
+        + "Prepend the folder name if the view is in a folder, e.g. <code>@ContainedInView(folder/view1)</code> (To access views inside a folder, access to the folder itself is required).<br/>"
+        + "When enabling the <dfn>Recurse in subfolders</dfn> option, make sure to also check the folders themselves for which you add items.<br/>"
+        + "NestedView plugin is not supported currently as this allows to create ambiguous names for views.";
   }
 
   /**
