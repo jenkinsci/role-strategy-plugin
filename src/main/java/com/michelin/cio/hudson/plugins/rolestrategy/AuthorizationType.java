@@ -46,6 +46,7 @@ public enum AuthorizationType {
   public String getDescription() {
     return description;
   }
+
   /**
    * The prefix used in the persistence of an permission entry.
    *
