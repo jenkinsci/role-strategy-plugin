@@ -34,7 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Extension for macro roles (automatic membership handling).
  *
- * @see UserMacroExtension
  * @author Oleg Nenashev
  * @since 2.1.0
  */
