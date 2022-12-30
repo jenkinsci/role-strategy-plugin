@@ -119,7 +119,7 @@
                 <f:block><st:include page="manage-project-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-            <f:section title="${%Node roles}">
+            <f:section title="${%Agent roles}">
               <f:rowSet name="slaveRoles">
                 <f:block><st:include page="manage-agent-roles.jelly" optional="true" /></f:block>
               </f:rowSet>

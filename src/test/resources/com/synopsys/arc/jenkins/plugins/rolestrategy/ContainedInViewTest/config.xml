@@ -1,0 +1,74 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors>
+    <string>jenkins.security.QueueItemAuthenticatorMonitor</string>
+  </disabledAdministrativeMonitors>
+  <version>2.303.3</version>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy">
+    <roleMap type="globalRoles">
+      <role name="admin" pattern=".*">
+        <permissions>
+          <permission>hudson.model.Hudson.Administer</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>admin</sid>
+        </assignedSIDs>
+      </role>
+      <role name="tester" pattern=".*">
+        <permissions>
+          <permission>hudson.model.Hudson.Read</permission>
+          <permission>hudson.model.View.Read</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>tester</sid>
+        </assignedSIDs>
+      </role>
+    </roleMap>
+    <roleMap type="projectRoles">
+      <role name="@ContainedInView(view1,folder/view1)" pattern=".*">
+        <permissions>
+          <permission>hudson.model.Item.Read</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>tester</sid>
+        </assignedSIDs>
+      </role>
+      <role name="@Folder" pattern=".*">
+        <permissions>
+          <permission>hudson.model.Item.Read</permission>
+        </permissions>
+        <assignedSIDs>
+          <sid>tester</sid>
+        </assignedSIDs>
+      </role>
+    </roleMap>
+  </authorizationStrategy>
+  <views>
+    <hudson.model.AllView>
+      <owner class="hudson" reference="../../.."/>
+      <name>all</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+    </hudson.model.AllView>
+    <listView>
+      <owner class="hudson" reference="../../.."/>
+      <name>view1</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <jobNames>
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+        <string>testJob</string>
+      </jobNames>
+      <jobFilters/>
+      <columns>
+        <hudson.views.JobColumn/>
+      </columns>
+      <recurse>false</recurse>
+    </listView>
+  </views>
+</hudson>

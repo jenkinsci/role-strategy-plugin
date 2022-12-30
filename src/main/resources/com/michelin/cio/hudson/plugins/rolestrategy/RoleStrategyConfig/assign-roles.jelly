@@ -142,7 +142,7 @@
               </f:rowSet>
             </f:section>
             <br/>
-            <f:section title="${%Node roles}">
+            <f:section title="${%Agent roles}">
               <f:rowSet name="slaveRoles">
                 <f:block><st:include page="assign-agent-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
