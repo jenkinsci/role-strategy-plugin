@@ -64,20 +64,20 @@
 	      </tr>
       </thead>
       <tr name="[USER:anonymous]" class="highlight-row">
-        <local:userRow sid="anonymous" type="${it.strategy.GLOBAL}" permissionType="USER"/>
+        <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.GLOBAL}" permissionType="USER" typedescription="User"/>
       </tr>
       <tr name="[GROUP:authenticated]" class="highlight-row">
-        <local:userRow sid="authenticated" type="${it.strategy.GLOBAL}" permissionType="GROUP"/>
+        <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.GLOBAL}" permissionType="GROUP" typedescription="Group"/>
       </tr>
       <j:forEach var="entry" items="${globalSIDs}">
         <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
 	        <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-	          <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" type="${it.strategy.GLOBAL}"/>
+	          <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.GLOBAL}"/>
 	        </tr>
 	      </j:if>
       </j:forEach>
       <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-        <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}"/>
+        <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19 lines) -->
       <j:set var="hidefooter" value="0"/>

@@ -127,8 +127,12 @@ addButtonAction = function (e, master, table, tableHighlighter) {
     copy.removeAttribute("style");
     
     let children = copy.childNodes;
+    let tooltipdescription = "Group";
+    if (type=="USER") {
+        tooltipdescription = "User";
+    }
     children.forEach(function(item){
-      item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
+      item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name)).replace("{{USERGROUP}}", tooltipdescription);
     });
     
     copy.childNodes[1].innerHTML = escapeHTML(name);

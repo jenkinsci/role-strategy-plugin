@@ -151,11 +151,12 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
   }
 
   private boolean hasCreatePermission(RoleMap roleMap, PermissionEntry principal, List<String> authorities, RoleType roleType) {
-    if (roleMap.hasPermission(principal.getSid(), Item.CREATE, roleType, null, true)) {
+    if (roleMap.hasPermission(principal, Item.CREATE, roleType, null)) {
       return true;
     }
     for (String group : authorities) {
-      if (roleMap.hasPermission(group, Item.CREATE, roleType, null, false)) {
+      PermissionEntry groupEntry = new PermissionEntry(AuthorizationType.GROUP, group);
+      if (roleMap.hasPermission(groupEntry, Item.CREATE, roleType, null)) {
         return true;
       }
     }

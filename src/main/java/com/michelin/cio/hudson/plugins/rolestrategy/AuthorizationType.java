@@ -28,14 +28,24 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
  * The type of object being granted authorization.
  */
 public enum AuthorizationType {
+
   /**
    * Either type is being granted permissions.
    * This is the legacy default.
    */
-  EITHER,
-  GROUP,
-  USER;
+  EITHER("User/Group"),
+  GROUP("Group"),
+  USER("User");
 
+  private final String description;
+
+  private AuthorizationType(String description) {
+    this.description = description;
+  }
+
+  public String getDescription() {
+    return description;
+  }
   /**
    * The prefix used in the persistence of an permission entry.
    *
