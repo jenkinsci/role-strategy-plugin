@@ -27,7 +27,6 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -197,14 +196,6 @@ public class RoleStrategyConfig extends ManagementLink {
 
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
     return RoleMacroExtension.all();
-  }
-
-  /*
-   * @deprecated The extension is not implemented
-   */
-  @Deprecated
-  public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
-    return UserMacroExtension.all();
   }
 
   public final RoleType getGlobalRoleType() {
