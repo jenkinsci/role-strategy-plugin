@@ -27,6 +27,7 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -87,7 +88,7 @@ public class ContainedInViewMacro extends RoleMacroExtension {
 
   @Override
   @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE", justification = "we know that the cache has no null entries")
-  public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled accessControlledItem, Macro macro) {
+  public boolean hasPermission(PermissionEntry sid, Permission p, RoleType type, AccessControlled accessControlledItem, Macro macro) {
     if (accessControlledItem instanceof Item) {
       Item item = (Item) accessControlledItem;
       Map<View, Set<String>> items = cache.get(macro, this::getItemsForMacro);

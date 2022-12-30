@@ -127,10 +127,10 @@ public class PermissionEntry implements Comparable<PermissionEntry> {
 
   @Override
   public int compareTo(PermissionEntry o) {
-    int sidCompare = this.sid.compareTo(o.sid);
-    if (sidCompare == 0) {
-      return this.type.compareTo(o.type);
+    int typeCompare = this.type.compareTo(o.type);
+    if (typeCompare == 0) {
+      return this.sid.compareTo(o.sid);
     }
-    return sidCompare;
+    return typeCompare;
   }
 }

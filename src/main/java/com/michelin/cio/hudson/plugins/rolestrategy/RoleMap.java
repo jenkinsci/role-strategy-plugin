@@ -129,7 +129,7 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   @Restricted(NoExternalUse.class)
-  public boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem, boolean principal) {
+  public boolean hasPermission(PermissionEntry sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
     final Set<Permission> permissions = getImplyingPermissions(permission);
     final boolean[] hasPermission = { false };
 
@@ -143,17 +143,15 @@ public class RoleMap {
        * If not checks if there is an entry for either.
        *
        * @param current The current role
-       * @param sid The sid to checked
-       * @param principal If the sid is a user or a group.
+       * @param entry The permission entry to check
        * @return The PermissionEntry that matched or null if nothing matched.
        */
       @CheckForNull
-      private PermissionEntry hasPermission(Role current, String sid, boolean principal) {
-        PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, sid);
+      private PermissionEntry hasPermission(Role current, PermissionEntry entry) {
         if (grantedRoles.get(current).contains(entry)) {
           return entry;
         }
-        entry = new PermissionEntry(AuthorizationType.EITHER, sid);
+        entry = new PermissionEntry(AuthorizationType.EITHER, entry.getSid());
         if (grantedRoles.get(current).contains(entry)) {
           return entry;
         }
@@ -163,7 +161,7 @@ public class RoleMap {
       @Override
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
-          PermissionEntry entry = hasPermission(current, sid, principal);
+          PermissionEntry entry = hasPermission(current, sid);
           if (entry != null) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
@@ -189,12 +187,12 @@ public class RoleMap {
               hasPermission[0] = true;
               abort();
             }
-          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && sid.getType() == AuthorizationType.USER) {
             try {
-              UserDetails userDetails = cache.getIfPresent(sid);
+              UserDetails userDetails = cache.getIfPresent(sid.getSid());
               if (userDetails == null) {
-                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid);
-                cache.put(sid, userDetails);
+                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid.getSid());
+                cache.put(sid.getSid(), userDetails);
               }
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
                 if (grantedAuthority.getAuthority().equals(current.getName())) {
@@ -731,7 +729,8 @@ public class RoleMap {
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
       boolean principal = sid instanceof PrincipalSid ? true : false;
-      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item, principal)) {
+      PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, toString(sid));
+      if (RoleMap.this.hasPermission(entry, permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))
@@ -756,7 +755,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item, principal)) {
+          if (roleMapProject.hasPermission(entry, permission, RoleType.Project, item)) {
             return true;
           }
         }

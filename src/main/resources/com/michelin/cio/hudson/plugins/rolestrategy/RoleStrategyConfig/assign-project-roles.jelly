@@ -103,7 +103,7 @@
 
     <l:isAdmin>
       <br/>
-      <local:addButtons sids="${projectSIDs}" tableid="${tableid}" id="itemMaster" highlighter="itemTableHighlighter"/>
+      <local:addButtons sids="${projectSIDs}" tableid="${tableid}" id="itemMaster" roles="${itemGrantedRoles}" highlighter="itemTableHighlighter"/>
     </l:isAdmin>
 
     <script>
