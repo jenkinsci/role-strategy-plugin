@@ -32,7 +32,6 @@ import hudson.security.Permission;
  * Interface for Role-based plug-in Macro extensions.
  *
  * @see RoleMacroExtension
- * @see UserMacroExtension
  * @author Oleg Nenashev
  * @since 2.1.0
  */

@@ -71,7 +71,8 @@ The Rest API allows to query the current roles and assignments and to do changes
 Please see the [javadoc](https://javadoc.jenkins.io/plugin/role-strategy/com/michelin/cio/hudson/plugins/rolestrategy/RoleBasedAuthorizationStrategy.html) for details and examples.
 
 ### Config & Assign role by using Jenkins Script Console or Groovy Hook Script
-Configuration management can be used via [Jenkins Script Console](https://www.jenkins.io/doc/book/managing/script-console/) or [Groovy Hook Scripts](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/), following example is creating a admin role & user based on plugin 3.1. 
+Configuration management can be used via [Jenkins Script Console](https://www.jenkins.io/doc/book/managing/script-console/) or 
+[Groovy Hook Scripts](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/), following example is creating an admin role & user based on plugin 3.1. 
 
 ```groovy
 import jenkins.model.Jenkins
@@ -90,8 +91,7 @@ def rbas = new RoleBasedAuthorizationStrategy()
 
 /* create admin role */
 Set<Permission> permissions = new HashSet<>();
-def groups = new ArrayList<>(PermissionGroup.getAll());
-groups.remove(PermissionGroup.get(Permission.class));
+permissions.add(Jenkins.ADMINISTER)
 Role adminRole = new Role("admin",permissions)
 
 /* assign admin role to admin user */

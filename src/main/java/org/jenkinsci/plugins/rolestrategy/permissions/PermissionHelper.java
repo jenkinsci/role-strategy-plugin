@@ -124,6 +124,9 @@ public class PermissionHelper {
    */
   @CheckForNull
   public static String findPermissionId(String id) {
+    if (id == null) {
+      return null;
+    }
     List<PermissionGroup> pgs = PermissionGroup.getAll();
     Matcher m = PERMISSION_PATTERN.matcher(id);
     if (m.matches()) {
