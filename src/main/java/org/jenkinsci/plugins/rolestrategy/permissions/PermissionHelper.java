@@ -51,7 +51,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public class PermissionHelper {
 
-  private static Logger LOGGER = Logger.getLogger(PermissionHelper.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(PermissionHelper.class.getName());
 
   private static final Pattern PERMISSION_PATTERN = Pattern.compile("^([^\\/]+)\\/(.+)$");
 
