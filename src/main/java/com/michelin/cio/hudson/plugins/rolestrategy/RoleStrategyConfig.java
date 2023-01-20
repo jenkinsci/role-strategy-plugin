@@ -69,16 +69,15 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Provides the icon for the Manage Hudson page link.
    *
-   * @return Path to the icon
+   * @return Path to the icon, or {@code null} if not enabled
    */
   @Override
   public String getIconFileName() {
-    String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
     if (Jenkins.get().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
-      icon = "icon-secure";
+      return "icon-secure";
     }
-    return icon;
+    return null;
   }
 
   @NonNull
