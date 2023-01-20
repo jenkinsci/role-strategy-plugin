@@ -96,6 +96,7 @@ public class RoleStrategyConfig extends ManagementLink {
     return "role-strategy";
   }
 
+  @NonNull
   @Override
   public String getCategoryName() {
     return "SECURITY";
