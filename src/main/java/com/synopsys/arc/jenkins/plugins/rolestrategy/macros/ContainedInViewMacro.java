@@ -139,7 +139,7 @@ public class ContainedInViewMacro extends RoleMacroExtension {
     Set<String> items = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
     try (ACLContext c = ACL.as2(ACL.SYSTEM2)) {
-      items.addAll(view.getItems().stream().map(item -> item.getFullName()).collect(Collectors.toSet()));
+      items.addAll(view.getItems().stream().map(Item::getFullName).collect(Collectors.toSet()));
     }
     return items;
   }
