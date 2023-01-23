@@ -55,11 +55,7 @@ public class FolderMacro extends RoleMacroExtension {
 
   @Override
   public boolean hasPermission(PermissionEntry sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
-    if (AbstractFolder.class.isAssignableFrom(item.getClass())) {
-      return true;
-    } else {
-      return false;
-    }
+    return AbstractFolder.class.isAssignableFrom(item.getClass());
   }
 
   @Override

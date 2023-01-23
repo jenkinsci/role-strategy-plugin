@@ -680,12 +680,12 @@ public class RoleMap {
   }
 
   /**
-   * Get all agent names matching the given pattern, viewable to the requesting user.
+   * Get the number of agent names matching the given pattern, viewable to the requesting user.
    *
    * @param matchingAgentNames List that will take the matched agent names
-   * @param pattern            Pattern to match against
-   * @param maxAgents          Max matching agents to look for
-   * @return List of matching agent names
+   * @param pattern   Pattern to match against
+   * @param maxAgents Max matching agents to look for
+   * @return Number of matching agent names
    */
   @Restricted(NoExternalUse.class)
   static int getMatchingAgentNames(@NonNull List<String> matchingAgentNames, Pattern pattern, int maxAgents) {

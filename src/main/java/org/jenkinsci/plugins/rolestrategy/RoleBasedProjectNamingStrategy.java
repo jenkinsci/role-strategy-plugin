@@ -30,6 +30,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 
 /**
  * A Naming Strategy so that users with only item specific create permissions can create only items matching the role
@@ -93,7 +94,7 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
       RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
       RoleMap global = rbas.getRoleMap(RoleType.Global);
-      List<String> authorities = a.getAuthorities().stream().map(x -> x.getAuthority()).collect(Collectors.toList());
+      List<String> authorities = a.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
 
       // first check global role
       if (hasCreatePermission(global, principal, authorities, RoleType.Global)) {

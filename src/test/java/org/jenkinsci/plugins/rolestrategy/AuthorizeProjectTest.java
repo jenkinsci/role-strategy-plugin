@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -107,6 +108,7 @@ public class AuthorizeProjectTest {
         return true;
       }
 
+      @NonNull
       @Override
       public String getDisplayName() {
         return "AuthorizationCheckBuilder";

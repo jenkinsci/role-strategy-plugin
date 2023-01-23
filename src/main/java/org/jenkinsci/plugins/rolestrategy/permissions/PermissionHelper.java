@@ -51,7 +51,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public class PermissionHelper {
 
-  private static Logger LOGGER = Logger.getLogger(PermissionHelper.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(PermissionHelper.class.getName());
 
   private static final Pattern PERMISSION_PATTERN = Pattern.compile("^([^\\/]+)\\/(.+)$");
 
@@ -124,6 +124,9 @@ public class PermissionHelper {
    */
   @CheckForNull
   public static String findPermissionId(String id) {
+    if (id == null) {
+      return null;
+    }
     List<PermissionGroup> pgs = PermissionGroup.getAll();
     Matcher m = PERMISSION_PATTERN.matcher(id);
     if (m.matches()) {

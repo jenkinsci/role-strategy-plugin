@@ -147,4 +147,18 @@ public class ConfigurationAsCodeTest {
     assertThat(rbas.getRoleMap(RoleType.Global).getRole("dangerous").hasPermission(PluginManager.UPLOAD_PLUGINS), is(false));
     assertThat(rbas.getRoleMap(RoleType.Global).getRole("dangerous").hasPermission(Jenkins.RUN_SCRIPTS), is(false));
   }
+
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code-no-permissions.yml")
+  public void exportWithEmptyRole() throws Exception {
+    ConfiguratorRegistry registry = ConfiguratorRegistry.get();
+    ConfigurationContext context = new ConfigurationContext(registry);
+    CNode yourAttribute = getJenkinsRoot(context).get("authorizationStrategy");
+
+    String exported = toYamlString(yourAttribute);
+    String expected = toStringFromYamlFile(this, "Configuration-as-Code-no-permissions-export.yml");
+
+    assertThat(exported, is(expected));
+
+  }
 }

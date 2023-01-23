@@ -113,10 +113,10 @@ public class ContainedInViewMacro extends RoleMacroExtension {
   }
 
   /**
-   * Returns a list of all items of all views this macro covers.
+   * Returns a map of all items of all views this macro covers.
    *
    * @param macro The macro for which to get the items
-   * @return Set of all items;
+   * @return Map of all items
    */
   private Map<View, Set<String>> getItemsForMacro(Macro macro) {
     Map<View, Set<String>> viewList = new HashMap<>();
@@ -140,7 +140,7 @@ public class ContainedInViewMacro extends RoleMacroExtension {
     Set<String> items = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
     try (ACLContext c = ACL.as2(ACL.SYSTEM2)) {
-      items.addAll(view.getItems().stream().map(item -> item.getFullName()).collect(Collectors.toSet()));
+      items.addAll(view.getItems().stream().map(Item::getFullName).collect(Collectors.toSet()));
     }
     return items;
   }

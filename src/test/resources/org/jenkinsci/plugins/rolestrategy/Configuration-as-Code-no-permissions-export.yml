@@ -1,0 +1,83 @@
+roleBased:
+  roles:
+    agents:
+    - name: "agent-builder"
+      pattern: "build-agent"
+      permissions:
+      - "Agent/Build"
+    global:
+    - assignments:
+      - "builders"
+      - "builder"
+      name: "access"
+      pattern: ".*"
+      permissions:
+      - "Overall/Read"
+      - "Agent/Build"
+    - assignments:
+      - "administrators"
+      name: "admin"
+      pattern: ".*"
+      permissions:
+      - "Overall/Administer"
+    - assignments:
+      - "global-build-user"
+      name: "builder"
+      pattern: ".*"
+      permissions:
+      - "Job/Cancel"
+      - "Overall/Read"
+      - "Job/Build"
+      - "Job/Read"
+      - "Job/Workspace"
+    - assignments:
+      - "global-creator-user"
+      name: "creator"
+      pattern: ".*"
+      permissions:
+      - "Overall/Read"
+      - "Job/Delete"
+      - "Job/Create"
+      - "Job/Read"
+    items:
+    - assignments:
+      - "item-creator-user"
+      name: "@CurrentUserIsOwner"
+      pattern: ".*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Delete"
+      - "Job/Read"
+      - "Job/Configure"
+      - "Job/Workspace"
+    - assignments:
+      - "item-builder-user"
+      - "builders"
+      name: "folder-access"
+      pattern: "(?i)folder"
+      permissions:
+      - "Job/Read"
+    - assignments:
+      - "item-builder-user"
+      - "builders"
+      name: "folder-builder"
+      pattern: "(?i)folder/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Read"
+      - "Job/Workspace"
+    - assignments:
+      - "item-creator-user"
+      name: "folder-creator"
+      pattern: "(?i)folder/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Create"
+      - "Job/Read"
+      - "Job/Configure"
+      - "Job/Workspace"
+    - name: "tester"
+      pattern: ".*"
