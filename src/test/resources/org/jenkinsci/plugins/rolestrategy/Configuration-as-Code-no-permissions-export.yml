@@ -52,15 +52,15 @@ roleBased:
       - "Job/Configure"
       - "Job/Workspace"
     - assignments:
-      - "USER:item-builder-user"
       - "GROUP:builders"
+      - "USER:item-builder-user"
       name: "folder-access"
       pattern: "(?i)folder"
       permissions:
       - "Job/Read"
     - assignments:
-      - "USER:item-builder-user"
       - "GROUP:builders"
+      - "USER:item-builder-user"
       name: "folder-builder"
       pattern: "(?i)folder/.*"
       permissions:
