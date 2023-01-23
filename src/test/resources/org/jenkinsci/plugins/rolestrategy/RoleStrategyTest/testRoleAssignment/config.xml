@@ -12,7 +12,7 @@
           <permission>hudson.model.Hudson.Administer</permission>
         </permissions>
         <assignedSIDs>
-            <sid>alice</sid>
+            <sid type="USER">alice</sid>
         </assignedSIDs>
       </role>
     </roleMap>

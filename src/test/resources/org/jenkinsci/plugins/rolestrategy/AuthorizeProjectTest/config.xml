@@ -14,7 +14,7 @@
           <permission>hudson.model.Hudson.Administer</permission>
         </permissions>
         <assignedSIDs>
-          <sid>admin</sid>
+          <sid type="USER">admin</sid>
         </assignedSIDs>
       </role>
       <role name="builder" pattern=".*">
@@ -24,7 +24,7 @@
           <permission>hudson.model.Item.Build</permission>
         </permissions>
         <assignedSIDs>
-          <sid>authenticated</sid>
+          <sid type="GROUP">authenticated</sid>
         </assignedSIDs>
       </role>
     </roleMap>
@@ -34,7 +34,7 @@
           <permission>hudson.model.Computer.Build</permission>
         </permissions>
         <assignedSIDs>
-          <sid>tester</sid>
+          <sid type="USER">tester</sid>
         </assignedSIDs>
       </role>
     </roleMap>

@@ -7,22 +7,13 @@
   <useSecurity>true</useSecurity>
   <authorizationStrategy class="com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy">
     <roleMap type="globalRoles">
-      <role name="ADMIN" pattern=".*">
+      <role name="USERS" pattern=".*">
         <permissions>
           <permission>hudson.model.Hudson.Administer</permission>
         </permissions>
         <assignedSIDs>
-            <sid type="USER">alice</sid>
-        </assignedSIDs>
-      </role>
-      <role name="POWERUSERS" pattern=".*">
-        <permissions>
-          <permission>hudson.model.Hudson.RunScripts</permission>
-          <permission>hudson.model.Hudson.ConfigureUpdateCenter</permission>
-          <permission>hudson.model.Hudson.UploadPlugins</permission>
-        </permissions>
-        <assignedSIDs>
-            <sid type="USER">berta</sid>
+          <sid type="USER">user</sid>
+          <sid type="GROUP">group</sid>
         </assignedSIDs>
       </role>
     </roleMap>

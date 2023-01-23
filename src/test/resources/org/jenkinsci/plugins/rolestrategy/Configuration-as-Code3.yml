@@ -8,7 +8,7 @@ jenkins:
             permissions:
               - "Overall/Administer"
             assignments:
-              - "admin"
+              - "USER:admin"
           - name: "dangerous"
             description: "Dangerous"
             permissions:
@@ -17,7 +17,7 @@ jenkins:
               - "Overall/UploadPlugins"
               - "Job/Read"
             assignments:
-              - "test"
+              - "USER:test"
 
   # System for test
   securityRealm:

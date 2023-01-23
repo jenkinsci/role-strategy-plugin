@@ -8,14 +8,14 @@ jenkins:
             permissions:
               - "Overall/Administer"
             assignments:
-              - "admin"
+              - "USER:admin"
           - name: "readonly"
             description: "Read-only users"
             permissions:
               - "Overall/Read"
               - "Job/Read"
             assignments:
-              - "authenticated"
+              - "GROUP:authenticated"
 
   # System for test
   securityRealm:

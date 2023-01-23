@@ -9,21 +9,21 @@ jenkins:
               - "Agent/Build"
         global:
           - assignments:
-              - "builders"
-              - "builder"
+              - "GROUP:builders"
+              - "USER:builder"
             name: "access"
             pattern: ".*"
             permissions:
               - "Overall/Read"
               - "Agent/Build"
           - assignments:
-              - "administrators"
+              - "GROUP:administrators"
             name: "admin"
             pattern: ".*"
             permissions:
               - "Overall/Administer"
           - assignments:
-              - "global-build-user"
+              - "USER:global-build-user"
             name: "builder"
             pattern: ".*"
             permissions:
@@ -33,7 +33,7 @@ jenkins:
               - "Job/Read"
               - "Job/Workspace"
           - assignments:
-              - "global-creator-user"
+              - "USER:global-creator-user"
             name: "creator"
             pattern: ".*"
             permissions:
@@ -43,7 +43,7 @@ jenkins:
               - "Job/Read"
         items:
           - assignments:
-              - "item-creator-user"
+              - "USER:item-creator-user"
             name: "@CurrentUserIsOwner"
             pattern: ".*"
             permissions:
@@ -54,15 +54,15 @@ jenkins:
               - "Job/Configure"
               - "Job/Workspace"
           - assignments:
-              - "item-builder-user"
-              - "builders"
+              - "USER:item-builder-user"
+              - "GROUP:builders"
             name: "folder-access"
             pattern: "(?i)folder"
             permissions:
               - "Job/Read"
           - assignments:
-              - "item-builder-user"
-              - "builders"
+              - "USER:item-builder-user"
+              - "GROUP:builders"
             name: "folder-builder"
             pattern: "(?i)folder/.*"
             permissions:
@@ -71,7 +71,7 @@ jenkins:
               - "Job/Read"
               - "Job/Workspace"
           - assignments:
-              - "item-creator-user"
+              - "USER:item-creator-user"
             name: "folder-creator"
             pattern: "(?i)folder/.*"
             permissions:
