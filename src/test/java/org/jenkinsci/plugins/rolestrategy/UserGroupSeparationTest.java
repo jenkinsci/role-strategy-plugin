@@ -1,11 +1,12 @@
 package org.jenkinsci.plugins.rolestrategy;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import jenkins.model.Jenkins;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +41,7 @@ public class UserGroupSeparationTest {
   }
 
   /**
-   * A user that matches an entry of type user should be granted access
+   * A user that matches an entry of type user should be granted access.
    */
   @LocalData
   @Test
@@ -62,7 +63,7 @@ public class UserGroupSeparationTest {
   }
 
   /**
-   * A user that has a name matching a group should not have access
+   * A user that has a name matching a group should not have access.
    */
   @LocalData
   @Test
@@ -73,7 +74,7 @@ public class UserGroupSeparationTest {
   }
 
   /**
-   * A user that is in a group that matches an entry of type user should not have access
+   * A user that is in a group that matches an entry of type user should not have access.
    */
   @LocalData
   @Test
@@ -84,7 +85,7 @@ public class UserGroupSeparationTest {
   }
 
   /**
-   * A user that matches an entry of type either should have access
+   * A user that matches an entry of type either should have access.
    */
   @LocalData
   @Test
@@ -95,7 +96,7 @@ public class UserGroupSeparationTest {
   }
 
   /**
-   * A user that is in a group matches an entry of type either should have access
+   * A user that is in a group matches an entry of type either should have access.
    */
   @LocalData
   @Test
