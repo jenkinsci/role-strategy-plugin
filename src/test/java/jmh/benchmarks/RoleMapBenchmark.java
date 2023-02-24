@@ -90,11 +90,12 @@ abstract class RoleMapBenchmarkState extends JmhBenchmarkState {
     roleMap = new RoleMap(map);
 
     // RoleMap#hasPermission is private in RoleMap
-    hasPermission = Class.forName("com.michelin.cio.hudson.plugins.rolestrategy.RoleMap").getDeclaredMethod("hasPermission", String.class,
-        Permission.class, RoleType.class, AccessControlled.class);
+    hasPermission = Class.forName("com.michelin.cio.hudson.plugins.rolestrategy.RoleMap").getDeclaredMethod("hasPermission",
+        PermissionEntry.class, Permission.class, RoleType.class, AccessControlled.class);
     hasPermission.setAccessible(true);
 
-    functionArgs = new Object[] { "user3", Permission.CREATE, null, null };
+
+    functionArgs = new Object[] { new PermissionEntry(AuthorizationType.USER, "user3"), Permission.CREATE, null, null };
   }
 
   abstract int getRoleCount();
