@@ -10,7 +10,7 @@
     </parent>
 
    <artifactId>role-strategy</artifactId>
-   <version>${changelist}</version>
+   <version>587.${changelist}</version>
    <packaging>hpi</packaging>
 
    <name>Role-based Authorization Strategy</name>
