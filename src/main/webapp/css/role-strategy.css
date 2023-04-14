@@ -135,7 +135,7 @@ label.attach-previous {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: white;
+  background-color: var(--background);
   border: 1px solid #ddd;
   border-radius: 15px;
 }
@@ -163,11 +163,15 @@ label.attach-previous {
   z-index: 1999;
 }
 
+
 .btn-close {
   transform: translate(10px, -10px);
-  padding: 0.5rem 0.7rem;
-  background: #eee;
+  padding: 0.4rem 0.6rem;
+  background: var(--btn-primary-bg);
   border-radius: 50%;
+  color: var(--btn-text-color);
   cursor: pointer;
   border: none;
+  font-weight: 600;
+  font-family: sans-serif;
 }
