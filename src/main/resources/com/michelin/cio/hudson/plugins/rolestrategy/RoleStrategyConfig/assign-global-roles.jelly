@@ -26,54 +26,60 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-    <j:set var="id" value="${h.generateId()}"/>
+    <j:set var="tableid" value="globalRoles"/>
     <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
     <j:set var="globalSIDs" value="${it.strategy.getSIDs(it.strategy.GLOBAL)}"/>
 
 
-    <div id="globalUserInputFilter">
+    <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
       <f:entry title="${%Filter by User}">
-        <input id="globalUserInput" class="jenkins-input setting-input"/>
+        <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
       </f:entry>
     </div>
-    <div id="globalRoleInputFilter">
+    <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="role-filter">
       <f:entry title="${%Filter by Role}">
-        <input id="globalRoleInput" class="jenkins-input setting-input"/>
+        <input id="globalRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
       </f:entry>
     </div>
-    <table id="globalRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+    <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row highlight-row">
-        <td class="start" />
-        <td class="pane-header blank">
-          ${%User/group}
-        </td>
-        <j:forEach var="role" items="${globalGrantedRoles}">
-          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-          <j:forEach var="p" items="${role.key.permissions}">
-            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
-          </j:forEach>
-          <j:set var="permissionList" value="${permissionList} &lt;br/&gt;"/>
-          <td class="pane-header">
-            <span tooltip="${permissionList}">${role.key.name}</span>
+      <thead>
+        <tr class="group-row highlight-row">
+          <td class="start" />
+          <td class="pane-header blank">
+            ${%User/group}
           </td>
-        </j:forEach>
-        <l:isAdmin><td class="stop" /></l:isAdmin>
-      </tr>
-      <j:forEach var="sid" items="${globalSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row">
-          <local:userRow sid="${sid}" title="${sid}" global="${true}"  type="${it.strategy.GLOBAL}"/>
+          <j:forEach var="role" items="${globalGrantedRoles}">
+            <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+            <j:forEach var="p" items="${role.key.permissions}">
+              <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+            </j:forEach>
+            <j:set var="permissionList" value="${permissionList} &lt;br/&gt;"/>
+            <td class="pane-header">
+              <span tooltip="${permissionList}">${role.key.name}</span>
+            </td>
+          </j:forEach>
+          <l:isAdmin><td class="stop" /></l:isAdmin>
         </tr>
-      </j:forEach>
+      </thead>
       <tr name="anonymous" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
-      <tr id="${id}" style="display:none" class="permission-row highlight-row">
+      <j:forEach var="sid" items="${globalSIDs}">
+        <tr name="[${sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+          <local:userRow sid="${sid}" title="${sid}" global="${true}"  type="${it.strategy.GLOBAL}"/>
+        </tr>
+      </j:forEach>
+      <tr id="newGlobalRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
-      <!-- The last row is used to repeat the header (if more than 19 lines) -->
-      <j:if test="${globalSIDs.size() ge 20}">
+      <!-- Show the footer if 20 lines or more-->
+      <j:set var="hidefooter" value="0"/>
+      <j:if test="${globalSIDs.size() lt 20}">
+        <j:set var="hidefooter" value="default-hidden"/>
+      </j:if>
+      <tfoot class="${hidefooter}">
         <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
@@ -86,126 +92,16 @@
           </j:forEach>
           <td class="stop" />
         </tr>
-      </j:if>
+      </tfoot>
     </table>
 
   <l:isAdmin>
     <br /><br />
     <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
-      <f:textbox type="text" id="${id}text" checkUrl="'${descriptorPath}/checkForWhitespace?value='+escape(this.value)" />
+      <f:textbox type="text" id="${tableid}text" checkUrl="${descriptorPath}/checkForWhitespace" checkDependsOn=""/>
     </f:entry>
     <f:entry>
-      <input type="button" value="${%Add}" id="${id}button"/>
+      <local:addButton id="newGlobalRowTemplate" tableid="${tableid}" highlighter="globalTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
-
-    <script>
-      <j:if test="${globalGrantedRoles.size() lt 20}">
-        document.getElementById('globalRoleInputFilter').style.display = "none"
-      </j:if>
-      <j:if test="${globalSIDs.size() lt 10}">
-        document.getElementById('globalUserInputFilter').style.display = "none"
-      </j:if>
-
-      var globalTableHighlighter;
-      var globalSidCount = ${globalSIDs.size()};
-      (function() {
-        <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
-        var master = document.getElementById('${id}');
-        var table = master.parentNode;
-        table.removeChild(master);
-
-        var btn = $$('${id}button');
-        
-        if (!btn) {
-            return;
-        }
-        makeButton(btn, function (e) {
-          <!-- when 'add' is clicked... -->
-          var name = $$('${id}text').value.trim();
-          if(name=="") {
-            alert("Please enter a role name");
-            return;
-          }
-          if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
-            alert("Entry for '"+name+"' already exists");
-            return;
-          }
-
-          if(document.importNode!=null)
-            copy = document.importNode(master,true);
-          else
-            copy = master.cloneNode(true); <!-- for IE -->
-          copy.removeAttribute("id");
-          copy.removeAttribute("style");
-          copy.childNodes[1].innerHTML = escapeHTML(name);
-          copy.setAttribute("name",'['+name+']');
-
-          var children = copy.childNodes;
-          children.forEach(function(item){
-            item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
-          });
-
-          <j:if test="${globalSIDs.size() lt 20}">
-            table.appendChild(copy);
-          </j:if>
-          <j:if test="${globalSIDs.size() ge 20}">
-            table.insertBefore(copy,table.childNodes[table.rows.length-1]);
-          </j:if>
-          globalTableHighlighter.scan(copy);
-          Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
-          globalSidCount++;
-          if (globalSidCount >= 10) {
-            document.getElementById('globalUserInputFilter').style.display = "block";
-          }
-        });
-      })();
-
-      Event.observe(window, 'load', function(event) {
-         globalTableHighlighter = new TableHighlighter('globalRoles', 0);
-      });
-
-      var globalUserFilter = function(e) {
-        e.onkeyup = function() {
-            var filter = document.getElementById("globalUserInput").value.toUpperCase();
-            var table = document.getElementById("globalRoles");
-            filterUsers(filter, table);
-        }
-        e = null;
-      }
-
-      var globalRoleFilter = function(e) {
-        e.onkeyup = function() {
-            var filter = document.getElementById("globalRoleInput").value.toUpperCase();
-            var table = document.getElementById("globalRoles");
-            filterRoles(filter, table);
-        }
-        e = null;
-      }
-
-      var deleteAssignedGlobalRole = function(e) {
-        e.onclick = function() {
-          var tr = findAncestor(this,"TR");
-          tr.parentNode.removeChild(tr);
-          globalSidCount--;
-          if (globalSidCount &lt; 10) {
-            document.getElementById('globalUserInputFilter').style.display = "none";
-            document.getElementById('globalUserInput').value = "";
-            event = new Event("keyup");
-            document.getElementById('globalUserInput').dispatchEvent(event);
-          }
-          return false;
-        }
-        e = null; <!-- avoid memory leak -->
-      }
-      Behaviour.register({
-        "#globalRoles TD.start A" : deleteAssignedGlobalRole,
-        "#globalRoles TD.stop A" : deleteAssignedGlobalRole,
-        "#globalRoles TR.permission-row" : function(e) {
-          FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
-        },
-        "#globalUserInput" : globalUserFilter,
-        "#globalRoleInput" : globalRoleFilter,
-      });
-    </script>
 </j:jelly>

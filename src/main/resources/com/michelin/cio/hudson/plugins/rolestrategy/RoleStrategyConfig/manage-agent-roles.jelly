@@ -79,8 +79,7 @@
                          project="${false}"/>
         </tr>
       </j:forEach>
-      <j:set var="id" value="${h.generateId()}"/>
-      <tr id="${id}" style="display:none" class="permission-row highlight-row">
+      <tr id="newAgentRoleTemplate" style="display:none" class="permission-row highlight-row">
         <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
       </tr>
     </tbody>
@@ -131,81 +130,11 @@
       <f:textbox type="text" id="${tableid}text" />
     </f:entry>
     <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-      <f:textbox type="text" id="${tableid}pattern" checkUrl="'${descriptorPath}/checkPattern?value='+escape(this.value)"/>
+      <f:textbox type="text" id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
     </f:entry>
     <f:entry>
-      <local:addButton id="agentMaster" tableid="${tableid}" highlighter="agentTableHighlighter"/>
+      <local:addButton id="newAgentRoleTemplate" tableid="${tableid}" highlighter="agentTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
-    
-    <script>
-      var agentTableHighlighter;
-      var agentMaster = document.getElementById('${id}');
-      var tbody = agentMaster.parentNode;
-      tbody.removeChild(agentMaster);
 
-      var bindAgentListenerToPattern = function(elem) {
-        elem.addEventListener('click', showMatchingAgents);
-      }
-
-      var showMatchingAgents = function() {
-        let pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
-        let maxAgents = 10;    // Maximum agents to search for
-        let url = 'strategy/getMatchingAgents';
-        reqParams = {
-          'pattern' : pattern,
-          'maxAgents' : maxAgents
-        }
-
-        new Ajax.Request(url, {
-          method: 'get',
-          parameters: reqParams,
-          onSuccess: function(req) {
-            let responseJson = req.responseText.evalJSON()
-            let matchingAgents = responseJson.matchingAgents;
-            let agentCount = responseJson.agentCount;
-
-            if (matchingAgents != null) {
-              showAgentsModal(matchingAgents, agentCount);
-            } else {
-              showAgentErrorMessageModal();
-            }
-          },
-          onFailure: showAgentErrorMessageModal
-        });
-      }
-
-      var showAgentsModal = function(agents, agentCount) {
-        let modalText = '';
-        if (agents.length > 0) {
-          if (agentCount > agents.length) {
-            modalText += 'First 10 (out of ' + agentCount + ') matching Agents:\n\n';
-          } else {
-            modalText += 'Matching Agents:\n\n';
-          }
-          for (let agent of agents) {
-            modalText += ' - ' + agent + '\n';
-          }
-        } else {
-          modalText += 'No matching Agents found.';
-        }
-        modalText += '\n\n';
-        alert(modalText);
-      }
-
-      var showAgentErrorMessageModal = function() {
-        alert('Unable to fetch matching Agents.');
-      }
-
-      Event.observe(window, 'load', function(event) {
-         agentTableHighlighter = new TableHighlighter('${tableid}', 3);
-         // Show agents matching a pattern on click
-         let agentRolesTable = document.getElementById('${tableid}')
-         let patterns = agentRolesTable.getElementsByClassName('patternAnchor');
-         for (let pattern of patterns) {
-           bindAgentListenerToPattern(pattern);
-         }
-         
-      });
-    </script>
 </j:jelly>

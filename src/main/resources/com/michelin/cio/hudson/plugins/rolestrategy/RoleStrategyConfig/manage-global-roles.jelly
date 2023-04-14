@@ -26,14 +26,12 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="id" value="${h.generateId()}"/>
   <j:set var="tableid" value="globalRoles"/>
-  <!-- TODO: add warning to the UI for versions which have no administrative monitors? -->
 
   <j:set var="globalPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
   <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
   
-  <div id="globalRoleInputFilter" data-table-id="${tableid}" class="row-filter">
+  <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="row-filter">
     <f:entry title="${%Filter by Role}">
       <input id="globalRoleInput" class="row-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
@@ -80,7 +78,7 @@
           <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" />
         </tr>
       </j:forEach>
-      <tr id="${id}" style="display:none" class="permission-row highlight-row">
+      <tr id="newGlobalRoleTemplate" style="display:none" class="permission-row highlight-row">
         <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" />
       </tr>
     </tbody>
@@ -129,22 +127,7 @@
       <f:textbox type="text" id="${tableid}text" />
     </f:entry>
     <f:entry>
-      <local:addButton id="globalMaster" tableid="${tableid}" highlighter="globalTableHighlighter"/>
+      <local:addButton id="newGlobalRoleTemplate" tableid="${tableid}" highlighter="globalTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
-
-    <script>
-      <j:if test="${globalGrantedRoles.size() lt 10}">
-        document.getElementById('globalRoleInputFilter').style.display = "none"
-      </j:if>
-      var globalTableHighlighter;
-      var globalRoleCount = ${globalGrantedRoles.size()};
-      var globalMaster = document.getElementById('${id}');
-      var tbody = globalMaster.parentNode;
-      tbody.removeChild(globalMaster);
-
-      Event.observe(window, 'load', function(event) {
-         globalTableHighlighter = new TableHighlighter('${tableid}', 2);
-      });
-    </script>
 </j:jelly>
