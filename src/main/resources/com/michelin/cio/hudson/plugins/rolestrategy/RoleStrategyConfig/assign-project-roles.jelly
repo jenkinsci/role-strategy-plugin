@@ -26,54 +26,60 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="id" value="${h.generateId()}"/>
+  <j:set var="tableid" value="projectRoles"/>
   <j:set var="projectSIDs" value="${it.strategy.getSIDs(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
 
-  <div id="itemUserInputFilter">
+  <div id="itemUserInputFilter" data-table-id="${tableid}" class="user-filter">
     <f:entry title="${%Filter by User}">
-      <input id="itemUserInput" class="jenkins-input setting-input"/>
+      <input id="itemUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>
-  <div id="itemRoleInputFilter">
+  <div id="itemRoleInputFilter" data-table-id="${tableid}" class="role-filter">
     <f:entry title="${%Filter by Role}">
-      <input id="itemRoleInput" class="jenkins-input setting-input"/>
+      <input id="itemRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>
 
-  <table id="projectRoles" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row will show grouping -->
-      <tr class="group-row highlight-row">
-        <td class="start" />
-        <td class="pane-header blank">
-          ${%User/group}
-        </td>
-        <j:forEach var="role" items="${itemGrantedRoles}">
-          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-          <j:forEach var="p" items="${role.key.permissions}">
-            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
-          </j:forEach>
-          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
-          <td class="pane-header">
-            <span tooltip="${permissionList}">${role.key.name}</span>
+      <thead>
+        <tr class="group-row highlight-row">
+          <td class="start" />
+          <td class="pane-header blank">
+            ${%User/group}
           </td>
-        </j:forEach>
-        <td class="stop" />
-      </tr>
-      <j:forEach var="sid" items="${projectSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row">
-          <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
+          <j:forEach var="role" items="${itemGrantedRoles}">
+            <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+            <j:forEach var="p" items="${role.key.permissions}">
+              <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+            </j:forEach>
+            <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+            <td class="pane-header">
+              <span tooltip="${permissionList}">${role.key.name}</span>
+            </td>
+          </j:forEach>
+          <l:isAdmin><td class="stop"/></l:isAdmin>
         </tr>
-      </j:forEach>
+      </thead>
       <tr name="anonymous" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
-      <tr id="${id}" style="display:none" class="permission-row highlight-row">
+      <j:forEach var="sid" items="${projectSIDs}">
+        <tr name="[${sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+          <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.PROJECT}"/>
+        </tr>
+      </j:forEach>
+      <tr id="newItemUserRow" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" global="${false}" type="${it.strategy.PROJECT}"/>
       </tr>
-      <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
-      <j:if test="${projectSIDs.size() ge 20}">
+      <!-- Show the footer if 20 lines or more-->
+      <j:set var="hidefooter" value=""/>
+      <j:if test="${projectSIDs.size() lt 20}">
+        <j:set var="hidefooter" value="default-hidden"/>
+      </j:if>
+      <tfoot class="${hidefooter}">
         <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
@@ -86,124 +92,16 @@
           </j:forEach>
           <td class="stop" />
         </tr>
-      </j:if>
+      </tfoot>
     </table>
 
   <l:isAdmin>
     <br /><br />
     <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
-      <f:textbox type="text" id="${id}text" checkUrl="'${descriptorPath}/checkForWhitespace?value='+escape(this.value)" />
+      <f:textbox type="text" id="${tableid}text" checkUrl="${descriptorPath}/checkForWhitespace" checkDependsOn=""/>
     </f:entry>
     <f:entry>
-      <input type="button" value="${%Add}" id="${id}button"/>
+      <local:addButton id="newItemUserRow" tableid="${tableid}" highlighter="itemTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
-
-    <script>
-      <j:if test="${itemGrantedRoles.size() &lt; 10}">
-        document.getElementById('itemRoleInputFilter').style.display = "none"
-      </j:if>
-      <j:if test="${projectSIDs.size() &lt; 10}">
-        document.getElementById('itemUserInputFilter').style.display = "none"
-      </j:if>
-      var itemSidCount = ${projectSIDs.size()};
-
-      var itemTableHighlighter;
-      (function() {
-        <!-- place master outside the DOM tree so that it won't creep into the submitted form -->
-        var master = document.getElementById('${id}');
-        var table = master.parentNode;
-        table.removeChild(master);
-
-        var btn = $$('${id}button');
-        if (!btn) {
-          return;
-        }
-        makeButton(btn, function (e) {
-          <!-- when 'add' is clicked... -->
-          var name = $$('${id}text').value.trim();
-          if(name=="") {
-            alert("Please enter a role name");
-            return;
-          }
-          if(findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
-            alert("Entry for '"+name+"' already exists");
-            return;
-          }
-
-          if(document.importNode!=null)
-            copy = document.importNode(master,true);
-          else
-            copy = master.cloneNode(true); <!-- for IE -->
-          copy.removeAttribute("id");
-          copy.removeAttribute("style");
-          
-          var children = copy.childNodes;
-          children.forEach(function(item){
-            item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
-          });
-
-
-          copy.childNodes[1].innerHTML = escapeHTML(name);
-          copy.setAttribute("name",'['+name+']');
-          <j:if test="${projectSIDs.size() lt 20}">
-            table.appendChild(copy);
-          </j:if>
-          <j:if test="${projectSIDs.size() ge 20}">
-            table.insertBefore(copy,table.childNodes[table.rows.length-1]);
-          </j:if>
-          itemTableHighlighter.scan(copy);
-          Behaviour.applySubtree(findAncestor(table,"TABLE"), true);
-          itemSidCount++;
-          if (itemSidCount >= 10) {
-            document.getElementById('itemUserInputFilter').style.display = "block";
-          }
-        });
-      })();
-
-      Event.observe(window, 'load', function(event) {
-         itemTableHighlighter = new TableHighlighter('projectRoles', 0);
-      });
-
-      var itemUserFilter = function(e) {
-        e.onkeyup = function() {
-            var filter = document.getElementById("itemUserInput").value.toUpperCase();
-            var rows = document.getElementById("projectRoles");
-            filterUsers(filter, rows);
-        }
-      }
-
-      var itemRoleFilter = function(e) {
-        e.onkeyup = function() {
-            var filter = document.getElementById("itemRoleInput").value.toUpperCase();
-            var table = document.getElementById("projectRoles");
-            filterRoles(filter, table);
-        }
-      }
-
-      var deleteAssignedProjectRole = function(e) {
-        e.onclick = function() {
-          var tr = findAncestor(this,"TR");
-          tr.parentNode.removeChild(tr);
-          itemSidCount--;
-          if (itemSidCount &lt; 10) {
-            document.getElementById('itemUserInputFilter').style.display = "none";
-            document.getElementById('itemUserInput').value = "";
-            event = new Event("keyup");
-            document.getElementById('itemUserInput').dispatchEvent(event);
-          }
-          return false;
-        }
-        e = null; <!-- avoid memory leak -->
-      }
-      Behaviour.register({
-        "#projectRoles TD.start A" : deleteAssignedProjectRole,
-        "#projectRoles TD.stop A" : deleteAssignedProjectRole,
-        "#projectRoles TR.permission-row" : function(e) {
-          FormChecker.delayedCheck("${descriptorPath}/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
-        },
-        "#itemUserInput" : itemUserFilter,
-        "#itemRoleInput" : itemRoleFilter,
-      });
-    </script>
 </j:jelly>

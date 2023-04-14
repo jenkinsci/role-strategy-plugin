@@ -72,7 +72,7 @@
                   <div class="pattern-cell">
                       <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
                       <span>
-                        <a href="#" class="patternAnchor">&quot;${attrs.role.pattern.toString()}&quot;</a>
+                        <div class="patternAnchor" tooltip="Show matching">&quot;${attrs.role.pattern.toString()}&quot;</div>
                         <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                       </span>
                   </div>
@@ -131,6 +131,16 @@
               </f:bottomButtonBar>
             </l:isAdmin>
           </f:form>
+          <section class="modal">
+            <div class="flex">
+              <button class="btn-close">⨉</button>
+            </div>
+            <h3 id="modaltitle">
+            </h3>
+            <div id="modalmessage">
+            </div>
+          </section>
+          <div class="overlay default-hidden"/>
         </l:main-panel>
     </l:layout>
 </j:jelly>
