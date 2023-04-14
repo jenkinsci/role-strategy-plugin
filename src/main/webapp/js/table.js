@@ -53,6 +53,7 @@ class TableHighlighter {
   };
 
   highlight = e => {
+    let enable = e.type === 'mouseover';
     let td = findAncestor(Event.element(e), "TD")
     let tr = td.parentNode;
     let trs = this.table.querySelectorAll('tr.highlight-row');
@@ -63,9 +64,17 @@ class TableHighlighter {
       let num = position;
       if (p==0) num = num - this.decalx;
       p++;
-      row.childNodes[num].toggleClassName('highlighted');
+      if (enable) {
+        row.childNodes[num].classList.add('highlighted');
+      } else {
+        row.childNodes[num].classList.remove('highlighted');
+      }
     }
-    tr.toggleClassName('highlighted');
+    if (enable) {
+      tr.classList.add('highlighted');
+    } else {
+      tr.classList.remove('highlighted');
+    }
   };
 };
 
