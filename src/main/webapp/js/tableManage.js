@@ -69,7 +69,7 @@ Behaviour.specify(".row-input-filter", "RoleBasedAuthorizationStrategy", 0, func
 });
 
 
-Behaviour.specify("img.icon-pencil", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify("svg.icon-pencil", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     let inputNode = this.parentNode.childNodes[1];
     if (inputNode.childNodes.length == 2) {
