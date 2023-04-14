@@ -71,7 +71,7 @@
           <local:userRow sid="${sid}" title="${sid}" global="${true}"  type="${it.strategy.GLOBAL}"/>
         </tr>
       </j:forEach>
-      <tr id="newGlobalUserRow" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+      <tr id="newGlobalRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" global="${true}" type="${it.strategy.GLOBAL}"/>
       </tr>
       <!-- Show the footer if 20 lines or more-->
@@ -101,7 +101,7 @@
       <f:textbox type="text" id="${tableid}text" checkUrl="${descriptorPath}/checkForWhitespace" checkDependsOn=""/>
     </f:entry>
     <f:entry>
-      <local:addButton id="globalMaster" tableid="${tableid}" highlighter="globalTableHighlighter"/>
+      <local:addButton id="newGlobalRowTemplate" tableid="${tableid}" highlighter="globalTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
 </j:jelly>

@@ -81,7 +81,7 @@
                          project="${true}"/>
         </tr>
       </j:forEach>
-      <tr id="newItemRoleRow" style="display:none" class="permission-row highlight-row">
+      <tr id="newItemRoleTemplate" style="display:none" class="permission-row highlight-row">
         <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" />
       </tr>
     </tbody>
@@ -134,7 +134,7 @@
       <f:textbox type="text" id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
     </f:entry>
     <f:entry>
-      <local:addButton id="itemMaster" tableid="${tableid}" highlighter="projectTableHighlighter"/>
+      <local:addButton id="newItemRoleTemplate" tableid="${tableid}" highlighter="projectTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
 </j:jelly>

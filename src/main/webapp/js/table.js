@@ -44,9 +44,7 @@ class TableHighlighter {
   scan(tr) {
     let element = tr
     let descendants = element.getElementsByTagName('input');
-    for (let descendant of descendants) {
-      let td = $(descendant);
-      // For Jenkins 2.335+
+    for (let td of descendants) {
       if (td.nextSibling != null) {
         td.nextSibling.addEventListener('mouseover', this.highlight);
         td.nextSibling.addEventListener('mouseout', this.highlight);

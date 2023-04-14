@@ -78,7 +78,7 @@
           <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" />
         </tr>
       </j:forEach>
-      <tr id="newGlobalRoleRow" style="display:none" class="permission-row highlight-row">
+      <tr id="newGlobalRoleTemplate" style="display:none" class="permission-row highlight-row">
         <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" />
       </tr>
     </tbody>
@@ -127,7 +127,7 @@
       <f:textbox type="text" id="${tableid}text" />
     </f:entry>
     <f:entry>
-      <local:addButton id="globalMaster" tableid="${tableid}" highlighter="globalTableHighlighter"/>
+      <local:addButton id="newGlobalRoleTemplate" tableid="${tableid}" highlighter="globalTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
 </j:jelly>

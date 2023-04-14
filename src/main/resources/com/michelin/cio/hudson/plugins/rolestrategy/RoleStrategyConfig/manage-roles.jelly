@@ -49,7 +49,7 @@
 
           <d:taglib uri="local">
             <d:tag name="addButton">
-              <input type="button" class="role-strategy-add-button" value="${%Add}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"/>
+              <input type="button" class="role-strategy-add-button" value="${%Add}" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"/>
             </d:tag>
             <d:tag name="roleRow">
                 <td class="start">

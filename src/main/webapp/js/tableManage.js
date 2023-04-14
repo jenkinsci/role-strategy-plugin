@@ -27,11 +27,11 @@ var filterLimit = 10;
 // number of lines required for the footer to get displayed
 var footerLimit = 20;
 var globalTableHighlighter;
-var globalMaster;
+var newGlobalRoleTemplate;
 var projectTableHighlighter;
-var itemMaster;
+var newItemRoleTemplate;
 var agentTableHighlighter;
-var agentMaster;
+var newAgentRoleTemplate;
 var modal;
 var overlay;
 var closeModalBtn;
@@ -137,10 +137,10 @@ Behaviour.specify(
     makeButton(elem, function(e) {
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
-      let masterId = elem.getAttribute("data-master-id");
-      let master = window[masterId];
+      let templateId = elem.getAttribute("data-template-id");
+      let template = window[templateId];
       let highlighter = window[elem.getAttribute("data-highlighter")];
-      addButtonAction(e, master, table, highlighter, tableId);
+      addButtonAction(e, template, table, highlighter, tableId);
       let tbody = table.tBodies[0];
       if (tbody.children.length >= filterLimit) {
         let rolefilters = document.querySelectorAll(".row-filter");
@@ -157,7 +157,7 @@ Behaviour.specify(
   }
 );
 
-addButtonAction = function(e, master, table, tableHighlighter, tableId) {
+addButtonAction = function(e, template, table, tableHighlighter, tableId) {
   let tbody = table.tBodies[0];
   let roleInput = document.getElementById(tableId + 'text')
   let name = roleInput.value;
@@ -181,7 +181,7 @@ addButtonAction = function(e, master, table, tableHighlighter, tableId) {
     }
   }
 
-  let copy = document.importNode(master, true);
+  let copy = document.importNode(template, true);
   copy.removeAttribute("id");
   copy.removeAttribute("style");
   let child = copy.childNodes[1];
@@ -192,12 +192,10 @@ addButtonAction = function(e, master, table, tableHighlighter, tableId) {
     copy.getElementsByClassName("patternEdit")[0].value = pattern;
   }
 
-  let children = copy.getElementsByClassName("permissionInput");
-  for (let child of children) {
-    if (child.hasAttribute('data-tooltip-template')) {
-      child.setAttribute("data-tooltip-template", child.getAttribute("data-tooltip-template").replace(/{{ROLE}}/g, doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern)));
-    }
-  }
+  let children = copy.childNodes
+  children.forEach(function(item){
+    item.outerHTML= item.outerHTML.replace(/{{ROLE}}/g, doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
+  });
 
   if (tableId !== "globalRoles") {
     spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
@@ -384,9 +382,9 @@ document.addEventListener('DOMContentLoaded', function() {
   if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
     globalRoleInputFilter.style.display = "block"
   }
-  globalMaster = document.getElementById('newGlobalRoleRow');
-  tbody = globalMaster.parentNode;
-  tbody.removeChild(globalMaster);
+  newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
+  tbody = newGlobalRoleTemplate.parentNode;
+  tbody.removeChild(newGlobalRoleTemplate);
 
   globalTableHighlighter = new TableHighlighter('globalRoles', 2);
 
@@ -396,9 +394,9 @@ document.addEventListener('DOMContentLoaded', function() {
     itemRoleInputFilter.style.display = "block"
   }
 
-  itemMaster = document.getElementById('newItemRoleRow');
-  var tbody = itemMaster.parentNode;
-  tbody.removeChild(itemMaster);
+  newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
+  var tbody = newItemRoleTemplate.parentNode;
+  tbody.removeChild(newItemRoleTemplate);
 
   projectTableHighlighter = new TableHighlighter('projectRoles', 3);
 
@@ -410,9 +408,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // agent roles initialization
-  agentMaster = document.getElementById('newAgentRoleRow');
-  tbody = agentMaster.parentNode;
-  tbody.removeChild(agentMaster);
+  newAgentRoleTemplate = document.getElementById('newAgentRoleTemplate');
+  tbody = newAgentRoleTemplate.parentNode;
+  tbody.removeChild(newAgentRoleTemplate);
 
   agentTableHighlighter = new TableHighlighter('agentRoles', 3);
   // Show agents matching a pattern on click

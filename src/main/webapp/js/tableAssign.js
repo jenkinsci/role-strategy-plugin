@@ -26,11 +26,11 @@ var filterLimit = 10;
 // number of lines required for the footer to get displayed
 var footerLimit = 20;
 var globalTableHighlighter;
-var globalMaster;
+var newGlobalRowTemplate;
 var itemTableHighlighter;
-var newItemUserRow;
+var newItemRowTemplate;
 var agentTableHighlighter;
-var agentMaster;
+var newAgentRowTemplate;
 
 function filterUsers(filter, table) {
   for (var i = 1; i < table.rows.length; i++) {
@@ -43,7 +43,7 @@ function filterUsers(filter, table) {
       row.style.display = "";
     } else {
       row.style.display = "none";
-    }      
+    }
   }
 }
 
@@ -88,10 +88,10 @@ Behaviour.specify(
     makeButton(elem, function(e) {
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
-      let masterId = elem.getAttribute("data-master-id");
-      let master = window[masterId];
+      let templateId = elem.getAttribute("data-template-id");
+      let template = window[templateId];
       let highlighter = window[elem.getAttribute("data-highlighter")];
-      addButtonAction(e, master, table, highlighter, tableId);
+      addButtonAction(e, template, table, highlighter, tableId);
       let tbody = table.tBodies[0];
       if (tbody.children.length >= filterLimit) {
         let userfilters = document.querySelectorAll(".user-filter")
@@ -110,7 +110,7 @@ Behaviour.specify(
 );
 
 
-addButtonAction = function (e, master, table, tableHighlighter, tableId) {
+addButtonAction = function (e, template, table, tableHighlighter, tableId) {
     let tbody = table.tBodies[0];
     let userInput = document.getElementById(tableId+'text')
     let name = userInput.value;
@@ -123,7 +123,7 @@ addButtonAction = function (e, master, table, tableHighlighter, tableId) {
       return;
     }
 
-    copy = document.importNode(master,true);
+    copy = document.importNode(template,true);
     copy.removeAttribute("id");
     copy.removeAttribute("style");
 
@@ -188,9 +188,9 @@ document.addEventListener('DOMContentLoaded', function() {
         globalUserInputFilter.style.display = "block"
     }
 
-    globalMaster = document.getElementById('newGlobalUserRow');
-    var tbody = globalMaster.parentNode;
-    tbody.removeChild(globalMaster);
+    newGlobalRowTemplate = document.getElementById('newGlobalRowTemplate');
+    var tbody = newGlobalRowTemplate.parentNode;
+    tbody.removeChild(newGlobalRowTemplate);
 
     globalTableHighlighter = new TableHighlighter('globalRoles', 0);
 
@@ -204,18 +204,18 @@ document.addEventListener('DOMContentLoaded', function() {
         itemUserInputFilter.style.display = "block"
     }
 
-    newItemUserRow = document.getElementById('newItemUserRow');
+    newItemRowTemplate = document.getElementById('newItemRowTemplate');
 
-    tbody = newItemUserRow.parentNode;
-    tbody.removeChild(newItemUserRow);
+    tbody = newItemRowTemplate.parentNode;
+    tbody.removeChild(newItemRowTemplate);
 
     itemTableHighlighter = new TableHighlighter('projectRoles', 0);
 
     // agent roles initialization
-    agentMaster = document.getElementById('newAgentUserRow');
+    newAgentRowTemplate = document.getElementById('newAgentRowTemplate');
 
-    tbody = agentMaster.parentNode;
-    tbody.removeChild(agentMaster);
+    tbody = newAgentRowTemplate.parentNode;
+    tbody.removeChild(newAgentRowTemplate);
 
     agentTableHighlighter = new TableHighlighter('agentRoles', 0);
 });

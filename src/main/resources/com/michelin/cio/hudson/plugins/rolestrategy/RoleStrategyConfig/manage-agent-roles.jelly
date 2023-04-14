@@ -79,7 +79,7 @@
                          project="${false}"/>
         </tr>
       </j:forEach>
-      <tr id="newAgentRoleRow" style="display:none" class="permission-row highlight-row">
+      <tr id="newAgentRoleTemplate" style="display:none" class="permission-row highlight-row">
         <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
       </tr>
     </tbody>
@@ -133,7 +133,7 @@
       <f:textbox type="text" id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
     </f:entry>
     <f:entry>
-      <local:addButton id="agentMaster" tableid="${tableid}" highlighter="agentTableHighlighter"/>
+      <local:addButton id="newAgentRoleTemplate" tableid="${tableid}" highlighter="agentTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
 
