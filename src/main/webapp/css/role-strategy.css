@@ -95,8 +95,9 @@ label.attach-previous {
   align-items: center;
 }
 
-.global-matrix-authorization-strategy-table div.pattern-cell img {
-  margin-right: 3px; cursor: pointer;
+.global-matrix-authorization-strategy-table div.pattern-cell svg {
+  margin-right: 3px;
+  cursor: pointer;
 }
 
 .global-matrix-authorization-strategy-table div.pattern-cell span {
@@ -117,6 +118,7 @@ label.attach-previous {
 .patternAnchor:hover {
     text-decoration: var(--link-text-decoration--hover);
 }
+
 .row-filter, .user-filter, .role-filter {
   display: none;
 }

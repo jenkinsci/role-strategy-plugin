@@ -70,7 +70,7 @@
                 </j:if>
                 <td width="*">
                   <div class="pattern-cell">
-                      <l:icon class="icon-pencil icon-sm" tooltip="Edit pattern"/>
+                      <l:icon src="symbol-pencil plugin-ionicons-api" class="icon-pencil icon-sm" tooltip="Edit pattern"/>
                       <span>
                         <div class="patternAnchor" tooltip="Show matching">&quot;${attrs.role.pattern.toString()}&quot;</div>
                         <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
