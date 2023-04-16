@@ -70,44 +70,74 @@ Behaviour.specify(".row-input-filter", "RoleBasedAuthorizationStrategy", 0, func
 
 
 Behaviour.specify("svg.icon-pencil", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  e.onclick = function() {
-    let inputNode = this.parentNode.childNodes[1];
-    if (inputNode.childNodes.length == 2) {
-      inputNode.innerHTML = '<input onkeypress="" type="text" name="[pattern]" value="' + inputNode.childNodes[1].value + '" size="' + (inputNode.childNodes[1].value.length + 10) + '"/>';
-      inputNode.childNodes[0].onkeypress = preventFormSubmit;
-    } else {
-      endPatternInput(inputNode);
-    }
-    return false;
-  }
+  e.onclick = handlePatternEdit;
 });
 
+handlePatternEdit = function() {
+  let span = this.nextSibling;
+  div = span.childNodes[0];
+  input = span.childNodes[1];
+  if (span.getAttribute("data-edit") === "false") {
+    span.setAttribute("data-edit", "true");
+    div.style.display = "none";
+    input.type = "text";
+    input.setAttribute("size", input.value.length);
+    input.onkeydown = handleKey;
+    const end = input.value.length;
+    input.setSelectionRange(end, end);
+    input.focus();
+  } else {
+    endPatternInput(span, false);
+    this.blur();
+  }
+  return false;
+}
 
-preventFormSubmit = function(e) {
-  var key = e.charCode || e.keyCode || 0;
-  if (key == 13) {
+handleKey = function(e) {
+  var key = e.key || 0;
+  if (key == "Enter" || key === "Escape") {
     e.preventDefault();
     e.stopImmediatePropagation();
-    var inputNode = e.target.parentNode;
-    endPatternInput(inputNode);
+    var span = e.target.parentNode;
+    endPatternInput(span, key === "Escape");
   }
 };
 
-endPatternInput = function(inputNode) {
-  let pattern = inputNode.childNodes[0].value;
-  let table = findAncestor(inputNode, "TABLE");
-  inputNode.innerHTML = '<div class="patternAnchor">&quot;' + pattern.escapeHTML() + '&quot;</div><input class="patternEdit" type="hidden" name="[pattern]" value="' + pattern + '"/>';
-  if (table.getAttribute('id') === "projectRoles") {
-    bindListenerToPattern(inputNode.children[0]);
+
+endPatternInput = function(span, cancel) {
+  let div = span.childNodes[0];
+  let input = span.childNodes[1];
+  let pattern = input.value;
+  let table = findAncestor(span, "TABLE");
+  input.type = "hidden";
+  div.style.display = "block";
+  span.setAttribute("data-edit", "false");
+  if (cancel) {
+    input.value = div.getAttribute("data-pattern");
   } else {
-    bindAgentListenerToPattern(inputNode.children[0]);
+    div.setAttribute("data-pattern", pattern);
+    div.textContent = '"' + pattern + '"'
+    let row = findAncestor(span, "TR");
+    for (td of row.getElementsByClassName('permissionInput')) {
+      updateTooltip(row, td, pattern);
+    }
+    Behaviour.applySubtree(row, true);
   }
-  let row = findAncestor(inputNode, "TR");
-  for (td of row.getElementsByClassName('permissionInput')) {
-    updateTooltip(row, td, pattern);
-  }
-  Behaviour.applySubtree(row, true);
 }
+
+/*
+ * Determine which attribute to set tooltips in. Changed in Jenkins 2.379 with Tippy and data-html-tooltip support.
+ */
+function getTooltipAttributeName() {
+  let coreVersion = document.body.getAttribute('data-version');
+  if (coreVersion === null) {
+    return 'tooltip'
+  }
+  // TODO remove after minimum version is 2.379 or higher
+  let tippySupported = coreVersion >= '2.379';
+  return tippySupported ? 'data-html-tooltip' : 'tooltip';
+}
+
 
 updateTooltip = function(tr, td, pattern) {
   let tooltipTemplate = td.getAttribute("data-tooltip-template");
@@ -115,18 +145,25 @@ updateTooltip = function(tr, td, pattern) {
   let impliedByList = impliedByString.split(" ");
   let input = td.getElementsByTagName('INPUT')[0];
   input.disabled = false;
-  let tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", doubleEscapeHTML(pattern)).replace("{{GRANTBYOTHER}}", "");
-  td.setAttribute("tooltip", tooltip);
+
+  var tooltipAttributeName = getTooltipAttributeName();
+
+  let tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", escapeHTML(pattern)).replace("{{GRANTBYOTHER}}", "");
+  input.nextSibling.setAttribute(tooltipAttributeName, tooltip);
 
   for (let permissionId of impliedByList) {
     let reference = tr.querySelector("td[data-permission-id='" + permissionId + "'] input");
     if (reference !== null) {
       if (reference.checked) {
         input.disabled = true;
-        tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", doubleEscapeHTML(pattern)).replace("{{GRANTBYOTHER}}", " is granted through another permission");;
-        td.nextSibling.setAttribute('tooltip', tooltip); // 2.335+
+        tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", escapeHTML(pattern)).replace("{{GRANTBYOTHER}}", " is granted through another permission");;
+        input.nextSibling.setAttribute(tooltipAttributeName, tooltip); // 2.335+
       }
     }
+  }
+
+  if (window.registerTooltips) {
+    window.registerTooltips(e.nextSibling.parentElement);
   }
 }
 
@@ -185,16 +222,16 @@ addButtonAction = function(e, template, table, tableHighlighter, tableId) {
   copy.removeAttribute("id");
   copy.removeAttribute("style");
   let child = copy.childNodes[1];
-  child.textContent = escapeHTML(name);
+  child.textContent = name;
   if (tableId !== "globalRoles") {
     let doubleQuote = '"';
-    copy.getElementsByClassName("patternAnchor")[0].textContent = doubleQuote + escapeHTML(pattern) + doubleQuote;
+    copy.getElementsByClassName("patternAnchor")[0].textContent = doubleQuote + pattern + doubleQuote;
     copy.getElementsByClassName("patternEdit")[0].value = pattern;
   }
 
   let children = copy.childNodes
   children.forEach(function(item){
-    item.outerHTML= item.outerHTML.replace(/{{ROLE}}/g, doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern));
+    item.outerHTML= item.outerHTML.replace(/{{ROLE}}/g, doubleEscapeHTML(name)).replace(/{{PATTERN}}/g, doubleEscapeHTML(pattern));
   });
 
   if (tableId !== "globalRoles") {
@@ -207,6 +244,7 @@ addButtonAction = function(e, template, table, tableHighlighter, tableId) {
   }
 
   copy.setAttribute("name", '[' + name + ']');
+  copy.querySelector("svg.icon-pencil").onclick = handlePatternEdit;
   tbody.appendChild(copy);
   tableHighlighter.scan(copy);
   Behaviour.applySubtree(findAncestor(copy, "TABLE"), true);

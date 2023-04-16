@@ -129,7 +129,7 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
 
     let children = copy.childNodes;
     children.forEach(function(item){
-      item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name));
+      item.outerHTML= item.outerHTML.replace(/{{USER}}/g, doubleEscapeHTML(name));
     });
 
     copy.childNodes[1].innerHTML = escapeHTML(name);
