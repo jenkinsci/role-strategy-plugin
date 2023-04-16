@@ -71,8 +71,8 @@
                 <td width="*">
                   <div class="pattern-cell">
                       <l:icon src="symbol-pencil plugin-ionicons-api" class="icon-pencil icon-sm" tooltip="Edit pattern"/>
-                      <span>
-                        <div class="patternAnchor" tooltip="Show matching">&quot;${attrs.role.pattern.toString()}&quot;</div>
+                      <span data-edit="false">
+                        <div class="patternAnchor" data-pattern="${attrs.role.pattern}" tooltip="Show matching">&quot;${attrs.role.pattern.toString()}&quot;</div>
                         <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                       </span>
                   </div>
@@ -87,7 +87,6 @@
                         class="permissionInput"
                         data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
                         data-permission-id="${p.id}"
-                        tooltip="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${pattern}"
                         data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
@@ -97,7 +96,9 @@
               <l:isAdmin>
                 <td class="stop">
                   <a href="#" class="remove">
-                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"
+                        htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"
+                    />
                   </a>
                 </td>
               </l:isAdmin>
