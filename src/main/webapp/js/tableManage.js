@@ -244,7 +244,9 @@ addButtonAction = function(e, template, table, tableHighlighter, tableId) {
   }
 
   copy.setAttribute("name", '[' + name + ']');
-  copy.querySelector("svg.icon-pencil").onclick = handlePatternEdit;
+  if (tableId !== "globalRoles") {
+    copy.querySelector("svg.icon-pencil").onclick = handlePatternEdit;
+  }
   tbody.appendChild(copy);
   tableHighlighter.scan(copy);
   Behaviour.applySubtree(findAncestor(copy, "TABLE"), true);
