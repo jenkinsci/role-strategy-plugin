@@ -2,7 +2,10 @@
   - The MIT License
   -
   - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
-  - Thomas Maurel, Romain Seguy
+  - Thomas Maurel, Romain Seguy, Timothy Bingaman
+  -
+  - Parts:
+  -   Node ownership: Oleg Nenashev <nenashev@synopsys.com>, Synopsys Inc.
   -
   - Permission is hereby granted, free of charge, to any person obtaining a copy
   - of this software and associated documentation files (the "Software"), to deal
@@ -23,40 +26,122 @@
   - THE SOFTWARE.
   -->
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
-         xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <l:layout permission="${app.SYSTEM_READ}" xmlns:local="local" norefresh="true">
-        <st:include it="${app}" page="sidepanel.jelly"/>
-
-        <d:taglib uri="local">
-          <!-- table to show a map -->
-          <d:tag name="feature">
-            <t:summary icon="${icon}"
-                       href="${href}" iconOnly="true">
-              <div class="link"><a href="${href}">${title}</a></div>
-              <div style="color:gray; text-decoration:none;">
-                <d:invokeBody />
-              </div>
-            </t:summary>
-          </d:tag>
-        </d:taglib>
-
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
+          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
+    <l:layout permission="${app.SYSTEM_READ}" norefresh="true" title="${%Manage Roles}">
+        <j:choose>
+          <j:when test="${app.hasPermission(app.ADMINISTER)}">
+            <j:set var="readOnlyMode" value="false" />
+          </j:when>
+          <j:otherwise>
+            <j:set var="readOnlyMode" value="true" />
+          </j:otherwise>
+        </j:choose>
+        <st:include page="sidepanel.jelly"/>
         <l:main-panel>
+          <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableManage.js" />
+
+          <j:if test="${empty(descriptorPath)}">
+            <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
+          </j:if>
+
+          <d:taglib uri="local">
+            <d:tag name="addButton">
+              <input type="button" class="role-strategy-add-button" value="${%Add}" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"/>
+            </d:tag>
+            <d:tag name="roleRow">
+                <td class="start">
+                  <l:isAdmin>
+                    <a href="#" class="remove">
+                      <l:icon alt="remove" class="icon-stop icon-sm"/>
+                    </a>
+                  </l:isAdmin>
+                </td>
+              <td class="left-most" style="white-space: nowrap;">${title}</td>
+              <j:set var="pattern" value=""/>
+              <j:set var="patternTemplate" value=""/>
+              <j:if test="${!attrs.global}">
+                <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${attrs.pattern}"/>
+                <j:set var="patternTemplate" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: {{PATTERNTEMPLATE}}"/>
+                <j:if test="${attrs.pattern != '{{PATTERN}}'}">
+                  <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(attrs.role.pattern.toString())}"/>
+                </j:if>
+                <td width="*">
+                  <div class="pattern-cell">
+                      <l:icon src="symbol-pencil plugin-ionicons-api" class="icon-pencil icon-sm" tooltip="Edit pattern"/>
+                      <span data-edit="false">
+                        <div class="patternAnchor" data-pattern="${attrs.role.pattern}" tooltip="Show matching">&quot;${attrs.role.pattern.toString()}&quot;</div>
+                        <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
+                      </span>
+                  </div>
+                </td>
+              </j:if>
+                                   
+              <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
+              <j:forEach var="g" items="${tableItems}">
+                <j:forEach var="p" items="${g.permissions}">
+                  <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
+                    <td width="*"
+                        class="permissionInput"
+                        data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
+                        data-permission-id="${p.id}"
+                        data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
+                      <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
+                    </td>
+                  </j:if>
+                </j:forEach>
+              </j:forEach>
+              <l:isAdmin>
+                <td class="stop">
+                  <a href="#" class="remove">
+                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"
+                        htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"
+                    />
+                  </a>
+                </td>
+              </l:isAdmin>
+            </d:tag>
+          </d:taglib>
+
+          <f:form method="post" name="config" action="rolesSubmit">
             <h1>
-                ${it.displayName}
+              ${it.manageRolesName}
             </h1>
 
-            <table style="padding-left: 2em;" id="management-links">
-              <local:feature icon="icon-fingerprint" href="manage-roles" title="${it.manageRolesName}">
-                ${%Manage Roles}
-              </local:feature>
-              <local:feature icon="icon-user" href="assign-roles" title="${it.assignRolesName}">
-                ${%Assign Roles}
-              </local:feature>              
-              <local:feature icon="icon-plugin" href="list-macros" title="${%Role Strategy Macros}">
-                ${%Provides info about macro usage and available macros}
-              </local:feature>
-            </table>
+            <f:section title="${%Global roles}">
+              <f:rowSet name="globalRoles">
+                <f:block><st:include page="manage-global-roles.jelly" optional="true" /></f:block>
+              </f:rowSet>
+            </f:section>
+            <f:section title="${%Item roles}">
+              <f:rowSet name="projectRoles">
+                <f:block><st:include page="manage-project-roles.jelly" optional="true" /></f:block>
+              </f:rowSet>
+            </f:section>
+            <f:section title="${%Agent roles}">
+              <f:rowSet name="slaveRoles">
+                <f:block><st:include page="manage-agent-roles.jelly" optional="true" /></f:block>
+              </f:rowSet>
+            </f:section>
+            <l:isAdmin>
+              <f:bottomButtonBar>
+                <f:submit value="${%Save}" />
+                <f:apply />
+              </f:bottomButtonBar>
+            </l:isAdmin>
+          </f:form>
+          <section class="modal">
+            <div class="flex">
+              <button class="btn-close">⨉</button>
+            </div>
+            <h3 id="modaltitle">
+            </h3>
+            <div id="modalmessage">
+            </div>
+          </section>
+          <div class="overlay default-hidden"/>
         </l:main-panel>
     </l:layout>
 </j:jelly>
