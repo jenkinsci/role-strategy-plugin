@@ -275,6 +275,8 @@ Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleB
     if (parent.children.length < footerLimit) {
       table.tFoot.style.display = "none";
     }
+    let dirtyButton = document.getElementById("rs-dirty-indicator");
+    dirtyButton.dispatchEvent(new Event('click'));
     return false;
   }
 });
