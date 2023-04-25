@@ -109,6 +109,7 @@
             <h1>
               ${it.manageRolesName}
             </h1>
+            <button class="default-hidden" id="rs-dirty-indicator"/>
 
             <f:section title="${%Global roles}">
               <f:rowSet name="globalRoles">
@@ -142,6 +143,7 @@
             </div>
           </section>
           <div class="overlay default-hidden"/>
+          <st:adjunct includes="lib.form.confirm" />
         </l:main-panel>
     </l:layout>
 </j:jelly>
