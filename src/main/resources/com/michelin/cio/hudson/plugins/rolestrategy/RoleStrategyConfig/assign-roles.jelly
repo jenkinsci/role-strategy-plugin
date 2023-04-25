@@ -37,7 +37,7 @@
             <j:set var="readOnlyMode" value="true" />
           </j:otherwise>
         </j:choose>
-        <st:include it="${app}" page="sidepanel.jelly"/>
+        <st:include page="sidepanel.jelly"/>
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
