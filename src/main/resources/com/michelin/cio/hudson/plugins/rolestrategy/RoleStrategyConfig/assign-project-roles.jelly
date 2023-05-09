@@ -30,12 +30,12 @@
   <j:set var="projectSIDs" value="${it.strategy.getSIDs(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
 
-  <div id="itemUserInputFilter" data-table-id="${tableid}" class="user-filter">
+  <div id="itemUserInputFilter" data-table-id="${tableid}" data-initial-size="${projectSIDs.size()}" class="user-filter">
     <f:entry title="${%Filter by User}">
       <input id="itemUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>
-  <div id="itemRoleInputFilter" data-table-id="${tableid}" class="role-filter">
+  <div id="itemRoleInputFilter" data-table-id="${tableid}" data-initial-size="${itemGrantedRoles.size()}" class="role-filter">
     <f:entry title="${%Filter by Role}">
       <input id="itemRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
