@@ -182,7 +182,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row
 document.addEventListener('DOMContentLoaded', function() {
     // global roles initialization
     var globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
-    if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 20) {
+    if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
         globalRoleInputFilter.style.display = "block"
     }
     var globalUserInputFilter = document.getElementById('globalUserInputFilter');
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // item roles initialization
     var itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
-    if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 20) {
+    if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
         itemRoleInputFilter.style.display = "block"
     }
     var itemUserInputFilter = document.getElementById('itemUserInputFilter');
