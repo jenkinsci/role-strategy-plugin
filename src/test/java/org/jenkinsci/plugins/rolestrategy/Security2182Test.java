@@ -5,8 +5,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
-import com.gargoylesoftware.htmlunit.Page;
-import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import org.htmlunit.Page;
+import org.htmlunit.html.HtmlPage;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;

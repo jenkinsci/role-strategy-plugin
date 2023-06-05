@@ -1,6 +1,6 @@
 package jmh;
 
-import com.gargoylesoftware.htmlunit.Cache;
+import org.htmlunit.Cache;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Objects;
