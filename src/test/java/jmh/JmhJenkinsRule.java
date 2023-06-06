@@ -1,10 +1,10 @@
 package jmh;
 
-import org.htmlunit.Cache;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Objects;
 import jenkins.model.Jenkins;
+import org.htmlunit.Cache;
 import org.jvnet.hudson.test.JenkinsRule;
 
 /**
