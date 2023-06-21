@@ -2,13 +2,10 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import static org.junit.Assert.assertFalse;
 
-import hudson.model.Item;
-import hudson.model.Job;
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.HudsonPrivateSecurityRealm;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
