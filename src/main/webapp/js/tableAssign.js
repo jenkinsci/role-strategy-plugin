@@ -21,12 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-
 // number of lines required for the user filter to get enabled
 var filterLimit = 10;
 // number of lines required for the footer to get displayed
 var footerLimit = 20;
-
+var globalTableHighlighter;
+var newGlobalRowTemplate;
+var itemTableHighlighter;
+var newItemRowTemplate;
+var agentTableHighlighter;
+var newAgentRowTemplate;
 
 function filterUsers(filter, table) {
   for (var i = 1; i < table.rows.length; i++) {
@@ -39,7 +43,7 @@ function filterUsers(filter, table) {
       row.style.display = "";
     } else {
       row.style.display = "none";
-    }      
+    }
   }
 }
 
@@ -62,7 +66,6 @@ function filterRoles(filter, table) {
   }
 }
 
-
 Behaviour.specify(".user-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
   e.onkeyup = function() {
       let filter = e.value.toUpperCase();
@@ -80,16 +83,15 @@ Behaviour.specify(".role-input-filter", "RoleBasedAuthorizationStrategy", 0, fun
   }
 });
 
-
 Behaviour.specify(
   ".role-strategy-add-button", "RoleBasedAuthorizationStrategy", 0, function(elem) {
     makeButton(elem, function(e) {
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
-      let masterId = elem.getAttribute("data-master-id");
-      let master = window[masterId];
+      let templateId = elem.getAttribute("data-template-id");
+      let template = window[templateId];
       let highlighter = window[elem.getAttribute("data-highlighter")];
-      addButtonAction(e, master, table, highlighter);
+      addButtonAction(e, template, table, highlighter, tableId);
       let tbody = table.tBodies[0];
       if (tbody.children.length >= filterLimit) {
         let userfilters = document.querySelectorAll(".user-filter")
@@ -104,10 +106,10 @@ Behaviour.specify(
         table.tFoot.style.display = "table-footer-group";
       }
     });
-  } 
+  }
 );
 
-addButtonAction = function (e, master, table, tableHighlighter) {
+addButtonAction = function (e, template, table, tableHighlighter, tableId) {
     let dataReference = e.target;
     let type = dataReference.getAttribute('data-type');
     let tbody = table.tBodies[0];
@@ -122,17 +124,17 @@ addButtonAction = function (e, master, table, tableHighlighter) {
       return;
     }
     
-    copy = document.importNode(master,true);
+    copy = document.importNode(template,true);
     copy.removeAttribute("id");
     copy.removeAttribute("style");
     
     let children = copy.childNodes;
-    let tooltipdescription = "Group";
+    let tooltipDescription = "Group";
     if (type=="USER") {
-        tooltipdescription = "User";
+        tooltipDescription = "User";
     }
     children.forEach(function(item){
-      item.outerHTML= item.outerHTML.replace("{{USER}}", doubleEscapeHTML(name)).replace("{{USERGROUP}}", tooltipdescription);
+      item.outerHTML= item.outerHTML.replace(/{{USER}}/, doubleEscapeHTML(name)).replace(/USERGROUP/, tooltipDescription);
     });
     
     copy.childNodes[1].innerHTML = escapeHTML(name);
@@ -140,7 +142,7 @@ addButtonAction = function (e, master, table, tableHighlighter) {
     tbody.appendChild(copy);
     Behaviour.applySubtree(table, true);
     tableHighlighter.scan(copy);
-}
+  }
 
 
 Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
@@ -166,10 +168,11 @@ Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleB
     if (parent.children.length < footerLimit) {
       table.tFoot.style.display = "none";
     }
+    let dirtyButton = document.getElementById("rs-dirty-indicator");
+    dirtyButton.dispatchEvent(new Event('click'));
     return false;
   }
 });
-
 
 Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row", "RoleBasedAuthorizationStrategy", 0, function(e) {
     if (e.getAttribute('name') === '__unused__') {
@@ -181,7 +184,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row
     }
 });
 
-  
+
 /*
  * Behavior for 'Migrate to user' element that exists for each ambiguous row
  */
@@ -256,4 +259,47 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop A.migrate
     return false;
   };
   e = null; // avoid memory leak
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // global roles initialization
+    var globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
+    if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+        globalRoleInputFilter.style.display = "block"
+    }
+    var globalUserInputFilter = document.getElementById('globalUserInputFilter');
+    if (parseInt(globalUserInputFilter.getAttribute("data-initial-size")) >= 10) {
+        globalUserInputFilter.style.display = "block"
+    }
+
+    newGlobalRowTemplate = document.getElementById('newGlobalRowTemplate');
+    var tbody = newGlobalRowTemplate.parentNode;
+    tbody.removeChild(newGlobalRowTemplate);
+
+    globalTableHighlighter = new TableHighlighter('globalRoles', 0);
+
+    // item roles initialization
+    var itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
+    if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+        itemRoleInputFilter.style.display = "block"
+    }
+    var itemUserInputFilter = document.getElementById('itemUserInputFilter');
+    if (parseInt(itemUserInputFilter.getAttribute("data-initial-size")) >= 10) {
+        itemUserInputFilter.style.display = "block"
+    }
+
+    newItemRowTemplate = document.getElementById('newItemRowTemplate');
+
+    tbody = newItemRowTemplate.parentNode;
+    tbody.removeChild(newItemRowTemplate);
+
+    itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+
+    // agent roles initialization
+    newAgentRowTemplate = document.getElementById('newAgentRowTemplate');
+
+    tbody = newAgentRowTemplate.parentNode;
+    tbody.removeChild(newAgentRowTemplate);
+
+    agentTableHighlighter = new TableHighlighter('agentRoles', 0);
 });

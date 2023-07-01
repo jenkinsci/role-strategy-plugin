@@ -28,8 +28,6 @@ Activate the Role-Based Strategy by using the standard _Manage Jenkins > Configu
 
 After the installation, the plugin can be configured using the _Manage and Assign Roles_ screen accessible from _Manage Jenkins_ .
 
-![Role Strategy Configuration](/docs/images/manageAndAssignRoles.png)
-
 ### Configuring roles
 
 You can define roles by using the _Manages Roles_ screen. It is possible to define global, item and agent specific roles.

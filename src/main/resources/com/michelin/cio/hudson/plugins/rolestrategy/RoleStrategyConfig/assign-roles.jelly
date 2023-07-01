@@ -37,7 +37,7 @@
             <j:set var="readOnlyMode" value="true" />
           </j:otherwise>
         </j:choose>
-        <st:include it="${app}" page="sidepanel.jelly"/>
+        <st:include page="sidepanel.jelly"/>
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
@@ -49,13 +49,13 @@
 
           <d:taglib uri="local">
             <d:tag name="addButtons">
-              <input type="button" class="role-strategy-add-button" value="${%Add User}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
+              <input type="button" class="role-strategy-add-button" value="${%Add User}" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
                   data-type="USER"
                   data-prompt="${%promptUser}"
                   data-empty-message="${%emptyUser}"
                   data-error-message="${%userExists}"
               />
-              <input type="button" class="role-strategy-add-button" value="${%Add Group}" data-master-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
+              <input type="button" class="role-strategy-add-button" value="${%Add Group}" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
                   data-type="GROUP"
                   data-prompt="${%promptGroup}"
                   data-empty-message="${%emptyGroup}"
@@ -101,7 +101,8 @@
                 <j:if test="${attrs.type == it.strategy.GLOBAL}">
                   <j:set var="pattern" value=""/>
                 </j:if>
-                <td width="*" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
+                <td width="*" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}"
+                    data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
                   <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
                 </td>
               </j:forEach>
@@ -124,11 +125,11 @@
             </d:tag>
           </d:taglib>
 
-
           <f:form method="post" name="config" action="assignSubmit">
             <h1>
                 ${it.assignRolesName}
             </h1>
+            <button class="default-hidden" id="rs-dirty-indicator"/>
 
             <f:section title="${%Global roles}">
               <f:rowSet name="globalRoles">
@@ -154,6 +155,7 @@
               </f:bottomButtonBar>
             </l:isAdmin>
           </f:form>
+          <st:adjunct includes="lib.form.confirm" />
         </l:main-panel>
     </l:layout>
 </j:jelly>

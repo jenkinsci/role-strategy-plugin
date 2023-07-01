@@ -90,7 +90,8 @@ public class RoleMap {
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
-  private static final ConcurrentMap<Permission, Set<Permission>> implyingPermissionCache = new ConcurrentHashMap<>();
+  private static final Cache<Permission, Set<Permission>> implyingPermissionCache = Caffeine.newBuilder().maximumSize(100)
+      .expireAfterWrite(20, TimeUnit.SECONDS).build();
 
   static {
     Permission.getAll().forEach(RoleMap::cacheImplyingPermissions);
@@ -221,12 +222,7 @@ public class RoleMap {
    * @return set of permissions which imply {@code p}
    */
   private static Set<Permission> getImplyingPermissions(Permission p) {
-    Set<Permission> implyingPermissions = implyingPermissionCache.get(p);
-    if (implyingPermissions != null) {
-      return implyingPermissions;
-    } else {
-      return cacheImplyingPermissions(p);
-    }
+    return implyingPermissionCache.get(p, RoleMap::cacheImplyingPermissions);
   }
 
   /**
@@ -247,11 +243,13 @@ public class RoleMap {
 
       // Get the implying permissions
       for (Permission p = permission; p != null; p = p.impliedBy) {
+        if (!p.getEnabled()) {
+          continue;
+        }
         implyingPermissions.add(p);
       }
     }
 
-    implyingPermissionCache.put(permission, implyingPermissions);
     return implyingPermissions;
   }
 

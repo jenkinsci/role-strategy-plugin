@@ -28,7 +28,6 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="id" value="${h.generateId()}"/>
   <j:set var="tableid" value="agentRoles"/>
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
   <j:set var="agentSIDs" value="${it.strategy.getSidEntries(it.strategy.SLAVE)}"/>
@@ -37,24 +36,24 @@
 
       <!-- The first row will show grouping -->
       <thead>
-	      <tr class="group-row">
-	        <td class="start" />
-	        <td class="pane-header blank">
-	          ${%User/group}
-	        </td>
-	        <j:forEach var="role" items="${agentGrantedRoles}">
-	          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-	          <j:forEach var="p" items="${role.key.permissions}">
-	            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
-	          </j:forEach>
-	          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
-	          <td class="pane-header">
-	            <span tooltip="${permissionList}">${role.key.name}</span>
-	          </td>
-	        </j:forEach>
-	        <td class="stop"/>
-	      </tr>
-	    </thead>
+        <tr class="group-row highlight-row">
+          <td class="start" />
+          <td class="pane-header blank">
+            ${%User/group}
+          </td>
+          <j:forEach var="role" items="${agentGrantedRoles}">
+            <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+            <j:forEach var="p" items="${role.key.permissions}">
+              <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+            </j:forEach>
+            <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+            <td class="pane-header">
+              <span tooltip="${permissionList}">${role.key.name}</span>
+            </td>
+          </j:forEach>
+          <l:isAdmin><td class="stop" /></l:isAdmin>
+        </tr>
+      </thead>
       <tr name="[USER:anonymous]" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.SLAVE}" permissionType="USER" typedescription="User"/>
       </tr>
@@ -68,16 +67,16 @@
 	        </tr>
 	      </j:if>
       </j:forEach>
-      <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+      <tr name="__unused__" id="newAgentRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" type="${it.strategy.SLAVE}" typedescription="{{USERGROUP}}"/>
       </tr>
-      <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
+      <!-- Show the footer if 20 lines or more-->
       <j:set var="hidefooter" value=""/>
-      <j:if test="${agentSIDs.size() lt 18}">
+      <j:if test="${agentSIDs.size() lt 20}">
         <j:set var="hidefooter" value="default-hidden"/>
       </j:if>
       <tfoot class="${hidefooter}">
-        <tr class="group-row">
+        <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -94,18 +93,6 @@
 
     <l:isAdmin>
       <br/>
-      <local:addButtons sids="${agentSIDs}" tableid="${tableid}" id="agentMaster" roles="${agentGrantedRoles}" highlighter="agentTableHighlighter"/>
+      <local:addButtons sids="${agentSIDs}" tableid="${tableid}" id="newAgentRowTemplate" roles="${agentGrantedRoles}" highlighter="agentTableHighlighter"/>
     </l:isAdmin>
-
-    <script>
-      var agentMaster = document.getElementById('${id}');
-      var agentTable = agentMaster.parentNode;
-      agentTable.removeChild(agentMaster);
-
-      var agentTableHighlighter
-      Event.observe(window, 'load', function(event) {
-        agentTableHighlighter = new TableHighlighter('${tableid}', 0);
-      });
-
-    </script>
 </j:jelly>

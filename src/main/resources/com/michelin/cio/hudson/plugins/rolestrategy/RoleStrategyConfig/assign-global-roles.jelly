@@ -26,17 +26,16 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-    <j:set var="id" value="${h.generateId()}"/>
     <j:set var="tableid" value="globalRoles"/>
     <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
     <j:set var="globalSIDs" value="${it.strategy.getSidEntries(it.strategy.GLOBAL)}"/>
 
-    <div id="globalUserInputFilter" data-table-id="${tableid}" class="user-filter">
+    <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
       <f:entry title="${%Filter by User}">
         <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
       </f:entry>
     </div>
-    <div id="globalRoleInputFilter" data-table-id="${tableid}" class="role-filter">
+    <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="role-filter">
       <f:entry title="${%Filter by Role}">
         <input id="globalRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
       </f:entry>
@@ -45,23 +44,23 @@
 
       <!-- The first row will show grouping -->
       <thead>
-	      <tr class="group-row">
-	        <td class="start" />
-	        <td class="pane-header blank">
-	          ${%User/group}
-	        </td>
-	        <j:forEach var="role" items="${globalGrantedRoles}">
-	          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-	          <j:forEach var="p" items="${role.key.permissions}">
-	            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
-	          </j:forEach>
-	          <j:set var="permissionList" value="${permissionList} &lt;br/&gt;"/>
-	          <td class="pane-header">
-	            <span tooltip="${permissionList}">${role.key.name}</span>
-	          </td>
-	        </j:forEach>
-	        <l:isAdmin><td class="stop" /></l:isAdmin>
-	      </tr>
+        <tr class="group-row highlight-row">
+          <td class="start" />
+          <td class="pane-header blank">
+            ${%User/group}
+          </td>
+          <j:forEach var="role" items="${globalGrantedRoles}">
+            <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+            <j:forEach var="p" items="${role.key.permissions}">
+              <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+            </j:forEach>
+            <j:set var="permissionList" value="${permissionList} &lt;br/&gt;"/>
+            <td class="pane-header">
+              <span tooltip="${permissionList}">${role.key.name}</span>
+            </td>
+          </j:forEach>
+          <l:isAdmin><td class="stop" /></l:isAdmin>
+        </tr>
       </thead>
       <tr name="[USER:anonymous]" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.GLOBAL}" permissionType="USER" typedescription="User"/>
@@ -76,7 +75,7 @@
 	        </tr>
 	      </j:if>
       </j:forEach>
-      <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+      <tr name="__unused__" id="newGlobalRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19 lines) -->
@@ -85,7 +84,7 @@
         <j:set var="hidefooter" value="default-hidden"/>
       </j:if>
       <tfoot class="${hidefooter}">
-        <tr class="group-row">
+        <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -98,31 +97,10 @@
           <td class="stop" />
         </tr>
       </tfoot>
-      
     </table>
 
     <l:isAdmin>
       <br/>
-      <local:addButtons sids="${globalSIDs}" tableid="${tableid}" id="globalMaster" roles="${globalGrantedRoles}" highlighter="globalTableHighlighter"/>
+      <local:addButtons sids="${globalSIDs}" tableid="${tableid}" id="newGlobalRowTemplate" roles="${globalGrantedRoles}" highlighter="globalTableHighlighter"/>
     </l:isAdmin>
-
-    <script>
-      <j:if test="${globalGrantedRoles.size() lt 18}">
-        document.getElementById('globalRoleInputFilter').style.display = "none"
-      </j:if>
-      <j:if test="${globalSIDs.size() lt 8}">
-        document.getElementById('globalUserInputFilter').style.display = "none"
-      </j:if>
-
-      var globalMaster = document.getElementById('${id}');
-      var globalTable = globalMaster.parentNode;
-      globalTable.removeChild(globalMaster);
-
-      var globalTableHighlighter;
-      
-      Event.observe(window, 'load', function(event) {
-         globalTableHighlighter = new TableHighlighter('${tableid}', 0);
-      });
-
-    </script>
 </j:jelly>

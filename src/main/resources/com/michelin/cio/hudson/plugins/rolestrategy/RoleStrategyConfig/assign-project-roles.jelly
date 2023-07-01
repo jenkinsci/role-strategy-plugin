@@ -26,17 +26,15 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="id" value="${h.generateId()}"/>
   <j:set var="tableid" value="projectRoles"/>
   <j:set var="projectSIDs" value="${it.strategy.getSidEntries(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
-
-  <div id="itemUserInputFilter" data-table-id="${tableid}" class="user-filter">
+  <div id="itemUserInputFilter" data-table-id="${tableid}" data-initial-size="${projectSIDs.size()}" class="user-filter">
     <f:entry title="${%Filter by User}">
       <input id="itemUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>
-  <div id="itemRoleInputFilter" data-table-id="${tableid}" class="role-filter">
+  <div id="itemRoleInputFilter" data-table-id="${tableid}" data-initial-size="${itemGrantedRoles.size()}" class="role-filter">
     <f:entry title="${%Filter by Role}">
       <input id="itemRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
@@ -46,24 +44,24 @@
 
       <!-- The first row will show grouping -->
       <thead>
-	      <tr class="group-row">
-	        <td class="start" />
-	        <td class="pane-header blank">
-	          ${%User/group}
-	        </td>
-	        <j:forEach var="role" items="${itemGrantedRoles}">
-	          <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
-	          <j:forEach var="p" items="${role.key.permissions}">
-	            <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
-	          </j:forEach>
-	          <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
-	          <td class="pane-header">
-	            <span tooltip="${permissionList}">${role.key.name}</span>
-	          </td>
-	        </j:forEach>
-	        <td class="stop" />
-	      </tr>
-	    </thead>
+        <tr class="group-row highlight-row">
+          <td class="start" />
+          <td class="pane-header blank">
+            ${%User/group}
+          </td>
+          <j:forEach var="role" items="${itemGrantedRoles}">
+            <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+            <j:forEach var="p" items="${role.key.permissions}">
+              <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+            </j:forEach>
+            <j:set var="permissionList" value="${permissionList} &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+            <td class="pane-header">
+              <span tooltip="${permissionList}">${role.key.name}</span>
+            </td>
+          </j:forEach>
+          <l:isAdmin><td class="stop"/></l:isAdmin>
+        </tr>
+      </thead>
       <tr name="[USER:anonymous]" class="highlight-row">
         <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.PROJECT}" permissionType="USER" typedescription="User"/>
       </tr>
@@ -77,7 +75,7 @@
 	        </tr>
 	      </j:if>
       </j:forEach>
-      <tr name="__unused__" id="${id}" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+      <tr name="__unused__" id="newItemRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
         <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}" typedescription="{{USERGROUP}}"/>
       </tr>
       <!-- The last row is used to repeat the header (if more than 19+1 lines) -->
@@ -86,7 +84,7 @@
         <j:set var="hidefooter" value="default-hidden"/>
       </j:if>
       <tfoot class="${hidefooter}">
-        <tr class="group-row">
+        <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
             ${%User/group}
@@ -103,26 +101,6 @@
 
     <l:isAdmin>
       <br/>
-      <local:addButtons sids="${projectSIDs}" tableid="${tableid}" id="itemMaster" roles="${itemGrantedRoles}" highlighter="itemTableHighlighter"/>
+      <local:addButtons sids="${projectSIDs}" tableid="${tableid}" id="newItemRowTemplate" roles="${itemGrantedRoles}" highlighter="itemTableHighlighter"/>
     </l:isAdmin>
-
-    <script>
-      <j:if test="${itemGrantedRoles.size() &lt; 10}">
-        document.getElementById('itemRoleInputFilter').style.display = "none"
-      </j:if>
-      <j:if test="${projectSIDs.size() &lt; 10}">
-        document.getElementById('itemUserInputFilter').style.display = "none"
-      </j:if>
-      
-      var itemMaster = document.getElementById('${id}');
-      var itemTable = itemMaster.parentNode;
-      itemTable.removeChild(itemMaster);
-
-      var itemTableHighlighter;
-
-      Event.observe(window, 'load', function(event) {
-         itemTableHighlighter = new TableHighlighter('${tableid}', 0);
-      });
-
-    </script>
 </j:jelly>

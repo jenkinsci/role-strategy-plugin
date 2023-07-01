@@ -5,7 +5,7 @@
    <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.51</version>
+        <version>4.66</version>
         <relativePath />
     </parent>
 
@@ -50,22 +50,26 @@
 
    <properties>
         <changelist>999999-SNAPSHOT</changelist>
-        <jenkins.version>2.303.3</jenkins.version>
-        <checkstyle.version>9.3</checkstyle.version>
+        <jenkins.version>2.387.3</jenkins.version>
+        <checkstyle.version>10.12.0</checkstyle.version>
     </properties>
 
    <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.303.x</artifactId>
-                <version>1500.ve4d05cd32975</version>
+                <artifactId>bom-2.387.x</artifactId>
+                <version>2143.ve4c3c9ec790a</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
    <dependencies>
+        <dependency>
+            <groupId>io.jenkins.plugins</groupId>
+            <artifactId>ionicons-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>caffeine-api</artifactId>
@@ -100,7 +104,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>authorize-project</artifactId>
-            <version>1.4.0</version>
+            <version>1.5.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -144,7 +148,7 @@
       <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>3.2.1</version>
+          <version>3.3.0</version>
           <dependencies>
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
