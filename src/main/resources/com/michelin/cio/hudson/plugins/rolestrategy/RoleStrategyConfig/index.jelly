@@ -54,10 +54,8 @@
             <d:tag name="roleRow">
                 <td class="start">
                   <l:isAdmin>
-                    <div class="rsp-table__cell">
-                      <span class="rsp-remove">
-                        <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger"/>
-                      </span>
+                    <div class="rsp-remove">
+                      <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
                     </div>
                   </l:isAdmin>
                 </td>
@@ -97,10 +95,8 @@
               </j:forEach>
               <l:isAdmin>
                 <td class="stop">
-                  <div class="rsp-table__cell">
-                    <span class="rsp-remove">
-                      <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
-                    </span>
+                  <div class="rsp-remove">
+                    <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                   </div>
                 </td>
               </l:isAdmin>
