@@ -62,6 +62,7 @@ class ValidationUtil {
   static String formatUserGroupValidationResponse(AuthorizationType type, String user, String tooltip) {
     return formatUserGroupValidationResponse(type, user, tooltip, false);
   }
+
   static String formatUserGroupValidationResponse(AuthorizationType type, String user, String tooltip, boolean alert) {
     String symbol;
     switch (type) {
@@ -92,13 +93,15 @@ class ValidationUtil {
                 formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid,
             "Group found; but permissions would also be granted to a user of this name", true));
       } else {
-        return FormValidation.respond(FormValidation.Kind.OK,formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid, "Group"));
+        return FormValidation.respond(FormValidation.Kind.OK, formatUserGroupValidationResponse(AuthorizationType.GROUP,
+                escapedSid, "Group"));
       }
     } catch (UserMayOrMayNotExistException2 e) {
       // undecidable, meaning the group may exist
       if (ambiguous) {
         return FormValidation.respond(FormValidation.Kind.WARNING,
-            formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid, "Permissions would also be granted to a user or group of this name", true));
+            formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid,
+                    "Permissions would also be granted to a user or group of this name", true));
       } else {
         return FormValidation.ok(escapedSid);
       }
@@ -133,13 +136,15 @@ class ValidationUtil {
                 "User " + escapedSid + " found, but permissions would also be granted to a group of this name", true));
       } else {
         return FormValidation.respond(FormValidation.Kind.OK,
-            formatUserGroupValidationResponse(AuthorizationType.USER, Util.escape(StringUtils.abbreviate(u.getFullName(), 50)), "User " + escapedSid));
+            formatUserGroupValidationResponse(AuthorizationType.USER, Util.escape(StringUtils.abbreviate(u.getFullName(), 50)),
+                    "User " + escapedSid));
       }
     } catch (UserMayOrMayNotExistException2 e) {
       // undecidable, meaning the user may exist
       if (ambiguous) {
         return FormValidation.respond(FormValidation.Kind.WARNING,
-            formatUserGroupValidationResponse(AuthorizationType.EITHER, escapedSid, "Permissions would also be granted to a user or group of this name", true));
+            formatUserGroupValidationResponse(AuthorizationType.EITHER, escapedSid,
+                    "Permissions would also be granted to a user or group of this name", true));
       } else {
         return FormValidation.ok(escapedSid);
       }
