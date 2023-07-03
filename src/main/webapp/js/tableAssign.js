@@ -85,7 +85,7 @@ Behaviour.specify(".role-input-filter", "RoleBasedAuthorizationStrategy", 0, fun
 
 Behaviour.specify(
   ".role-strategy-add-button", "RoleBasedAuthorizationStrategy", 0, function(elem) {
-    makeButton(elem, function(e) {
+    elem.onclick = function(e) {
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
       let templateId = elem.getAttribute("data-template-id");
@@ -105,7 +105,7 @@ Behaviour.specify(
       if (tbody.children.length >= footerLimit) {
         table.tFoot.style.display = "table-footer-group";
       }
-    });
+    }
   }
 );
 
@@ -130,11 +130,11 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
     
     let children = copy.childNodes;
     let tooltipDescription = "Group";
-    if (type=="USER") {
+    if (type==="USER") {
         tooltipDescription = "User";
     }
     children.forEach(function(item){
-      item.outerHTML= item.outerHTML.replace(/{{USER}}/, doubleEscapeHTML(name)).replace(/USERGROUP/, tooltipDescription);
+      item.outerHTML= item.outerHTML.replace(/{{USER}}/g, doubleEscapeHTML(name)).replace(/{{USERGROUP}}/g, tooltipDescription);
     });
     
     copy.childNodes[1].innerHTML = escapeHTML(name);
@@ -145,7 +145,7 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
   }
 
 
-Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     let table = findAncestor(this,"TABLE");
     let tableId = table.getAttribute("id");
@@ -188,13 +188,13 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row
 /*
  * Behavior for 'Migrate to user' element that exists for each ambiguous row
  */
-Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop A.migrate", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     var tr = findAncestor(this,"TR");
     var name = tr.getAttribute('name');
 
     var newName = name.replace('[EITHER:', '[USER:'); // migrate_user behavior
-    if (this.hasClassName('migrate_group')) {
+    if (this.classList.contains('migrate_group')) {
       newName = name.replace('[EITHER:', '[GROUP:');
     }
 
@@ -220,7 +220,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop A.migrate
       var buttonContainer = findAncestor(this, "TD");
       var migrateButtons = buttonContainer.getElementsByClassName('migrate');
       for (var i = migrateButtons.length - 1; i >= 0; i--) {
-        buttonContainer.removeChild(migrateButtons[i]);
+        migrateButtons[i].remove();
       }
     } else {
       // there's already a row for the migrated name (unusual but OK), so merge them
@@ -229,10 +229,10 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop A.migrate
       var ambiguousPermissionInputs = tr.getElementsByTagName("INPUT");
       var unambiguousPermissionInputs = newNameElement.getElementsByTagName("INPUT");
       for (var i = 0; i < ambiguousPermissionInputs.length; i++){
-        if(ambiguousPermissionInputs[i].type == "checkbox") {
+        if (ambiguousPermissionInputs[i].type == "checkbox") {
           unambiguousPermissionInputs[i].checked |= ambiguousPermissionInputs[i].checked;
         }
-        newNameElement.className += ' highlight-entry';
+        newNameElement.classList.add('highlight-entry');
       }
 
       // remove this row

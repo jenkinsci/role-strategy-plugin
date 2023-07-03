@@ -171,7 +171,7 @@ updateTooltip = function(tr, td, pattern) {
 Behaviour.specify(
   ".role-strategy-add-button", "RoleBasedAuthorizationStrategy", 0,
   function(elem) {
-    makeButton(elem, function(e) {
+    elem.onclick = function(e) {
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
       let templateId = elem.getAttribute("data-template-id");
@@ -190,7 +190,7 @@ Behaviour.specify(
       if (tbody.children.length >= footerLimit) {
         table.tFoot.style.display = "table-footer-group";
       }
-    });
+    }
   }
 );
 
@@ -253,7 +253,7 @@ addButtonAction = function(e, template, table, tableHighlighter, tableId) {
 }
 
 
-Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".global-matrix-authorization-strategy-table span.rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     let table = findAncestor(this, "TABLE");
     let tableId = table.getAttribute("id");

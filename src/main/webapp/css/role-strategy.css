@@ -26,7 +26,7 @@
 .global-matrix-authorization-strategy-table {
   border-collapse: collapse;
   border-spacing: 0;
-  border: 1px solid #D3D7CF;
+  #border: 1px solid #D3D7CF;
 }
 
 .global-matrix-authorization-strategy-table .caption-row TH span {
@@ -49,17 +49,13 @@
 }
 
 .global-matrix-authorization-strategy-table TD.start {
-  border-top: 1px solid transparent;
-  border-left: 1px solid transparent;
-  border-bottom: 1px solid transparent;
+  border: 0;
 }
 
 .global-matrix-authorization-strategy-table TD.stop {
-  border-top: 1px solid transparent;
-  border-right: 1px solid transparent;
-  border-bottom: 1px solid transparent;
   white-space: nowrap;
   text-align: left;
+  border: 0;
 }
 
 label.attach-previous {
@@ -125,6 +121,30 @@ label.attach-previous {
 	margin-top: 10px;
 }
 
+.rsp-entry-not-found {
+    text-decoration: line-through;
+    color: grey;
+}
+
+.rsp-table__icon {
+  vertical-align: initial!important;
+}
+
+.rsp-table__icon-alert {
+  color: orange;
+}
+
+.rsp-table__cell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rsp-remove, .migrate {
+  cursor: pointer;
+  height: 16px;
+}
+
 .patternAnchor {
   cursor: pointer;
   color: var(--link-color);
@@ -137,6 +157,7 @@ label.attach-previous {
 
 .row-filter, .user-filter, .role-filter {
   display: none;
+  max-width: 500px;
 }
 
 .modal {

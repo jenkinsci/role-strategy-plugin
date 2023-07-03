@@ -49,14 +49,16 @@
 
           <d:taglib uri="local">
             <d:tag name="addButton">
-              <input type="button" class="role-strategy-add-button" value="${%Add}" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"/>
+              <button type="button" class="jenkins-button role-strategy-add-button" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}">${%Add}</button>
             </d:tag>
             <d:tag name="roleRow">
                 <td class="start">
                   <l:isAdmin>
-                    <a href="#" class="remove">
-                      <l:icon alt="remove" class="icon-stop icon-sm"/>
-                    </a>
+                    <div class="rsp-table__cell">
+                      <span class="rsp-remove">
+                        <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger"/>
+                      </span>
+                    </div>
                   </l:isAdmin>
                 </td>
               <td class="left-most" style="white-space: nowrap;">${title}</td>
@@ -95,11 +97,11 @@
               </j:forEach>
               <l:isAdmin>
                 <td class="stop">
-                  <a href="#" class="remove">
-                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"
-                        htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"
-                    />
-                  </a>
+                  <div class="rsp-table__cell">
+                    <span class="rsp-remove">
+                      <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                    </span>
+                  </div>
                 </td>
               </l:isAdmin>
             </d:tag>

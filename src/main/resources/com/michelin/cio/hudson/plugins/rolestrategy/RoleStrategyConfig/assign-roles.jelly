@@ -49,20 +49,22 @@
 
           <d:taglib uri="local">
             <d:tag name="addButtons">
-              <input type="button" class="role-strategy-add-button" value="${%Add User}" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
-                  data-type="USER"
-                  data-prompt="${%promptUser}"
-                  data-empty-message="${%emptyUser}"
-                  data-error-message="${%userExists}"
-              />
-              <input type="button" class="role-strategy-add-button" value="${%Add Group}" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
-                  data-type="GROUP"
-                  data-prompt="${%promptGroup}"
-                  data-empty-message="${%emptyGroup}"
-                  data-error-message="${%groupExists}"
-              />
+              <div class="jenkins-buttons-row jenkins-buttons-row--equal-width">
+                <button type="button" class="jenkins-button role-strategy-add-button" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
+                    data-type="USER"
+                    data-prompt="${%promptUser}"
+                    data-empty-message="${%emptyUser}"
+                    data-error-message="${%userExists}"
+                >${%Add User}</button>
+                <button type="button" class="jenkins-button role-strategy-add-button" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"
+                    data-type="GROUP"
+                    data-prompt="${%promptGroup}"
+                    data-empty-message="${%emptyGroup}"
+                    data-error-message="${%groupExists}"
+                >${%Add Group}</button>
+              </div>
               <j:if test="${it.strategy.descriptor.hasAmbiguousEntries(attrs.roles)}">
-                <div class="alert alert-warning" data-table-id="${attrs.type}">
+                <div class="alert alert-warning" data-table-id="${attrs.tableid}">
                   ${%ambiguous}
                 </div>
               </j:if>
@@ -71,24 +73,26 @@
               <j:set var="permissionEntry" value="${it.strategy.descriptor.entryFor(attrs.permissionType, attrs.sid)}"/>
               <td class="start">
                 <l:isAdmin>
-                  <a href="#">
-                    <l:icon alt="remove" class="icon-stop icon-sm"/>
-                  </a>
+                  <j:if test="${attrs.noremove != 'true'}">
+                      <div class="rsp-remove">
+                        <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
+                      </div>
+                  </j:if>
                 </l:isAdmin>
               </td>
 			        <j:choose>
 			          <j:when test="${attrs.sid == 'authenticated' and attrs.permissionType == 'GROUP'}">
 			            <td class="left-most">
-			              <span title="authenticated">
-			                <l:icon class="icon-user icon-sm" style="margin-right:0.2em"/>${%Authenticated Users}
-			              </span>
+			              <div title="authenticated" class="rsp-table__cell">
+			                <l:icon src="symbol-people-outline plugin-ionicons-api" class="icon-sm"/> ${%Authenticated Users}
+			              </div>
 			            </td>
 			          </j:when>
 			          <j:when test="${attrs.sid == 'anonymous' and attrs.permissionType == 'USER'}">
 			            <td class="left-most">
-			              <span title="anonymous">
-			                <l:icon class="icon-person icon-sm" style="margin-right:0.2em"/>${%Anonymous}
-			              </span>
+			              <div title="anonymous" class="rsp-table__cell">
+                      <l:icon src="symbol-person-outline plugin-ionicons-api" class="icon-sm"/> ${%Anonymous}
+			              </div>
 			            </td>
 			          </j:when>
 			          <j:otherwise>
@@ -101,24 +105,27 @@
                 <j:if test="${attrs.type == it.strategy.GLOBAL}">
                   <j:set var="pattern" value=""/>
                 </j:if>
-                <td width="*" tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}"
-                    data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;User/Group&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
+                <td width="*" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
                   <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
                 </td>
               </j:forEach>
               <td class="stop">
                 <l:isAdmin>
-                  <a href="#" class="remove">
-                    <l:icon alt="remove" class="icon-stop icon-sm" tooltip="&lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
-                  </a>
-                  <j:if test="${attrs.permissionType == 'EITHER'}">
-			              <!-- migration options -->
-			              <a href="#" class="migrate migrate_user">
-			                <l:icon alt="${%Migrate entry to user}" title="${%migrate_user(attrs.sid)}" class="icon-person icon-sm" />
-			              </a>
-			              <a href="#" class="migrate migrate_group">
-			                <l:icon alt="${%Migrate entry to group}" title="${%migrate_group(attrs.sid)}" class="icon-user icon-sm" />
-			              </a>
+                  <j:if test="${attrs.noremove != 'true'}">
+                    <div class="rsp-table__cell">
+                      <div class="rsp-remove">
+                        <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                      </div>
+                      <j:if test="${attrs.permissionType == 'EITHER'}">
+                        <!-- migration options -->
+                        <div class="migrate migrate_user">
+                          <l:icon alt="${%Migrate entry to user}" tooltip="${%migrate_user(attrs.sid)}" src="symbol-person-outline plugin-ionicons-api" class="icon-sm rsp-table__icon" />
+                        </div>
+                        <div class="migrate migrate_group">
+                          <l:icon alt="${%Migrate entry to group}" tooltip="${%migrate_group(attrs.sid)}" src="symbol-people-outline plugin-ionicons-api" class="icon-sm rsp-table__icon" />
+                        </div>
+                      </j:if>
+                    </div>
                   </j:if>
                 </l:isAdmin>
               </td>

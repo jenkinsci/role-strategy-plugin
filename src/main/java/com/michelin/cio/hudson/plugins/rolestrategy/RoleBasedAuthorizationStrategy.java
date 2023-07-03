@@ -1335,20 +1335,16 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       if (sid.equals("authenticated") && type == AuthorizationType.EITHER) {
         // system reserved group
-        return FormValidation.warningWithMarkup(ValidationUtil.formatUserGroupValidationResponse("user", escapedSid,
-            "Internal group found; but permissions would also be granted to a user of this name"));
+        return FormValidation.respond(FormValidation.Kind.OK,
+                ValidationUtil.formatUserGroupValidationResponse(type, escapedSid,
+            "Internal group found; but permissions would also be granted to a user of this name", true));
       }
 
       if (sid.equals("anonymous") && type == AuthorizationType.EITHER) {
         // system reserved user
-        return FormValidation.warningWithMarkup(formatUserGroupValidationResponse("person", escapedSid,
-            "Internal user found; but permissions would also be granted to a group of this name"));
-      }
-
-      if (unbracketedValue.equals("authenticated") && type == AuthorizationType.EITHER) {
-        // system reserved group
         return FormValidation.respond(FormValidation.Kind.OK,
-            ValidationUtil.formatUserGroupValidationResponse("user", escapedSid, "Group"));
+                formatUserGroupValidationResponse(type, escapedSid,
+            "Internal user found; but permissions would also be granted to a group of this name", true));
       }
 
       try {
@@ -1360,13 +1356,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             if (groupValidation != null) {
               return groupValidation;
             }
-            return FormValidation.errorWithMarkup(formatNonExistentUserGroupValidationResponse(escapedSid, "Group not found"));
+            return FormValidation.respond(FormValidation.Kind.OK,
+                    formatNonExistentUserGroupValidationResponse(type, escapedSid, "Group not found"));
           case USER:
             userValidation = ValidationUtil.validateUser(sid, sr, false);
             if (userValidation != null) {
               return userValidation;
             }
-            return FormValidation.errorWithMarkup(formatNonExistentUserGroupValidationResponse(escapedSid, "User not found"));
+            return FormValidation.respond(FormValidation.Kind.OK,
+                    formatNonExistentUserGroupValidationResponse(type, escapedSid, "User not found"));
           case EITHER:
             userValidation = ValidationUtil.validateUser(sid, sr, true);
             if (userValidation != null) {
@@ -1376,7 +1374,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             if (groupValidation != null) {
               return groupValidation;
             }
-            return FormValidation.errorWithMarkup(formatNonExistentUserGroupValidationResponse(escapedSid, "User or group not found"));
+            return FormValidation.respond(FormValidation.Kind.OK,
+                formatNonExistentUserGroupValidationResponse(type, escapedSid, "User or group not found", true));
           default:
             return FormValidation.error("Unexpected type: " + type);
         }

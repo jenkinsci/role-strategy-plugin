@@ -6,39 +6,81 @@ import hudson.model.User;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException2;
 import hudson.util.FormValidation;
-import jenkins.model.Jenkins;
-import org.apache.commons.jelly.JellyContext;
 import org.apache.commons.lang.StringUtils;
-import org.jenkins.ui.icon.Icon;
-import org.jenkins.ui.icon.IconSet;
+import org.jenkins.ui.symbol.Symbol;
+import org.jenkins.ui.symbol.SymbolRequest;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.Stapler;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 @Restricted(NoExternalUse.class)
 class ValidationUtil {
+
+  private static String userSymbol;
+  private static String groupSymbol;
+
+  private static String warningSymbol;
+
   private ValidationUtil() {
     // do not use
   }
 
-  static String formatNonExistentUserGroupValidationResponse(String user, String tooltip) {
-    return formatUserGroupValidationResponse(null, "<span style='text-decoration: line-through; color: grey;'>" + user + "</span>",
-        tooltip);
+  static String formatNonExistentUserGroupValidationResponse(AuthorizationType type, String user, String tooltip) {
+    return formatNonExistentUserGroupValidationResponse(type, user, tooltip, false);
   }
 
-  static String formatUserGroupValidationResponse(String img, String user, String tooltip) {
-    if (img == null) {
-      return String.format("<span title='%s'>%s</span>", tooltip, user);
-    }
+  static String formatNonExistentUserGroupValidationResponse(AuthorizationType type, String user, String tooltip, boolean alert) {
+    return formatUserGroupValidationResponse(type, "<span class='rsp-entry-not-found'>" + user + "</span>",
+            tooltip, alert);
+  }
 
-    String imageFormat = String.format("icon-%s icon-sm", img);
-    Icon icon = IconSet.icons.getIconByClassSpec(imageFormat);
-    JellyContext ctx = new JellyContext();
-    ctx.setVariable("resURL", Stapler.getCurrentRequest().getContextPath() + Jenkins.RESOURCE_PATH);
-    String url = icon.getQualifiedUrl(ctx);
-    return String.format("<span title='%s'><img src='%s' style='%s margin-right:0.2em'>%s</span>", tooltip, url, icon.getStyle(), user);
+  private static String getSymbol(String symbol, String clazzes) {
+    SymbolRequest.Builder builder = new SymbolRequest.Builder();
+
+    return Symbol.get(builder.withRaw("symbol-" + symbol + "-outline plugin-ionicons-api").withClasses(clazzes).build());
+  }
+
+  private static void loadUserSymbol() {
+    if (userSymbol == null) {
+      userSymbol = getSymbol("person", "icon-sm");
+    }
+  }
+
+  private static void loadGroupSymbol() {
+    if (groupSymbol == null) {
+      groupSymbol = getSymbol("people", "icon-sm");
+    }
+  }
+
+  private static void loadWarningSymbol() {
+    if (warningSymbol == null) {
+      warningSymbol = getSymbol("warning", "icon-md rsp-table__icon-alert");
+    }
+  }
+
+  static String formatUserGroupValidationResponse(AuthorizationType type, String user, String tooltip) {
+    return formatUserGroupValidationResponse(type, user, tooltip, false);
+  }
+  static String formatUserGroupValidationResponse(AuthorizationType type, String user, String tooltip, boolean alert) {
+    String symbol;
+    switch (type) {
+      case GROUP:
+        loadGroupSymbol();
+        symbol = groupSymbol;
+        break;
+      case EITHER:
+      case USER:
+      default:
+        loadUserSymbol();
+        symbol = userSymbol;
+        break;
+    }
+    if (alert) {
+      loadWarningSymbol();
+      return String.format("<div tooltip='%s' class='rsp-table__cell'>%s%s%s</div>", tooltip, warningSymbol, symbol, user);
+    }
+    return String.format("<div tooltip='%s' class='rsp-table__cell'>%s%s</div>", tooltip, symbol, user);
   }
 
   static FormValidation validateGroup(String groupName, SecurityRealm sr, boolean ambiguous) {
@@ -46,18 +88,19 @@ class ValidationUtil {
     try {
       sr.loadGroupByGroupname2(groupName, false);
       if (ambiguous) {
-        return FormValidation.warningWithMarkup(formatUserGroupValidationResponse("user", escapedSid,
-            "Group found; but permissions would also be granted to a user of this name"));
+        return FormValidation.respond(FormValidation.Kind.WARNING,
+                formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid,
+            "Group found; but permissions would also be granted to a user of this name", true));
       } else {
-        return FormValidation.okWithMarkup(formatUserGroupValidationResponse("user", escapedSid, "Group"));
+        return FormValidation.respond(FormValidation.Kind.OK,formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid, "Group"));
       }
     } catch (UserMayOrMayNotExistException2 e) {
       // undecidable, meaning the group may exist
       if (ambiguous) {
-        return FormValidation.warningWithMarkup(
-            formatUserGroupValidationResponse("user", escapedSid, "Permissions would also be granted to a user or group of this name"));
+        return FormValidation.respond(FormValidation.Kind.WARNING,
+            formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid, "Permissions would also be granted to a user or group of this name", true));
       } else {
-        return FormValidation.ok(groupName);
+        return FormValidation.ok(escapedSid);
       }
     } catch (UsernameNotFoundException e) {
       // fall through next
@@ -76,35 +119,36 @@ class ValidationUtil {
       if (userName.equals(u.getFullName())) {
         // Sid and full name are identical, no need for tooltip
         if (ambiguous) {
-          return FormValidation.warningWithMarkup(formatUserGroupValidationResponse("person", escapedSid,
-              "User found; but permissions would also be granted to a group of this name"));
+          return FormValidation.respond(FormValidation.Kind.WARNING,
+                  formatUserGroupValidationResponse(AuthorizationType.EITHER, escapedSid,
+              "User found; but permissions would also be granted to a group of this name", true));
         } else {
-          return FormValidation.okWithMarkup(formatUserGroupValidationResponse("person", escapedSid, "User"));
+          return FormValidation.respond(FormValidation.Kind.OK,
+                  formatUserGroupValidationResponse(AuthorizationType.USER, escapedSid, "User"));
         }
       }
       if (ambiguous) {
-        return FormValidation
-            .warningWithMarkup(formatUserGroupValidationResponse("person", Util.escape(StringUtils.abbreviate(u.getFullName(), 50)),
-                "User " + escapedSid + " found, but permissions would also be granted to a group of this name"));
+        return FormValidation.respond(FormValidation.Kind.WARNING,
+                formatUserGroupValidationResponse(AuthorizationType.EITHER, Util.escape(StringUtils.abbreviate(u.getFullName(), 50)),
+                "User " + escapedSid + " found, but permissions would also be granted to a group of this name", true));
       } else {
-        return FormValidation.okWithMarkup(
-            formatUserGroupValidationResponse("person", Util.escape(StringUtils.abbreviate(u.getFullName(), 50)), "User " + escapedSid));
+        return FormValidation.respond(FormValidation.Kind.OK,
+            formatUserGroupValidationResponse(AuthorizationType.USER, Util.escape(StringUtils.abbreviate(u.getFullName(), 50)), "User " + escapedSid));
       }
     } catch (UserMayOrMayNotExistException2 e) {
       // undecidable, meaning the user may exist
       if (ambiguous) {
-        return FormValidation.warningWithMarkup(
-            formatUserGroupValidationResponse("person", escapedSid, "Permissions would also be granted to a user or group of this name"));
+        return FormValidation.respond(FormValidation.Kind.WARNING,
+            formatUserGroupValidationResponse(AuthorizationType.EITHER, escapedSid, "Permissions would also be granted to a user or group of this name", true));
       } else {
-        return FormValidation.ok(userName);
+        return FormValidation.ok(escapedSid);
       }
     } catch (UsernameNotFoundException e) {
       // fall through next
     } catch (AuthenticationException e) {
       // other seemingly unexpected error.
-      return FormValidation.error(e, "Failed to test the validity of the user name " + userName);
+      return FormValidation.error(e, "Failed to test the validity of the user name " + escapedSid);
     }
     return null;
   }
-
 }
