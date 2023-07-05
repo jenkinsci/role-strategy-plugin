@@ -42,10 +42,10 @@ import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import java.io.File;
 import java.io.FileReader;
+import java.io.Reader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import jenkins.model.Jenkins;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
@@ -148,11 +148,13 @@ public class Security2374Test {
     final RoleBasedAuthorizationStrategy authorizationStrategy = (RoleBasedAuthorizationStrategy) j.jenkins.getAuthorizationStrategy();
     final SidACL acl = authorizationStrategy.getRootACL();
     final File configXml = new File(j.jenkins.getRootDir(), "config.xml");
-    final List<String> configLines = IOUtils.readLines(new FileReader(configXml));
+    List<String> configLines;
+    try (Reader reader = new FileReader(configXml)) {
+      configLines = IOUtils.readLines(reader);
+    }
     assertFalse(acl.hasPermission2(User.getById("markus", true).impersonate2(), Jenkins.ADMINISTER));
     assertTrue(acl.hasPermission2(User.getById("markus", true).impersonate2(), Jenkins.READ));
     assertTrue(acl.hasPermission2(User.getById("admin", true).impersonate2(), Jenkins.ADMINISTER));
-    j.jenkins.save();
-    assertTrue(configLines.stream().anyMatch(line -> line.contains("<sid type=\"EITHER\">admin</entry>")));
+    assertTrue(configLines.stream().anyMatch(line -> line.contains("<sid type=\"EITHER\">admin</sid>")));
   }
 }
