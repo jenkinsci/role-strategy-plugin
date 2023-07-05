@@ -27,6 +27,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Provides the configuration logic for Role Strategy plugin.
+ *
  * @author Oleg Nenashev
  * @since 2.11
  */
@@ -59,7 +60,8 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   }
 
   @Override
-  protected void configure(Mapping config, RoleBasedAuthorizationStrategy instance, boolean dryrun, ConfigurationContext context) throws ConfiguratorException {
+  protected void configure(Mapping config, RoleBasedAuthorizationStrategy instance, boolean dryrun,
+                           ConfigurationContext context) throws ConfiguratorException {
     super.configure(config, instance, dryrun, context);
 
     if (!dryrun) {
@@ -69,7 +71,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
 
   @Override
   @NonNull
-  public Set<Attribute<RoleBasedAuthorizationStrategy,?>> describe() {
+  public Set<Attribute<RoleBasedAuthorizationStrategy, ?>> describe() {
     return Collections.singleton(
             new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
               List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
@@ -79,8 +81,16 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
             }));
   }
 
+  @CheckForNull
+  @Override
+  public CNode describe(RoleBasedAuthorizationStrategy instance, ConfigurationContext context) throws Exception {
+    return compare(instance, new RoleBasedAuthorizationStrategy(Collections.emptyMap()), context);
+  }
+
   private List<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<PermissionEntry>> roleMap) {
-    if (roleMap == null) return Collections.emptyList();
+    if (roleMap == null) {
+      return Collections.emptyList();
+    }
     return roleMap.entrySet().stream().map(getRoleDefinition()).collect(Collectors.toList());
   }
 
@@ -98,11 +108,5 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
       roleDefinition.setEntries(roleDefinitionEntries);
       return roleDefinition;
     };
-  }
-
-  @CheckForNull
-  @Override
-  public CNode describe(RoleBasedAuthorizationStrategy instance, ConfigurationContext context) throws Exception {
-    return compare(instance, new RoleBasedAuthorizationStrategy(Collections.emptyMap()), context);
   }
 }

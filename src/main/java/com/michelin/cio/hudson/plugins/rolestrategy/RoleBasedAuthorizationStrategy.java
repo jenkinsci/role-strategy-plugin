@@ -820,6 +820,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     writer.close();
   }
 
+  /**
+   * Checks if there are ambiguous entries and adds them to the monitor.
+   */
   @Restricted(NoExternalUse.class)
   public void validateConfig() {
     List<PermissionEntry> sids = new ArrayList<>();
@@ -829,6 +832,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     AmbiguousSidsAdminMonitor.get().updateEntries(sids);
   }
 
+  /**
+   * Validate the config after System config was loaded.
+   */
   @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
   public static void init() {
     Jenkins j = instance();

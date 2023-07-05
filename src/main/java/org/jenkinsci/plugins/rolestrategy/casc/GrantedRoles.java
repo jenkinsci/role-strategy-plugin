@@ -16,6 +16,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
+ * Casc wrapper for Roles.
+ *
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  * @since 2.11
  */
@@ -28,6 +30,13 @@ public class GrantedRoles {
 
   private final List<RoleDefinition> agents;
 
+  /**
+   * Create GrantedRoles.
+   *
+   * @param global List of global Roles
+   * @param items  List of item Roles
+   * @param agents List of agent Roles
+   */
   @DataBoundConstructor
   public GrantedRoles(List<RoleDefinition> global, List<RoleDefinition> items, List<RoleDefinition> agents) {
     this.global = global;
@@ -37,12 +46,15 @@ public class GrantedRoles {
 
   protected Map<String, RoleMap> toMap() {
     Map<String, RoleMap> grantedRoles = new HashMap<>();
-    if (global != null)
+    if (global != null) {
       grantedRoles.put(RoleBasedAuthorizationStrategy.GLOBAL, retrieveRoleMap(global));
-    if (items != null)
+    }
+    if (items != null) {
       grantedRoles.put(RoleBasedAuthorizationStrategy.PROJECT, retrieveRoleMap(items));
-    if (agents != null)
+    }
+    if (agents != null) {
       grantedRoles.put(RoleBasedAuthorizationStrategy.SLAVE, retrieveRoleMap(agents));
+    }
     return grantedRoles;
   }
 
@@ -50,7 +62,8 @@ public class GrantedRoles {
   private RoleMap retrieveRoleMap(List<RoleDefinition> definitions) {
     TreeMap<Role, Set<PermissionEntry>> resMap = new TreeMap<>();
     for (RoleDefinition definition : definitions) {
-      resMap.put(definition.getRole(), definition.getEntries().stream().map(RoleDefinition.RoleDefinitionEntry::asPermissionEntry).collect(Collectors.toSet()));
+      resMap.put(definition.getRole(),
+              definition.getEntries().stream().map(RoleDefinition.RoleDefinitionEntry::asPermissionEntry).collect(Collectors.toSet()));
     }
     return new RoleMap(resMap);
   }

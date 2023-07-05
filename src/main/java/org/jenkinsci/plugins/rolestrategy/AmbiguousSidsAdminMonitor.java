@@ -6,11 +6,11 @@ import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.AdministrativeMonitor;
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nonnull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -23,43 +23,43 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public class AmbiguousSidsAdminMonitor extends AdministrativeMonitor {
 
-    private @Nonnull List<String> ambiguousEntries = Collections.emptyList();
+  private @Nonnull List<String> ambiguousEntries = Collections.emptyList();
 
-    public static @Nonnull AmbiguousSidsAdminMonitor get() {
-        return ExtensionList.lookupSingleton(AmbiguousSidsAdminMonitor.class);
-    }
+  public static @Nonnull AmbiguousSidsAdminMonitor get() {
+    return ExtensionList.lookupSingleton(AmbiguousSidsAdminMonitor.class);
+  }
 
-    /**
-     * To be called everytime Permission Entries are updated.
-     *
-     * @param entries All entries in the system.
-     */
-    public void updateEntries(@Nonnull Collection<PermissionEntry> entries) {
-        List<String> ambiguous = new ArrayList<>();
-        for (PermissionEntry entry : entries) {
-            try {
-                if (entry.getType() == AuthorizationType.EITHER) {
-                    ambiguous.add(entry.getSid());
-                }
-            } catch (IllegalArgumentException ex) {
-                // Invalid, but not the problem we are looking for
-            }
+  /**
+   * To be called everytime Permission Entries are updated.
+   *
+   * @param entries All entries in the system.
+   */
+  public void updateEntries(@Nonnull Collection<PermissionEntry> entries) {
+    List<String> ambiguous = new ArrayList<>();
+    for (PermissionEntry entry : entries) {
+      try {
+        if (entry.getType() == AuthorizationType.EITHER) {
+          ambiguous.add(entry.getSid());
         }
-        ambiguousEntries = ambiguous;
+      } catch (IllegalArgumentException ex) {
+        // Invalid, but not the problem we are looking for
+      }
     }
+    ambiguousEntries = ambiguous;
+  }
 
-    public @Nonnull List<String> getAmbiguousEntries() {
-        return ambiguousEntries;
-    }
+  public @Nonnull List<String> getAmbiguousEntries() {
+    return ambiguousEntries;
+  }
 
-    @Override
-    public boolean isActivated() {
-        return !ambiguousEntries.isEmpty();
-    }
+  @Override
+  public boolean isActivated() {
+    return !ambiguousEntries.isEmpty();
+  }
 
-    @Override
-    public String getDisplayName() {
-        return Messages.RoleBasedProjectNamingStrategy_Ambiguous();
-    }
+  @Override
+  public String getDisplayName() {
+    return Messages.RoleBasedProjectNamingStrategy_Ambiguous();
+  }
 
 }

@@ -5,6 +5,7 @@ import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.security.Permission;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -14,8 +15,6 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
-import hudson.security.Permission;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -23,8 +22,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
 /**
- * Role definition.
- * Used for custom formatting
+ * Role definition. Used for custom formatting
+ *
  * @author Oleg Nenashev
  * @since 2.11
  */
@@ -42,11 +41,16 @@ public class RoleDefinition {
   private final String pattern;
   private final Set<String> permissions;
 
-  /**
-   * @since TODO (4.0?)
-   */
   private SortedSet<RoleDefinitionEntry> entries = Collections.emptySortedSet();
 
+  /**
+   * Creates a RoleDefinition.
+   *
+   * @param name        Role name
+   * @param description Role description
+   * @param pattern     Role pattern
+   * @param permissions Assigned permissions
+   */
   @DataBoundConstructor
   public RoleDefinition(String name, String description, String pattern, Collection<String> permissions) {
     this.name = name;
@@ -59,7 +63,7 @@ public class RoleDefinition {
   /**
    * Legacy setter for string based assignments.
    *
-   * @param assignments
+   * @param assignments The assigned sids
    * @deprecated Use {@link #setEntries(java.util.Collection)} instead.
    */
   @DataBoundSetter
@@ -77,11 +81,21 @@ public class RoleDefinition {
     }
   }
 
+  /**
+   * Setter for entries.
+   *
+   * @param entries The permission entries
+   */
   @DataBoundSetter
   public void setEntries(Collection<RoleDefinitionEntry> entries) {
     this.entries = entries != null ? new TreeSet<>(entries) : Collections.emptySortedSet();
   }
 
+  /**
+   * Returns the corresponding Role object.
+   *
+   * @return Role
+   */
   public final Role getRole() {
     if (role == null) {
       Set<Permission> resolvedPermissions = PermissionHelper.fromStrings(permissions, false);
@@ -109,8 +123,9 @@ public class RoleDefinition {
   }
 
   /**
-   * Deprecated, always returns null
-   * @return
+   * Deprecated, always returns null.
+   *
+   * @return null
    */
   public Collection<String> getAssignments() {
     return null;
@@ -120,6 +135,9 @@ public class RoleDefinition {
     return entries;
   }
 
+  /**
+   * Maps a permission entry to the casc line.
+   */
   public static class RoleDefinitionEntry implements Comparable<RoleDefinitionEntry> {
     private /* quasi-final */ AuthorizationType type;
     private /* quasi-final */ String name;
@@ -157,9 +175,11 @@ public class RoleDefinition {
     public String getUser() {
       return type == AuthorizationType.USER ? name : null;
     }
+
     public String getGroup() {
       return type == AuthorizationType.GROUP ? name : null;
     }
+
     public String getEither() {
       return type == AuthorizationType.EITHER ? name : null;
     }
@@ -168,6 +188,12 @@ public class RoleDefinition {
       return new PermissionEntry(type, name);
     }
 
+    /**
+     * Creates a RoleDefinitionEntry from a PermissionNetry.
+     *
+     * @param entry {@link PermissionEntry}
+     * @return RoleDefinitionEntry
+     */
     public static RoleDefinitionEntry fromPermissionEntry(PermissionEntry entry) {
       final RoleDefinitionEntry roleDefinitionEntry = new RoleDefinitionEntry();
       roleDefinitionEntry.type = entry.getType();
@@ -176,7 +202,19 @@ public class RoleDefinition {
     }
 
     @Override
-    public int compareTo(@NonNull RoleDefinition.RoleDefinitionEntry o) {
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      RoleDefinitionEntry that = (RoleDefinitionEntry) o;
+      return type == that.type && name.equals(that.name);
+    }
+
+    @Override
+    public int compareTo(@NonNull RoleDefinitionEntry o) {
       int typeCompare = this.type.compareTo(o.type);
       if (typeCompare == 0) {
         return this.name.compareTo(o.name);
