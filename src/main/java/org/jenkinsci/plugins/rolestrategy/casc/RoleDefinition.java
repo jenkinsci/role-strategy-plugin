@@ -9,6 +9,7 @@ import hudson.security.Permission;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -199,6 +200,11 @@ public class RoleDefinition {
       roleDefinitionEntry.type = entry.getType();
       roleDefinitionEntry.name = entry.getSid();
       return roleDefinitionEntry;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(type, name);
     }
 
     @Override

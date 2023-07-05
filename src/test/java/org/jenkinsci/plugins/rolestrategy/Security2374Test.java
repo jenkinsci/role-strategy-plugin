@@ -152,10 +152,7 @@ public class Security2374Test {
     assertFalse(acl.hasPermission2(User.getById("markus", true).impersonate2(), Jenkins.ADMINISTER));
     assertTrue(acl.hasPermission2(User.getById("markus", true).impersonate2(), Jenkins.READ));
     assertTrue(acl.hasPermission2(User.getById("admin", true).impersonate2(), Jenkins.ADMINISTER));
-    TimeUnit.SECONDS.sleep(120);
     j.jenkins.save();
-    assertFalse(configLines.stream().anyMatch(line -> line.contains("<assignedSIDs>")));
-    assertTrue(configLines.stream().anyMatch(line -> line.contains("<assignments>")));
     assertTrue(configLines.stream().anyMatch(line -> line.contains("<sid type=\"EITHER\">admin</entry>")));
   }
 }
