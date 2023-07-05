@@ -276,8 +276,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param type The object type controlled by the {@link RoleMap}
    * @return All SIDs from the specified {@link RoleMap}.
    */
-  @CheckForNull
-  @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
   public Set<PermissionEntry> getSidEntries(String type) {
     return getRoleMap(RoleType.fromString(type)).getSidEntries();
   }
