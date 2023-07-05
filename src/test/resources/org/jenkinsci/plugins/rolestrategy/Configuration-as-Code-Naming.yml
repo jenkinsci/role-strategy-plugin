@@ -7,24 +7,24 @@ jenkins:
             description: "Jenkins administrators"
             permissions:
               - "Overall/Administer"
-            assignments:
-              - "USER:admin"
+            entries:
+              - user: "admin"
           - name: "readonly"
             description: "Read-only users"
             permissions:
               - "Overall/Read"
               - "Job/Read"
-            assignments:
-              - "GROUP:authenticated"
+            entries:
+              - group: "authenticated"
           - name: "jobcreate"
             description: "Create Job User"
             permissions:
               - "Job/Create"
               - "Job/Configure"
-            assignments:
-              - "USER:userGlobal"
-              - "GROUP:groupGlobal"
-              - "EITHER:eitherGlobal"
+            entries:
+              - user: "userGlobal"
+              - group: "groupGlobal"
+              - either: "eitherGlobal"
         items:
           - name: "jobcreate"
             description: "Can create jobs"
@@ -35,10 +35,10 @@ jenkins:
               - "Job/Delete"
               - "Job/Create"
               - "Job/Read"
-            assignments:
-              - "USER:userJobCreate"
-              - "GROUP:groupJobCreate"
-              - "EITHER:eitherJobCreate"
+            entries:
+              - user: "userJobCreate"
+              - group: "groupJobCreate"
+              - either: "eitherJobCreate"
           - name: "folderjobcreate"
             description: "Can create jobs in a folder"
             pattern: "^folder/job.*"
@@ -48,20 +48,20 @@ jenkins:
               - "Job/Delete"
               - "Job/Create"
               - "Job/Read"
-            assignments:
-              - "USER:userJobCreate"
-              - "GROUP:groupJobCreate"
-              - "EITHER:eitherJobCreate"
+            entries:
+              - user: "userJobCreate"
+              - group: "groupJobCreate"
+              - either: "eitherJobCreate"
           - name: "jobread"
             description: "Can only read jobs"
             pattern: "^job.*"
             permissions:
               - "Job/Build"
               - "Job/Read"
-            assignments:
-              - "USER:userRead"
-              - "GROUP:groupRead"
-              - "EITHER:eitherRead"
+            entries:
+              - user: "userRead"
+              - group: "groupRead"
+              - either: "eitherRead"
 
   # System for test
   securityRealm:

@@ -29,13 +29,13 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
  */
 public enum AuthorizationType {
 
+  USER("User"),
+  GROUP("Group"),
   /**
    * Either type is being granted permissions.
    * This is the legacy default.
    */
-  EITHER("User/Group"),
-  GROUP("Group"),
-  USER("User");
+  EITHER("User/Group");
 
   private final String description;
 

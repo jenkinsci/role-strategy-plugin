@@ -7,15 +7,15 @@ jenkins:
             description: "Jenkins administrators"
             permissions:
               - "Overall/Administer"
-            assignments:
-              - "USER:admin"
+            entries:
+              - user: "admin"
           - name: "readonly"
             description: "Read-only users"
             permissions:
               - "Overall/Read"
               - "Job/Read"
-            assignments:
-              - "GROUP:authenticated"
+            entries:
+              - group: "authenticated"
 
   # System for test
   securityRealm:

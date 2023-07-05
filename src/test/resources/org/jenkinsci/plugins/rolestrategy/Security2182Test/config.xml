@@ -13,7 +13,7 @@
                     <permission>hudson.model.Hudson.Administer</permission>
                 </permissions>
                 <assignedSIDs>
-                    <sid>admin</sid>
+                    <sid type="USER">admin</sid>
                 </assignedSIDs>
             </role>
             <role name="user" pattern=".*">
@@ -21,7 +21,7 @@
                     <permission>hudson.model.Hudson.Read</permission>
                 </permissions>
                 <assignedSIDs>
-                    <sid>anonymous</sid>
+                    <sid type="USER">anonymous</sid>
                 </assignedSIDs>
             </role>
         </roleMap>
@@ -33,7 +33,7 @@
                     <permission>hudson.model.Item.Configure</permission>
                 </permissions>
                 <assignedSIDs>
-                    <sid>anonymous</sid>
+                    <sid type="USER">anonymous</sid>
                 </assignedSIDs>
             </role>
         </roleMap>

@@ -40,6 +40,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.Functions;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.AbstractItem;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
@@ -79,6 +81,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.rolestrategy.AmbiguousSidsAdminMonitor;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -335,7 +338,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   private static void persistChanges() throws IOException {
-    instance().save();
+    Jenkins j = instance();
+    j.save();
+    AuthorizationStrategy as = j.getAuthorizationStrategy();
+    if (as instanceof RoleBasedAuthorizationStrategy) {
+      RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) as;
+      rbas.validateConfig();
+    }
   }
 
   private static Jenkins instance() {
@@ -469,7 +478,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param roleName name of role (single, no list)
    * @param user     user ID (single, no list)
    * @throws IOException in case saving changes fails
-   * @since 2.5.0
+   * @since TODO
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
@@ -497,7 +506,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param roleName name of role (single, no list)
    * @param group    group ID (single, no list)
    * @throws IOException in case saving changes fails
-   * @since 2.5.0
+   * @since TODO
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
@@ -811,6 +820,25 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
     responseJson.write(writer);
     writer.close();
+  }
+
+  @Restricted(NoExternalUse.class)
+  public void validateConfig() {
+    List<PermissionEntry> sids = new ArrayList<>();
+    sids.addAll(getSidEntries(RoleBasedAuthorizationStrategy.GLOBAL));
+    sids.addAll(getSidEntries(RoleBasedAuthorizationStrategy.SLAVE));
+    sids.addAll(getSidEntries(RoleBasedAuthorizationStrategy.PROJECT));
+    AmbiguousSidsAdminMonitor.get().updateEntries(sids);
+  }
+
+  @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
+  public static void init() {
+    Jenkins j = instance();
+    AuthorizationStrategy as = j.getAuthorizationStrategy();
+    if (as instanceof RoleBasedAuthorizationStrategy) {
+      RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) as;
+      rbas.validateConfig();
+    }
   }
 
   @Extension

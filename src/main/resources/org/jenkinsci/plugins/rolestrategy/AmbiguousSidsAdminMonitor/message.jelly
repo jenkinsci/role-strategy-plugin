@@ -1,0 +1,25 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <div class="alert alert-warning">
+    <div class="jenkins-!-margin-left-1">
+      <form method="post" action="${rootURL}/${it.url}/disable" class="jenkins-!-padding-left-1">
+        <f:submit value="${%Dismiss}"/>
+      </form>
+    </div>
+    <div/>
+    <form method="get" action="${rootURL}/role-strategy/assign-roles">
+      <f:submit value="${%Examine}"/>
+    </form>
+    <div>There are several permissions declared in Role Based Strategy plugin configuration, that are ambiguous. Classify them correctly with 'USER:username' or 'GROUP:groupname'.</div>
+
+    <ul>
+      <j:forEach var="entry" items="${it.ambiguousEntries}">
+        <li>
+          ${entry}
+        </li>
+      </j:forEach>
+    </ul>
+
+  </div>
+</j:jelly>
