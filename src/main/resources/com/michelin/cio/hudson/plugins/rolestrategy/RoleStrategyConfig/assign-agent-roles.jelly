@@ -39,7 +39,7 @@
         <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
-            ${%User/group}
+            ${%User/Group}
           </td>
           <j:forEach var="role" items="${agentGrantedRoles}">
             <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>

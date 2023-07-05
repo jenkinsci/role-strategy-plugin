@@ -31,7 +31,7 @@
     <j:set var="globalSIDs" value="${it.strategy.getSidEntries(it.strategy.GLOBAL)}"/>
 
     <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
-      <f:entry title="${%Filter by User}">
+      <f:entry title="${%Filter by User/Group}">
         <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
       </f:entry>
     </div>
@@ -47,7 +47,7 @@
         <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
-            ${%User/group}
+            ${%User/Group}
           </td>
           <j:forEach var="role" items="${globalGrantedRoles}">
             <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
