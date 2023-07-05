@@ -953,6 +953,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                   } catch (IllegalArgumentException ex) {
                     LOGGER.log(Level.WARNING, "Unknown AuthorizationType {0} for SID {1} in Role {2}/{3}",
                         new Object[] { entryTypeValue, sid, type, name });
+                    throw ex;
                   }
                 }
                 PermissionEntry pe = new PermissionEntry(authType, sid);
