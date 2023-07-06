@@ -300,7 +300,7 @@ public class RoleMap {
 
   /**
    * Assign the sid to the given {@link Role}.
-   * Assigns are a {@link AuthorizationType#EITHER}ö
+   * Assigns are a {@link AuthorizationType#EITHER}
    *
    * @param role The {@link Role} to assign the sid to
    * @param sid  The sid to assign
@@ -475,7 +475,7 @@ public class RoleMap {
 
   /**
    * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
-   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   * All types are returned to keep the api as compatible as possible.
    *
    * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
    * @deprecated use {@link #getGrantedRolesEntries()}
@@ -484,9 +484,8 @@ public class RoleMap {
   public SortedMap<Role, Set<String>> getGrantedRoles() {
     SortedMap<Role, Set<String>> ret = new TreeMap<>();
     for (Map.Entry<Role, Set<PermissionEntry>> entry : this.grantedRoles.entrySet()) {
-      Set<String> eitherGrants = entry.getValue().stream().filter(it -> it.getType() == AuthorizationType.EITHER)
-          .map(PermissionEntry::getSid).collect(Collectors.toSet());
-      ret.put(entry.getKey(), eitherGrants);
+      Set<String> allGrants = entry.getValue().stream().map(PermissionEntry::getSid).collect(Collectors.toSet());
+      ret.put(entry.getKey(), allGrants);
     }
     return ret;
   }
@@ -502,22 +501,19 @@ public class RoleMap {
 
   /**
    * Get all the sids referenced in this {@link RoleMap}, minus the {@code Anonymous} sid.
-   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   * All types are returned to keep the api as compatible as possible.
    *
    * @return A sorted set containing all the sids, minus the {@code Anonymous} sid
    * @deprecated use {@link #getSidEntries()}
    */
   @Deprecated
   public SortedSet<String> getSids() {
-    SortedSet<String> ret = new TreeSet<>(this.getSidEntries(false)
-        .stream().filter(it -> it.getType() == AuthorizationType.EITHER)
-        .map(PermissionEntry::getSid).collect(Collectors.toSet()));
-    return ret;
+    return getSids(false);
   }
 
   /**
    * Get all the sids referenced in this {@link RoleMap}.
-   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   * All types are returned to keep the api as compatible as possible.
    *
    * @param includeAnonymous True if you want the {@code Anonymous} sid to be included in the set
    * @return A sorted set containing all the sids
@@ -526,8 +522,7 @@ public class RoleMap {
   @Deprecated
   public SortedSet<String> getSids(Boolean includeAnonymous) {
     SortedSet<String> ret = new TreeSet<>(this.getSidEntries(includeAnonymous)
-        .stream().filter(it -> it.getType() == AuthorizationType.EITHER)
-        .map(PermissionEntry::getSid).collect(Collectors.toSet()));
+        .stream().map(PermissionEntry::getSid).collect(Collectors.toSet()));
     return ret;
   }
 
@@ -575,17 +570,19 @@ public class RoleMap {
 
   /**
    * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
-   * Sids are limited to those of type {@link AuthorizationType#EITHER}
+   * All types are returned to keep the api as compatible as possible.
    *
    * @param roleName The name of the role
    * @return A sorted set containing all the sids. {@code null} if the role is missing.
+   * @deprecated use {@link #getSidEntriesForRole(String)}
    */
   @CheckForNull
+  @Deprecated
   public Set<String> getSidsForRole(String roleName) {
     Role role = this.getRole(roleName);
     if (role != null) {
       Set<PermissionEntry> ret = this.grantedRoles.get(role);
-      return ret.stream().filter(it -> it.getType() == AuthorizationType.EITHER).map(PermissionEntry::getSid).collect(Collectors.toSet());
+      return ret.stream().map(PermissionEntry::getSid).collect(Collectors.toSet());
     }
     return null;
   }

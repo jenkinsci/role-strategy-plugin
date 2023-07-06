@@ -433,10 +433,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to assign a SID to role.
+   * API method to assign a SID of type EITHER to role.
    *
-   * Will create an entry of type EITHER.
-   *
+   * This method should no longer be used.
    * <p>
    * Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
@@ -588,6 +587,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * API method to remove a SID from a role.
    * Only entries of type EITHER will be removed.
    *
+   * use {@link #doUnassignUserRole(String, String, String)} or {@link #doUnassignGroupRole(String, String, String)} to unassign a
+   * User or a Group.
+   *
    * <p>
    * Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignRole --data "type=globalRoles&amp;roleName=AMD&amp;sid=username"}
@@ -596,6 +598,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param roleName unassign role with sid
    * @param sid      user ID to remove
    * @throws IOException in case saving changes fails
+   *
    * @since 2.6.0
    */
   @RequirePOST
