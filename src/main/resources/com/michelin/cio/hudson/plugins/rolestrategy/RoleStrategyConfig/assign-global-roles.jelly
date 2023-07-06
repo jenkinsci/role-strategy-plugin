@@ -27,12 +27,11 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
     <j:set var="tableid" value="globalRoles"/>
-    <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
-    <j:set var="globalSIDs" value="${it.strategy.getSIDs(it.strategy.GLOBAL)}"/>
-
+    <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
+    <j:set var="globalSIDs" value="${it.strategy.getSidEntries(it.strategy.GLOBAL)}"/>
 
     <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
-      <f:entry title="${%Filter by User}">
+      <f:entry title="${%Filter by User/Group}">
         <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
       </f:entry>
     </div>
@@ -48,7 +47,7 @@
         <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
-            ${%User/group}
+            ${%User/Group}
           </td>
           <j:forEach var="role" items="${globalGrantedRoles}">
             <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
@@ -63,20 +62,25 @@
           <l:isAdmin><td class="stop" /></l:isAdmin>
         </tr>
       </thead>
-      <tr name="anonymous" class="highlight-row">
-        <local:userRow sid="anonymous" title="${%Anonymous}" global="${true}" type="${it.strategy.GLOBAL}"/>
+      <tr name="[USER:anonymous]" class="highlight-row">
+        <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.GLOBAL}" permissionType="USER" typedescription="User" noremove="true"/>
       </tr>
-      <j:forEach var="sid" items="${globalSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-          <local:userRow sid="${sid}" title="${sid}" global="${true}"  type="${it.strategy.GLOBAL}"/>
-        </tr>
+      <tr name="[GROUP:authenticated]" class="highlight-row">
+        <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.GLOBAL}" permissionType="GROUP" typedescription="Group" noremove="true"/>
+      </tr>
+      <j:forEach var="entry" items="${globalSIDs}">
+        <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
+	        <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+	          <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.GLOBAL}"/>
+	        </tr>
+	      </j:if>
       </j:forEach>
-      <tr id="newGlobalRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-        <local:userRow title="{{USER}}" global="${true}" type="${it.strategy.GLOBAL}"/>
+      <tr name="__unused__" id="newGlobalRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+        <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
       </tr>
-      <!-- Show the footer if 20 lines or more-->
+      <!-- The last row is used to repeat the header (if more than 19 lines) -->
       <j:set var="hidefooter" value="0"/>
-      <j:if test="${globalSIDs.size() lt 20}">
+      <j:if test="${globalSIDs.size() lt 18}">
         <j:set var="hidefooter" value="default-hidden"/>
       </j:if>
       <tfoot class="${hidefooter}">
@@ -95,13 +99,8 @@
       </tfoot>
     </table>
 
-  <l:isAdmin>
-    <br /><br />
-    <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
-      <f:textbox type="text" id="${tableid}text" checkUrl="${descriptorPath}/checkForWhitespace" checkDependsOn=""/>
-    </f:entry>
-    <f:entry>
-      <local:addButton id="newGlobalRowTemplate" tableid="${tableid}" highlighter="globalTableHighlighter"/>
-    </f:entry>
-  </l:isAdmin>
+    <l:isAdmin>
+      <br/>
+      <local:addButtons sids="${globalSIDs}" tableid="${tableid}" id="newGlobalRowTemplate" roles="${globalGrantedRoles}" highlighter="globalTableHighlighter"/>
+    </l:isAdmin>
 </j:jelly>

@@ -7,23 +7,23 @@ jenkins:
             description: "Jenkins administrators"
             permissions:
               - "Overall/Administer"
-            assignments:
-              - "admin"
+            entries:
+              - user: "admin"
           - name: "readonly"
             description: "Read-only users"
             permissions:
               - "Overall/Read"
               - "Job/Read"
-            assignments:
-              - "authenticated"
+            entries:
+              - group: "authenticated"
           - name: "jobcreate"
             description: "Create Job User"
             permissions:
               - "Job/Create"
               - "Job/Configure"
-            assignments:
-              - "userGlobal"
-              - "groupGlobal"
+            entries:
+              - user: "userGlobal"
+              - group: "groupGlobal"
         items:
           - name: "jobcreate"
             description: "Can create jobs"
@@ -34,9 +34,9 @@ jenkins:
               - "Job/Delete"
               - "Job/Create"
               - "Job/Read"
-            assignments:
-              - "userJobCreate"
-              - "groupJobCreate"
+            entries:
+              - user: "userJobCreate"
+              - group: "groupJobCreate"
           - name: "folderjobcreate"
             description: "Can create jobs in a folder"
             pattern: "^folder/job.*"
@@ -46,18 +46,18 @@ jenkins:
               - "Job/Delete"
               - "Job/Create"
               - "Job/Read"
-            assignments:
-              - "userJobCreate"
-              - "groupJobCreate"
+            entries:
+              - user: "userJobCreate"
+              - group: "groupJobCreate"
           - name: "jobread"
             description: "Can only read jobs"
             pattern: "^job.*"
             permissions:
               - "Job/Build"
               - "Job/Read"
-            assignments:
-              - "userRead"
-              - "groupRead"
+            entries:
+              - user: "userRead"
+              - group: "groupRead"
           - name: "@Folder"
             description: "grants access to folders"
             pattern: ".*"
@@ -66,9 +66,9 @@ jenkins:
               - "Job/Read"
               - "Job/Configure"
               - "Job/Create"
-            assignments:
-              - "userJobCreate"
-              - "groupJobCreate"
+            entries:
+              - user: "userJobCreate"
+              - group: "groupJobCreate"
 
   # System for test
   securityRealm:

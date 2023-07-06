@@ -7,6 +7,7 @@ import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPer
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -58,7 +59,7 @@ public class CascBenchmark {
       assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
       rbas = (RoleBasedAuthorizationStrategy) s;
 
-      Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+      Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
       assertThat(Objects.requireNonNull(globalRoles).size(), equalTo(2));
 
       // Admin has configuration access

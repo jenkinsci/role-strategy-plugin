@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rolestrategy.casc;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -15,7 +16,8 @@ import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.function.Function;
@@ -30,7 +32,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @since 2.11
  */
 @Extension(optional = true, ordinal = 2)
-@Restricted({ NoExternalUse.class })
+@Restricted({NoExternalUse.class})
 public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator<RoleBasedAuthorizationStrategy> {
 
   @Override
@@ -58,14 +60,25 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   }
 
   @Override
+  protected void configure(Mapping config, RoleBasedAuthorizationStrategy instance, boolean dryrun,
+                           ConfigurationContext context) throws ConfiguratorException {
+    super.configure(config, instance, dryrun, context);
+
+    if (!dryrun) {
+      instance.validateConfig();
+    }
+  }
+
+  @Override
   @NonNull
   public Set<Attribute<RoleBasedAuthorizationStrategy, ?>> describe() {
-    return Collections.singleton(new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
-      List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Global));
-      List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Slave));
-      List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRoles(RoleType.Project));
-      return new GrantedRoles(globalRoles, projectRoles, agentRoles);
-    }));
+    return Collections.singleton(
+            new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
+              List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
+              List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Slave));
+              List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Project));
+              return new GrantedRoles(globalRoles, projectRoles, agentRoles);
+            }));
   }
 
   @CheckForNull
@@ -74,19 +87,26 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     return compare(instance, new RoleBasedAuthorizationStrategy(Collections.emptyMap()), context);
   }
 
-  private List<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<String>> roleMap) {
+  private List<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<PermissionEntry>> roleMap) {
     if (roleMap == null) {
       return Collections.emptyList();
     }
     return roleMap.entrySet().stream().map(getRoleDefinition()).collect(Collectors.toList());
   }
 
-  private Function<Entry<Role, Set<String>>, RoleDefinition> getRoleDefinition() {
+  private Function<Map.Entry<Role, Set<PermissionEntry>>, RoleDefinition> getRoleDefinition() {
     return roleSetEntry -> {
       Role role = roleSetEntry.getKey();
       List<String> permissions = role.getPermissions().stream()
-          .map(permission -> permission.group.getId() + "/" + permission.name).collect(Collectors.toList());
-      return new RoleDefinition(role.getName(), role.getDescription(), role.getPattern().pattern(), permissions, roleSetEntry.getValue());
+              .map(permission -> permission.group.title.toString(
+                      Locale.US) + "/" + permission.name).collect(Collectors.toList());
+      Set<RoleDefinition.RoleDefinitionEntry> roleDefinitionEntries = roleSetEntry.getValue().stream()
+              .map(RoleDefinition.RoleDefinitionEntry::fromPermissionEntry)
+              .collect(Collectors.toSet());
+      final RoleDefinition roleDefinition = new RoleDefinition(role.getName(), role.getDescription(),
+              role.getPattern().pattern(), permissions);
+      roleDefinition.setEntries(roleDefinitionEntries);
+      return roleDefinition;
     };
   }
 }

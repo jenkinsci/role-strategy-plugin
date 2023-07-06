@@ -36,6 +36,12 @@ public class RoleBasedProjectNamingStrategyTest {
   private User userGlobalGroup;
   private User userJobCreateGroup;
   private User userReadGroup;
+  private User eitherGlobal;
+  private User eitherJobCreate;
+  private User eitherRead;
+  private User userEitherGlobalGroup;
+  private User userEitherJobCreateGroup;
+  private User userEitherReadGroup;
 
   @Before
   public void setup() {
@@ -47,9 +53,18 @@ public class RoleBasedProjectNamingStrategyTest {
     userGlobalGroup = User.getById("userGlobalGroup", true);
     userJobCreateGroup = User.getById("userJobCreateGroup", true);
     userReadGroup = User.getById("userReadGroup", true);
+    eitherGlobal = User.getById("eitherGlobal", true);
+    eitherJobCreate = User.getById("eitherJobCreate", true);
+    eitherRead = User.getById("eitherRead", true);
+    userEitherGlobalGroup = User.getById("userEitherGlobalGroup", true);
+    userEitherReadGroup = User.getById("userEitherReadGroup", true);
+    userEitherJobCreateGroup = User.getById("userEitherJobCreateGroup", true);
     securityRealm.addGroups("userGlobalGroup", "groupGlobal");
     securityRealm.addGroups("userJobCreateGroup", "groupJobCreate");
     securityRealm.addGroups("userReadGroup", "groupRead");
+    securityRealm.addGroups("userEitherGlobalGroup", "eitherGlobal");
+    securityRealm.addGroups("userEitherJobCreateGroup", "eitherJobCreate");
+    securityRealm.addGroups("userEitherReadGroup", "eitherRead");
   }
 
   @Test
@@ -65,6 +80,13 @@ public class RoleBasedProjectNamingStrategyTest {
     assertHasPermission(userGlobalGroup, j.jenkins, Item.CREATE);
     assertHasPermission(userJobCreateGroup, j.jenkins, Item.CREATE);
     assertHasNoPermission(userReadGroup, j.jenkins, Item.CREATE);
+
+    assertHasPermission(eitherGlobal, j.jenkins, Item.CREATE);
+    assertHasPermission(eitherJobCreate, j.jenkins, Item.CREATE);
+    assertHasPermission(userEitherGlobalGroup, j.jenkins, Item.CREATE);
+    assertHasPermission(userEitherJobCreateGroup, j.jenkins, Item.CREATE);
+    assertHasNoPermission(eitherRead, j.jenkins, Item.CREATE);
+    assertHasNoPermission(userEitherReadGroup, j.jenkins, Item.CREATE);
   }
 
   @Test
@@ -76,6 +98,8 @@ public class RoleBasedProjectNamingStrategyTest {
 
     checkName(userGlobal, "anyJobName", null);
     checkName(userGlobalGroup, "anyJobName", null);
+    checkName(eitherGlobal, "anyJobName", null);
+    checkName(userEitherGlobalGroup, "anyJobName", null);
   }
 
   @Test
@@ -89,6 +113,8 @@ public class RoleBasedProjectNamingStrategyTest {
     checkName(userJobCreate, "jobAllowed", "folder");
     checkName(userJobCreateGroup, "jobAllowed", null);
     checkName(userJobCreateGroup, "jobAllowed", "folder");
+    checkName(eitherJobCreate, "jobAllowed", null);
+    checkName(userEitherJobCreateGroup, "jobAllowed", "folder");
     Failure f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
     f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
@@ -100,6 +126,19 @@ public class RoleBasedProjectNamingStrategyTest {
     f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
     f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "jobAllowed", "folder2"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+
+    f = Assert.assertThrows(Failure.class, () -> checkName(eitherJobCreate, "notAllowed", null));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(eitherJobCreate, "notAllowed", "folder"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(eitherJobCreate, "jobAllowed", "folder2"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "notAllowed", null));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "notAllowed", "folder"));
+    assertThat(f.getMessage(), containsString("does not match the job name convention"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
   }
 
@@ -143,6 +182,15 @@ public class RoleBasedProjectNamingStrategyTest {
     assertThat(f.getMessage(), is("No Create Permissions!"));
     f = Assert.assertThrows(Failure.class, () -> checkName(userReadGroup, "jobAllowed", "folder"));
     assertThat(f.getMessage(), is("No Create Permissions!"));
+
+    f = Assert.assertThrows(Failure.class, () -> checkName(eitherRead, "jobAllowed", null));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(eitherRead, "jobAllowed", "folder"));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherReadGroup, "jobAllowed", null));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
+    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherReadGroup, "jobAllowed", "folder"));
+    assertThat(f.getMessage(), is("No Create Permissions!"));
   }
 
   @Test
@@ -168,5 +216,4 @@ public class RoleBasedProjectNamingStrategyTest {
     RoleBasedProjectNamingStrategy rbpns = (RoleBasedProjectNamingStrategy) pns;
     rbpns.checkName(parentName, jobName);
   }
-
 }

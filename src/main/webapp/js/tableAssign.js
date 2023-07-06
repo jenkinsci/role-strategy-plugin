@@ -85,7 +85,7 @@ Behaviour.specify(".role-input-filter", "RoleBasedAuthorizationStrategy", 0, fun
 
 Behaviour.specify(
   ".role-strategy-add-button", "RoleBasedAuthorizationStrategy", 0, function(elem) {
-    makeButton(elem, function(e) {
+    elem.onclick = function(e) {
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
       let templateId = elem.getAttribute("data-template-id");
@@ -105,41 +105,47 @@ Behaviour.specify(
       if (tbody.children.length >= footerLimit) {
         table.tFoot.style.display = "table-footer-group";
       }
-    });
+    }
   }
 );
 
-
 addButtonAction = function (e, template, table, tableHighlighter, tableId) {
+    let dataReference = e.target;
+    let type = dataReference.getAttribute('data-type');
     let tbody = table.tBodies[0];
-    let userInput = document.getElementById(tableId+'text')
-    let name = userInput.value;
+    
+    let name = prompt(dataReference.getAttribute('data-prompt')).trim();
     if (name=="") {
-      alert("Please enter a user/group name");
+      alert(dataReference.getAttribute('data-empty-message'));
       return;
     }
-    if (findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
-      alert("Entry for '"+name+"' already exists");
+    if (findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+type+':'+name+']';})!=null) {
+      alert(dataReference.getAttribute('data-error-message'));
       return;
     }
-
+    
     copy = document.importNode(template,true);
     copy.removeAttribute("id");
     copy.removeAttribute("style");
-
+    
     let children = copy.childNodes;
+    let tooltipDescription = "Group";
+    if (type==="USER") {
+        tooltipDescription = "User";
+    }
     children.forEach(function(item){
-      item.outerHTML= item.outerHTML.replace(/{{USER}}/g, doubleEscapeHTML(name));
+      item.outerHTML= item.outerHTML.replace(/{{USER}}/g, doubleEscapeHTML(name)).replace(/{{USERGROUP}}/g, tooltipDescription);
     });
-
+    
     copy.childNodes[1].innerHTML = escapeHTML(name);
-    copy.setAttribute("name",'['+name+']');
+    copy.setAttribute("name",'['+type+':'+name+']');
     tbody.appendChild(copy);
     Behaviour.applySubtree(table, true);
     tableHighlighter.scan(copy);
-}
+  }
 
-Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+
+Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     let table = findAncestor(this,"TABLE");
     let tableId = table.getAttribute("id");
@@ -178,6 +184,82 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row
     }
 });
 
+
+/*
+ * Behavior for 'Migrate to user' element that exists for each ambiguous row
+ */
+Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+  e.onclick = function() {
+    var tr = findAncestor(this,"TR");
+    var name = tr.getAttribute('name');
+
+    var newName = name.replace('[EITHER:', '[USER:'); // migrate_user behavior
+    if (this.classList.contains('migrate_group')) {
+      newName = name.replace('[EITHER:', '[GROUP:');
+    }
+
+    var table = findAncestor(this,"TABLE");
+    var tableRows = table.getElementsByTagName('tr');
+    var newNameElement = null;
+    for (var i = 0; i < tableRows.length; i++) {
+      if (tableRows[i].getAttribute('name') === newName) {
+        newNameElement = tableRows[i];
+        break;
+      }
+    }
+    if (newNameElement === tr) {
+      // uh-oh, we shouldn't be able to find ourselves, so just do nothing
+      return false;
+    }
+    if (newNameElement == null) {
+      // no row for this name exists yet, so transform the ambiguous row to unambiguous
+      tr.setAttribute('name', newName);
+      tr.removeAttribute('data-checked');
+
+      // remove migration buttons from updated row
+      var buttonContainer = findAncestor(this, "TD");
+      var migrateButtons = buttonContainer.getElementsByClassName('migrate');
+      for (var i = migrateButtons.length - 1; i >= 0; i--) {
+        migrateButtons[i].remove();
+      }
+    } else {
+      // there's already a row for the migrated name (unusual but OK), so merge them
+
+      // migrate permissions from this row
+      var ambiguousPermissionInputs = tr.getElementsByTagName("INPUT");
+      var unambiguousPermissionInputs = newNameElement.getElementsByTagName("INPUT");
+      for (var i = 0; i < ambiguousPermissionInputs.length; i++){
+        if (ambiguousPermissionInputs[i].type == "checkbox") {
+          unambiguousPermissionInputs[i].checked |= ambiguousPermissionInputs[i].checked;
+        }
+        newNameElement.classList.add('highlight-entry');
+      }
+
+      // remove this row
+      tr.parentNode.removeChild(tr);
+    }
+    Behaviour.applySubtree(table, true);
+
+    var hasAmbiguousRows = false;
+
+    for (var i = 0; i < tableRows.length; i++) {
+      if (tableRows[i].getAttribute('name') !== null && tableRows[i].getAttribute('name').startsWith('[EITHER')) {
+        hasAmbiguousRows = true;
+      }
+    }
+    if (!hasAmbiguousRows) {
+      var alertElements = document.getElementsByClassName("alert");
+      for (var i = 0; i < alertElements.length; i++) {
+        if (alertElements[i].hasAttribute('data-table-id') && alertElements[i].getAttribute('data-table-id') === table.getAttribute('id')) {
+          alertElements[i].style.display = 'none'; // TODO animate this?
+        }
+      }
+    }
+
+    return false;
+  };
+  e = null; // avoid memory leak
+});
 
 document.addEventListener('DOMContentLoaded', function() {
     // global roles initialization

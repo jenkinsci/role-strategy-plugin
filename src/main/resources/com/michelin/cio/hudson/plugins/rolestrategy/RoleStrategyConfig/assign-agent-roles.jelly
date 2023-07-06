@@ -29,8 +29,8 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
   <j:set var="tableid" value="agentRoles"/>
-  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
-  <j:set var="agentSIDs" value="${it.strategy.getSIDs(it.strategy.SLAVE)}"/>
+  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
+  <j:set var="agentSIDs" value="${it.strategy.getSidEntries(it.strategy.SLAVE)}"/>
 
   <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
@@ -39,7 +39,7 @@
         <tr class="group-row highlight-row">
           <td class="start" />
           <td class="pane-header blank">
-            ${%User/group}
+            ${%User/Group}
           </td>
           <j:forEach var="role" items="${agentGrantedRoles}">
             <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
@@ -54,16 +54,21 @@
           <l:isAdmin><td class="stop" /></l:isAdmin>
         </tr>
       </thead>
-      <tr name="anonymous" class="highlight-row">
-        <local:userRow sid="anonymous" title="${%Anonymous}" global="${false}" type="${it.strategy.SLAVE}"/>
+      <tr name="[USER:anonymous]" class="highlight-row">
+        <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.SLAVE}" permissionType="USER" typedescription="User" noremove="true"/>
       </tr>
-      <j:forEach var="sid" items="${agentSIDs}">
-        <tr name="[${sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-          <local:userRow sid="${sid}" title="${sid}" global="${false}"  type="${it.strategy.SLAVE}"/>
-        </tr>
+      <tr name="[GROUP:authenticated]" class="highlight-row">
+        <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.SLAVE}" permissionType="GROUP" typedescription="Group" noremove="true"/>
+      </tr>
+      <j:forEach var="entry" items="${agentSIDs}">
+        <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
+	        <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+	          <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.SLAVE}"/>
+	        </tr>
+	      </j:if>
       </j:forEach>
-      <tr id="newAgentRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-        <local:userRow title="{{USER}}" global="${false}"  type="${it.strategy.SLAVE}"/>
+      <tr name="__unused__" id="newAgentRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+        <local:userRow title="{{USER}}" type="${it.strategy.SLAVE}" typedescription="{{USERGROUP}}"/>
       </tr>
       <!-- Show the footer if 20 lines or more-->
       <j:set var="hidefooter" value=""/>
@@ -81,19 +86,13 @@
               ${role.key.name}
             </td>
           </j:forEach>
-          <l:isAdmin><td class="stop" /></l:isAdmin>
+          <td class="stop" />
         </tr>
       </tfoot>
     </table>
 
-  <l:isAdmin>
-    <br /><br />
-    <f:entry title="${%User/group to add}" help="${rootURL}/plugin/role-strategy/help/help-user-group-add.html">
-      <f:textbox type="text" id="${tableid}text" checkUrl="${descriptorPath}/checkForWhitespace" checkDependsOn=""/>
-    </f:entry>
-    <f:entry>
-      <local:addButton id="newAgentRowTemplate" tableid="${tableid}" highlighter="agentTableHighlighter"/>
-    </f:entry>
-  </l:isAdmin>
-
+    <l:isAdmin>
+      <br/>
+      <local:addButtons sids="${agentSIDs}" tableid="${tableid}" id="newAgentRowTemplate" roles="${agentGrantedRoles}" highlighter="agentTableHighlighter"/>
+    </l:isAdmin>
 </j:jelly>

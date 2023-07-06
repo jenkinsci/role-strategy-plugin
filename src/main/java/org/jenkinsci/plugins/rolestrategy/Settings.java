@@ -75,7 +75,7 @@ public class Settings {
 
   /**
    * Enabling processing of User Authorities. Alters the behavior of
-   * {@link RoleMap#hasPermission(java.lang.String, hudson.security.Permission,
+   * {@link RoleMap#hasPermission(com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry, hudson.security.Permission,
    * com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType, hudson.security.AccessControlled)}.
    * Since 2.3.0 this value was {@code true}, but it has been switched due to the performance reasons. The behavior can be
    * reverted (even dynamically via System Groovy Script).

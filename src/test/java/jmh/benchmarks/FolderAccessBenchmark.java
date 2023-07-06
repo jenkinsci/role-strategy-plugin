@@ -1,6 +1,8 @@
 package jmh.benchmarks;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -47,7 +49,7 @@ public class FolderAccessBenchmark {
       Jenkins jenkins = Objects.requireNonNull(Jenkins.getInstanceOrNull());
       jenkins.setSecurityRealm(new JenkinsRule().createDummySecurityRealm());
 
-      SortedMap<Role, Set<String>> projectRoles = new TreeMap<>();
+      SortedMap<Role, Set<PermissionEntry>> projectRoles = new TreeMap<>();
 
       Set<String> userPermissions = new HashSet<>();
       Collections.addAll(userPermissions, "hudson.model.Item.Discover", "hudson.model.Item.Read");
@@ -82,16 +84,16 @@ public class FolderAccessBenchmark {
             }
           }
 
-          Set<String> users = new HashSet<>();
+          Set<PermissionEntry> users = new HashSet<>();
           for (int k = 0; k < random.nextInt(5); k++) {
-            users.add("user" + random.nextInt(100));
+            users.add(new PermissionEntry(AuthorizationType.USER, "user" + random.nextInt(100)));
           }
 
-          Set<String> maintainers = new HashSet<>(2);
-          maintainers.add("user" + random.nextInt(100));
-          maintainers.add("user" + random.nextInt(100));
+          Set<PermissionEntry> maintainers = new HashSet<>(2);
+          maintainers.add(new PermissionEntry(AuthorizationType.USER, "user" + random.nextInt(100)));
+          maintainers.add(new PermissionEntry(AuthorizationType.USER, "user" + random.nextInt(100)));
 
-          Set<String> admin = Collections.singleton("user" + random.nextInt(100));
+          Set<PermissionEntry> admin = Collections.singleton(new PermissionEntry(AuthorizationType.USER, "user" + random.nextInt(100)));
 
           Role userRole = new Role(String.format("user%d-%d", i, j), "TopFolder" + i + "(/BottomFolder" + j + "/.*)?", userPermissions, "");
           Role maintainerRole = new Role(String.format("maintainer%d-%d", i, j), "TopFolder" + i + "/BottomFolder" + j + "(/.*)",

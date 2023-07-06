@@ -11,10 +11,15 @@
         <permissions>
           <permission>hudson.model.Hudson.Administer</permission>
         </permissions>
-        <assignedSIDs/>
+        <assignedSIDs>
+          <sid type="USER">user</sid>
+          <sid type="GROUP">group</sid>
+          <sid type="EITHER">either</sid>
+        </assignedSIDs>
       </role>
     </roleMap>
   </authorizationStrategy>
+  <securityRealm class="hudson.security.SecurityRealm$None"/>
   <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
   <workspaceDir>${ITEM_ROOTDIR}/workspace</workspaceDir>
   <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>

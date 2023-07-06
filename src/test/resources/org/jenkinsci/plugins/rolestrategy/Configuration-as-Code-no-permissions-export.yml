@@ -6,22 +6,22 @@ roleBased:
       permissions:
       - "Agent/Build"
     global:
-    - assignments:
-      - "builders"
-      - "builder"
+    - entries:
+      - user: "builder"
+      - group: "builders"
       name: "access"
       pattern: ".*"
       permissions:
       - "Overall/Read"
       - "Agent/Build"
-    - assignments:
-      - "administrators"
+    - entries:
+      - group: "administrators"
       name: "admin"
       pattern: ".*"
       permissions:
       - "Overall/Administer"
-    - assignments:
-      - "global-build-user"
+    - entries:
+      - user: "global-build-user"
       name: "builder"
       pattern: ".*"
       permissions:
@@ -30,8 +30,8 @@ roleBased:
       - "Job/Build"
       - "Job/Read"
       - "Job/Workspace"
-    - assignments:
-      - "global-creator-user"
+    - entries:
+      - user: "global-creator-user"
       name: "creator"
       pattern: ".*"
       permissions:
@@ -40,8 +40,8 @@ roleBased:
       - "Job/Create"
       - "Job/Read"
     items:
-    - assignments:
-      - "item-creator-user"
+    - entries:
+      - user: "item-creator-user"
       name: "@CurrentUserIsOwner"
       pattern: ".*"
       permissions:
@@ -51,16 +51,16 @@ roleBased:
       - "Job/Read"
       - "Job/Configure"
       - "Job/Workspace"
-    - assignments:
-      - "item-builder-user"
-      - "builders"
+    - entries:
+      - user: "item-builder-user"
+      - group: "builders"
       name: "folder-access"
       pattern: "(?i)folder"
       permissions:
       - "Job/Read"
-    - assignments:
-      - "item-builder-user"
-      - "builders"
+    - entries:
+      - user: "item-builder-user"
+      - group: "builders"
       name: "folder-builder"
       pattern: "(?i)folder/.*"
       permissions:
@@ -68,8 +68,8 @@ roleBased:
       - "Job/Build"
       - "Job/Read"
       - "Job/Workspace"
-    - assignments:
-      - "item-creator-user"
+    - entries:
+      - user: "item-creator-user"
       name: "folder-creator"
       pattern: "(?i)folder/.*"
       permissions:

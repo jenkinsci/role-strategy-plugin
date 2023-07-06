@@ -13,6 +13,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -76,7 +77,7 @@ public class ConfigurationAsCodeTest {
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-    Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
     assertThat(globalRoles.size(), equalTo(2));
 
     // Admin has configuration access
@@ -131,7 +132,7 @@ public class ConfigurationAsCodeTest {
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-    Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
     assertThat(globalRoles.size(), equalTo(2));
   }
 
