@@ -253,7 +253,7 @@ addButtonAction = function(e, template, table, tableHighlighter, tableId) {
 }
 
 
-Behaviour.specify(".global-matrix-authorization-strategy-table span.rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     let table = findAncestor(this, "TABLE");
     let tableId = table.getAttribute("id");
