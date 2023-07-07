@@ -95,7 +95,8 @@ Role adminRole = new Role("admin",permissions)
 /* assign admin role to admin user */
 globalRoleMap = rbas.getRoleMaps()[RoleType.Global]
 globalRoleMap.addRole(adminRole)
-globalRoleMap.assignRole(adminRole, 'admin')
+globalRoleMap.assignUserRole(adminRole, 'admin')
+globalRoleMap.assignGroupRole(adminRole, 'administrators')
 
 jenkins.setAuthorizationStrategy(rbas)
 
