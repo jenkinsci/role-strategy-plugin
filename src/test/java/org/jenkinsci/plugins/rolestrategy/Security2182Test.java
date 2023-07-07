@@ -10,6 +10,7 @@ import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.User;
+import hudson.model.queue.QueueTaskFuture;
 import jenkins.model.Jenkins;
 import org.htmlunit.Page;
 import org.htmlunit.html.HtmlPage;
@@ -77,6 +78,7 @@ public class Security2182Test {
     final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");
     final String contentAsString = htmlPage.getWebResponse().getContentAsString();
     assertThat(contentAsString, not(containsString(BUILD_CONTENT))); // Fails while unfixed
+    build.doStop();
   }
 
   @Test
@@ -88,12 +90,13 @@ public class Security2182Test {
     job.getBuildersList().add(new SleepBuilder(10000));
     job.save();
 
-    job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
+    FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
 
     final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient();
     final Page page = webClient.goTo("computer/(master)/api/xml?depth=1", "application/xml");
     final String xml = page.getWebResponse().getContentAsString();
     assertThat(xml, not(containsString("job/folder/job/job"))); // Fails while unfixed
+    build.doStop();
   }
 
   @Test
@@ -105,8 +108,8 @@ public class Security2182Test {
     job.getBuildersList().add(new SleepBuilder(100000));
     job.save();
 
-    job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart(); // schedule one build now
-    job.scheduleBuild2(0, new Cause.UserIdCause("admin")); // schedule an additional queue item
+    FreeStyleBuild b1 = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart(); // schedule one build now
+    QueueTaskFuture<?> f2 = job.scheduleBuild2(0, new Cause.UserIdCause("admin")); // schedule an additional queue item
     Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length); // expect there to be one queue item
 
     final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
@@ -114,6 +117,8 @@ public class Security2182Test {
     final HtmlPage htmlPage = webClient.goTo("");
     final String contentAsString = htmlPage.getWebResponse().getContentAsString();
     assertThat(contentAsString, not(containsString("job/folder/job/job"))); // Fails while unfixed
+    f2.cancel(true);
+    b1.doStop();
   }
 
   @Test
@@ -135,36 +140,36 @@ public class Security2182Test {
 
       final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
 
-      { // queue related assertions
-        final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");
-        final String contentAsString = htmlPage.getWebResponse().getContentAsString();
-        assertThat(contentAsString, containsString(JOB_CONTENT)); // Fails while unfixed
+        { // queue related assertions
+          final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");
+          final String contentAsString = htmlPage.getWebResponse().getContentAsString();
+          assertThat(contentAsString, containsString(JOB_CONTENT)); // Fails while unfixed
 
-        final Page page = webClient.goTo("queue/api/xml/", "application/xml");
-        final String xml = page.getWebResponse().getContentAsString();
-        assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
-      }
+          final Page page = webClient.goTo("queue/api/xml/", "application/xml");
+          final String xml = page.getWebResponse().getContentAsString();
+          assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
+        }
 
-      final FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
-      final int number = build.getExecutor().getNumber();
-      Assert.assertEquals(0, Jenkins.get().getQueue().getItems().length); // collapsed queue items
+        final FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
+        final int number = build.getExecutor().getNumber();
+        Assert.assertEquals(0, Jenkins.get().getQueue().getItems().length); // collapsed queue items
 
-      { // executor related assertions
-        final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");
-        final String contentAsString = htmlPage.getWebResponse().getContentAsString();
-        assertThat(contentAsString, containsString(BUILD_CONTENT)); // Fails while unfixed
+        { // executor related assertions
+          final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");
+          final String contentAsString = htmlPage.getWebResponse().getContentAsString();
+          assertThat(contentAsString, containsString(BUILD_CONTENT)); // Fails while unfixed
 
-        final Page page = webClient.goTo("computer/(master)/api/xml?depth=1", "application/xml");
-        final String xml = page.getWebResponse().getContentAsString();
-        assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
-      }
+          final Page page = webClient.goTo("computer/(master)/api/xml?depth=1", "application/xml");
+          final String xml = page.getWebResponse().getContentAsString();
+          assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
+        }
 
-      { // widget related assertions
-        final HtmlPage htmlPage = webClient.goTo("");
-        final String contentAsString = htmlPage.getWebResponse().getContentAsString();
-        assertThat(contentAsString, containsString("job/folder/job/job")); // Fails while unfixed
-      }
-
+        { // widget related assertions
+          final HtmlPage htmlPage = webClient.goTo("");
+          final String contentAsString = htmlPage.getWebResponse().getContentAsString();
+          assertThat(contentAsString, containsString("job/folder/job/job")); // Fails while unfixed
+        }
+        build.doStop();
     } finally {
       System.clearProperty(propertyName);
     }
