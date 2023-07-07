@@ -10,6 +10,7 @@ import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
 import hudson.model.User;
+import hudson.model.queue.QueueTaskFuture;
 import jenkins.model.Jenkins;
 import org.htmlunit.Page;
 import org.htmlunit.html.HtmlPage;
@@ -19,8 +20,6 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
-
-import java.util.concurrent.TimeUnit;
 
 public class Security2182Test {
   private static final String BUILD_CONTENT = "Started by user";
@@ -79,6 +78,7 @@ public class Security2182Test {
     final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");
     final String contentAsString = htmlPage.getWebResponse().getContentAsString();
     assertThat(contentAsString, not(containsString(BUILD_CONTENT))); // Fails while unfixed
+    build.doStop();
   }
 
   @Test
@@ -90,12 +90,13 @@ public class Security2182Test {
     job.getBuildersList().add(new SleepBuilder(10000));
     job.save();
 
-    job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
+    FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
 
     final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient();
     final Page page = webClient.goTo("computer/(master)/api/xml?depth=1", "application/xml");
     final String xml = page.getWebResponse().getContentAsString();
     assertThat(xml, not(containsString("job/folder/job/job"))); // Fails while unfixed
+    build.doStop();
   }
 
   @Test
@@ -107,8 +108,8 @@ public class Security2182Test {
     job.getBuildersList().add(new SleepBuilder(100000));
     job.save();
 
-    job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart(); // schedule one build now
-    job.scheduleBuild2(0, new Cause.UserIdCause("admin")); // schedule an additional queue item
+    FreeStyleBuild b1 = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart(); // schedule one build now
+    QueueTaskFuture<?> f2 = job.scheduleBuild2(0, new Cause.UserIdCause("admin")); // schedule an additional queue item
     Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length); // expect there to be one queue item
 
     final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
@@ -116,6 +117,8 @@ public class Security2182Test {
     final HtmlPage htmlPage = webClient.goTo("");
     final String contentAsString = htmlPage.getWebResponse().getContentAsString();
     assertThat(contentAsString, not(containsString("job/folder/job/job"))); // Fails while unfixed
+    f2.cancel(true);
+    b1.doStop();
   }
 
   @Test
@@ -129,13 +132,13 @@ public class Security2182Test {
       User.getOrCreateByIdOrFullName("admin");
       Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
       FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
-      job.getBuildersList().add(new SleepBuilder(10000));
+      job.getBuildersList().add(new SleepBuilder(100000));
       job.save();
 
       job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
       Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
-      try (JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);) {
+      final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
 
         { // queue related assertions
           final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");
@@ -167,9 +170,6 @@ public class Security2182Test {
           assertThat(contentAsString, containsString("job/folder/job/job")); // Fails while unfixed
         }
         build.doStop();
-        jenkinsRule.waitForCompletion(build);
-        TimeUnit.SECONDS.sleep(5);
-      }
     } finally {
       System.clearProperty(propertyName);
     }
