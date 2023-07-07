@@ -39,39 +39,7 @@
   <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
       <!-- The first row shows grouping -->
-    <thead>
-      <tr class="group-row">
-        <td rowspan="2" class="start" />
-        <td rowspan="2" class="pane-header blank">
-          ${%Role}
-        </td>
-        <j:forEach var="g" items="${globalPermissionGroups}">
-          <j:set var="cnt" value="${0}" />
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
-              <j:set var="cnt" value="${cnt+1}"/>
-            </j:if>
-          </j:forEach>
-
-          <td class="pane-header" colspan="${cnt}">
-            ${g.title}
-          </td>
-        </j:forEach>
-        <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
-      </tr>
-      <!-- The second row for individual permission -->
-      <tr class="caption-row highlight-row">
-        <j:forEach var="g" items="${globalPermissionGroups}">
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
-              <th class="pane" tooltip="${p.description}">
-                <span>${p.name}</span>
-              </th>
-            </j:if>
-          </j:forEach>
-        </j:forEach>
-      </tr>
-    </thead>
+    <local:thead permissionGroups="${globalPermissionGroups}" showPattern="false" strategy="${it.strategy.GLOBAL}"/>
     <tbody>
       <j:forEach var="role" items="${globalGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
@@ -82,49 +50,13 @@
         <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" />
       </tr>
     </tbody>
-    <j:set var="hidefooter" value=""/>
-    <j:if test="${globalGrantedRoles.size() lt 20}">
-      <j:set var="hidefooter" value="default-hidden"/>
-    </j:if>
-
-    <tfoot class="${hidefooter}">
-      <!-- The last two rows are used to repeat the header if necessary (if more than 20 lines) -->
-      <tr class="caption-row highlight-row">
-        <td rowspan="2" class="start" />
-        <td rowspan="2" class="pane-header blank">
-          ${%Role}
-        </td>
-        <j:forEach var="g" items="${globalPermissionGroups}">
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
-              <th class="pane" tooltip="${p.description}">
-                <span>${p.name}</span>
-              </th>
-            </j:if>
-          </j:forEach>
-        </j:forEach>
-        <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
-      </tr>
-      <tr class="group-row">
-        <j:forEach var="g" items="${globalPermissionGroups}">
-          <j:set var="cnt" value="${0}" />
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p)}">
-              <j:set var="cnt" value="${cnt+1}"/>
-            </j:if>
-          </j:forEach>
-          <td class="pane-header" colspan="${cnt}">
-            ${g.title}
-          </td>
-        </j:forEach>
-      </tr>
-    </tfoot>
+    <local:tfoot permissionGroups="${globalPermissionGroups}" strategy="${it.strategy.GLOBAL}" roles="${globalGrantedRoles}" showPattern="false"/>
   </table>
 
   <l:isAdmin>
     <br />
     <f:entry title="${%Role to add}">
-      <f:textbox type="text" id="${tableid}text" />
+      <f:textbox id="${tableid}text" />
     </f:entry>
     <f:entry>
       <local:addButton id="newGlobalRoleTemplate" tableid="${tableid}" highlighter="globalTableHighlighter"/>

@@ -29,6 +29,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
     <l:layout permission="${app.SYSTEM_READ}" title="${%Assign Roles}" norefresh="true">
+      <l:breadcrumb title="Assign Roles"/>
         <j:choose>
           <j:when test="${app.hasPermission(app.ADMINISTER)}">
             <j:set var="readOnlyMode" value="false" />
@@ -48,6 +49,51 @@
           </j:if>
 
           <d:taglib uri="local">
+            <d:tag name="thead">
+              <thead>
+                <tr class="group-row highlight-row">
+                  <td class="start" />
+                  <td class="pane-header blank">
+                    ${%User/Group}
+                  </td>
+                  <j:forEach var="role" items="${attrs.roles}">
+                    <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+                    <j:forEach var="p" items="${role.key.permissions}">
+                      <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+                    </j:forEach>
+                    <j:set var="patternTooltip" value=""/>
+                    <j:if test="${attrs.showPattern == 'true'}">
+                      <j:set var="patternTooltip" value="  &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+                    </j:if>
+                    <j:set var="permissionList" value="${permissionList} ${patternTooltip}"/>
+                    <td class="pane-header">
+                      <span data-html-tooltip="${permissionList}">${role.key.name}</span>
+                    </td>
+                  </j:forEach>
+                  <l:isAdmin><td class="stop" /></l:isAdmin>
+                </tr>
+              </thead>
+            </d:tag>
+            <d:tag name="tfoot">
+              <j:set var="hidefooter" value="0"/>
+              <j:if test="${attrs.sids.size() lt 18}">
+                <j:set var="hidefooter" value="default-hidden"/>
+              </j:if>
+              <tfoot class="${hidefooter}">
+                <tr class="group-row highlight-row">
+                  <td class="start" />
+                  <td class="pane-header blank">
+                    ${%User/group}
+                  </td>
+                  <j:forEach var="role" items="${attrs.roles}">
+                    <td class="pane-header">
+                      <span>${role.key.name}</span>
+                    </td>
+                  </j:forEach>
+                  <td class="stop" />
+                </tr>
+              </tfoot>
+            </d:tag>
             <d:tag name="addButtons">
               <div class="jenkins-buttons-row jenkins-buttons-row--equal-width">
                 <button type="button" class="jenkins-button role-strategy-add-button" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}"

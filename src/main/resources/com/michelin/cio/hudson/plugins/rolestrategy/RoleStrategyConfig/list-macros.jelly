@@ -69,6 +69,7 @@
     </d:taglib>
     
     <l:layout title="${%Role-Strategy Macros Info}" permission="${app.SYSTEM_READ}" norefresh="true">
+        <l:breadcrumb title="Macros"/>
         <st:include page="sidepanel.jelly"/>
         
         <l:main-panel>

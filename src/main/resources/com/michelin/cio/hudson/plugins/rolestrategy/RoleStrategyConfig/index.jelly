@@ -29,6 +29,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
     <l:layout permission="${app.SYSTEM_READ}" norefresh="true" title="${%Manage Roles}">
+      <l:breadcrumb title="Manage Roles"/>
         <j:choose>
           <j:when test="${app.hasPermission(app.ADMINISTER)}">
             <j:set var="readOnlyMode" value="false" />
@@ -48,6 +49,88 @@
           </j:if>
 
           <d:taglib uri="local">
+            <d:tag name="thead">
+              <thead>
+                <tr class="group-row">
+                  <td rowspan="2" class="start" />
+                  <td rowspan="2" class="pane-header blank">
+                    ${%Role}
+                  </td>
+                  <j:if test="${attrs.showPattern == 'true'}">
+                    <td rowspan="2" class="pane-header blank">
+                      ${%Pattern}
+                    </td>
+                  </j:if>
+                  <j:forEach var="g" items="${attrs.permissionGroups}">
+                    <j:set var="cnt" value="${0}" />
+                    <j:forEach var="p" items="${g.permissions}">
+                      <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
+                        <j:set var="cnt" value="${cnt+1}"/>
+                      </j:if>
+                    </j:forEach>
+
+                    <td class="pane-header" colspan="${cnt}">
+                      ${g.title}
+                    </td>
+                  </j:forEach>
+                  <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
+                </tr>
+                <!-- The second row for individual permission -->
+                <tr class="caption-row highlight-row">
+                  <j:forEach var="g" items="${attrs.permissionGroups}">
+                    <j:forEach var="p" items="${g.permissions}">
+                      <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
+                        <th class="pane" tooltip="${p.description}">
+                          <span>${p.name}</span>
+                        </th>
+                      </j:if>
+                    </j:forEach>
+                  </j:forEach>
+                </tr>
+              </thead>
+            </d:tag>
+            <d:tag name="tfoot">
+              <j:set var="hidefooter" value=""/>
+              <j:if test="${attrs.roles.size() lt 20}">
+                <j:set var="hidefooter" value="default-hidden"/>
+              </j:if>
+              <tfoot class="${hidefooter}">
+                <tr class="caption-row highlight-row">
+                  <td rowspan="2" class="start" />
+                  <td rowspan="2" class="pane-header blank">
+                    ${%Role}
+                  </td>
+                  <j:if test="${attrs.showPattern == 'true'}">
+                    <td rowspan="2" class="pane-header blank">
+                      ${%Pattern}
+                    </td>
+                  </j:if>
+                  <j:forEach var="g" items="${attrs.permissionGroups}">
+                    <j:forEach var="p" items="${g.permissions}">
+                      <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
+                        <th class="pane" tooltip="${p.description}">
+                          <span>${p.name}</span>
+                        </th>
+                      </j:if>
+                    </j:forEach>
+                  </j:forEach>
+                </tr>
+                <tr class="group-row">
+                  <j:forEach var="g" items="${attrs.permissionGroups}">
+                    <j:set var="cnt" value="${0}" />
+                    <j:forEach var="p" items="${g.permissions}">
+                      <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
+                        <j:set var="cnt" value="${cnt+1}"/>
+                      </j:if>
+                    </j:forEach>
+
+                    <td class="pane-header" colspan="${cnt}">
+                      ${g.title}
+                    </td>
+                  </j:forEach>
+                </tr>
+              </tfoot>
+            </d:tag>
             <d:tag name="addButton">
               <button type="button" class="jenkins-button role-strategy-add-button" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}">${%Add}</button>
             </d:tag>
