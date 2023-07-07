@@ -127,7 +127,7 @@ public class Security2182Test {
       User.getOrCreateByIdOrFullName("admin");
       Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
       FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
-      job.getBuildersList().add(new SleepBuilder(10000));
+      job.getBuildersList().add(new SleepBuilder(5000));
       job.save();
 
       job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
