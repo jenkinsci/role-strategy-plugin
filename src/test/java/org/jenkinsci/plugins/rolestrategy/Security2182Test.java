@@ -127,7 +127,7 @@ public class Security2182Test {
       User.getOrCreateByIdOrFullName("admin");
       Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
       FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
-      job.getBuildersList().add(new SleepBuilder(100000));
+      job.getBuildersList().add(new SleepBuilder(10000));
       job.save();
 
       job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
@@ -165,6 +165,7 @@ public class Security2182Test {
         assertThat(contentAsString, containsString("job/folder/job/job")); // Fails while unfixed
       }
 
+      jenkinsRule.waitForCompletion(build);
     } finally {
       System.clearProperty(propertyName);
     }
