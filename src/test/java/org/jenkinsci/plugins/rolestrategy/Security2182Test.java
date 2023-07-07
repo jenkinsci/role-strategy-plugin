@@ -20,6 +20,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
 import org.jvnet.hudson.test.recipes.LocalData;
 
+import java.util.concurrent.TimeUnit;
+
 public class Security2182Test {
   private static final String BUILD_CONTENT = "Started by user";
   private static final String JOB_CONTENT = "Full project name: folder/job";
@@ -127,45 +129,47 @@ public class Security2182Test {
       User.getOrCreateByIdOrFullName("admin");
       Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
       FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
-      job.getBuildersList().add(new SleepBuilder(5000));
+      job.getBuildersList().add(new SleepBuilder(10000));
       job.save();
 
       job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
       Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
-      final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
+      try (JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);) {
 
-      { // queue related assertions
-        final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");
-        final String contentAsString = htmlPage.getWebResponse().getContentAsString();
-        assertThat(contentAsString, containsString(JOB_CONTENT)); // Fails while unfixed
+        { // queue related assertions
+          final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");
+          final String contentAsString = htmlPage.getWebResponse().getContentAsString();
+          assertThat(contentAsString, containsString(JOB_CONTENT)); // Fails while unfixed
 
-        final Page page = webClient.goTo("queue/api/xml/", "application/xml");
-        final String xml = page.getWebResponse().getContentAsString();
-        assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
+          final Page page = webClient.goTo("queue/api/xml/", "application/xml");
+          final String xml = page.getWebResponse().getContentAsString();
+          assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
+        }
+
+        final FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
+        final int number = build.getExecutor().getNumber();
+        Assert.assertEquals(0, Jenkins.get().getQueue().getItems().length); // collapsed queue items
+
+        { // executor related assertions
+          final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");
+          final String contentAsString = htmlPage.getWebResponse().getContentAsString();
+          assertThat(contentAsString, containsString(BUILD_CONTENT)); // Fails while unfixed
+
+          final Page page = webClient.goTo("computer/(master)/api/xml?depth=1", "application/xml");
+          final String xml = page.getWebResponse().getContentAsString();
+          assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
+        }
+
+        { // widget related assertions
+          final HtmlPage htmlPage = webClient.goTo("");
+          final String contentAsString = htmlPage.getWebResponse().getContentAsString();
+          assertThat(contentAsString, containsString("job/folder/job/job")); // Fails while unfixed
+        }
+        build.doStop();
+        jenkinsRule.waitForCompletion(build);
+        TimeUnit.SECONDS.sleep(5);
       }
-
-      final FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
-      final int number = build.getExecutor().getNumber();
-      Assert.assertEquals(0, Jenkins.get().getQueue().getItems().length); // collapsed queue items
-
-      { // executor related assertions
-        final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");
-        final String contentAsString = htmlPage.getWebResponse().getContentAsString();
-        assertThat(contentAsString, containsString(BUILD_CONTENT)); // Fails while unfixed
-
-        final Page page = webClient.goTo("computer/(master)/api/xml?depth=1", "application/xml");
-        final String xml = page.getWebResponse().getContentAsString();
-        assertThat(xml, containsString("job/folder/job/job")); // Fails while unfixed
-      }
-
-      { // widget related assertions
-        final HtmlPage htmlPage = webClient.goTo("");
-        final String contentAsString = htmlPage.getWebResponse().getContentAsString();
-        assertThat(contentAsString, containsString("job/folder/job/job")); // Fails while unfixed
-      }
-
-      jenkinsRule.waitForCompletion(build);
     } finally {
       System.clearProperty(propertyName);
     }
