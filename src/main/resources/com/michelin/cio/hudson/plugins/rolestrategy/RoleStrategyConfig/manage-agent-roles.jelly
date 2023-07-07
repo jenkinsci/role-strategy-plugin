@@ -35,43 +35,7 @@
   
   <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
 
-    <!-- The first row will show grouping -->
-    <thead>
-      <tr class="group-row">
-        <td rowspan="2" class="start" />
-        <td rowspan="2" class="pane-header blank">
-          ${%Role}
-        </td>
-        <td rowspan="2" class="pane-header blank">
-          ${%Pattern}
-        </td>
-        <j:forEach var="g" items="${agentGroups}">
-          <j:set var="cnt" value="${0}" />
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
-              <j:set var="cnt" value="${cnt+1}"/>
-            </j:if>
-          </j:forEach>
-
-          <td class="pane-header" colspan="${cnt}">
-            ${g.title}
-          </td>
-        </j:forEach>
-        <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
-      </tr>
-      <!-- The second row for individual permission -->
-      <tr class="caption-row highlight-row">
-        <j:forEach var="g" items="${agentGroups}">
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
-              <th class="pane" tooltip="${p.description}">
-                <span>${p.name}</span>
-              </th>
-            </j:if>
-          </j:forEach>
-        </j:forEach>
-      </tr>
-    </thead>
+    <local:thead permissionGroups="${agentGroups}" showPattern="true" strategy="${it.strategy.SLAVE}"/>
     <tbody>
       <j:forEach var="role" items="${agentGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
@@ -83,54 +47,15 @@
         <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
       </tr>
     </tbody>
-    <j:set var="hidefooter" value=""/>
-    <j:if test="${agentGrantedRoles.size() lt 20}">
-      <j:set var="hidefooter" value="default-hidden"/>
-    </j:if>
-    <tfoot class="${hidefooter}">
-      <!-- The last two rows are used to repeat the header (if more than 20 lines) -->
-        <tr class="caption-row highlight-row">
-          <td rowspan="2" class="start" />
-          <td rowspan="2" class="pane-header blank">
-            ${%Role}
-          </td>
-          <td rowspan="2" class="pane-header blank">
-            ${%Pattern}
-          </td>
-          <j:forEach var="g" items="${agentGroups}">
-            <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
-                <th class="pane" tooltip="${p.description}">
-                  <span>${p.name}</span>
-                </th>
-              </j:if>
-            </j:forEach>
-          </j:forEach>
-        </tr>
-        <tr class="group-row">
-          <j:forEach var="g" items="${agentGroups}">
-            <j:set var="cnt" value="${0}" />
-            <j:forEach var="p" items="${g.permissions}">
-              <j:if test="${it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
-                <j:set var="cnt" value="${cnt+1}"/>
-              </j:if>
-            </j:forEach>
-
-            <td class="pane-header" colspan="${cnt}">
-              ${g.title}
-            </td>
-          </j:forEach>
-          <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
-        </tr>
-    </tfoot>
+    <local:tfoot permissionGroups="${agentGroups}" strategy="${it.strategy.SLAVE}" roles="${agentGrantedRoles}" showPattern="true"/>
   </table>
   <l:isAdmin>
     <br/>
     <f:entry title="${%Role to add}">
-      <f:textbox type="text" id="${tableid}text" />
+      <f:textbox id="${tableid}text" />
     </f:entry>
     <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-      <f:textbox type="text" id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
+      <f:textbox id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
     </f:entry>
     <f:entry>
       <local:addButton id="newAgentRoleTemplate" tableid="${tableid}" highlighter="agentTableHighlighter"/>
