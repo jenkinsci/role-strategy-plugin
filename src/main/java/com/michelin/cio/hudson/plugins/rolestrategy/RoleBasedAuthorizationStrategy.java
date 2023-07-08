@@ -171,9 +171,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       for (RoleTemplate roleTemplate : roleTemplates) {
         String roleName = "#" + permissionTemplate.getName() + "-" + roleTemplate.getName();
         Role role = projectRoles.getRole(roleName);
-        Set<String> sids = new HashSet<>();
+        Set<PermissionEntry> sids = new HashSet<>();
         if (role != null) {
-          Set<String> sidsForRole = projectRoles.getSidsForRole(roleName);
+          Set<PermissionEntry> sidsForRole = projectRoles.getSidEntriesForRole(roleName);
           if (sidsForRole != null) {
             sids.addAll(sidsForRole);
           }
@@ -185,11 +185,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
     }
     // Remove all generated roles
-    for (Entry<Role, Set<String>> entry : generatedRoles.getGrantedRoles().entrySet()) {
+    for (Entry<Role, Set<PermissionEntry>> entry : generatedRoles.getGrantedRolesEntries().entrySet()) {
       projectRoles.removeRole(entry.getKey());
     }
     // add all new generated roles
-    for (Entry<Role, Set<String>> entry : newGeneratedRoles.getGrantedRoles().entrySet()) {
+    for (Entry<Role, Set<PermissionEntry>> entry : newGeneratedRoles.getGrantedRolesEntries().entrySet()) {
       projectRoles.addRole(entry.getKey(), entry.getValue());
     }
   }
@@ -1345,9 +1345,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         Role role = new Role(roleName, Pattern.compile(pattern), permissions, "", generated);
         targetStrategy.addRole(roleType, role);
 
-        Set<String> sids = roleMap.getSidsForRole(roleName);
+        Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
         if (sids != null) {
-          for (String sid : sids) {
+          for (PermissionEntry sid : sids) {
             targetStrategy.assignRole(roleType, role, sid);
           }
         }

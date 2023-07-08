@@ -290,7 +290,7 @@ public class RoleMap {
    * @param role The {@link Role} to add
    * @param sids The sids associated with the {@link Role}
    */
-  public void addRole(Role role, Set<String> sids) {
+  public void addRole(Role role, Set<PermissionEntry> sids) {
     this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
     matchingRoleMapCache.invalidateAll();
   }
@@ -628,7 +628,7 @@ public class RoleMap {
    * @return generated roles
    */
   public RoleMap getGeneratedRoles() {
-    SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
+    SortedMap<Role, Set<PermissionEntry>> roleMap = new TreeMap<>();
     new RoleWalker() {
       @Override
       public void perform(Role current) {
