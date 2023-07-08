@@ -30,6 +30,7 @@ function getPreviousSiblings(elem, filter) {
     }
     return sibs;
 }
+
 class TableHighlighter {
 
   constructor(id, decalx) {
@@ -50,7 +51,23 @@ class TableHighlighter {
         td.nextSibling.addEventListener('mouseout', this.highlight);
       }
     }
+    let stopNodes = tr.querySelectorAll("div.rsp-remove:last-of-type");
+    let lastStop = stopNodes[stopNodes.length - 1];
+    if (lastStop != null) {
+      lastStop.addEventListener('mouseover', this.highlightRowOnly);
+      lastStop.addEventListener('mouseout', this.highlightRowOnly);
+    }
   };
+
+  highlightRowOnly = e => {
+    let enable = e.type === 'mouseover';
+    let tr = findAncestor(Event.element(e), "TR")
+    if (enable) {
+      tr.classList.add('highlighted');
+    } else {
+      tr.classList.remove('highlighted');
+    }
+  }
 
   highlight = e => {
     let enable = e.type === 'mouseover';
