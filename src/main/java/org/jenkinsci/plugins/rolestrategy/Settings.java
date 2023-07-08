@@ -40,6 +40,23 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public class Settings {
 
   /**
+   * Defines maximum size of the View cache. This cache is being used when
+   * the macro {@code ContainedInView} is used. Changing of this option requires a Jenkins restart.
+   *
+   * @since 570
+   */
+  public static final int VIEW_CACHE_MAX_SIZE = Integer.getInteger(Settings.class.getName() + ".viewCacheMaxSize", 100);
+
+  /**
+   * Defines lifetime of entries in the View cache. This cache is being used when
+   * the macro {@code ContainedInView} is used. Changing of this option requires a Jenkins restart.
+   *
+   * @since 570
+   */
+  public static final int VIEW_CACHE_EXPIRATION_TIME_SEC = Integer.getInteger(
+      Settings.class.getName() + ".viewCacheExpircationTimeSec", 30);
+
+  /**
    * Defines maximum size of the User details cache. This cache is being used when
    * {@link #TREAT_USER_AUTHORITIES_AS_ROLES} is enabled. Changing of this option requires Jenkins restart.
    *
@@ -58,7 +75,7 @@ public class Settings {
 
   /**
    * Enabling processing of User Authorities. Alters the behavior of
-   * {@link RoleMap#hasPermission(java.lang.String, hudson.security.Permission,
+   * {@link RoleMap#hasPermission(com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry, hudson.security.Permission,
    * com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType, hudson.security.AccessControlled)}.
    * Since 2.3.0 this value was {@code true}, but it has been switched due to the performance reasons. The behavior can be
    * reverted (even dynamically via System Groovy Script).

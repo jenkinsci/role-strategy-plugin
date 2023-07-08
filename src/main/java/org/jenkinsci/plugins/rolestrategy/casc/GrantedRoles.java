@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.rolestrategy.casc;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -58,9 +60,10 @@ public class GrantedRoles {
 
   @NonNull
   private RoleMap retrieveRoleMap(List<RoleDefinition> definitions) {
-    TreeMap<Role, Set<String>> resMap = new TreeMap<>();
+    TreeMap<Role, Set<PermissionEntry>> resMap = new TreeMap<>();
     for (RoleDefinition definition : definitions) {
-      resMap.put(definition.getRole(), definition.getAssignments());
+      resMap.put(definition.getRole(),
+              definition.getEntries().stream().map(RoleDefinition.RoleDefinitionEntry::asPermissionEntry).collect(Collectors.toSet()));
     }
     return new RoleMap(resMap);
   }

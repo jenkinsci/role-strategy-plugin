@@ -13,6 +13,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -76,7 +77,7 @@ public class ConfigurationAsCodeTest {
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-    Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
     assertThat(globalRoles.size(), equalTo(2));
 
     // Admin has configuration access
@@ -131,7 +132,7 @@ public class ConfigurationAsCodeTest {
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
 
-    Map<Role, Set<String>> globalRoles = rbas.getGrantedRoles(RoleType.Global);
+    Map<Role, Set<PermissionEntry>> globalRoles = rbas.getGrantedRolesEntries(RoleType.Global);
     assertThat(globalRoles.size(), equalTo(2));
   }
 
@@ -159,5 +160,18 @@ public class ConfigurationAsCodeTest {
     assertThat(rbas.getRoleMap(RoleType.Project).getRole("#builder-team1").hasPermission(Item.BUILD), is(true));
     assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team1").getPattern().toString(), is("folder/.*"));
     assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team2").getPattern().toString(), is("folder2/.*"));
+  }
+
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code-no-permissions.yml")
+  public void exportWithEmptyRole() throws Exception {
+    ConfiguratorRegistry registry = ConfiguratorRegistry.get();
+    ConfigurationContext context = new ConfigurationContext(registry);
+    CNode yourAttribute = getJenkinsRoot(context).get("authorizationStrategy");
+
+    String exported = toYamlString(yourAttribute);
+    String expected = toStringFromYamlFile(this, "Configuration-as-Code-no-permissions-export.yml");
+
+    assertThat(exported, is(expected));
   }
 }

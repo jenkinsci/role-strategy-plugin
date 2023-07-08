@@ -25,6 +25,7 @@
 package com.synopsys.arc.jenkins.plugins.rolestrategy.macros;
 
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -53,12 +54,8 @@ public class FolderMacro extends RoleMacroExtension {
   }
 
   @Override
-  public boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
-    if (AbstractFolder.class.isAssignableFrom(item.getClass())) {
-      return true;
-    } else {
-      return false;
-    }
+  public boolean hasPermission(PermissionEntry sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
+    return AbstractFolder.class.isAssignableFrom(item.getClass());
   }
 
   @Override

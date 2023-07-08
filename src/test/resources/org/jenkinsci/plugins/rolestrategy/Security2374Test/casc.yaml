@@ -1,0 +1,22 @@
+configuration-as-code:
+  version: 1
+  deprecated: warn
+
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            entries:
+              - user: "username"
+              - group: "groupname"
+              - either: "eitherSID"
+            permissions:
+              - "Overall/Administer"
+          # legacy format
+          - name: admin2
+            assignments:
+              - indifferentSID
+            permissions:
+              - "Overall/Administer"

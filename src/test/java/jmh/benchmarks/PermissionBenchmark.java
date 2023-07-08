@@ -1,5 +1,7 @@
 package jmh.benchmarks;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -34,7 +36,7 @@ public class PermissionBenchmark {
       Set<String> permissionSet = Collections.singleton("hudson.model.Hudson.Administer");
       Role role = new Role("USERS", ".*", permissionSet, "description");
       RoleMap roleMap = new RoleMap(new TreeMap<>(// expects a sorted map
-          Collections.singletonMap(role, Collections.singleton("alice"))));
+          Collections.singletonMap(role, Collections.singleton(new PermissionEntry(AuthorizationType.USER, "alice")))));
 
       jenkins.setAuthorizationStrategy(
           new RoleBasedAuthorizationStrategy(Collections.singletonMap(RoleBasedAuthorizationStrategy.GLOBAL, roleMap)));

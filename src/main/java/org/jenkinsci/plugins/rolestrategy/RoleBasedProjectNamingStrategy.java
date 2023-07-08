@@ -1,6 +1,8 @@
 package org.jenkinsci.plugins.rolestrategy;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
 import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -28,6 +30,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 
 /**
  * A Naming Strategy so that users with only item specific create permissions can create only items matching the role
@@ -87,10 +90,11 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       if (a == ACL.SYSTEM2) {
         return;
       }
-      String principal = new PrincipalSid(a).getPrincipal();
+      PermissionEntry principal = new PermissionEntry(AuthorizationType.USER, new PrincipalSid(a).getPrincipal());
+
       RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
       RoleMap global = rbas.getRoleMap(RoleType.Global);
-      List<String> authorities = a.getAuthorities().stream().map(x -> x.getAuthority()).collect(Collectors.toList());
+      List<String> authorities = a.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
 
       // first check global role
       if (hasCreatePermission(global, principal, authorities, RoleType.Global)) {
@@ -104,23 +108,17 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
       }
 
       // check project role with pattern
-      SortedMap<Role, Set<String>> roles = rbas.getGrantedRoles(RoleType.Project);
+      SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
       ArrayList<String> badList = new ArrayList<>(roles.size());
-      for (SortedMap.Entry<Role, Set<String>> entry : roles.entrySet()) {
+      for (SortedMap.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
         Role key = entry.getKey();
         if (!Macro.isMacro(key) && key.hasPermission(Item.CREATE)) {
-          Set<String> sids = entry.getValue();
+          Set<PermissionEntry> sids = entry.getValue();
           Pattern namePattern = key.getPattern();
           if (StringUtils.isNotBlank(namePattern.toString())) {
             if (namePattern.matcher(fullName).matches()) {
-              if (sids.contains(principal)) {
+              if (hasAnyPermission(principal, authorities, sids)) {
                 return;
-              } else {
-                for (String authority : authorities) {
-                  if (sids.contains(authority)) {
-                    return;
-                  }
-                }
               }
             } else {
               badList.add(namePattern.toString());
@@ -138,12 +136,28 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
     }
   }
 
-  private boolean hasCreatePermission(RoleMap roleMap, String principal, List<String> authorities, RoleType roleType) {
+  private boolean hasAnyPermission(PermissionEntry principal, List<String> authorities, Set<PermissionEntry> sids) {
+    PermissionEntry eitherUser = new PermissionEntry(AuthorizationType.EITHER, principal.getSid());
+    if (sids.contains(principal) || sids.contains(eitherUser)) {
+      return true;
+    } else {
+      for (String authority : authorities) {
+        if (sids.contains(new PermissionEntry(AuthorizationType.GROUP, authority))
+            || sids.contains(new PermissionEntry(AuthorizationType.EITHER, authority))) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private boolean hasCreatePermission(RoleMap roleMap, PermissionEntry principal, List<String> authorities, RoleType roleType) {
     if (roleMap.hasPermission(principal, Item.CREATE, roleType, null)) {
       return true;
     }
     for (String group : authorities) {
-      if (roleMap.hasPermission(group, Item.CREATE, roleType, null)) {
+      PermissionEntry groupEntry = new PermissionEntry(AuthorizationType.GROUP, group);
+      if (roleMap.hasPermission(groupEntry, Item.CREATE, roleType, null)) {
         return true;
       }
     }

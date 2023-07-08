@@ -24,6 +24,8 @@
 
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
@@ -32,7 +34,6 @@ import hudson.security.Permission;
  * Interface for Role-based plug-in Macro extensions.
  *
  * @see RoleMacroExtension
- * @see UserMacroExtension
  * @author Oleg Nenashev
  * @since 2.1.0
  */
@@ -74,5 +75,9 @@ public interface IMacroExtension {
    * @param macro Macro with parameters
    * @return True if user satisfies macro's requirements
    */
-  boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro);
+  boolean hasPermission(PermissionEntry sid, Permission p, RoleType type, AccessControlled item, Macro macro);
+
+  default boolean hasPermission(String sid, Permission p, RoleType type, AccessControlled item, Macro macro) {
+    return hasPermission(new PermissionEntry(AuthorizationType.EITHER, sid), p, type, item, macro);
+  }
 }

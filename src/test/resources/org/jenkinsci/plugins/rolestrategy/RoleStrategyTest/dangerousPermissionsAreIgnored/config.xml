@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <hudson>
   <disabledAdministrativeMonitors/>
-  <version>1.480</version>
+  <version>2.303.3</version>
   <numExecutors>2</numExecutors>
   <mode>NORMAL</mode>
   <useSecurity>true</useSecurity>
@@ -12,7 +12,7 @@
           <permission>hudson.model.Hudson.Administer</permission>
         </permissions>
         <assignedSIDs>
-            <sid>alice</sid>
+            <sid type="USER">alice</sid>
         </assignedSIDs>
       </role>
       <role name="POWERUSERS" pattern=".*">
@@ -22,7 +22,7 @@
           <permission>hudson.model.Hudson.UploadPlugins</permission>
         </permissions>
         <assignedSIDs>
-            <sid>berta</sid>
+            <sid type="USER">berta</sid>
         </assignedSIDs>
       </role>
     </roleMap>

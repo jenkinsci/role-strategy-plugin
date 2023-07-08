@@ -27,7 +27,6 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
-import com.synopsys.arc.jenkins.plugins.rolestrategy.UserMacroExtension;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -39,8 +38,6 @@ import hudson.util.FormApply;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
-import org.jenkins.ui.icon.Icon;
-import org.jenkins.ui.icon.IconSet;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
@@ -55,31 +52,18 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @Extension
 public class RoleStrategyConfig extends ManagementLink {
 
-  // TODO: Remove and replace with symbol-edit once one a sufficiently new Jenkins (e.g. 2.346.1)
-  static {
-    IconSet.icons
-        .addIcon(new Icon("icon-pencil icon-sm", "plugin/role-strategy/images/pencil.svg", Icon.ICON_SMALL_STYLE));
-    IconSet.icons
-        .addIcon(new Icon("icon-pencil icon-md", "plugin/role-strategy/images/pencil.svg", Icon.ICON_MEDIUM_STYLE));
-    IconSet.icons
-        .addIcon(new Icon("icon-pencil icon-ld", "plugin/role-strategy/images/pencil.svg", Icon.ICON_LARGE_STYLE));
-    IconSet.icons
-        .addIcon(new Icon("icon-pencil icon-xlg", "plugin/role-strategy/images/pencil.svg", Icon.ICON_XLARGE_STYLE));
-  }
-
   /**
    * Provides the icon for the Manage Hudson page link.
    *
-   * @return Path to the icon
+   * @return Path to the icon, or {@code null} if not enabled
    */
   @Override
   public String getIconFileName() {
-    String icon = null;
     // Only show this link if the role-based authorization strategy has been enabled
     if (Jenkins.get().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
-      icon = "icon-secure";
+      return "symbol-lock-closed-outline plugin-ionicons-api";
     }
-    return icon;
+    return null;
   }
 
   @NonNull
@@ -98,6 +82,7 @@ public class RoleStrategyConfig extends ManagementLink {
     return "role-strategy";
   }
 
+  @NonNull
   @Override
   public String getCategoryName() {
     return "SECURITY";
@@ -210,14 +195,6 @@ public class RoleStrategyConfig extends ManagementLink {
 
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
     return RoleMacroExtension.all();
-  }
-
-  /*
-   * @deprecated The extension is not implemented
-   */
-  @Deprecated
-  public ExtensionList<UserMacroExtension> getUserMacroExtensions() {
-    return UserMacroExtension.all();
   }
 
   public final RoleType getGlobalRoleType() {

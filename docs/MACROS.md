@@ -12,6 +12,15 @@ which makes decisions according to instance and parameters.
 
 * `@BuildableJob` - checks if the job is buildable
 * `@Folder` - checks if the item is a folder
+* `@ContainedInView` - Access items that are added to a ListView. Specify the views as parameter to the macro, e.g. `@ContainedInView(view1, view2)`.
+  Prepend the folder name if the view is in a folder, e.g. `@ContainedInView(folder/view1)`. To access views inside a folder, access to the folder 
+  itself is required.
+  When enabling the *Recurse in subfolders* option, make sure to also check the folders themselves for which you add items.
+
+  NestedView plugin is not supported currently as this allows to create ambiguous names for views.
+
+  View names are case sensitive.
+
 * Macros for integration with [Ownership Plugin](https://plugins.jenkins.io/ownership). 
   See [Ownership-based Security](https://github.com/jenkinsci/ownership-plugin/blob/master/doc/OwnershipBasedSecurity.md)
 
@@ -31,5 +40,6 @@ Examples:
 
 * `@BuildableJob` - Primitive macro invocation. Such invocation can be used only once in each roles category.
 * `@BuildableJob:1` - Macro with id
+* `@ContainedInView(view1, folder/view1)` - Includes all items that are contained in "view1" and "folder/view1"
 * `@ParameterizedMacro(param1)` - Invokes macro with one parameter
 * `@ParameterizedMacro:2(param1,param2)` - Invokes macro with two parameters. Id prevents naming conflicts

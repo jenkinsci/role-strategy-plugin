@@ -7,8 +7,8 @@ jenkins:
             description: "Jenkins administrators"
             permissions:
               - "Overall/Administer"
-            assignments:
-              - "admin"
+            entries:
+              - user: "admin"
           - name: "dangerous"
             description: "Dangerous"
             permissions:
@@ -16,8 +16,8 @@ jenkins:
               - "Overall/ConfigureUpdateCenter"
               - "Overall/UploadPlugins"
               - "Job/Read"
-            assignments:
-              - "test"
+            entries:
+              - user: "test"
 
   # System for test
   securityRealm:

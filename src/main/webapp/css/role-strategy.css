@@ -26,7 +26,7 @@
 .global-matrix-authorization-strategy-table {
   border-collapse: collapse;
   border-spacing: 0;
-  border: 1px solid #D3D7CF;
+  #border: 1px solid #D3D7CF;
 }
 
 .global-matrix-authorization-strategy-table .caption-row TH span {
@@ -49,16 +49,13 @@
 }
 
 .global-matrix-authorization-strategy-table TD.start {
-  border-top: 1px solid transparent;
-  border-left: 1px solid transparent;
-  border-bottom: 1px solid transparent;
+  border: 0;
 }
 
 .global-matrix-authorization-strategy-table TD.stop {
-  border-top: 1px solid transparent;
-  border-right: 1px solid transparent;
-  border-bottom: 1px solid transparent;
   white-space: nowrap;
+  text-align: left;
+  border: 0;
 }
 
 label.attach-previous {
@@ -95,8 +92,9 @@ label.attach-previous {
   align-items: center;
 }
 
-.global-matrix-authorization-strategy-table div.pattern-cell img {
-  margin-right: 3px; cursor: pointer;
+.global-matrix-authorization-strategy-table div.pattern-cell svg {
+  margin-right: 3px;
+  cursor: pointer;
 }
 
 .global-matrix-authorization-strategy-table div.pattern-cell span {
@@ -106,4 +104,113 @@ label.attach-previous {
 .jenkins-checkbox {
 	vertical-align: middle;
 	margin: 3px 0px;
+}
+
+@keyframes highlightentry {
+  from { background: #C4C080; }
+  to { background: transparent; }
+}
+
+.highlight-entry {
+  -webkit-animation: highlightentry 5s;
+  -moz-animation: highlightentry 5s;
+  animation: highlightentry 5s;
+}
+
+.alert {
+	margin-top: 10px;
+}
+
+.rsp-entry-not-found {
+    text-decoration: line-through;
+    color: grey;
+}
+
+.rsp-table__icon {
+  vertical-align: initial!important;
+}
+
+.rsp-table__icon-alert {
+  color: orange;
+}
+
+.rsp-table__cell {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rsp-remove, .migrate {
+  cursor: pointer;
+  height: 16px;
+}
+
+.patternAnchor {
+  cursor: pointer;
+  color: var(--link-color);
+  font-weight: var(--link-font-weight);
+}
+
+.patternAnchor:hover {
+    text-decoration: var(--link-text-decoration--hover);
+}
+
+.row-filter, .user-filter, .role-filter {
+  display: none;
+  max-width: 500px;
+}
+
+.modal {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 350px;
+  padding: 1.3rem;
+  min-height: 150px;
+  max-height: 400px;
+  position: fixed;
+  z-index: 2000;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--background);
+  border: 1px solid #ddd;
+  border-radius: 15px;
+}
+
+.modal .flex {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+}
+
+#modalmessage {
+  overflow-y: auto;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(3px);
+  z-index: 1999;
+}
+
+
+.btn-close {
+  transform: translate(10px, -10px);
+  padding: 0.4rem 0.6rem;
+  background: var(--btn-primary-bg);
+  border-radius: 50%;
+  color: var(--btn-text-color);
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+  font-family: sans-serif;
 }

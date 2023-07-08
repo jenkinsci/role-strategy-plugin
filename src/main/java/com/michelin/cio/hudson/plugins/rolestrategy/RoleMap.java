@@ -26,12 +26,14 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.IMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.Macro;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleMacroExtension;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Util;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
@@ -50,8 +52,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -59,8 +59,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
+import org.acegisecurity.acls.sid.PrincipalSid;
 import org.acegisecurity.acls.sid.Sid;
 import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.jenkinsci.plugins.rolestrategy.Settings;
@@ -82,11 +84,12 @@ public class RoleMap {
   /**
    * Map associating each {@link Role} with the concerned {@link User}s/groups.
    */
-  private final SortedMap<Role, Set<String>> grantedRoles;
+  private final SortedMap<Role, Set<PermissionEntry>> grantedRoles;
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
-  private static final ConcurrentMap<Permission, Set<Permission>> implyingPermissionCache = new ConcurrentHashMap<>();
+  private static final Cache<Permission, Set<Permission>> implyingPermissionCache = Caffeine.newBuilder().maximumSize(100)
+      .expireAfterWrite(20, TimeUnit.SECONDS).build();
 
   static {
     Permission.getAll().forEach(RoleMap::cacheImplyingPermissions);
@@ -112,9 +115,9 @@ public class RoleMap {
    * @param grantedRoles Roles to be granted.
    */
   @DataBoundConstructor
-  public RoleMap(@NonNull SortedMap<Role, Set<String>> grantedRoles) {
+  public RoleMap(@NonNull SortedMap<Role, Set<PermissionEntry>> grantedRoles) {
     this();
-    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
       this.grantedRoles.put(entry.getKey(), new HashSet<>(entry.getValue()));
     }
   }
@@ -125,38 +128,70 @@ public class RoleMap {
    * @return True if the sid's granted permission
    */
   @Restricted(NoExternalUse.class)
-  public boolean hasPermission(String sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
+  public boolean hasPermission(PermissionEntry sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
     final Set<Permission> permissions = getImplyingPermissions(permission);
     final boolean[] hasPermission = { false };
 
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
     new RoleWalker() {
+
+      /**
+       * Checks whether the given sid is granted permission.
+       * First checks if there is a dedicated match for user/group.
+       * If not checks if there is an entry for either.
+       *
+       * @param current The current role
+       * @param entry The permission entry to check
+       * @return The PermissionEntry that matched or null if nothing matched.
+       */
+      @CheckForNull
+      private PermissionEntry hasPermission(Role current, PermissionEntry entry) {
+        if (grantedRoles.get(current).contains(entry)) {
+          return entry;
+        }
+        entry = new PermissionEntry(AuthorizationType.EITHER, entry.getSid());
+        if (grantedRoles.get(current).contains(entry)) {
+          return entry;
+        }
+        return null;
+      }
+
       @Override
       public void perform(Role current) {
         if (current.hasAnyPermission(permissions)) {
-          if (grantedRoles.get(current).contains(sid)) {
+          PermissionEntry entry = hasPermission(current, sid);
+          if (entry != null) {
             // Handle roles macro
             if (Macro.isMacro(current)) {
               Macro macro = RoleMacroExtension.getMacro(current.getName());
               if (controlledItem != null && macro != null) {
                 RoleMacroExtension macroExtension = RoleMacroExtension.getMacroExtension(macro.getName());
-                if (macroExtension.IsApplicable(roleType)
-                    && macroExtension.hasPermission(sid, permission, roleType, controlledItem, macro)) {
-                  hasPermission[0] = true;
-                  abort();
+                if (macroExtension.IsApplicable(roleType)) {
+                  if (Util.isOverridden(IMacroExtension.class, macroExtension.getClass(), "hasPermission", PermissionEntry.class,
+                      Permission.class, RoleType.class, AccessControlled.class, Macro.class)) {
+                    if (macroExtension.hasPermission(entry, permission, roleType, controlledItem, macro)) {
+                      hasPermission[0] = true;
+                      abort();
+                    }
+                  } else {
+                    if (macroExtension.hasPermission(entry.getSid(), permission, roleType, controlledItem, macro)) {
+                      hasPermission[0] = true;
+                      abort();
+                    }
+                  }
                 }
               }
             } else {
               hasPermission[0] = true;
               abort();
             }
-          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES) {
+          } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && sid.getType() == AuthorizationType.USER) {
             try {
-              UserDetails userDetails = cache.getIfPresent(sid);
+              UserDetails userDetails = cache.getIfPresent(sid.getSid());
               if (userDetails == null) {
-                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid);
-                cache.put(sid, userDetails);
+                userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid.getSid());
+                cache.put(sid.getSid(), userDetails);
               }
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
                 if (grantedAuthority.getAuthority().equals(current.getName())) {
@@ -185,12 +220,7 @@ public class RoleMap {
    * @return set of permissions which imply {@code p}
    */
   private static Set<Permission> getImplyingPermissions(Permission p) {
-    Set<Permission> implyingPermissions = implyingPermissionCache.get(p);
-    if (implyingPermissions != null) {
-      return implyingPermissions;
-    } else {
-      return cacheImplyingPermissions(p);
-    }
+    return implyingPermissionCache.get(p, RoleMap::cacheImplyingPermissions);
   }
 
   /**
@@ -211,11 +241,13 @@ public class RoleMap {
 
       // Get the implying permissions
       for (Permission p = permission; p != null; p = p.impliedBy) {
+        if (!p.getEnabled()) {
+          continue;
+        }
         implyingPermissions.add(p);
       }
     }
 
-    implyingPermissionCache.put(permission, implyingPermissions);
     return implyingPermissions;
   }
 
@@ -269,7 +301,7 @@ public class RoleMap {
    * @param role The {@link Role} to assign the sid to
    * @param sid  The sid to assign
    */
-  public void assignRole(Role role, String sid) {
+  public void assignRole(Role role, PermissionEntry sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
       matchingRoleMapCache.invalidateAll();
@@ -277,16 +309,50 @@ public class RoleMap {
   }
 
   /**
-   * unAssign the sid to the given {@link Role}.
+   * Assign the sid to the given {@link Role}.
+   * Assigns are a {@link AuthorizationType#EITHER}
+   *
+   * @param role The {@link Role} to assign the sid to
+   * @param sid  The sid to assign
+   *
+   * @deprecated use {@link #assignRole(Role, PermissionEntry)}
+   */
+  @Deprecated
+  public void assignRole(Role role, String sid) {
+    if (this.hasRole(role)) {
+      this.grantedRoles.get(role).add(new PermissionEntry(AuthorizationType.EITHER, sid));
+      matchingRoleMapCache.invalidateAll();
+    }
+  }
+
+  /**
+   * unAssign the sid from the given {@link Role}.
    *
    * @param role The {@link Role} to unassign the sid to
-   * @param sid  The sid to assign
-   * @since 2.6.0
+   * @param sid  The sid to unassign
    */
-  public void unAssignRole(Role role, String sid) {
-    Set<String> sids = grantedRoles.get(role);
+  public void unAssignRole(Role role, PermissionEntry sid) {
+    Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(sid);
+      matchingRoleMapCache.invalidateAll();
+    }
+  }
+
+  /**
+   * unAssign the sid from the given {@link Role}.
+   * This will only unassign entries of type {@link AuthorizationType#EITHER}.
+   *
+   * @param role The {@link Role} to unassign the sid to
+   * @param sid  The sid to unassign
+   * @since 2.6.0
+   * @deprecated use {@link #unAssignRole(Role, PermissionEntry)}
+   */
+  @Deprecated
+  public void unAssignRole(Role role, String sid) {
+    Set<PermissionEntry> sids = grantedRoles.get(role);
+    if (sids != null) {
+      sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
       matchingRoleMapCache.invalidateAll();
     }
   }
@@ -308,10 +374,27 @@ public class RoleMap {
    *
    * @param sid The sid for which you want to clear the {@link Role}s
    */
-  public void deleteSids(String sid) {
-    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
-      Set<String> sids = entry.getValue();
+  public void deleteSids(PermissionEntry sid) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
+      Set<PermissionEntry> sids = entry.getValue();
       sids.remove(sid);
+    }
+    matchingRoleMapCache.invalidateAll();
+  }
+
+  /**
+   * Clear all the roles associated to the given sid.
+   * This will only find sids of type {@link AuthorizationType#EITHER}
+   *
+   * @param sid The sid for which you want to clear the {@link Role}s
+   *
+   * @deprecated use {@link #deleteSids(PermissionEntry)}
+   */
+  @Deprecated
+  public void deleteSids(String sid) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
+      Set<PermissionEntry> sids = entry.getValue();
+      sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
     }
     matchingRoleMapCache.invalidateAll();
   }
@@ -319,15 +402,37 @@ public class RoleMap {
   /**
    * Clear specific role associated to the given sid.
    *
-   * @param sid      The sid for thwich you want to clear the {@link Role}s
-   * @param rolename The role for thwich you want to clear the {@link Role}s
+   * @param sid      The sid for wich you want to clear the {@link Role}s
+   * @param rolename The role for wich you want to clear the {@link Role}s
    * @since 2.6.0
    */
-  public void deleteRoleSid(String sid, String rolename) {
-    for (Map.Entry<Role, Set<String>> entry : grantedRoles.entrySet()) {
+  public void deleteRoleSid(PermissionEntry sid, String rolename) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
       Role role = entry.getKey();
       if (role.getName().equals(rolename)) {
         unAssignRole(role, sid);
+        break;
+      }
+    }
+  }
+
+
+  /**
+   * Clear specific role associated to the given sid.
+   * This will only find sids of type {@link AuthorizationType#EITHER}
+   *
+   * @param sid      The sid for wich you want to clear the {@link Role}s
+   * @param rolename The role for wich you want to clear the {@link Role}s
+   * @since 2.6.0
+   * @deprecated use {@link #deleteRoleSid(PermissionEntry, String)}
+   */
+  @Deprecated
+  public void deleteRoleSid(String sid, String rolename) {
+    PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.EITHER, sid);
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
+      Role role = entry.getKey();
+      if (role.getName().equals(rolename)) {
+        unAssignRole(role, sidEntry);
         break;
       }
     }
@@ -337,7 +442,7 @@ public class RoleMap {
    * Clear all the sids for each {@link Role} of the {@link RoleMap}.
    */
   public void clearSids() {
-    for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : this.grantedRoles.entrySet()) {
       Role role = entry.getKey();
       this.clearSidsForRole(role);
     }
@@ -374,8 +479,25 @@ public class RoleMap {
    *
    * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
    */
-  public SortedMap<Role, Set<String>> getGrantedRoles() {
+  public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries() {
     return Collections.unmodifiableSortedMap(this.grantedRoles);
+  }
+
+  /**
+   * Get an unmodifiable sorted map containing {@link Role}s and their assigned sids.
+   * All types are returned to keep the api as compatible as possible.
+   *
+   * @return An unmodifiable sorted map containing the {@link Role}s and their associated sids
+   * @deprecated use {@link #getGrantedRolesEntries()}
+   */
+  @Deprecated
+  public SortedMap<Role, Set<String>> getGrantedRoles() {
+    SortedMap<Role, Set<String>> ret = new TreeMap<>();
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : this.grantedRoles.entrySet()) {
+      Set<String> allGrants = entry.getValue().stream().map(PermissionEntry::getSid).collect(Collectors.toSet());
+      ret.put(entry.getKey(), allGrants);
+    }
+    return ret;
   }
 
   /**
@@ -389,11 +511,38 @@ public class RoleMap {
 
   /**
    * Get all the sids referenced in this {@link RoleMap}, minus the {@code Anonymous} sid.
+   * All types are returned to keep the api as compatible as possible.
+   *
+   * @return A sorted set containing all the sids, minus the {@code Anonymous} sid
+   * @deprecated use {@link #getSidEntries()}
+   */
+  @Deprecated
+  public SortedSet<String> getSids() {
+    return getSids(false);
+  }
+
+  /**
+   * Get all the sids referenced in this {@link RoleMap}.
+   * All types are returned to keep the api as compatible as possible.
+   *
+   * @param includeAnonymous True if you want the {@code Anonymous} sid to be included in the set
+   * @return A sorted set containing all the sids
+   * @deprecated use {@link #getSidEntries(Boolean)}
+   */
+  @Deprecated
+  public SortedSet<String> getSids(Boolean includeAnonymous) {
+    SortedSet<String> ret = new TreeSet<>(this.getSidEntries(includeAnonymous)
+        .stream().map(PermissionEntry::getSid).collect(Collectors.toSet()));
+    return ret;
+  }
+
+  /**
+   * Get all the sids referenced in this {@link RoleMap}, minus the {@code Anonymous} sid.
    *
    * @return A sorted set containing all the sids, minus the {@code Anonymous} sid
    */
-  public SortedSet<String> getSids() {
-    return this.getSids(false);
+  public SortedSet<PermissionEntry> getSidEntries() {
+    return this.getSidEntries(false);
   }
 
   /**
@@ -402,29 +551,48 @@ public class RoleMap {
    * @param includeAnonymous True if you want the {@code Anonymous} sid to be included in the set
    * @return A sorted set containing all the sids
    */
-  public SortedSet<String> getSids(Boolean includeAnonymous) {
-    TreeSet<String> sids = new TreeSet<>();
-    for (Map.Entry<Role, Set<String>> entry : this.grantedRoles.entrySet()) {
+  public SortedSet<PermissionEntry> getSidEntries(Boolean includeAnonymous) {
+    TreeSet<PermissionEntry> sids = new TreeSet<>();
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : this.grantedRoles.entrySet()) {
       sids.addAll(entry.getValue());
     }
     // Remove the anonymous sid if asked to
     if (!includeAnonymous) {
-      sids.remove("anonymous");
+      sids.remove(new PermissionEntry(AuthorizationType.USER, "anonymous"));
     }
     return Collections.unmodifiableSortedSet(sids);
   }
 
   /**
-   * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
+   * Get all the permission entries assigned to the {@link Role} named after the {@code roleName} param.
    *
    * @param roleName The name of the role
    * @return A sorted set containing all the sids. {@code null} if the role is missing.
    */
   @CheckForNull
-  public Set<String> getSidsForRole(String roleName) {
+  public Set<PermissionEntry> getSidEntriesForRole(String roleName) {
     Role role = this.getRole(roleName);
     if (role != null) {
       return Collections.unmodifiableSet(this.grantedRoles.get(role));
+    }
+    return null;
+  }
+
+  /**
+   * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
+   * All types are returned to keep the api as compatible as possible.
+   *
+   * @param roleName The name of the role
+   * @return A sorted set containing all the sids. {@code null} if the role is missing.
+   * @deprecated use {@link #getSidEntriesForRole(String)}
+   */
+  @CheckForNull
+  @Deprecated
+  public Set<String> getSidsForRole(String roleName) {
+    Role role = this.getRole(roleName);
+    if (role != null) {
+      Set<PermissionEntry> ret = this.grantedRoles.get(role);
+      return ret.stream().map(PermissionEntry::getSid).collect(Collectors.toSet());
     }
     return null;
   }
@@ -441,7 +609,7 @@ public class RoleMap {
   }
 
   private RoleMap createMatchingRoleMap(String itemNamePrefix) {
-    SortedMap<Role, Set<String>> roleMap = new TreeMap<>();
+    SortedMap<Role, Set<PermissionEntry>> roleMap = new TreeMap<>();
     new RoleWalker() {
       @Override
       public void perform(Role current) {
@@ -496,8 +664,8 @@ public class RoleMap {
    * Get all job names matching the given pattern, viewable to the requesting user.
    *
    * @param matchedItems List that will take the matched item names
-   * @param pattern Pattern to match against
-   * @param maxJobs Max matching jobs to look for
+   * @param pattern      Pattern to match against
+   * @param maxJobs      Max matching jobs to look for
    * @return Number of matched jobs
    */
   @Restricted(NoExternalUse.class)
@@ -535,12 +703,12 @@ public class RoleMap {
   }
 
   /**
-   * Get all agent names matching the given pattern, viewable to the requesting user.
+   * Get the number of agent names matching the given pattern, viewable to the requesting user.
    *
    * @param matchingAgentNames List that will take the matched agent names
    * @param pattern   Pattern to match against
    * @param maxAgents Max matching agents to look for
-   * @return List of matching agent names
+   * @return Number of matching agent names
    */
   @Restricted(NoExternalUse.class)
   static int getMatchingAgentNames(@NonNull List<String> matchingAgentNames, Pattern pattern, int maxAgents) {
@@ -583,7 +751,9 @@ public class RoleMap {
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      if (RoleMap.this.hasPermission(toString(sid), permission, roleType, item)) {
+      boolean principal = sid instanceof PrincipalSid ? true : false;
+      PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, toString(sid));
+      if (RoleMap.this.hasPermission(entry, permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))
@@ -608,7 +778,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(toString(sid), permission, RoleType.Project, item)) {
+          if (roleMapProject.hasPermission(entry, permission, RoleType.Project, item)) {
             return true;
           }
         }

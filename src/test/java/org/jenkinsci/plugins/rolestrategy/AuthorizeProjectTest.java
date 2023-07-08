@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -13,9 +14,9 @@ import hudson.model.BuildListener;
 import hudson.model.Cause;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Queue.Item;
 import hudson.model.Slave;
 import hudson.model.User;
-import hudson.model.Queue.Item;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.tasks.BuildStepDescriptor;
@@ -107,6 +108,7 @@ public class AuthorizeProjectTest {
         return true;
       }
 
+      @NonNull
       @Override
       public String getDisplayName() {
         return "AuthorizationCheckBuilder";

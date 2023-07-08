@@ -25,6 +25,9 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import static com.michelin.cio.hudson.plugins.rolestrategy.ValidationUtil.formatNonExistentUserGroupValidationResponse;
+import static com.michelin.cio.hudson.plugins.rolestrategy.ValidationUtil.formatUserGroupValidationResponse;
+
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
@@ -37,7 +40,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.Functions;
-import hudson.Util;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.AbstractItem;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
@@ -46,7 +50,6 @@ import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Node;
 import hudson.model.Run;
-import hudson.model.User;
 import hudson.model.View;
 import hudson.scm.SCM;
 import hudson.security.ACL;
@@ -55,7 +58,6 @@ import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
-import hudson.security.UserMayOrMayNotExistException2;
 import hudson.util.FormValidation;
 import java.io.IOException;
 import java.io.Writer;
@@ -71,6 +73,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -79,6 +83,7 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.rolestrategy.AmbiguousSidsAdminMonitor;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -89,8 +94,6 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.GET;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * Role-based authorization strategy.
@@ -98,6 +101,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  * @author Thomas Maurel
  */
 public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
+
+  private static Logger LOGGER = Logger.getLogger(RoleBasedAuthorizationStrategy.class.getName());
 
   public static final String GLOBAL = "globalRoles";
   public static final String PROJECT = "projectRoles";
@@ -261,10 +266,16 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @NonNull
   public Collection<String> getGroups() {
     Set<String> sids = new HashSet<>();
-    sids.addAll(globalRoles.getSids(true));
-    sids.addAll(itemRoles.getSids(true));
-    sids.addAll(agentRoles.getSids(true));
+
+    sids.addAll(filterRoleSids(globalRoles));
+    sids.addAll(filterRoleSids(itemRoles));
+    sids.addAll(filterRoleSids(agentRoles));
     return sids;
+  }
+
+  private Set<String> filterRoleSids(RoleMap roleMap) {
+    return roleMap.getSidEntries(false).stream().filter(entry -> entry.getType() != AuthorizationType.USER)
+        .map(PermissionEntry::getSid).collect(Collectors.toSet());
   }
 
   /**
@@ -274,12 +285,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * @param type The object type controlled by the {@link RoleMap}
    * @return All roles from the global {@link RoleMap}.
-   * @deprecated Use {@link RoleBasedAuthorizationStrategy#getGrantedRoles(RoleType)}
+   * @deprecated Use {@link RoleBasedAuthorizationStrategy#getGrantedRolesEntries(RoleType)}
    */
   @Nullable
   @Deprecated
   public SortedMap<Role, Set<String>> getGrantedRoles(String type) {
-    return getGrantedRoles(RoleType.fromString(type));
+    return getRoleMap(RoleType.fromString(type)).getGrantedRoles();
   }
 
   /**
@@ -288,7 +299,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param type the type of the role
    * @return roles mapped to the set of user sids assigned to that role
    * @since 2.12
+   * @deprecated use {@link #getGrantedRolesEntries(RoleType)}
    */
+  @Deprecated
   public SortedMap<Role, Set<String>> getGrantedRoles(@NonNull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
   }
@@ -312,11 +325,45 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
+   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}.
+   *
+   * @param type the type of the role
+   * @return roles mapped to the set of user sids assigned to that role
+   */
+  public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries(@NonNull String type) {
+    return getGrantedRolesEntries(RoleType.fromString(type));
+  }
+
+  /**
+   * Get the {@link Role}s and the sids assigned to them for the given {@link RoleType}.
+   *
+   * @param type the type of the role
+   * @return roles mapped to the set of user sids assigned to that role
+   */
+  public SortedMap<Role, Set<PermissionEntry>> getGrantedRolesEntries(@NonNull RoleType type) {
+    return getRoleMap(type).getGrantedRolesEntries();
+  }
+
+
+  /**
    * Get all the SIDs referenced by specified {@link RoleMap} type.
    *
    * @param type The object type controlled by the {@link RoleMap}
    * @return All SIDs from the specified {@link RoleMap}.
    */
+  public Set<PermissionEntry> getSidEntries(String type) {
+    return getRoleMap(RoleType.fromString(type)).getSidEntries();
+  }
+
+
+  /**
+   * Get all the SIDs referenced by specified {@link RoleMap} type.
+   *
+   * @param type The object type controlled by the {@link RoleMap}
+   * @return All SIDs from the specified {@link RoleMap}.
+   * @deprecated use {@link #getSidEntries(String)}
+   */
+  @Deprecated
   @CheckForNull
   @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
   public Set<String> getSIDs(String type) {
@@ -356,11 +403,29 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param role The role to assign
    * @param sid  The sid to assign to
    */
-  private void assignRole(RoleType type, Role role, String sid) {
+  private void assignRole(RoleType type, Role role, PermissionEntry sid) {
     RoleMap roleMap = getRoleMap(type);
     if (roleMap.hasRole(role)) {
       roleMap.assignRole(role, sid);
     }
+  }
+
+  private static void persistChanges() throws IOException {
+    Jenkins j = instance();
+    j.save();
+    AuthorizationStrategy as = j.getAuthorizationStrategy();
+    if (as instanceof RoleBasedAuthorizationStrategy) {
+      RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) as;
+      rbas.validateConfig();
+    }
+  }
+
+  private static Jenkins instance() {
+    return Jenkins.get();
+  }
+
+  private static void checkAdminPerm() {
+    instance().checkPermission(Jenkins.ADMINISTER);
   }
 
   /**
@@ -414,63 +479,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to get the granted permissions of a role and the SIDs assigned to it.
-   *
-   * <p>
-   * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getRole
-   * ?type=globalRoles&roleName=admin'}
-   *
-   * <p>
-   * Returns json with granted permissions and assigned sids.<br>
-   * Example:
-   *
-   * <pre>{@code
-   *   {
-   *     "permissionIds": {
-   *         "hudson.model.Hudson.Read":true,
-   *         "hudson.model.Item.Read":true,
-   *         "hudson.model.Item.Build":true,
-   *      },
-   *      "sids": ["user1", "group1"]
-   *   }
-   * }
-   * </pre>
-   *
-   *
-   * @param type     (globalRoles, projectRoles, slaveRoles)
-   * @param roleName name of role (single, no list)
-   * @throws IOException In case write response failed
-   * @since 2.8.3
-   */
-  @GET
-  @Restricted(NoExternalUse.class)
-  public void doGetRole(@QueryParameter(required = true) String type,
-      @QueryParameter(required = true) String roleName) throws IOException {
-    checkAdminPerm();
-    JSONObject responseJson = new JSONObject();
-    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
-    Role role = roleMap.getRole(roleName);
-    if (role != null) {
-      Set<Permission> permissions = role.getPermissions();
-      Map<String, Boolean> permissionsMap = new HashMap<>();
-      for (Permission permission : permissions) {
-        permissionsMap.put(permission.getId(), permission.getEnabled());
-      }
-      responseJson.put("permissionIds", permissionsMap);
-      if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
-        responseJson.put("pattern", role.getPattern().pattern());
-      }
-      Map<Role, Set<String>> grantedRoleMap = roleMap.getGrantedRoles();
-      responseJson.put("sids", grantedRoleMap.get(role));
-    }
-
-    Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
-    Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
-    responseJson.write(writer);
-    writer.close();
-  }
-
-  /**
    * API method to remove roles.
    *
    * <p>
@@ -500,8 +508,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to assign SID to role.
+   * API method to assign a SID of type EITHER to role.
    *
+   * This method should no longer be used.
    * <p>
    * Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
@@ -512,7 +521,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param sid      user ID (single, no list)
    * @throws IOException in case saving changes fails
    * @since 2.5.0
+   * @deprecated Use {@link #doAssignUserRole} or {@link #doAssignGroupRole} to create unambiguous entries
    */
+  @Deprecated
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doAssignRole(@QueryParameter(required = true) String type,
@@ -522,32 +533,77 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     final RoleType roleType = RoleType.fromString(type);
     Role role = getRoleMap(roleType).getRole(roleName);
     if (role != null) {
-      assignRole(roleType, role, sid);
+      assignRole(roleType, role, new PermissionEntry(AuthorizationType.EITHER, sid));
     }
     persistChanges();
   }
 
-  private static void persistChanges() throws IOException {
-    instance().save();
+  /**
+   * API method to assign a User to role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/assignUserRole --data "type=globalRoles&amp;roleName=ADM
+   * &amp;user=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName name of role (single, no list)
+   * @param user     user ID (single, no list)
+   * @throws IOException in case saving changes fails
+   * @since TODO
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doAssignUserRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String user) throws IOException {
+    checkAdminPerm();
+    final RoleType roleType = RoleType.fromString(type);
+    Role role = getRoleMap(roleType).getRole(roleName);
+    if (role != null) {
+      assignRole(roleType, role, new PermissionEntry(AuthorizationType.USER, user));
+    }
+    persistChanges();
   }
 
-  private static Jenkins instance() {
-    return Jenkins.get();
-  }
-
-  private static void checkAdminPerm() {
-    instance().checkPermission(Jenkins.ADMINISTER);
+  /**
+   * API method to assign a Group to role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/assignGroupRole --data "type=globalRoles&amp;roleName=ADM
+   * &amp;group=groupname"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName name of role (single, no list)
+   * @param group    group ID (single, no list)
+   * @throws IOException in case saving changes fails
+   * @since TODO
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doAssignGroupRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String group) throws IOException {
+    checkAdminPerm();
+    final RoleType roleType = RoleType.fromString(type);
+    Role role = getRoleMap(roleType).getRole(roleName);
+    if (role != null) {
+      assignRole(roleType, role, new PermissionEntry(AuthorizationType.GROUP, group));
+    }
+    persistChanges();
   }
 
   /**
    * API method to delete a SID from all granted roles.
+   * Only SIDS of type EITHER with the given name will be deleted.
    *
    * <p>
    * Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/deleteSid --data "type=globalRoles&amp;sid=username"}
    *
    * @param type (globalRoles, projectRoles, slaveRoles)
-   * @param sid  user ID to remove
+   * @param sid  user/group ID to remove
    * @throws IOException in case saving changes fails
    * @since 2.4.1
    */
@@ -556,12 +612,58 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doDeleteSid(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String sid) throws IOException {
     checkAdminPerm();
-    getRoleMap(RoleType.fromString(type)).deleteSids(sid);
+    getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.EITHER, sid));
+    persistChanges();
+  }
+
+  /**
+   * API method to delete a user from all granted roles.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/deleteUser --data "type=globalRoles&amp;user=username"}
+   *
+   * @param type (globalRoles, projectRoles, slaveRoles)
+   * @param user user ID to remove
+   * @throws IOException in case saving changes fails
+   * @since 2.4.1
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteUser(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String user) throws IOException {
+    checkAdminPerm();
+    getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.USER, user));
+    persistChanges();
+  }
+
+  /**
+   * API method to delete a group from all granted roles.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/deleteGroup --data "type=globalRoles&amp;group=groupname"}
+   *
+   * @param type  (globalRoles, projectRoles, slaveRoles)
+   * @param group group ID to remove
+   * @throws IOException in case saving changes fails
+   * @since 2.4.1
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteGroup(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String group) throws IOException {
+    checkAdminPerm();
+    getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.GROUP, group));
     persistChanges();
   }
 
   /**
    * API method to remove a SID from a role.
+   * Only entries of type EITHER will be removed.
+   *
+   * use {@link #doUnassignUserRole(String, String, String)} or {@link #doUnassignGroupRole(String, String, String)} to unassign a
+   * User or a Group.
    *
    * <p>
    * Example:
@@ -571,6 +673,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param roleName unassign role with sid
    * @param sid      user ID to remove
    * @throws IOException in case saving changes fails
+   *
    * @since 2.6.0
    */
   @RequirePOST
@@ -582,9 +685,122 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
     Role role = roleMap.getRole(roleName);
     if (role != null) {
-      roleMap.deleteRoleSid(sid, role.getName());
+      roleMap.deleteRoleSid(new PermissionEntry(AuthorizationType.EITHER, sid), role.getName());
     }
     persistChanges();
+  }
+
+  /**
+   * API method to remove a user from a role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignUserRole --data
+   *   "type=globalRoles&amp;roleName=AMD&amp;user=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName unassign role with sid
+   * @param user     user ID to remove
+   * @throws IOException in case saving changes fails
+   * @since TODO
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doUnassignUserRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String user) throws IOException {
+    checkAdminPerm();
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
+    Role role = roleMap.getRole(roleName);
+    if (role != null) {
+      roleMap.deleteRoleSid(new PermissionEntry(AuthorizationType.USER, user), role.getName());
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to remove a user from a role.
+   *
+   * <p>
+   * Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/unassignGroupRole --data
+   *   "type=globalRoles&amp;roleName=AMD&amp;user=username"}
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName unassign role with sid
+   * @param group    user ID to remove
+   * @throws IOException in case saving changes fails
+   * @since TODO
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doUnassignGroupRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String group) throws IOException {
+    checkAdminPerm();
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
+    Role role = roleMap.getRole(roleName);
+    if (role != null) {
+      roleMap.deleteRoleSid(new PermissionEntry(AuthorizationType.GROUP, group), role.getName());
+    }
+    persistChanges();
+  }
+
+  /**
+   * API method to get the granted permissions of a role and the SIDs assigned to it.
+   *
+   * <p>
+   * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getRole
+   * ?type=globalRoles&roleName=admin'}
+   *
+   * <p>
+   * Returns json with granted permissions and assigned sids.<br>
+   * Example:
+   *
+   * <pre>{@code
+   *   {
+   *     "permissionIds": {
+   *         "hudson.model.Hudson.Read":true,
+   *         "hudson.model.Item.Read":true,
+   *         "hudson.model.Item.Build":true,
+   *      },
+   *      "sids": [{"type":"USER","sid":"user1"}, {"type":"USER","sid":"user2"}]
+   *   }
+   * }
+   * </pre>
+   *
+   *
+   * @param type     (globalRoles, projectRoles, slaveRoles)
+   * @param roleName name of role (single, no list)
+   * @throws IOException In case write response failed
+   * @since 2.8.3
+   */
+  @GET
+  @Restricted(NoExternalUse.class)
+  public void doGetRole(@QueryParameter(required = true) String type,
+      @QueryParameter(required = true) String roleName) throws IOException {
+    checkAdminPerm();
+    JSONObject responseJson = new JSONObject();
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
+    Role role = roleMap.getRole(roleName);
+    if (role != null) {
+      Set<Permission> permissions = role.getPermissions();
+      Map<String, Boolean> permissionsMap = new HashMap<>();
+      for (Permission permission : permissions) {
+        permissionsMap.put(permission.getId(), permission.getEnabled());
+      }
+      responseJson.put("permissionIds", permissionsMap);
+      if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
+        responseJson.put("pattern", role.getPattern().pattern());
+      }
+      Map<Role, Set<PermissionEntry>> grantedRoleMap = roleMap.getGrantedRolesEntries();
+      responseJson.put("sids", grantedRoleMap.get(role));
+    }
+
+    Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+    responseJson.write(writer);
+    writer.close();
   }
 
   /**
@@ -599,8 +815,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * <pre>{@code
    *   {
-   *     "role2": ["user1", "user2"],
-   *     "role2": ["group1", "user2"]
+   *     "role2": [{"type":"USER","sid":"user1"}, {"type":"USER","sid":"user2"}],
+   *     "role2": [{"type":"GROUP","sid":"group1"}, {"type":"USER","sid":"user2"}]
    *   }
    * }</pre>
    *
@@ -618,7 +834,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       roleMap = getRoleMap(RoleType.fromString(type));
     }
 
-    for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+    for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRolesEntries().entrySet()) {
       responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
     }
 
@@ -682,6 +898,31 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     writer.close();
   }
 
+  /**
+   * Checks if there are ambiguous entries and adds them to the monitor.
+   */
+  @Restricted(NoExternalUse.class)
+  public void validateConfig() {
+    List<PermissionEntry> sids = new ArrayList<>();
+    sids.addAll(getSidEntries(RoleBasedAuthorizationStrategy.GLOBAL));
+    sids.addAll(getSidEntries(RoleBasedAuthorizationStrategy.SLAVE));
+    sids.addAll(getSidEntries(RoleBasedAuthorizationStrategy.PROJECT));
+    AmbiguousSidsAdminMonitor.get().updateEntries(sids);
+  }
+
+  /**
+   * Validate the config after System config was loaded.
+   */
+  @Initializer(after = InitMilestone.SYSTEM_CONFIG_LOADED)
+  public static void init() {
+    Jenkins j = instance();
+    AuthorizationStrategy as = j.getAuthorizationStrategy();
+    if (as instanceof RoleBasedAuthorizationStrategy) {
+      RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) as;
+      rbas.validateConfig();
+    }
+  }
+
   @Extension
   public static final DescriptorImpl DESCRIPTOR = new DescriptorImpl();
 
@@ -711,7 +952,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         writer.startNode("roleMap");
         writer.addAttribute("type", map.getKey().getStringType());
 
-        for (Map.Entry<Role, Set<String>> grantedRole : roleMap.getGrantedRoles().entrySet()) {
+        for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRolesEntries().entrySet()) {
           Role role = grantedRole.getKey();
           if (role != null) {
             writer.startNode("role");
@@ -728,9 +969,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             writer.endNode();
 
             writer.startNode("assignedSIDs");
-            for (String sid : grantedRole.getValue()) {
+            for (PermissionEntry entry : grantedRole.getValue()) {
               writer.startNode("sid");
-              writer.setValue(sid);
+              writer.addAttribute("type", entry.getType().toString());
+              writer.setValue(entry.getSid());
               writer.endNode();
             }
             writer.endNode();
@@ -808,7 +1050,20 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               reader.moveDown();
               while (reader.hasMoreChildren()) {
                 reader.moveDown();
-                map.assignRole(role, reader.getValue());
+                String entryTypeValue = reader.getAttribute("type");
+                AuthorizationType authType = AuthorizationType.EITHER;
+                String sid = reader.getValue();
+                if (entryTypeValue != null) {
+                  try {
+                    authType = AuthorizationType.valueOf(entryTypeValue);
+                  } catch (IllegalArgumentException ex) {
+                    LOGGER.log(Level.WARNING, "Unknown AuthorizationType {0} for SID {1} in Role {2}/{3}",
+                        new Object[] { entryTypeValue, sid, type, name });
+                    throw ex;
+                  }
+                }
+                PermissionEntry pe = new PermissionEntry(authType, sid);
+                map.assignRole(role, pe);
                 reader.moveUp();
               }
               reader.moveUp();
@@ -958,11 +1213,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
           for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {
             String sid = r.getKey();
-            for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
-              if (e.getValue()) {
-                Role role = roleMap.getRole(e.getKey());
-                if (role != null && sid != null && !sid.equals("")) {
-                  roleMap.assignRole(role, sid);
+            if (sid != null && !sid.equals("")) {
+              PermissionEntry pe = PermissionEntry.fromString(sid);
+              for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
+                if (e.getValue()) {
+                  Role role = roleMap.getRole(e.getKey());
+                  if (role != null) {
+                    roleMap.assignRole(role, pe);
+                  }
                 }
               }
             }
@@ -1046,7 +1304,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         strategy = new RoleBasedAuthorizationStrategy();
         Role adminRole = createAdminRole();
         strategy.addRole(RoleType.Global, adminRole);
-        strategy.assignRole(RoleType.Global, adminRole, getCurrentUser());
+        strategy.assignRole(RoleType.Global, adminRole, new PermissionEntry(AuthorizationType.USER, getCurrentUser()));
       }
 
       return strategy;
@@ -1201,6 +1459,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
+     * Create PermissionEntry.
+     *
+     * @param type AuthorizationType
+     * @param sid  SID
+     * @return PermissionEntry
+     */
+    @Restricted(DoNotUse.class) // Jelly only
+    public PermissionEntry entryFor(String type, String sid) {
+      if (type == null) {
+        return null; // template row only
+      }
+      return new PermissionEntry(AuthorizationType.valueOf(type), sid);
+    }
+
+    /**
      * Validate the pattern.
      *
      * @param value Pattern to validate
@@ -1229,61 +1502,86 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     public FormValidation doCheckName(@QueryParameter String value) {
-      final String v = value.substring(1, value.length() - 1);
-      String ev = Functions.escape(v);
+      final String unbracketedValue = value.substring(1, value.length() - 1);
+
+      final int splitIndex = unbracketedValue.indexOf(':');
+      if (splitIndex < 0) {
+        return FormValidation.error("No type prefix: " + unbracketedValue);
+      }
+
+      final String typeString = unbracketedValue.substring(0, splitIndex);
+      final AuthorizationType type;
+      try {
+        type = AuthorizationType.valueOf(typeString);
+      } catch (Exception ex) {
+        return FormValidation.error("Invalid type prefix: " + unbracketedValue);
+      }
+      String sid = unbracketedValue.substring(splitIndex + 1);
+      String escapedSid = Functions.escape(sid);
 
       if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
-        return FormValidation.ok(ev); // can't check
+        return FormValidation.ok(escapedSid); // can't check
       }
 
       SecurityRealm sr = Jenkins.get().getSecurityRealm();
 
-      if (v.equals("authenticated")) {
+      if (sid.equals("authenticated") && type == AuthorizationType.EITHER) {
         // system reserved group
-        return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
+        return FormValidation.respond(FormValidation.Kind.OK,
+                ValidationUtil.formatUserGroupValidationResponse(type, escapedSid,
+            "Internal group found; but permissions would also be granted to a user of this name", true));
+      }
+
+      if (sid.equals("anonymous") && type == AuthorizationType.EITHER) {
+        // system reserved user
+        return FormValidation.respond(FormValidation.Kind.OK,
+                formatUserGroupValidationResponse(type, escapedSid,
+            "Internal user found; but permissions would also be granted to a group of this name", true));
       }
 
       try {
-        try {
-          sr.loadUserByUsername2(v);
-          User u = User.getById(v, true);
-          if (v.equals(u.getFullName())) {
-            return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("person", ev, "User"));
-          }
-          return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("person",
-              Util.escape(StringUtils.abbreviate(u.getFullName(), 50)), "User " + ev));
-        } catch (UserMayOrMayNotExistException2 e) {
-          // undecidable, meaning the user may exist
-          return FormValidation.respond(FormValidation.Kind.OK, ev);
-        } catch (UsernameNotFoundException e) {
-          // fall through next
-        } catch (AuthenticationException e) {
-          // other seemingly unexpected error.
-          return FormValidation.error(e, "Failed to test the validity of the user name " + v);
+        FormValidation groupValidation;
+        FormValidation userValidation;
+        switch (type) {
+          case GROUP:
+            groupValidation = ValidationUtil.validateGroup(sid, sr, false);
+            if (groupValidation != null) {
+              return groupValidation;
+            }
+            return FormValidation.respond(FormValidation.Kind.OK,
+                    formatNonExistentUserGroupValidationResponse(type, escapedSid, "Group not found"));
+          case USER:
+            userValidation = ValidationUtil.validateUser(sid, sr, false);
+            if (userValidation != null) {
+              return userValidation;
+            }
+            return FormValidation.respond(FormValidation.Kind.OK,
+                    formatNonExistentUserGroupValidationResponse(type, escapedSid, "User not found"));
+          case EITHER:
+            userValidation = ValidationUtil.validateUser(sid, sr, true);
+            if (userValidation != null) {
+              return userValidation;
+            }
+            groupValidation = ValidationUtil.validateGroup(sid, sr, true);
+            if (groupValidation != null) {
+              return groupValidation;
+            }
+            return FormValidation.respond(FormValidation.Kind.OK,
+                formatNonExistentUserGroupValidationResponse(type, escapedSid, "User or group not found", true));
+          default:
+            return FormValidation.error("Unexpected type: " + type);
         }
-
-        try {
-          sr.loadGroupByGroupname2(v, false);
-          return FormValidation.respond(FormValidation.Kind.OK, ValidationUtil.formatUserGroupValidationResponse("user", ev, "Group"));
-        } catch (UserMayOrMayNotExistException2 e) {
-          // undecidable, meaning the group may exist
-          return FormValidation.respond(FormValidation.Kind.WARNING, v);
-        } catch (UsernameNotFoundException e) {
-          // fall through next
-        } catch (AuthenticationException e) {
-          // other seemingly unexpected error.
-          return FormValidation.error(e, "Failed to test the validity of the group name " + v);
-        }
-
-        // couldn't find it. it doesn't exist
-        return FormValidation.respond(FormValidation.Kind.ERROR,
-            ValidationUtil.formatNonExistentUserGroupValidationResponse(ev, "User or group not found")); // TODO i18n
       } catch (Exception e) {
-        // if the check fails miserably, we still want the user to be able to see the
-        // name of the user,
-        // so use 'ev' as the message
-        return FormValidation.error(e, ev);
+        // if the check fails miserably, we still want the user to be able to see the name of the user,
+        // so use 'escapedSid' as the message
+        return FormValidation.error(e, escapedSid);
       }
+    }
+
+    @Restricted(DoNotUse.class)
+    public boolean hasAmbiguousEntries(SortedMap<Role, Set<PermissionEntry>> grantedRoles) {
+      return grantedRoles.entrySet().stream()
+          .anyMatch(entry -> entry.getValue().stream().anyMatch(pe -> pe.getType() == AuthorizationType.EITHER));
     }
   }
 }

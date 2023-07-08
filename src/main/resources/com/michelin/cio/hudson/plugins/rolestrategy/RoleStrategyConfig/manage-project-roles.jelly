@@ -30,50 +30,14 @@
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
   <j:set var="tableid" value="projectRoles"/>
 
-  <div id="itemRoleInputFilter" data-table-id="${tableid}" class="row-filter">
+  <div id="itemRoleInputFilter" data-table-id="${tableid}" data-initial-size="${itemGrantedRoles.size()}" class="row-filter">
     <f:entry title="${%Filter by Role}">
       <input id="itemRoleInput" class="row-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>  
   <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
-      <!-- The first row will show grouping -->
-    <thead>
-      <tr class="group-row">
-        <td rowspan="2" class="start" />
-        <td rowspan="2" class="pane-header blank">
-          ${%Role}
-        </td>
-        <td rowspan="2" class="pane-header blank">
-          ${%Pattern}
-        </td>
-        <j:forEach var="g" items="${itemPermissionGroups}">
-          <j:set var="cnt" value="${0}" />
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-              <j:set var="cnt" value="${cnt+1}"/>
-            </j:if>
-          </j:forEach>
-
-          <td class="pane-header" colspan="${cnt}">
-            ${g.title}
-          </td>
-        </j:forEach>
-        <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
-      </tr>
-      <!-- The second row for individual permission -->
-      <tr class="caption-row highlight-row">
-        <j:forEach var="g" items="${itemPermissionGroups}">
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-              <th class="pane" tooltip="${p.description}">
-                <span>${p.name}</span>
-              </th>
-            </j:if>
-          </j:forEach>
-        </j:forEach>
-      </tr>
-    </thead>
+    <local:thead permissionGroups="${itemPermissionGroups}" showPattern="true" strategy="${it.strategy.PROJECT}"/>
     <tbody>
       <j:forEach var="role" items="${itemGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
@@ -81,134 +45,22 @@
                          project="${true}"/>
         </tr>
       </j:forEach>
-      <j:set var="id" value="${h.generateId()}"/>
-      <tr id="${id}" style="display:none" class="permission-row highlight-row">
+      <tr id="newItemRoleTemplate" style="display:none" class="permission-row highlight-row">
         <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}"/>
       </tr>
     </tbody>
-    <j:set var="hidefooter" value=""/>
-    <j:if test="${itemGrantedRoles.size() lt 20}">
-      <j:set var="hidefooter" value="default-hidden"/>
-    </j:if>
-    <tfoot class="${hidefooter}">
-      <tr class="caption-row highlight-row">
-        <td rowspan="2" class="start" />
-        <td rowspan="2" class="pane-header blank">
-          ${%Role}
-        </td>
-        <td rowspan="2" class="pane-header blank">
-          ${%Pattern}
-        </td>
-        <j:forEach var="g" items="${itemPermissionGroups}">
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-              <th class="pane" tooltip="${p.description}">
-                <span>${p.name}</span>
-              </th>
-            </j:if>
-          </j:forEach>
-        </j:forEach>
-      </tr>
-      <tr class="group-row">
-        <j:forEach var="g" items="${itemPermissionGroups}">
-          <j:set var="cnt" value="${0}" />
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-              <j:set var="cnt" value="${cnt+1}"/>
-            </j:if>
-          </j:forEach>
-
-          <td class="pane-header" colspan="${cnt}">
-            ${g.title}
-          </td>
-        </j:forEach>
-        <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
-      </tr>
-    </tfoot>
+    <local:tfoot permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" roles="${itemGrantedRoles}" showPattern="true"/>
   </table>
   <l:isAdmin>
     <br />
     <f:entry title="${%Role to add}">
-      <f:textbox type="text" id="${tableid}text" />
+      <f:textbox id="${tableid}text" />
     </f:entry>
     <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-      <f:textbox type="text" id="${tableid}pattern" checkUrl="'${descriptorPath}/checkPattern?value='+escape(this.value)"/>
+      <f:textbox id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
     </f:entry>
     <f:entry>
-      <local:addButton id="itemMaster" tableid="${tableid}" highlighter="projectTableHighlighter"/>
+      <local:addButton id="newItemRoleTemplate" tableid="${tableid}" highlighter="projectTableHighlighter"/>
     </f:entry>
   </l:isAdmin>
-    <script>
-      <j:if test="${itemGrantedRoles.size() lt 10}">
-        document.getElementById('itemRoleInputFilter').style.display = "none"
-      </j:if>
-      var projectTableHighlighter;
-      var itemMaster = document.getElementById('${id}');
-      var tbody = itemMaster.parentNode;
-      tbody.removeChild(itemMaster);
-
-      var bindListenerToPattern = function(elem) {
-        elem.addEventListener('click', showMatchingProjects);
-      }
-
-      var showMatchingProjects = function() {
-        let pattern = this.text.substring(1, this.text.length - 1);    // Ignore quotes for the pattern
-        let maxItems = 10;    // Maximum items to search for
-        let url = 'strategy/getMatchingJobs';
-        reqParams = {
-          'pattern' : pattern,
-          'maxJobs' : maxItems
-        }
-
-        new Ajax.Request(url, {
-          method: 'get',
-          parameters: reqParams,
-          onSuccess: function(req) {
-            let responseJson = req.responseText.evalJSON();
-            let matchingItems = responseJson.matchingJobs;
-            let itemCount = responseJson.itemCount;
-
-            if(matchingItems != null) {
-              showItemsModal(matchingItems, itemCount);
-            } else {
-              showErrorMessageModal();
-            }
-          },
-          onFailure: showErrorMessageModal
-        });
-      }
-
-      var showItemsModal = function(items, itemCount) {
-        let modalText = '';
-        if(items.length > 0) {
-          if (itemCount > items.length) {
-            modalText += 'First 10 (out of ' + itemCount + ') matching Items:\n\n';
-          } else {
-            modalText += 'Matching Items:\n\n';
-          }
-          for(let item of items) {
-            modalText += ' - ' + item + '\n';
-          }
-        } else {
-          modalText += 'No matching Items found.';
-        }
-        modalText += '\n\n';
-        alert(modalText);
-      }
-
-      var showErrorMessageModal = function() {
-        alert('Unable to fetch matching Jobs.');
-      }
-
-      Event.observe(window, 'load', function(event) {
-        projectTableHighlighter = new TableHighlighter('${tableid}', 3);
-
-         // Show jobs matching a pattern on click
-         let projectRolesTable = document.getElementById('${tableid}')
-         let patterns = projectRolesTable.getElementsByClassName('patternAnchor');
-         for(let pattern of patterns) {
-           bindListenerToPattern(pattern);
-         }
-      });
-    </script>
 </j:jelly>

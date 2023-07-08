@@ -1,7 +1,7 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <hudson>
     <disabledAdministrativeMonitors/>
-    <version>2.279</version>
+    <version>2.303.3</version>
     <installStateName>RUNNING</installStateName>
     <numExecutors>2</numExecutors>
     <mode>NORMAL</mode>
@@ -13,7 +13,7 @@
                     <permission>hudson.model.Hudson.Administer</permission>
                 </permissions>
                 <assignedSIDs>
-                    <sid>admin</sid>
+                    <sid type="USER">admin</sid>
                 </assignedSIDs>
             </role>
             <role name="user" pattern=".*">
@@ -21,7 +21,7 @@
                     <permission>hudson.model.Hudson.Read</permission>
                 </permissions>
                 <assignedSIDs>
-                    <sid>anonymous</sid>
+                    <sid type="USER">anonymous</sid>
                 </assignedSIDs>
             </role>
         </roleMap>
@@ -33,7 +33,7 @@
                     <permission>hudson.model.Item.Configure</permission>
                 </permissions>
                 <assignedSIDs>
-                    <sid>anonymous</sid>
+                    <sid type="USER">anonymous</sid>
                 </assignedSIDs>
             </role>
         </roleMap>

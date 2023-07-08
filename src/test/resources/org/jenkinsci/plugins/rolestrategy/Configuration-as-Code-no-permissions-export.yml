@@ -1,0 +1,83 @@
+roleBased:
+  roles:
+    agents:
+    - name: "agent-builder"
+      pattern: "build-agent"
+      permissions:
+      - "Agent/Build"
+    global:
+    - entries:
+      - user: "builder"
+      - group: "builders"
+      name: "access"
+      pattern: ".*"
+      permissions:
+      - "Overall/Read"
+      - "Agent/Build"
+    - entries:
+      - group: "administrators"
+      name: "admin"
+      pattern: ".*"
+      permissions:
+      - "Overall/Administer"
+    - entries:
+      - user: "global-build-user"
+      name: "builder"
+      pattern: ".*"
+      permissions:
+      - "Job/Cancel"
+      - "Overall/Read"
+      - "Job/Build"
+      - "Job/Read"
+      - "Job/Workspace"
+    - entries:
+      - user: "global-creator-user"
+      name: "creator"
+      pattern: ".*"
+      permissions:
+      - "Overall/Read"
+      - "Job/Delete"
+      - "Job/Create"
+      - "Job/Read"
+    items:
+    - entries:
+      - user: "item-creator-user"
+      name: "@CurrentUserIsOwner"
+      pattern: ".*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Delete"
+      - "Job/Read"
+      - "Job/Configure"
+      - "Job/Workspace"
+    - entries:
+      - user: "item-builder-user"
+      - group: "builders"
+      name: "folder-access"
+      pattern: "(?i)folder"
+      permissions:
+      - "Job/Read"
+    - entries:
+      - user: "item-builder-user"
+      - group: "builders"
+      name: "folder-builder"
+      pattern: "(?i)folder/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Read"
+      - "Job/Workspace"
+    - entries:
+      - user: "item-creator-user"
+      name: "folder-creator"
+      pattern: "(?i)folder/.*"
+      permissions:
+      - "Job/Cancel"
+      - "Job/Build"
+      - "Job/Create"
+      - "Job/Read"
+      - "Job/Configure"
+      - "Job/Workspace"
+    - name: "tester"
+      pattern: ".*"

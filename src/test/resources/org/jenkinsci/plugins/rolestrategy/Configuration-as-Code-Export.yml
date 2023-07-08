@@ -23,32 +23,32 @@ roleBased:
     pattern: "folder2/.*"
   roles:
     agents:
-    - assignments:
-      - "user1"
-      description: "Agent 1"
+    - description: "Agent 1"
+      entries:
+      - user: "user1"
       name: "Agent1"
       pattern: "agent1"
       permissions:
       - "Agent/Build"
     global:
-    - assignments:
-      - "admin"
-      description: "Jenkins administrators"
+    - description: "Jenkins administrators"
+      entries:
+      - user: "admin"
       name: "admin"
       pattern: ".*"
       permissions:
       - "Overall/Administer"
-    - assignments:
-      - "authenticated"
-      description: "Read-only users"
+    - description: "Read-only users"
+      entries:
+      - group: "authenticated"
       name: "readonly"
       pattern: ".*"
       permissions:
       - "Overall/Read"
       - "Job/Read"
     items:
-    - assignments:
-      - "admin1"
+    - entries:
+      - user: "admin1"
       generated: true
       name: "#admin-team1"
       pattern: "folder/.*"
@@ -61,8 +61,8 @@ roleBased:
       - "Job/Read"
       - "Job/Configure"
       - "Job/Workspace"
-    - assignments:
-      - "admin2"
+    - entries:
+      - user: "admin2"
       generated: true
       name: "#admin-team2"
       pattern: "folder2/.*"
@@ -75,8 +75,8 @@ roleBased:
       - "Job/Read"
       - "Job/Configure"
       - "Job/Workspace"
-    - assignments:
-      - "developer1"
+    - entries:
+      - user: "developer1"
       generated: true
       name: "#builder-team1"
       pattern: "folder/.*"
@@ -85,8 +85,8 @@ roleBased:
       - "Job/Build"
       - "Job/Read"
       - "Job/Workspace"
-    - assignments:
-      - "developer2"
+    - entries:
+      - user: "developer2"
       generated: true
       name: "#builder-team2"
       pattern: "folder2/.*"
@@ -95,19 +95,19 @@ roleBased:
       - "Job/Build"
       - "Job/Read"
       - "Job/Workspace"
-    - assignments:
-      - "user1"
-      - "user2"
-      description: "Jobs in Folder A, but not the folder itself"
+    - description: "Jobs in Folder A, but not the folder itself"
+      entries:
+      - user: "user1"
+      - user: "user2"
       name: "FolderA"
       pattern: "A/.*"
       permissions:
       - "Job/Build"
       - "Job/Delete"
       - "Job/Configure"
-    - assignments:
-      - "user2"
-      description: "Jobs in Folder B, but not the folder itself"
+    - description: "Jobs in Folder B, but not the folder itself"
+      entries:
+      - user: "user2"
       name: "FolderB"
       pattern: "B.*"
       permissions:

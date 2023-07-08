@@ -28,8 +28,6 @@ Activate the Role-Based Strategy by using the standard _Manage Jenkins > Configu
 
 After the installation, the plugin can be configured using the _Manage and Assign Roles_ screen accessible from _Manage Jenkins_ .
 
-![Role Strategy Configuration](/docs/images/manageAndAssignRoles.png)
-
 ### Configuring roles
 
 You can define roles by using the _Manages Roles_ screen. It is possible to define global, item and agent specific roles.
@@ -71,7 +69,8 @@ The Rest API allows to query the current roles and assignments and to do changes
 Please see the [javadoc](https://javadoc.jenkins.io/plugin/role-strategy/com/michelin/cio/hudson/plugins/rolestrategy/RoleBasedAuthorizationStrategy.html) for details and examples.
 
 ### Config & Assign role by using Jenkins Script Console or Groovy Hook Script
-Configuration management can be used via [Jenkins Script Console](https://www.jenkins.io/doc/book/managing/script-console/) or [Groovy Hook Scripts](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/), following example is creating a admin role & user based on plugin 3.1. 
+Configuration management can be used via [Jenkins Script Console](https://www.jenkins.io/doc/book/managing/script-console/) or 
+[Groovy Hook Scripts](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/), following example is creating an admin role & user based on plugin 3.1. 
 
 ```groovy
 import jenkins.model.Jenkins
@@ -90,14 +89,14 @@ def rbas = new RoleBasedAuthorizationStrategy()
 
 /* create admin role */
 Set<Permission> permissions = new HashSet<>();
-def groups = new ArrayList<>(PermissionGroup.getAll());
-groups.remove(PermissionGroup.get(Permission.class));
+permissions.add(Jenkins.ADMINISTER)
 Role adminRole = new Role("admin",permissions)
 
 /* assign admin role to admin user */
 globalRoleMap = rbas.getRoleMaps()[RoleType.Global]
 globalRoleMap.addRole(adminRole)
-globalRoleMap.assignRole(adminRole, 'admin')
+globalRoleMap.assignUserRole(adminRole, 'admin')
+globalRoleMap.assignGroupRole(adminRole, 'administrators')
 
 jenkins.setAuthorizationStrategy(rbas)
 

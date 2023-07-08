@@ -68,8 +68,9 @@
         </d:tag>
     </d:taglib>
     
-    <l:layout permission="${app.SYSTEM_READ}" norefresh="true">
-        <st:include it="${app}" page="sidepanel.jelly"/>
+    <l:layout title="${%Role-Strategy Macros Info}" permission="${app.SYSTEM_READ}" norefresh="true">
+        <l:breadcrumb title="Macros"/>
+        <st:include page="sidepanel.jelly"/>
         
         <l:main-panel>
             <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />    

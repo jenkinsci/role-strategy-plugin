@@ -22,26 +22,29 @@
  * THE SOFTWARE.
  */
 
+function getPreviousSiblings(elem, filter) {
+    var sibs = [];
+    while (elem = elem.previousSibling) {
+        if (elem.nodeType === 3) continue; // text node
+        sibs.push(elem);
+    }
+    return sibs;
+}
 class TableHighlighter {
 
   constructor(id, decalx) {
-    this.table = $(id);
+    this.table = document.getElementById(id);
     this.decalx = decalx;
-    let trs = $$('#'+this.table.id+' tbody tr');
+    let trs = this.table.querySelectorAll('tbody tr');
     for (let row of trs){
         this.scan(row);
     }
   };
 
   scan(tr) {
-    let element = $(tr);
+    let element = tr
     let descendants = element.getElementsByTagName('input');
-    for (let descendant of descendants) {
-      let td = $(descendant);
-      // before 2.335 -- TODO remove once baseline is new enough
-      td.addEventListener('mouseover', this.highlight);
-      td.addEventListener('mouseout', this.highlight);
-      // For Jenkins 2.335+
+    for (let td of descendants) {
       if (td.nextSibling != null) {
         td.nextSibling.addEventListener('mouseover', this.highlight);
         td.nextSibling.addEventListener('mouseout', this.highlight);
@@ -50,20 +53,28 @@ class TableHighlighter {
   };
 
   highlight = e => {
+    let enable = e.type === 'mouseover';
     let td = findAncestor(Event.element(e), "TD")
     let tr = td.parentNode;
-    let trs = $$('#'+this.table.id+' tr.highlight-row');
-    let position = td.previousSiblings().length;
+    let trs = this.table.querySelectorAll('tr.highlight-row');
+    let position = getPreviousSiblings(td).length;
 
     let p = 0;
-    for (let row of trs){
+    for (let row of trs) {
       let num = position;
-        if (p==0) num = num - this.decalx;
-        p++;
-        let imd = row.immediateDescendants();
-        row.immediateDescendants()[num].toggleClassName('highlighted');
+      if (p==0) num = num - this.decalx;
+      p++;
+      if (enable) {
+        row.childNodes[num].classList.add('highlighted');
+      } else {
+        row.childNodes[num].classList.remove('highlighted');
+      }
     }
-    tr.toggleClassName('highlighted');
+    if (enable) {
+      tr.classList.add('highlighted');
+    } else {
+      tr.classList.remove('highlighted');
+    }
   };
 };
 
