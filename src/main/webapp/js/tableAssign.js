@@ -89,7 +89,7 @@ Behaviour.specify(
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
       let templateId = elem.getAttribute("data-template-id");
-      let template = window[templateId];
+      let template = window[templateId].content.firstElementChild.cloneNode(true);
       let highlighter = window[elem.getAttribute("data-highlighter")];
       addButtonAction(e, template, table, highlighter, tableId);
       let tbody = table.tBodies[0];
@@ -175,9 +175,6 @@ Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'Ro
 });
 
 Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row", "RoleBasedAuthorizationStrategy", 0, function(e) {
-    if (e.getAttribute('name') === '__unused__') {
-          return;
-    }
     if (!e.hasAttribute('data-checked')) {
       FormChecker.delayedCheck(e.getAttribute('data-descriptor-url') + "/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
       e.setAttribute('data-checked', 'true');
@@ -273,8 +270,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     newGlobalRowTemplate = document.getElementById('newGlobalRowTemplate');
-    let tbody = newGlobalRowTemplate.parentNode;
-    tbody.removeChild(newGlobalRowTemplate);
 
     globalTableHighlighter = new TableHighlighter('globalRoles', 0);
 
@@ -290,16 +285,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     newItemRowTemplate = document.getElementById('newItemRowTemplate');
 
-    tbody = newItemRowTemplate.parentNode;
-    tbody.removeChild(newItemRowTemplate);
-
     itemTableHighlighter = new TableHighlighter('projectRoles', 0);
 
     // agent roles initialization
     newAgentRowTemplate = document.getElementById('newAgentRowTemplate');
-
-    tbody = newAgentRowTemplate.parentNode;
-    tbody.removeChild(newAgentRowTemplate);
 
     agentTableHighlighter = new TableHighlighter('agentRoles', 0);
 });

@@ -175,7 +175,7 @@ Behaviour.specify(
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
       let templateId = elem.getAttribute("data-template-id");
-      let template = window[templateId];
+      let template = window[templateId].content.firstElementChild.cloneNode(true);
       let highlighter = window[elem.getAttribute("data-highlighter")];
       addButtonAction(e, template, table, highlighter, tableId);
       let tbody = table.tBodies[0];
@@ -425,8 +425,6 @@ document.addEventListener('DOMContentLoaded', function() {
     globalRoleInputFilter.style.display = "block"
   }
   newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
-  let tbody = newGlobalRoleTemplate.parentNode;
-  tbody.removeChild(newGlobalRoleTemplate);
 
   globalTableHighlighter = new TableHighlighter('globalRoles', 2);
 
@@ -437,8 +435,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
-  tbody = newItemRoleTemplate.parentNode;
-  tbody.removeChild(newItemRoleTemplate);
 
   projectTableHighlighter = new TableHighlighter('projectRoles', 3);
 
@@ -451,8 +447,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // agent roles initialization
   newAgentRoleTemplate = document.getElementById('newAgentRoleTemplate');
-  tbody = newAgentRoleTemplate.parentNode;
-  tbody.removeChild(newAgentRoleTemplate);
 
   agentTableHighlighter = new TableHighlighter('agentRoles', 3);
   // Show agents matching a pattern on click
