@@ -46,12 +46,15 @@
           <local:roleRow title="${role.key.name}" role="${role.key}" global="${true}" type="${it.strategy.GLOBAL}" />
         </tr>
       </j:forEach>
-      <tr id="newGlobalRoleTemplate" style="display:none" class="permission-row highlight-row">
-        <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" />
-      </tr>
     </tbody>
     <local:tfoot permissionGroups="${globalPermissionGroups}" strategy="${it.strategy.GLOBAL}" roles="${globalGrantedRoles}" showPattern="false"/>
   </table>
+
+  <template id="newGlobalRoleTemplate">
+    <tr class="permission-row highlight-row">
+      <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" />
+    </tr>
+  </template>
 
   <l:isAdmin>
     <br />
