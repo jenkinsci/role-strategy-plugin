@@ -94,11 +94,11 @@ handlePatternEdit = function() {
 }
 
 handleKey = function(e) {
-  var key = e.key || 0;
+  let key = e.key || 0;
   if (key == "Enter" || key === "Escape") {
     e.preventDefault();
     e.stopImmediatePropagation();
-    var span = e.target.parentNode;
+    let span = e.target.parentNode;
     endPatternInput(span, key === "Escape");
   }
 };
@@ -146,7 +146,7 @@ updateTooltip = function(tr, td, pattern) {
   let input = td.getElementsByTagName('INPUT')[0];
   input.disabled = false;
 
-  var tooltipAttributeName = getTooltipAttributeName();
+  let tooltipAttributeName = getTooltipAttributeName();
 
   let tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", escapeHTML(pattern)).replace("{{GRANTBYOTHER}}", "");
   input.nextSibling.setAttribute(tooltipAttributeName, tooltip);
@@ -420,24 +420,24 @@ closeModal = function () {
 
 document.addEventListener('DOMContentLoaded', function() {
   // global roles initialization
-  var globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
+  let globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
   if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
     globalRoleInputFilter.style.display = "block"
   }
   newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
-  tbody = newGlobalRoleTemplate.parentNode;
+  let tbody = newGlobalRoleTemplate.parentNode;
   tbody.removeChild(newGlobalRoleTemplate);
 
   globalTableHighlighter = new TableHighlighter('globalRoles', 2);
 
   // item roles initialization
-  var itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
+  let itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
   if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
     itemRoleInputFilter.style.display = "block"
   }
 
   newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
-  var tbody = newItemRoleTemplate.parentNode;
+  tbody = newItemRoleTemplate.parentNode;
   tbody.removeChild(newItemRoleTemplate);
 
   projectTableHighlighter = new TableHighlighter('projectRoles', 3);

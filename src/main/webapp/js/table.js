@@ -23,7 +23,7 @@
  */
 
 function getPreviousSiblings(elem, filter) {
-    var sibs = [];
+    let sibs = [];
     while (elem = elem.previousSibling) {
         if (elem.nodeType === 3) continue; // text node
         sibs.push(elem);
