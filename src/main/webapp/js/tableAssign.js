@@ -33,12 +33,12 @@ var agentTableHighlighter;
 var newAgentRowTemplate;
 
 function filterUsers(filter, table) {
-  for (var i = 1; i < table.rows.length; i++) {
-    var row = table.rows[i];
+  for (let i = 1; i < table.rows.length; i++) {
+    let row = table.rows[i];
     if (row.classList.contains("group-row")) {
       continue;
     }
-    var userCell = row.cells[1].textContent.toUpperCase();
+    let userCell = row.cells[1].textContent.toUpperCase();
     if (userCell.indexOf(filter) > -1) {
       row.style.display = "";
     } else {
@@ -48,15 +48,15 @@ function filterUsers(filter, table) {
 }
 
 function filterRoles(filter, table) {
-  var rowCount = table.rows.length;
-  var startColumn = 2; // column 0 is the delete button, column 1 contains the user/group
-  var endColumn = table.rows[0].cells.length - 2; // last column is the delete button
-  for (var c = startColumn; c <= endColumn; c++) {
-    var shouldFilter = true;
+  let rowCount = table.rows.length;
+  let startColumn = 2; // column 0 is the delete button, column 1 contains the user/group
+  let endColumn = table.rows[0].cells.length - 2; // last column is the delete button
+  for (let c = startColumn; c <= endColumn; c++) {
+    let shouldFilter = true;
     if (table.rows[0].cells[c].textContent.toUpperCase().indexOf(filter) > -1) {
       shouldFilter = false;
     }
-    for (var r = 0; r < rowCount; r++) {
+    for (let r = 0; r < rowCount; r++) {
       if (shouldFilter) {
         table.rows[r].cells[c].style.display = "none";
       } else {
@@ -89,13 +89,13 @@ Behaviour.specify(
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
       let templateId = elem.getAttribute("data-template-id");
-      let template = window[templateId];
+      let template = window[templateId].content.firstElementChild.cloneNode(true);
       let highlighter = window[elem.getAttribute("data-highlighter")];
       addButtonAction(e, template, table, highlighter, tableId);
       let tbody = table.tBodies[0];
       if (tbody.children.length >= filterLimit) {
         let userfilters = document.querySelectorAll(".user-filter")
-        for (var q=0;q<userfilters.length;++q) {
+        for (let q=0;q<userfilters.length;++q) {
           let filter = userfilters[q];
           if (filter.getAttribute("data-table-id") === tableId) {
             filter.style.display = "block";
@@ -124,7 +124,7 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
       return;
     }
     
-    copy = document.importNode(template,true);
+    let copy = document.importNode(template,true);
     copy.removeAttribute("id");
     copy.removeAttribute("style");
     
@@ -154,7 +154,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'Ro
     parent.removeChild(tr);
     if (parent.children.length < filterLimit) {
       let userfilters = document.querySelectorAll(".user-filter")
-      for (var q=0;q<userfilters.length;++q) {
+      for (let q=0;q<userfilters.length;++q) {
         let filter = userfilters[q];
         if (filter.getAttribute("data-table-id") === tableId) {
           filter.style.display = "none";
@@ -175,9 +175,6 @@ Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'Ro
 });
 
 Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row", "RoleBasedAuthorizationStrategy", 0, function(e) {
-    if (e.getAttribute('name') === '__unused__') {
-          return;
-    }
     if (!e.hasAttribute('data-checked')) {
       FormChecker.delayedCheck(e.getAttribute('data-descriptor-url') + "/checkName?value="+encodeURIComponent(e.getAttribute("name")),"POST",e.childNodes[1]);
       e.setAttribute('data-checked', 'true');
@@ -190,18 +187,18 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row
  */
 Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
-    var tr = findAncestor(this,"TR");
-    var name = tr.getAttribute('name');
+    let tr = findAncestor(this,"TR");
+    let name = tr.getAttribute('name');
 
-    var newName = name.replace('[EITHER:', '[USER:'); // migrate_user behavior
+    let newName = name.replace('[EITHER:', '[USER:'); // migrate_user behavior
     if (this.classList.contains('migrate_group')) {
       newName = name.replace('[EITHER:', '[GROUP:');
     }
 
-    var table = findAncestor(this,"TABLE");
-    var tableRows = table.getElementsByTagName('tr');
-    var newNameElement = null;
-    for (var i = 0; i < tableRows.length; i++) {
+    let table = findAncestor(this,"TABLE");
+    let tableRows = table.getElementsByTagName('tr');
+    let newNameElement = null;
+    for (let i = 0; i < tableRows.length; i++) {
       if (tableRows[i].getAttribute('name') === newName) {
         newNameElement = tableRows[i];
         break;
@@ -217,18 +214,18 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate"
       tr.removeAttribute('data-checked');
 
       // remove migration buttons from updated row
-      var buttonContainer = findAncestor(this, "TD");
-      var migrateButtons = buttonContainer.getElementsByClassName('migrate');
-      for (var i = migrateButtons.length - 1; i >= 0; i--) {
+      let buttonContainer = findAncestor(this, "TD");
+      let migrateButtons = buttonContainer.getElementsByClassName('migrate');
+      for (let i = migrateButtons.length - 1; i >= 0; i--) {
         migrateButtons[i].remove();
       }
     } else {
       // there's already a row for the migrated name (unusual but OK), so merge them
 
       // migrate permissions from this row
-      var ambiguousPermissionInputs = tr.getElementsByTagName("INPUT");
-      var unambiguousPermissionInputs = newNameElement.getElementsByTagName("INPUT");
-      for (var i = 0; i < ambiguousPermissionInputs.length; i++){
+      let ambiguousPermissionInputs = tr.getElementsByTagName("INPUT");
+      let unambiguousPermissionInputs = newNameElement.getElementsByTagName("INPUT");
+      for (let i = 0; i < ambiguousPermissionInputs.length; i++){
         if (ambiguousPermissionInputs[i].type == "checkbox") {
           unambiguousPermissionInputs[i].checked |= ambiguousPermissionInputs[i].checked;
         }
@@ -240,16 +237,16 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate"
     }
     Behaviour.applySubtree(table, true);
 
-    var hasAmbiguousRows = false;
+    let hasAmbiguousRows = false;
 
-    for (var i = 0; i < tableRows.length; i++) {
+    for (let i = 0; i < tableRows.length; i++) {
       if (tableRows[i].getAttribute('name') !== null && tableRows[i].getAttribute('name').startsWith('[EITHER')) {
         hasAmbiguousRows = true;
       }
     }
     if (!hasAmbiguousRows) {
-      var alertElements = document.getElementsByClassName("alert");
-      for (var i = 0; i < alertElements.length; i++) {
+      let alertElements = document.getElementsByClassName("alert");
+      for (let i = 0; i < alertElements.length; i++) {
         if (alertElements[i].hasAttribute('data-table-id') && alertElements[i].getAttribute('data-table-id') === table.getAttribute('id')) {
           alertElements[i].style.display = 'none'; // TODO animate this?
         }
@@ -263,43 +260,35 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate"
 
 document.addEventListener('DOMContentLoaded', function() {
     // global roles initialization
-    var globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
+    let globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
     if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
         globalRoleInputFilter.style.display = "block"
     }
-    var globalUserInputFilter = document.getElementById('globalUserInputFilter');
+    let globalUserInputFilter = document.getElementById('globalUserInputFilter');
     if (parseInt(globalUserInputFilter.getAttribute("data-initial-size")) >= 10) {
         globalUserInputFilter.style.display = "block"
     }
 
     newGlobalRowTemplate = document.getElementById('newGlobalRowTemplate');
-    var tbody = newGlobalRowTemplate.parentNode;
-    tbody.removeChild(newGlobalRowTemplate);
 
     globalTableHighlighter = new TableHighlighter('globalRoles', 0);
 
     // item roles initialization
-    var itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
+    let itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
     if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
         itemRoleInputFilter.style.display = "block"
     }
-    var itemUserInputFilter = document.getElementById('itemUserInputFilter');
+    let itemUserInputFilter = document.getElementById('itemUserInputFilter');
     if (parseInt(itemUserInputFilter.getAttribute("data-initial-size")) >= 10) {
         itemUserInputFilter.style.display = "block"
     }
 
     newItemRowTemplate = document.getElementById('newItemRowTemplate');
 
-    tbody = newItemRowTemplate.parentNode;
-    tbody.removeChild(newItemRowTemplate);
-
     itemTableHighlighter = new TableHighlighter('projectRoles', 0);
 
     // agent roles initialization
     newAgentRowTemplate = document.getElementById('newAgentRowTemplate');
-
-    tbody = newAgentRowTemplate.parentNode;
-    tbody.removeChild(newAgentRowTemplate);
 
     agentTableHighlighter = new TableHighlighter('agentRoles', 0);
 });

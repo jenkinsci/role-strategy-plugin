@@ -45,12 +45,16 @@
                          project="${true}"/>
         </tr>
       </j:forEach>
-      <tr id="newItemRoleTemplate" style="display:none" class="permission-row highlight-row">
-        <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}"/>
-      </tr>
     </tbody>
     <local:tfoot permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" roles="${itemGrantedRoles}" showPattern="true"/>
   </table>
+
+  <template id="newItemRoleTemplate">
+    <tr class="permission-row highlight-row">
+      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" />
+    </tr>
+  </template>
+
   <l:isAdmin>
     <br />
     <f:entry title="${%Role to add}">

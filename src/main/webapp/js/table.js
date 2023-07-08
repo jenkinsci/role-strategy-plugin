@@ -23,13 +23,14 @@
  */
 
 function getPreviousSiblings(elem, filter) {
-    var sibs = [];
+    let sibs = [];
     while (elem = elem.previousSibling) {
         if (elem.nodeType === 3) continue; // text node
         sibs.push(elem);
     }
     return sibs;
 }
+
 class TableHighlighter {
 
   constructor(id, decalx) {
@@ -42,19 +43,34 @@ class TableHighlighter {
   };
 
   scan(tr) {
-    let element = tr
-    let descendants = element.getElementsByTagName('input');
-    for (let td of descendants) {
-      if (td.nextSibling != null) {
-        td.nextSibling.addEventListener('mouseover', this.highlight);
-        td.nextSibling.addEventListener('mouseout', this.highlight);
-      }
+    let descendants = tr.getElementsByTagName('input');
+    for (let input of descendants) {
+        let td = input.closest('td');
+        td.addEventListener('mouseover', this.highlight);
+        td.addEventListener('mouseout', this.highlight);
+    }
+    let stopNodes = tr.querySelectorAll("div.rsp-remove");
+    let lastStop = stopNodes[stopNodes.length - 1];
+    if (lastStop != null) {
+      let td = lastStop.closest('td');
+      td.addEventListener('mouseover', this.highlightRowOnly);
+      td.addEventListener('mouseout', this.highlightRowOnly);
     }
   };
 
+  highlightRowOnly = e => {
+    let enable = e.type === 'mouseover';
+    let tr = findAncestor(e.target, "TR")
+    if (enable) {
+      tr.classList.add('highlighted');
+    } else {
+      tr.classList.remove('highlighted');
+    }
+  }
+
   highlight = e => {
     let enable = e.type === 'mouseover';
-    let td = findAncestor(Event.element(e), "TD")
+    let td = findAncestor(e.target, "TD")
     let tr = td.parentNode;
     let trs = this.table.querySelectorAll('tr.highlight-row');
     let position = getPreviousSiblings(td).length;

@@ -44,26 +44,31 @@
 
       <!-- The first row will show grouping -->
       <local:thead roles="${globalGrantedRoles}" showPattern="false"/>
-      <tr name="[USER:anonymous]" class="highlight-row">
-        <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.GLOBAL}" permissionType="USER" typedescription="User" noremove="true"/>
-      </tr>
-      <tr name="[GROUP:authenticated]" class="highlight-row">
-        <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.GLOBAL}" permissionType="GROUP" typedescription="Group" noremove="true"/>
-      </tr>
-      <j:forEach var="entry" items="${globalSIDs}">
-        <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
-	        <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-	          <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.GLOBAL}"/>
-	        </tr>
-	      </j:if>
-      </j:forEach>
-      <tr name="__unused__" id="newGlobalRowTemplate" style="display:none" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-        <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
-      </tr>
+      <tbody>
+        <tr name="[USER:anonymous]" class="highlight-row">
+          <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.GLOBAL}" permissionType="USER" typedescription="User" noremove="true"/>
+        </tr>
+        <tr name="[GROUP:authenticated]" class="highlight-row">
+          <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.GLOBAL}" permissionType="GROUP" typedescription="Group" noremove="true"/>
+        </tr>
+        <j:forEach var="entry" items="${globalSIDs}">
+          <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
+            <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+              <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.GLOBAL}"/>
+            </tr>
+          </j:if>
+        </j:forEach>
+      </tbody>
       <local:tfoot roles="${globalGrantedRoles}" sids="${globalSIDs}"/>
     </table>
 
-    <l:isAdmin>
+    <template id="newGlobalRowTemplate">
+      <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+        <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
+      </tr>
+    </template>
+
+  <l:isAdmin>
       <br/>
       <local:addButtons sids="${globalSIDs}" tableid="${tableid}" id="newGlobalRowTemplate" roles="${globalGrantedRoles}" highlighter="globalTableHighlighter"/>
     </l:isAdmin>

@@ -43,12 +43,16 @@
                          project="${false}"/>
         </tr>
       </j:forEach>
-      <tr id="newAgentRoleTemplate" style="display:none" class="permission-row highlight-row">
-        <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
-      </tr>
     </tbody>
     <local:tfoot permissionGroups="${agentGroups}" strategy="${it.strategy.SLAVE}" roles="${agentGrantedRoles}" showPattern="true"/>
   </table>
+
+  <template id="newAgentRoleTemplate">
+    <tr class="permission-row highlight-row">
+      <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
+    </tr>
+  </template>
+
   <l:isAdmin>
     <br/>
     <f:entry title="${%Role to add}">
