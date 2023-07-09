@@ -39,8 +39,8 @@ jenkins:
             entries:
               - group: "authenticated"
         items:
-          - assignments:
-              - "admin1"
+          - entries:
+              - user: "admin1"
             name: "#admin-team1"
             pattern: "folder/.*"
             permissions:
@@ -52,8 +52,8 @@ jenkins:
               - "Job/Read"
               - "Job/Configure"
               - "Job/Workspace"
-          - assignments:
-              - "admin2"
+          - entries:
+              - user: "admin2"
             name: "#admin-team2"
             pattern: "folder2/.*"
             permissions:
@@ -65,8 +65,8 @@ jenkins:
               - "Job/Read"
               - "Job/Configure"
               - "Job/Workspace"
-          - assignments:
-              - "developer1"
+          - entries:
+              - user: "developer1"
             name: "#builder-team1"
             pattern: "folder/.*"
             permissions:
@@ -74,8 +74,8 @@ jenkins:
               - "Job/Build"
               - "Job/Read"
               - "Job/Workspace"
-          - assignments:
-              - "developer2"
+          - entries:
+              - user: "developer2"
             name: "#builder-team2"
             pattern: "folder2/.*"
             permissions:
