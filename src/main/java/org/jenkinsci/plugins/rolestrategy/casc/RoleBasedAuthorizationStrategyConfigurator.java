@@ -4,7 +4,6 @@ import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.PermissionTemplate;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
-import com.michelin.cio.hudson.plugins.rolestrategy.RoleTemplate;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -63,9 +62,8 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     final Configurator<GrantedRoles> c = context.lookupOrFail(GrantedRoles.class);
     final GrantedRoles roles = c.configure(map.remove("roles"), context);
     final Set<PermissionTemplate> permissionTemplates = getPermissionTemplates(map, context);
-    final Set<RoleTemplate> roleTemplates = getRoleTemplates(map, context);
 
-    return new RoleBasedAuthorizationStrategy(roles.toMap(), permissionTemplates, roleTemplates);
+    return new RoleBasedAuthorizationStrategy(roles.toMap(), permissionTemplates);
   }
 
   private static Set<PermissionTemplate> getPermissionTemplates(Mapping map, ConfigurationContext context) throws ConfiguratorException {
@@ -79,19 +77,6 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
       }
     }
     return permissionTemplates;
-  }
-
-  private static Set<RoleTemplate> getRoleTemplates(Mapping map, ConfigurationContext context) throws ConfiguratorException {
-    final Configurator<RoleTemplate> c = context.lookupOrFail(RoleTemplate.class);
-    Set<RoleTemplate> roleTemplates = new TreeSet<>();
-    CNode sub = map.remove("roleTemplates");
-    if (sub != null) {
-      for (CNode o : sub.asSequence()) {
-        RoleTemplate template = c.configure(o, context);
-        roleTemplates.add(template);
-      }
-    }
-    return roleTemplates;
   }
 
   @Override
@@ -115,9 +100,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
               return new GrantedRoles(globalRoles, projectRoles, agentRoles);
             }),
             new MultivaluedAttribute<RoleBasedAuthorizationStrategy, PermissionTemplateDefinition>("permissionTemplates",
-                PermissionTemplateDefinition.class).getter(target -> getPermissionTemplateDefinitions(target.getPermissionTemplates())),
-            new MultivaluedAttribute<RoleBasedAuthorizationStrategy, RoleTemplate>("roleTemplates", RoleTemplate.class)
-                .getter(target -> target.getRoleTemplates())
+                PermissionTemplateDefinition.class).getter(target -> getPermissionTemplateDefinitions(target.getPermissionTemplates()))
     ));
   }
 
@@ -161,7 +144,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
       final RoleDefinition roleDefinition = new RoleDefinition(role.getName(), role.getDescription(),
               role.getPattern().pattern(), permissions);
       roleDefinition.setEntries(roleDefinitionEntries);
-      roleDefinition.setGenerated(role.isGenerated());
+      roleDefinition.setTemplateName(role.getTemplateName());
       return roleDefinition;
     };
   }

@@ -43,18 +43,17 @@ class TableHighlighter {
   };
 
   scan(tr) {
-    let descendants = tr.getElementsByTagName('input');
-    for (let input of descendants) {
-        let td = input.closest('td');
+    let descendants = tr.querySelectorAll('.permissionInput');
+    for (let td of descendants) {
         td.addEventListener('mouseover', this.highlight);
-        td.addEventListener('mouseout', this.highlight);
+        td.addEventListener('mouseleave', this.highlight);
     }
     let stopNodes = tr.querySelectorAll("div.rsp-remove");
     let lastStop = stopNodes[stopNodes.length - 1];
     if (lastStop != null) {
       let td = lastStop.closest('td');
       td.addEventListener('mouseover', this.highlightRowOnly);
-      td.addEventListener('mouseout', this.highlightRowOnly);
+      td.addEventListener('mouseleave', this.highlightRowOnly);
     }
   };
 
@@ -70,26 +69,29 @@ class TableHighlighter {
 
   highlight = e => {
     let enable = e.type === 'mouseover';
-    let td = findAncestor(e.target, "TD")
-    let tr = td.parentNode;
-    let trs = this.table.querySelectorAll('tr.highlight-row');
-    let position = getPreviousSiblings(td).length;
+    if (e.target.tagName === 'TD') {
+      let td = e.target;
+      let tr = td.parentNode;
+      let trs = this.table.querySelectorAll('tr.highlight-row');
+      let position = getPreviousSiblings(td).length;
 
-    let p = 0;
-    for (let row of trs) {
-      let num = position;
-      if (p==0) num = num - this.decalx;
-      p++;
-      if (enable) {
-        row.childNodes[num].classList.add('highlighted');
-      } else {
-        row.childNodes[num].classList.remove('highlighted');
+      let p = 0;
+      for (let row of trs) {
+        let num = position;
+        if (p==0) num = num - this.decalx;
+        p++;
+        let element = row.childNodes[num];
+        if (enable) {
+          element.classList.add('highlighted');
+        } else {
+          element.classList.remove('highlighted');
+        }
       }
-    }
-    if (enable) {
-      tr.classList.add('highlighted');
-    } else {
-      tr.classList.remove('highlighted');
+      if (enable) {
+        tr.classList.add('highlighted');
+      } else {
+        tr.classList.remove('highlighted');
+      }
     }
   };
 };

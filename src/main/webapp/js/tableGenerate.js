@@ -22,63 +22,30 @@
  * THE SOFTWARE.
  */
 
+// number of lines required for the role filter to get enabled
+var filterLimit = 10;
 // number of lines required for the footer to get displayed
 var footerLimit = 20;
 
 
-getPattern = function(row) {
-  let pattern = "";
-  patternEditInputs = row.getElementsByClassName("patternEdit");
-  if (patternEditInputs.length > 0) {
-    pattern = patternEditInputs[0].value;
-  }
-  return pattern;
-}
-
-
-Behaviour.specify("img.icon-pencil", 'RoleBasedAuthorizationStrategy', 0, function (e) {
-  e.onclick = function () {
-    let inputNode = this.parentNode.childNodes[1];
-    if (inputNode.childNodes.length == 2) {
-      inputNode.innerHTML = '<input onkeypress="" type="text" name="[pattern]" value="' + inputNode.childNodes[1].value + '" size="' + (inputNode.childNodes[1].value.length + 10) + '"/>';
-      inputNode.childNodes[0].onkeypress = preventFormSubmit;
+function filterRows(filter, table) {
+  for (let row of table.tBodies[0].rows) {
+    let userCell = row.cells[1].textContent.toUpperCase();
+    if (userCell.indexOf(filter) > -1) {
+      row.style.display = "";
     } else {
-      endPatternInput(inputNode);
+      row.style.display = "none";
     }
-    return false;
   }
-});
-
-
-preventFormSubmit = function(e) {
-  var key = e.charCode || e.keyCode || 0;     
-  if (key == 13) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    var inputNode = e.target.parentNode;
-    endPatternInput(inputNode);
-  }
-};
-
-endPatternInput = function(inputNode) {
-  let pattern = inputNode.childNodes[0].value;
-  let table = findAncestor(inputNode,"TABLE");
-  inputNode.innerHTML = '<a href="#" class="patternAnchor">&quot;' + pattern.escapeHTML() + '&quot;</a><input class="patternEdit" type="hidden" name="[pattern]" value="' + pattern + '"/>';
-  bindListenerToPattern(inputNode.children[0]);
-  let row = findAncestor(inputNode, "TR");
-  for (td of row.getElementsByClassName('permissionInput')) {
-    updateTooltip(row, td, pattern);
-  }
-  Behaviour.applySubtree(row,true);
 }
 
-updateTooltip = function(tr, td, pattern) {
+updateTooltip = function(tr, td) {
   let tooltipTemplate = td.getAttribute("data-tooltip-template");
   let impliedByString = td.getAttribute('data-implied-by-list');
   let impliedByList = impliedByString.split(" ");
   let input = td.getElementsByTagName('INPUT')[0];
   input.disabled = false;
-  let tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", doubleEscapeHTML(pattern)).replace("{{GRANTBYOTHER}}", "");
+  let tooltip = tooltipTemplate.replace("{{GRANTBYOTHER}}", "");
   td.setAttribute("tooltip", tooltip);
 
   for (let permissionId of impliedByList) {
@@ -86,24 +53,30 @@ updateTooltip = function(tr, td, pattern) {
     if (reference !== null) {
       if (reference.checked) {
         input.disabled = true;
-        tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", doubleEscapeHTML(pattern)).replace("{{GRANTBYOTHER}}", " is granted through another permission");;
-        td.setAttribute('tooltip', tooltip); // before 2.335 -- TODO remove once baseline is new enough
-        td.nextSibling.setAttribute('tooltip', tooltip); // 2.335+
+        tooltip = tooltipTemplate.replace("{{GRANTBYOTHER}}", " is granted through another permission");;
+        td.nextSibling.setAttribute('data-html-tooltip', tooltip); // 2.335+
       }
     }
   }
 }
 
+Behaviour.specify(".row-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
+  e.onkeyup = function() {
+    let filter = e.value.toUpperCase();
+    let table = document.getElementById(e.getAttribute("data-table-id"));
+    filterRows(filter, table);
+  }
+});
 
 Behaviour.specify(
   ".template-add-button", "RoleBasedAuthorizationStrategy", 0, function(elem) {
-    makeButton(elem, function(e) {
+    elem.onclick = function(e) {
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
-      let masterId = elem.getAttribute("data-master-id");
-      let master = window[masterId];
+      let templateId = elem.getAttribute("data-template-id");
+      let template = window[templateId].content.firstElementChild.cloneNode(true);
       let highlighter = window[elem.getAttribute("data-highlighter")];
-      addButtonAction(e, master, table, highlighter, tableId);
+      addButtonAction(e, template, table, highlighter, tableId);
       let tbody = table.tBodies[0];
       if (tbody.children.length >= filterLimit) {
         let rolefilters = document.querySelectorAll(".row-filter");
@@ -116,11 +89,11 @@ Behaviour.specify(
       if (tbody.children.length >= footerLimit) {
         table.tFoot.style.display = "table-footer-group";
       }
-    });
+    }
   } 
 );
 
-addButtonAction = function (e, master, table, tableHighlighter, tableId) {
+addButtonAction = function (e, template, table, tableHighlighter, tableId) {
   let tbody = table.tBodies[0];
   let roleInput = document.getElementById(tableId+'text')
   let name = roleInput.value;
@@ -132,37 +105,20 @@ addButtonAction = function (e, master, table, tableHighlighter, tableId) {
     alert("Entry for '"+name+"' already exists");
     return;
   }
-  let pattern = "";
-  if (tableId !== "permissionTemplates") {
-    let patternInput = document.getElementById(tableId+'pattern')
-    pattern = patternInput.value;
-    if (pattern=="") {
-      alert("Please enter a pattern");
-      return;
-    }
-  }
 
-  let copy = document.importNode(master,true);
-  copy.removeAttribute("id");
-  copy.removeAttribute("style");
+  let copy = document.importNode(template,true);
   let child = copy.childNodes[1];
   child.textContent = escapeHTML(name);
-  if (tableId !== "permissionTemplates") {
-    let doubleQuote = '"';
-    copy.getElementsByClassName("patternAnchor")[0].textContent = doubleQuote + escapeHTML(pattern) + doubleQuote;
-    copy.getElementsByClassName("patternEdit")[0].value = pattern;
-  }
 
   let children = copy.getElementsByClassName("permissionInput");
   for (let child of children) {
     if (child.hasAttribute('data-tooltip-template')) {
-      child.setAttribute("data-tooltip-template", child.getAttribute("data-tooltip-template").replace(/{{TEMPLATE}}/g, doubleEscapeHTML(name)).replace("{{PATTERN}}", doubleEscapeHTML(pattern)));
+      child.setAttribute("data-tooltip-template", child.getAttribute("data-tooltip-template").replace(/{{TEMPLATE}}/g, doubleEscapeHTML(name)));
     }
   }
 
   if (tableId !== "permissionTemplates") {
     spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
-    bindListenerToPattern(spanElement.childNodes[0]);
   }
 
   copy.setAttribute("name",'['+name+']');
@@ -174,7 +130,7 @@ addButtonAction = function (e, master, table, tableHighlighter, tableId) {
 }
 
 
-Behaviour.specify(".global-matrix-authorization-strategy-table A.remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     let table = findAncestor(this,"TABLE");
     let tableId = table.getAttribute("id");
@@ -207,11 +163,23 @@ Behaviour.specify(".global-matrix-authorization-strategy-table td.permissionInpu
     return;
   }
   let row = findAncestor(e,"TR");
-  let pattern = getPattern(row);
   let td = findAncestor(e,"TD");
-  updateTooltip(row, td, pattern);
+  updateTooltip(row, td);
   e.onchange = function() {
     Behaviour.applySubtree(findAncestor(row,"TABLE"),true);
     return true;
   };
+});
+
+
+var templateTableHighlighter;
+var newPermissionTemplate;
+
+document.addEventListener('DOMContentLoaded', function() {
+  let permissionInputFilter = document.getElementById('permissionInputFilter');
+  if (parseInt(permissionInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
+    permissionInputFilter.style.display = "block"
+  }
+  newPermissionTemplate = document.getElementById('newPermissionTemplate');
+  templateTableHighlighter = new TableHighlighter('permissionTemplates', 2);
 });

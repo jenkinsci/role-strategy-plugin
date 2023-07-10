@@ -18,11 +18,6 @@ jenkins:
             - "Job/Build"
             - "Job/Read"
             - "Job/Workspace"
-      roleTemplates:
-        - name: "team1"
-          pattern: "folder/.*"
-        - name: "team2"
-          pattern: "folder2/.*"
       roles:
         global:
           - name: "admin"

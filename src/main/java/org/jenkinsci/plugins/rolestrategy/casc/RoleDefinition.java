@@ -41,7 +41,7 @@ public class RoleDefinition {
   @CheckForNull
   private final String pattern;
 
-  private boolean generated;
+  private String templateName;
   private final Set<String> permissions;
 
   private SortedSet<RoleDefinitionEntry> entries = Collections.emptySortedSet();
@@ -103,7 +103,7 @@ public class RoleDefinition {
     if (role == null) {
       Set<Permission> resolvedPermissions = PermissionHelper.fromStrings(permissions, false);
       Pattern p = Pattern.compile(pattern != null ? pattern : Role.GLOBAL_ROLE_PATTERN);
-      role = new Role(name, p, resolvedPermissions, description, generated);
+      role = new Role(name, p, resolvedPermissions, description, templateName);
     }
     return role;
   }
@@ -121,13 +121,13 @@ public class RoleDefinition {
     return pattern;
   }
 
-  public boolean isGenerated() {
-    return generated;
+  public String getTemplateName() {
+    return templateName;
   }
 
   @DataBoundSetter
-  public void setGenerated(boolean generated) {
-    this.generated = generated;
+  public void setTemplateName(String templateName) {
+    this.templateName = templateName;
   }
 
   public Set<String> getPermissions() {

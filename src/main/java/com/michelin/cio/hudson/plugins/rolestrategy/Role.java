@@ -26,7 +26,9 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Util;
 import hudson.security.AccessControlled;
+import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import java.util.HashSet;
 import java.util.Objects;
@@ -34,7 +36,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+
+import jenkins.model.Jenkins;
+import jenkins.model.ProjectNamingStrategy;
 import org.apache.commons.collections.CollectionUtils;
+import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -65,10 +71,10 @@ public final class Role implements Comparable {
   private final String description;
 
   /**
-   * Flag to indicate that the role is generated.
+   * Flag to indicate that the role is template based.
    */
   @CheckForNull
-  private final boolean generated;
+  private final String templateName;
 
   /**
    * {@link Permission}s hold by the role.
@@ -101,15 +107,15 @@ public final class Role implements Comparable {
   // TODO: comment is used for erasure cleanup only
   @DataBoundConstructor
   public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set<String> permissionIds,
-      @CheckForNull String description, boolean generated) {
+      @CheckForNull String description, String templateName) {
     this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds, true),
-        description, generated);
+        description, templateName);
   }
 
   public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set<String> permissionIds,
       @CheckForNull String description) {
     this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds, true),
-        description, false);
+        description, "");
   }
 
   /**
@@ -121,7 +127,7 @@ public final class Role implements Comparable {
    * @param description A description for the role
    */
   public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description) {
-    this(name, pattern, permissions, description, false);
+    this(name, pattern, permissions, description, "");
   }
 
   /**
@@ -131,24 +137,38 @@ public final class Role implements Comparable {
    * @param pattern     The pattern matching {@link AccessControlled} objects names
    * @param permissions The {@link Permission}s associated to the role. {@code null} permissions will be ignored.
    * @param description A description for the role
-   * @param generated   True to mark this role as generated
+   * @param templateName   True to mark this role as generated
    */
-  public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description, boolean generated) {
+  public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description, String templateName) {
     this.name = name;
     this.pattern = pattern;
     this.description = description;
-    this.generated = generated;
-    for (Permission perm : permissions) {
-      if (perm == null) {
-        LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
-      } else {
-        this.permissions.add(perm);
+    this.templateName = templateName;
+    if (Util.fixEmptyAndTrim(templateName) == null) {
+      for (Permission perm : permissions) {
+        if (perm == null) {
+          LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
+        } else {
+          this.permissions.add(perm);
+        }
+      }
+    } else {
+      AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
+      if (auth instanceof RoleBasedAuthorizationStrategy) {
+        RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
+        Set<PermissionTemplate> permissionTemplates = rbas.getPermissionTemplates();
+        for (PermissionTemplate pt : permissionTemplates) {
+          if (pt.getName().equals(templateName)) {
+            this.permissions.addAll(pt.getPermissions());
+            break;
+          }
+        }
       }
     }
   }
 
-  public boolean isGenerated() {
-    return generated;
+  public String getTemplateName() {
+    return templateName;
   }
 
   /**
@@ -176,6 +196,14 @@ public final class Role implements Comparable {
    */
   public Set<Permission> getPermissions() {
     return permissions;
+  }
+
+  /**
+   *
+   */
+  public void setPermissions(Set<Permission> permissions) {
+    this.permissions.clear();
+    this.permissions.addAll(permissions);
   }
 
   /**

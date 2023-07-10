@@ -623,24 +623,6 @@ public class RoleMap {
   }
 
   /**
-   * Return generated roles.
-   *
-   * @return generated roles
-   */
-  public RoleMap getGeneratedRoles() {
-    SortedMap<Role, Set<PermissionEntry>> roleMap = new TreeMap<>();
-    new RoleWalker() {
-      @Override
-      public void perform(Role current) {
-        if (current.isGenerated()) {
-          roleMap.put(current, grantedRoles.get(current));
-        }
-      }
-    };
-    return new RoleMap(roleMap);
-  }
-
-  /**
    * Get all job names matching the given pattern, viewable to the requesting user.
    *
    * @param pattern Pattern to match against

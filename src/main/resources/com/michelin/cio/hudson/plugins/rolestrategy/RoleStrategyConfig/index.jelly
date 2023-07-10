@@ -52,13 +52,20 @@
             <d:tag name="thead">
               <thead>
                 <tr class="group-row">
-                  <td rowspan="2" class="start" />
-                  <td rowspan="2" class="pane-header blank">
-                    ${%Role}
-                  </td>
-                  <j:if test="${attrs.showPattern == 'true'}">
+                  <j:if test="${attrs.showRoleName}">
+                    <td rowspan="2" class="start" />
+                    <td rowspan="2" class="pane-header blank">
+                      ${%Role}
+                    </td>
+                  </j:if>
+                  <j:if test="${attrs.showPattern}">
                     <td rowspan="2" class="pane-header blank">
                       ${%Pattern}
+                    </td>
+                  </j:if>
+                  <j:if test="${attrs.showTemplate}">
+                    <td rowspan="2" class="pane-header blank">
+                      ${%Template}
                     </td>
                   </j:if>
                   <j:forEach var="g" items="${attrs.permissionGroups}">
@@ -73,7 +80,9 @@
                       ${g.title}
                     </td>
                   </j:forEach>
-                  <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
+                  <j:if test="${attrs.showRoleName != 'false'}">
+                    <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
+                  </j:if>
                 </tr>
                 <!-- The second row for individual permission -->
                 <tr class="caption-row highlight-row">
@@ -100,9 +109,14 @@
                   <td rowspan="2" class="pane-header blank">
                     ${%Role}
                   </td>
-                  <j:if test="${attrs.showPattern == 'true'}">
+                  <j:if test="${attrs.showPattern}">
                     <td rowspan="2" class="pane-header blank">
                       ${%Pattern}
+                    </td>
+                  </j:if>
+                  <j:if test="${attrs.showTemplate}">
+                    <td class="pane-header blank">
+                      ${%Template}
                     </td>
                   </j:if>
                   <j:forEach var="g" items="${attrs.permissionGroups}">
@@ -135,6 +149,7 @@
               <button type="button" class="jenkins-button role-strategy-add-button" data-template-id="${id}" data-table-id="${attrs.tableid}" data-highlighter="${attrs.highlighter}">${%Add}</button>
             </d:tag>
             <d:tag name="roleRow">
+              <j:if test="${attrs.showRoleName}">
                 <td class="start">
                   <l:isAdmin>
                     <div class="rsp-remove">
@@ -142,16 +157,17 @@
                     </div>
                   </l:isAdmin>
                 </td>
-              <td class="left-most" style="white-space: nowrap;">${title}</td>
+                <td class="left-most" style="white-space: nowrap;">${title}</td>
+              </j:if>
               <j:set var="pattern" value=""/>
               <j:set var="patternTemplate" value=""/>
-              <j:if test="${!attrs.global}">
+              <j:if test="${attrs.showPattern}">
                 <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${attrs.pattern}"/>
                 <j:set var="patternTemplate" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: {{PATTERNTEMPLATE}}"/>
                 <j:if test="${attrs.pattern != '{{PATTERN}}'}">
                   <j:set var="pattern" value="&lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(attrs.role.pattern.toString())}"/>
                 </j:if>
-                <td width="*">
+                <td>
                   <div class="pattern-cell">
                       <l:icon src="symbol-pencil plugin-ionicons-api" class="icon-pencil icon-sm" tooltip="Edit pattern"/>
                       <span data-edit="false">
@@ -159,30 +175,42 @@
                         <input class="patternEdit" type="hidden" name="[pattern]" value="${attrs.role.pattern}" />
                       </span>
                   </div>
+
                 </td>
+                <j:if test="${attrs.showTemplate}">
+                  <td>
+                    <div class="pattern-cell">
+                      ${attrs.templateName}
+                      <input type="hidden" name="templateName" value="${attrs.templateName}" disabled="true"/>
+                    </div>
+                  </td>
+                </j:if>
               </j:if>
                                    
               <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-                    <td width="*"
+                    <td
                         class="permissionInput"
                         data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
                         data-permission-id="${p.id}"
+                        data-disable-checkboxes="${attrs.disable}"
                         data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)} ${patternTemplate}">
                       <f:checkbox name="[${p.id}]" checked="${attrs.role.hasPermission(p)}"/>
                     </td>
                   </j:if>
                 </j:forEach>
               </j:forEach>
-              <l:isAdmin>
-                <td class="stop">
-                  <div class="rsp-remove">
-                    <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
-                  </div>
-                </td>
-              </l:isAdmin>
+              <j:if test="${attrs.showRoleName}">
+                <l:isAdmin>
+                  <td class="stop">
+                    <div class="rsp-remove">
+                      <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                    </div>
+                  </td>
+                </l:isAdmin>
+              </j:if>
             </d:tag>
           </d:taglib>
 
