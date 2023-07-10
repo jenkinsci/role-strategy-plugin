@@ -5,11 +5,13 @@ import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -24,11 +26,11 @@ import org.kohsuke.stapler.DataBoundConstructor;
 @Restricted(NoExternalUse.class)
 public class GrantedRoles {
 
-  private final List<RoleDefinition> global;
+  private final Set<RoleDefinition> global;
 
-  private final List<RoleDefinition> items;
+  private final Set<RoleDefinition> items;
 
-  private final List<RoleDefinition> agents;
+  private final Set<RoleDefinition> agents;
 
   /**
    * Create GrantedRoles.
@@ -38,10 +40,10 @@ public class GrantedRoles {
    * @param agents List of agent Roles
    */
   @DataBoundConstructor
-  public GrantedRoles(List<RoleDefinition> global, List<RoleDefinition> items, List<RoleDefinition> agents) {
-    this.global = global;
-    this.items = items;
-    this.agents = agents;
+  public GrantedRoles(Set<RoleDefinition> global, Set<RoleDefinition> items, Set<RoleDefinition> agents) {
+    this.global = global != null ? new TreeSet<>(global) : Collections.emptySet();
+    this.items = items != null ? new TreeSet<>(items) : Collections.emptySet();
+    this.agents = agents != null ? new TreeSet<>(agents) : Collections.emptySet();
   }
 
   protected Map<String, RoleMap> toMap() {
@@ -59,7 +61,7 @@ public class GrantedRoles {
   }
 
   @NonNull
-  private RoleMap retrieveRoleMap(List<RoleDefinition> definitions) {
+  private RoleMap retrieveRoleMap(Set<RoleDefinition> definitions) {
     TreeMap<Role, Set<PermissionEntry>> resMap = new TreeMap<>();
     for (RoleDefinition definition : definitions) {
       resMap.put(definition.getRole(),
@@ -68,15 +70,15 @@ public class GrantedRoles {
     return new RoleMap(resMap);
   }
 
-  public List<RoleDefinition> getGlobal() {
+  public Set<RoleDefinition> getGlobal() {
     return global;
   }
 
-  public List<RoleDefinition> getItems() {
+  public Set<RoleDefinition> getItems() {
     return items;
   }
 
-  public List<RoleDefinition> getAgents() {
+  public Set<RoleDefinition> getAgents() {
     return agents;
   }
 }

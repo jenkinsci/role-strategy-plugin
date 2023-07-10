@@ -45,20 +45,20 @@ class TableHighlighter {
   scan(tr) {
     let descendants = tr.querySelectorAll('.permissionInput');
     for (let td of descendants) {
-        td.addEventListener('mouseover', this.highlight);
+        td.addEventListener('mouseenter', this.highlight);
         td.addEventListener('mouseleave', this.highlight);
     }
     let stopNodes = tr.querySelectorAll("div.rsp-remove");
     let lastStop = stopNodes[stopNodes.length - 1];
     if (lastStop != null) {
       let td = lastStop.closest('td');
-      td.addEventListener('mouseover', this.highlightRowOnly);
+      td.addEventListener('mouseenter', this.highlightRowOnly);
       td.addEventListener('mouseleave', this.highlightRowOnly);
     }
   };
 
   highlightRowOnly = e => {
-    let enable = e.type === 'mouseover';
+    let enable = e.type === 'mouseenter';
     let tr = findAncestor(e.target, "TR")
     if (enable) {
       tr.classList.add('highlighted');
@@ -68,7 +68,7 @@ class TableHighlighter {
   }
 
   highlight = e => {
-    let enable = e.type === 'mouseover';
+    let enable = e.type === 'mouseenter';
     if (e.target.tagName === 'TD') {
       let td = e.target;
       let tr = td.parentNode;

@@ -43,7 +43,7 @@
       <j:forEach var="role" items="${itemGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
           <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}"
-                         disable="${role.key.templateName != ''}"
+                         disable="${role.key.templateName != null and role.key.templateName != ''}"
                          showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
                          type="${it.strategy.PROJECT}"
                          templateName="${role.key.templateName}"
@@ -57,7 +57,7 @@
 
   <template id="newItemRoleTemplate">
     <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}"
+      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" templateName="{{TEMPLATENAME}}"
                      showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
       />
     </tr>
@@ -88,7 +88,7 @@
               <tr class="permission-row highlight-row">
                 <local:roleRow title="{{ROLE}}" role="${permissionTemplate}" global="${false}" pattern="{{PATTERN}}"
                                type="${it.strategy.PROJECT}"
-                               showRoleName="${true}" showPattern="${true}" disable="${true}"
+                               showRoleName="${true}" showPattern="${true}" disable="${true}" showTemplate="${true}"
                                templateName="${permissionTemplate.name}"/>
               </tr>
             </template>

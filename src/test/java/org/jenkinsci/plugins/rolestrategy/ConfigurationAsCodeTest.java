@@ -149,20 +149,6 @@ public class ConfigurationAsCodeTest {
   }
 
   @Test
-  @ConfiguredWithCode("Configuration-as-Code.yml")
-  public void templatesAreProperlyRead() {
-    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
-    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
-    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
-
-    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team1").hasPermission(Item.CONFIGURE), is(true));
-    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#builder-team1").hasPermission(Item.CONFIGURE), is(false));
-    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#builder-team1").hasPermission(Item.BUILD), is(true));
-    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team1").getPattern().toString(), is("folder/.*"));
-    assertThat(rbas.getRoleMap(RoleType.Project).getRole("#admin-team2").getPattern().toString(), is("folder2/.*"));
-  }
-
-  @Test
   @ConfiguredWithCode("Configuration-as-Code-no-permissions.yml")
   public void exportWithEmptyRole() throws Exception {
     ConfiguratorRegistry registry = ConfiguratorRegistry.get();

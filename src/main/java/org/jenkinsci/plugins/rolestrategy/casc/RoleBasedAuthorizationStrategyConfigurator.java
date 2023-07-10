@@ -24,6 +24,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -94,9 +95,9 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   public Set<Attribute<RoleBasedAuthorizationStrategy, ?>> describe() {
     return new HashSet<>(Arrays.asList(
             new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
-              List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
-              List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Slave));
-              List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Project));
+              SortedSet<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
+              SortedSet<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Slave));
+              SortedSet<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Project));
               return new GrantedRoles(globalRoles, projectRoles, agentRoles);
             }),
             new MultivaluedAttribute<RoleBasedAuthorizationStrategy, PermissionTemplateDefinition>("permissionTemplates",
@@ -110,26 +111,25 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     return compare(instance, new RoleBasedAuthorizationStrategy(Collections.emptyMap()), context);
   }
 
-  private List<PermissionTemplateDefinition> getPermissionTemplateDefinitions(Set<PermissionTemplate> permissionTemplates) {
+  private Set<PermissionTemplateDefinition> getPermissionTemplateDefinitions(Set<PermissionTemplate> permissionTemplates) {
     if (permissionTemplates == null) {
-      return Collections.emptyList();
+      return Collections.emptySortedSet();
     }
-    return permissionTemplates.stream().map(getPermissionTemplateDefinition()).collect(Collectors.toList());
+    return new TreeSet<>(permissionTemplates.stream().map(RoleBasedAuthorizationStrategyConfigurator::getPermissionTemplateDefinition)
+            .collect(Collectors.toSet()));
   }
 
-  private Function<PermissionTemplate, PermissionTemplateDefinition> getPermissionTemplateDefinition() {
-    return permissionTemplate -> {
-      List<String> permissions = permissionTemplate.getPermissions().stream()
-              .map(permission -> permission.group.getId() + "/" + permission.name).collect(Collectors.toList());
-      return new PermissionTemplateDefinition(permissionTemplate.getName(), permissions);
-    };
+  private static PermissionTemplateDefinition getPermissionTemplateDefinition(PermissionTemplate permissionTemplate) {
+    List<String> permissions = permissionTemplate.getPermissions().stream()
+            .map(permission -> permission.group.getId() + "/" + permission.name).collect(Collectors.toList());
+    return new PermissionTemplateDefinition(permissionTemplate.getName(), permissions);
   }
 
-  private List<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<PermissionEntry>> roleMap) {
+  private SortedSet<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<PermissionEntry>> roleMap) {
     if (roleMap == null) {
-      return Collections.emptyList();
+      return Collections.emptySortedSet();
     }
-    return roleMap.entrySet().stream().map(getRoleDefinition()).collect(Collectors.toList());
+    return new TreeSet<>(roleMap.entrySet().stream().map(getRoleDefinition()).collect(Collectors.toSet()));
   }
 
   private Function<Map.Entry<Role, Set<PermissionEntry>>, RoleDefinition> getRoleDefinition() {

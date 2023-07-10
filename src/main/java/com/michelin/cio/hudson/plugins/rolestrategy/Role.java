@@ -28,9 +28,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.security.AccessControlled;
-import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -38,11 +36,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import jenkins.model.Jenkins;
 import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -75,7 +70,7 @@ public final class Role implements Comparable {
    * Flag to indicate that the role is template based.
    */
   @CheckForNull
-  private final String templateName;
+  private String templateName;
 
   /**
    * {@link Permission}s hold by the role.
@@ -145,27 +140,17 @@ public final class Role implements Comparable {
     this.pattern = pattern;
     this.description = description;
     this.templateName = templateName;
-    if (Util.fixEmptyAndTrim(templateName) == null) {
-      for (Permission perm : permissions) {
-        if (perm == null) {
-          LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
-        } else {
-          this.permissions.add(perm);
-        }
-      }
-    } else {
-      AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
-      if (auth instanceof RoleBasedAuthorizationStrategy) {
-        RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
-        Set<PermissionTemplate> permissionTemplates = rbas.getPermissionTemplates();
-        for (PermissionTemplate pt : permissionTemplates) {
-          if (pt.getName().equals(templateName)) {
-            this.permissions.addAll(pt.getPermissions());
-            break;
-          }
-        }
+    for (Permission perm : permissions) {
+      if (perm == null) {
+        LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
+      } else {
+        this.permissions.add(perm);
       }
     }
+  }
+
+  public void setTemplateName(@CheckForNull String templateName) {
+    this.templateName = templateName;
   }
 
   public String getTemplateName() {
@@ -204,12 +189,25 @@ public final class Role implements Comparable {
    *
    * Internal use only.
    */
-  @Restricted(NoExternalUse.class)
-  public void setPermissions(Set<Permission> permissions) {
+  private void setPermissions(Set<Permission> permissions) {
     synchronized (this.permissions) {
       this.permissions.clear();
       this.permissions.addAll(permissions);
       cachedHashCode = _hashCode();
+    }
+  }
+
+  /**
+   * Updates the permissions from the used template.
+   */
+  public void refreshPermissionsFromTemplate(Set<PermissionTemplate> permissionTemplates) {
+    if (Util.fixEmptyAndTrim(templateName) != null) {
+      for (PermissionTemplate pt : permissionTemplates) {
+        if (pt.getName().equals(templateName)) {
+          setPermissions(pt.getPermissions());
+          break;
+        }
+      }
     }
   }
 

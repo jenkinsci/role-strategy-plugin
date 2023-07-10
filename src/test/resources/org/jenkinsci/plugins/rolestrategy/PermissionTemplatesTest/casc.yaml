@@ -1,0 +1,87 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      permissionTemplates:
+        - name: "creator"
+          permissions:
+            - "Job/Cancel"
+            - "Job/Build"
+            - "Run/Update"
+            - "Job/Delete"
+            - "Job/Create"
+            - "Job/Read"
+            - "Job/Configure"
+            - "Job/Workspace"
+        - name: "builder"
+          permissions:
+            - "Job/Cancel"
+            - "Job/Build"
+            - "Job/Read"
+            - "Job/Workspace"
+        - name: "folder"
+          permissions:
+            - "Job/Read"
+      roles:
+        global:
+          - name: "admin"
+            description: "Jenkins administrators"
+            permissions:
+              - "Overall/Administer"
+            entries:
+              - user: "admin"
+        items:
+          - entries:
+              - user: "creator"
+            name: "creator-team1"
+            pattern: "folder/.*"
+            templateName: "creator"
+          - entries:
+              - user: "creator"
+              - user: "builder"
+            name: "folder-team1"
+            pattern: "folder"
+            templateName: "folder"
+          - entries:
+              - user: "builder"
+            name: "builder-team1"
+            pattern: "folder/.*"
+            permissions:
+              - "Job/Cancel"
+              - "Job/Build"
+              - "Run/Update"
+              - "Job/Delete"
+              - "Job/Create"
+              - "Job/Read"
+              - "Job/Configure"
+              - "Job/Workspace"
+            templateName: "builder"
+        agents:
+          - name: "Agent1"
+            description: "Agent 1"
+            pattern: "agent1"
+            permissions:
+              - "Agent/Build"
+            entries:
+              - user: "user1"
+
+  # System for test
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "1234"
+        - id: "user1"
+          password: ""
+
+  nodes:
+    - dumb:
+        mode: NORMAL
+        name: "agent1"
+        remoteFS: "/home/user1"
+        launcher: jnlp
+    - dumb:
+        mode: NORMAL
+        name: "agent2"
+        remoteFS: "/home/user1"
+        launcher: jnlp

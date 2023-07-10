@@ -40,6 +40,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.Functions;
+import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -69,7 +70,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
@@ -143,6 +143,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param permissionTemplates the permission templates in the strategy
    */
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles, @CheckForNull Set<PermissionTemplate> permissionTemplates) {
+    this.permissionTemplates = permissionTemplates == null ? Collections.emptySet() : new TreeSet<>(permissionTemplates);
+
     RoleMap map = grantedRoles.get(SLAVE);
     agentRoles = map == null ? new RoleMap() : map;
 
@@ -151,8 +153,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     map = grantedRoles.get(PROJECT);
     itemRoles = map == null ? new RoleMap() : map;
+    refreshPermissionsFromTemplate();
+  }
 
-    this.permissionTemplates = permissionTemplates == null ? Collections.emptySet() : new TreeSet<>(permissionTemplates);
+  /**
+   * Refresh item permissions from templates.
+   */
+  private void refreshPermissionsFromTemplate() {
+    SortedMap<Role, Set<PermissionEntry>> roles = getGrantedRolesEntries(RoleBasedAuthorizationStrategy.PROJECT);
+    for (Role role : roles.keySet()) {
+      role.refreshPermissionsFromTemplate(this.permissionTemplates);
+    }
   }
 
   /**
@@ -897,6 +908,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
       RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) source;
 
+      writer.startNode(PERMISSION_TEMPLATES);
+      for (PermissionTemplate permissionTemplate : strategy.permissionTemplates) {
+        writer.startNode("template");
+        writer.addAttribute("name", permissionTemplate.getName());
+        writer.startNode("permissions");
+        for (Permission permission : permissionTemplate.getPermissions()) {
+          writer.startNode("permission");
+          writer.setValue(permission.getId());
+          writer.endNode();
+        }
+        writer.endNode(); // end permissions
+        writer.endNode(); // end template
+      }
+      writer.endNode(); // end permissionTemplates
+
       // Role maps
       Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
       for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
@@ -910,7 +936,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             writer.startNode("role");
             writer.addAttribute("name", role.getName());
             writer.addAttribute("pattern", role.getPattern().pattern());
-            if (role.getTemplateName() != null) {
+            if (Util.fixEmptyAndTrim(role.getTemplateName()) != null) {
               writer.addAttribute("templateName", role.getTemplateName());
             }
 
@@ -936,21 +962,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         }
         writer.endNode();
       }
-
-      writer.startNode(PERMISSION_TEMPLATES);
-      for (PermissionTemplate permissionTemplate : strategy.permissionTemplates) {
-        writer.startNode("template");
-        writer.addAttribute("name", permissionTemplate.getName());
-        writer.startNode("permissions");
-        for (Permission permission : permissionTemplate.getPermissions()) {
-          writer.startNode("permission");
-          writer.setValue(permission.getId());
-          writer.endNode();
-        }
-        writer.endNode(); // end permissions
-        writer.endNode(); // end template
-      }
-      writer.endNode(); // end permissionTemplates
     }
 
     @Override
@@ -959,6 +970,29 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       final Set<PermissionTemplate> permissionTemplates = new HashSet<>();
       while (reader.hasMoreChildren()) {
         reader.moveDown();
+
+        if (reader.getNodeName().equals(PERMISSION_TEMPLATES)) {
+          while (reader.hasMoreChildren()) {
+            reader.moveDown();
+            Set<Permission> permissions = new HashSet<>();
+            String name = reader.getAttribute("name");
+            String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
+            if (next != null && next.equals("permissions")) {
+              reader.moveDown();
+              while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                Permission p = PermissionHelper.resolvePermissionFromString(reader.getValue());
+                if (p != null) {
+                  permissions.add(p);
+                }
+                reader.moveUp();
+              }
+              reader.moveUp();
+            }
+            permissionTemplates.add(new PermissionTemplate(permissions, name));
+            reader.moveUp();
+          }
+        }
 
         // roleMaps
         if (reader.getNodeName().equals("roleMap")) {
@@ -1015,29 +1049,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             reader.moveUp();
           }
           roleMaps.put(type, map);
-        }
-
-        if (reader.getNodeName().equals(PERMISSION_TEMPLATES)) {
-          while (reader.hasMoreChildren()) {
-            reader.moveDown();
-            Set<Permission> permissions = new HashSet<>();
-            String name = reader.getAttribute("name");
-            String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
-            if (next != null && next.equals("permissions")) {
-              reader.moveDown();
-              while (reader.hasMoreChildren()) {
-                reader.moveDown();
-                Permission p = PermissionHelper.resolvePermissionFromString(reader.getValue());
-                if (p != null) {
-                  permissions.add(p);
-                }
-                reader.moveUp();
-              }
-              reader.moveUp();
-            }
-            permissionTemplates.add(new PermissionTemplate(permissions, name));
-            reader.moveUp();
-          }
         }
 
         reader.moveUp();
@@ -1193,15 +1204,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
           PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
           permissionTemplates.add(permissionTemplate);
-          SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleBasedAuthorizationStrategy.PROJECT);
-          for (Role role : roles.keySet()) {
-            if (Objects.equals(role.getTemplateName(), templateName)) {
-              role.setPermissions(permissionTemplate.getPermissions());
-            }
-          }
         }
 
         strategy.permissionTemplates = permissionTemplates;
+        strategy.refreshPermissionsFromTemplate();
         persistChanges();
       }
     }
