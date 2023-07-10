@@ -1194,7 +1194,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
           permissionTemplates.add(permissionTemplate);
           SortedMap<Role, Set<PermissionEntry>> roles = strategy.getGrantedRolesEntries(RoleBasedAuthorizationStrategy.PROJECT);
-          for (Role role: roles.keySet()) {
+          for (Role role : roles.keySet()) {
             if (Objects.equals(role.getTemplateName(), templateName)) {
               role.setPermissions(permissionTemplate.getPermissions());
             }
@@ -1260,7 +1260,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         if (pattern == null) {
           pattern = ".*";
         }
-        String templateName = null ;
+        String templateName = null;
         if (r.getValue().has("templateName")) {
           templateName = r.getValue().getString("templateName");
           r.getValue().remove("templateName");

@@ -30,18 +30,19 @@ import hudson.Util;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
+
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-
 import jenkins.model.Jenkins;
-import jenkins.model.ProjectNamingStrategy;
 import org.apache.commons.collections.CollectionUtils;
-import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -195,15 +196,21 @@ public final class Role implements Comparable {
    * @return {@link Permission}s set
    */
   public Set<Permission> getPermissions() {
-    return permissions;
+    return Collections.unmodifiableSet(permissions);
   }
 
   /**
+   * Update the permissions of the role.
    *
+   * Internal use only.
    */
+  @Restricted(NoExternalUse.class)
   public void setPermissions(Set<Permission> permissions) {
-    this.permissions.clear();
-    this.permissions.addAll(permissions);
+    synchronized (this.permissions) {
+      this.permissions.clear();
+      this.permissions.addAll(permissions);
+      cachedHashCode = _hashCode();
+    }
   }
 
   /**
@@ -223,7 +230,9 @@ public final class Role implements Comparable {
    * @return True if the role holds this permission
    */
   public Boolean hasPermission(Permission permission) {
-    return permissions.contains(permission);
+    synchronized (this.permissions) {
+      return permissions.contains(permission);
+    }
   }
 
   /**
@@ -233,7 +242,9 @@ public final class Role implements Comparable {
    * @return True if the role holds any of the given {@link Permission}s
    */
   public Boolean hasAnyPermission(Set<Permission> permissions) {
-    return CollectionUtils.containsAny(this.permissions, permissions);
+    synchronized (this.permissions) {
+      return CollectionUtils.containsAny(this.permissions, permissions);
+    }
   }
 
   /**
@@ -266,7 +277,9 @@ public final class Role implements Comparable {
     int hash = 7;
     hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
     hash = 53 * hash + (this.pattern != null ? this.pattern.hashCode() : 0);
-    hash = 53 * hash + (this.permissions != null ? this.permissions.hashCode() : 0);
+    synchronized (this.permissions) {
+      hash = 53 * hash + this.permissions.hashCode();
+    }
     return hash;
   }
 
@@ -288,8 +301,10 @@ public final class Role implements Comparable {
     if (!Objects.equals(this.pattern, other.pattern)) {
       return false;
     }
-    if (!Objects.equals(this.permissions, other.permissions)) {
-      return false;
+    synchronized (this.permissions) {
+      if (!Objects.equals(this.permissions, other.permissions)) {
+        return false;
+      }
     }
     return true;
   }
