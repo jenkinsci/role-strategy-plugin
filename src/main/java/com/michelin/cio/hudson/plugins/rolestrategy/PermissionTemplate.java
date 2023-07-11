@@ -1,13 +1,19 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.model.Jenkins;
+import jenkins.model.ProjectNamingStrategy;
+import org.jenkinsci.plugins.rolestrategy.RoleBasedProjectNamingStrategy;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -50,6 +56,21 @@ public class PermissionTemplate implements Comparable<PermissionTemplate> {
         this.permissions.add(perm);
       }
     }
+  }
+
+  public boolean isUsed() {
+    AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
+    ProjectNamingStrategy pns = Jenkins.get().getProjectNamingStrategy();
+    if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
+      RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
+      Map<Role, Set<PermissionEntry>> roleMap = rbas.getGrantedRolesEntries(RoleType.Project);
+      for (Role role: roleMap.keySet()) {
+        if (Objects.equals(name, role.getTemplateName())) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public String getName() {

@@ -132,6 +132,11 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
 
 Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
+    let inuse = e.getAttribute("data-is-used") === "true";
+    if (inuse && !confirm("This template is used. Are you sure you want to delete it?")) {
+      console.log("Not confirmed");
+      return;
+    }
     let table = findAncestor(this,"TABLE");
     let tableId = table.getAttribute("id");
     let tr = findAncestor(this,"TR");
@@ -181,5 +186,5 @@ document.addEventListener('DOMContentLoaded', function() {
     permissionInputFilter.style.display = "block"
   }
   newPermissionTemplate = document.getElementById('newPermissionTemplate');
-  templateTableHighlighter = new TableHighlighter('permissionTemplates', 2);
+  templateTableHighlighter = new TableHighlighter('permissionTemplates', 3);
 });

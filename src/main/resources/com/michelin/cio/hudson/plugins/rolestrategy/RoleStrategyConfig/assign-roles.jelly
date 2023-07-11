@@ -151,7 +151,7 @@
                 <j:if test="${attrs.type == it.strategy.GLOBAL}">
                   <j:set var="pattern" value=""/>
                 </j:if>
-                <td width="*" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
+                <td class="rsp-highlight-input" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
                   <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
                 </td>
               </j:forEach>

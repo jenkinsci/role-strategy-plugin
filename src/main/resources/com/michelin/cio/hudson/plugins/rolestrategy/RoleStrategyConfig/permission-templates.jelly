@@ -47,18 +47,21 @@
       <d:tag name="permissionRow">
         <td class="start">
           <l:isAdmin>
-            <div class="rsp-remove">
+            <div class="rsp-remove" data-is-used="${template.isUsed()}">
               <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
             </div>
           </l:isAdmin>
         </td>
         <td class="left-most" style="white-space: nowrap;">${title}</td>
+        <td><j:if test="${template.isUsed()}">
+          <l:icon src="symbol-checkmark-outline plugin-ionicons-api" class="icon-sm"/>
+        </j:if></td>
         <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
         <j:forEach var="g" items="${tableItems}">
           <j:forEach var="p" items="${g.permissions}">
             <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
               <td width="*"
-                  class="permissionInput"
+                  class="rsp-highlight-input permissionInput"
                   data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
                   data-permission-id="${p.id}"
                   data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Name&lt;/b&gt;: ${h.escape(attrs.title)}">
@@ -69,7 +72,7 @@
         </j:forEach>
         <l:isAdmin>
           <td class="stop">
-            <div class="rsp-remove">
+            <div class="rsp-remove" data-is-used="${template.isUsed()}">
               <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"
                       htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
             </div>
@@ -81,7 +84,7 @@
     <l:main-panel>
       <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css"/>
       <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js"/>
-      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableGenerate.js"/>
+      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableTemplates.js"/>
       <j:if test="${empty(descriptorPath)}">
         <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
       </j:if>
@@ -109,6 +112,7 @@
                 <td rowspan="2" class="pane-header blank">
                   ${%Name}
                 </td>
+                <td rowspan="2" class="group-row pane-header"><span>In use</span></td>
                 <j:forEach var="g" items="${itemPermissionGroups}">
                   <j:set var="cnt" value="${0}"/>
                   <j:forEach var="p" items="${g.permissions}">
@@ -153,6 +157,7 @@
                 <td rowspan="2" class="pane-header blank">
                   ${%Name}
                 </td>
+                <td rowspan="2" class="group-row pane-header"><span>In use</span></td>
                 <j:forEach var="g" items="${itemPermissionGroups}">
                   <j:forEach var="p" items="${g.permissions}">
                     <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">

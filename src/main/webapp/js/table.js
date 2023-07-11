@@ -43,7 +43,7 @@ class TableHighlighter {
   };
 
   scan(tr) {
-    let descendants = tr.querySelectorAll('.permissionInput');
+    let descendants = tr.querySelectorAll('.rsp-highlight-input');
     for (let td of descendants) {
         td.addEventListener('mouseenter', this.highlight);
         td.addEventListener('mouseleave', this.highlight);

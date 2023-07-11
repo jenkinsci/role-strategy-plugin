@@ -192,7 +192,7 @@
                 <j:forEach var="p" items="${g.permissions}">
                   <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
                     <td
-                        class="permissionInput"
+                        class="rsp-highlight-input permissionInput"
                         data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
                         data-permission-id="${p.id}"
                         data-disable-checkboxes="${attrs.disable}"
