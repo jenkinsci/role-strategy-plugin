@@ -94,11 +94,15 @@ Behaviour.specify(
 );
 
 addButtonAction = function (e, template, table, tableHighlighter, tableId) {
+  let dataReference = e.target;
   let tbody = table.tBodies[0];
-  let roleInput = document.getElementById(tableId+'text')
-  let name = roleInput.value;
-  if (name=="") {
-    alert("Please enter a role name");
+  let name = prompt(dataReference.getAttribute('data-prompt'));
+  if (name == null) {
+    return;
+  }
+  name = name.trim();
+  if (name == "") {
+    alert("Please enter a template name");
     return;
   }
   if (findElementsBySelector(tbody,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {

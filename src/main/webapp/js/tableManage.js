@@ -197,7 +197,7 @@ Behaviour.specify(
 addButtonAction = function(e, templateId, table, tableHighlighter, tableId) {
   let tbody = table.tBodies[0];
   let roleInput = document.getElementById(tableId + 'text')
-  let name = roleInput.value;
+  let name = roleInput.value.trim();
   if (name == "") {
     alert("Please enter a role name");
     return;
