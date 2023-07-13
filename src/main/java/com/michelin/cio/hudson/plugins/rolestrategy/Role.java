@@ -202,11 +202,16 @@ public final class Role implements Comparable {
    */
   public void refreshPermissionsFromTemplate(Set<PermissionTemplate> permissionTemplates) {
     if (Util.fixEmptyAndTrim(templateName) != null) {
+      boolean found = false;
       for (PermissionTemplate pt : permissionTemplates) {
         if (pt.getName().equals(templateName)) {
           setPermissions(pt.getPermissions());
+          found = true;
           break;
         }
+      }
+      if (! found) {
+        this.templateName = null;
       }
     }
   }

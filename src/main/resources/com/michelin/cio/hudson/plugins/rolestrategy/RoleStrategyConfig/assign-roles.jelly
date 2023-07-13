@@ -121,7 +121,7 @@
                 <l:isAdmin>
                   <j:if test="${attrs.noremove != 'true'}">
                       <div class="rsp-remove">
-                        <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
+                        <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
                       </div>
                   </j:if>
                 </l:isAdmin>
@@ -160,7 +160,7 @@
                   <j:if test="${attrs.noremove != 'true'}">
                     <div class="rsp-table__cell">
                       <div class="rsp-remove">
-                        <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                        <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                       </div>
                       <j:if test="${attrs.permissionType == 'EITHER'}">
                         <!-- migration options -->

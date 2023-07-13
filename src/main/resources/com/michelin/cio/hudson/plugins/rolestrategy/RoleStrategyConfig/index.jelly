@@ -153,7 +153,7 @@
                 <td class="start">
                   <l:isAdmin>
                     <div class="rsp-remove">
-                      <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
+                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
                     </div>
                   </l:isAdmin>
                 </td>
@@ -206,7 +206,7 @@
                 <l:isAdmin>
                   <td class="stop">
                     <div class="rsp-remove">
-                      <l:icon src="symbol-close-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                     </div>
                   </td>
                 </l:isAdmin>

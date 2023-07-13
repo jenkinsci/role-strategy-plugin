@@ -49,8 +49,16 @@ You can define roles by using the _Manages Roles_ screen. It is possible to defi
     Only jobs matching the pattern can be created. When granting `Job/Create` you should also grant `Job/Configure` and `Job/Read` otherwise you will
     be able to create new jobs but you will not be able to configure them. Global Permissions are not required.
 
-  
+
 ![Managing roles](/docs/images/manageRoles.png)
+
+#### Permission Templates
+Permission Templates simplify the administration of roles when you need to maintain many roles with identical permissions but different patterns.
+Templates are only available for _Item Roles_. The permissions of roles based on a template can't be modified directly. Modifying the template will
+immediately modify the linked roles after saving the changes.
+
+Deleting a template that is still in use requires confirmation. In case you still delete it, the roles stay with the given permissions but the
+correlation to the template is removed.
 
 ### Assigning roles
 
