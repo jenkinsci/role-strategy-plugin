@@ -33,23 +33,23 @@
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
   <j:set var="tableid" value="agentRoles"/>
   
-  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
-    <local:thead permissionGroups="${agentGroups}" showPattern="true" strategy="${it.strategy.SLAVE}"/>
+    <local:thead permissionGroups="${agentGroups}" showRoleName="${true}" showPattern="${true}" strategy="${it.strategy.SLAVE}"/>
     <tbody>
       <j:forEach var="role" items="${agentGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
-          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.SLAVE}"
+          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" showRoleName="${true}" showPattern="${true}" type="${it.strategy.SLAVE}"
                          project="${false}"/>
         </tr>
       </j:forEach>
     </tbody>
-    <local:tfoot permissionGroups="${agentGroups}" strategy="${it.strategy.SLAVE}" roles="${agentGrantedRoles}" showPattern="true"/>
+    <local:tfoot permissionGroups="${agentGroups}" strategy="${it.strategy.SLAVE}" roles="${agentGrantedRoles}" showPattern="${true}"/>
   </table>
 
   <template id="newAgentRoleTemplate">
     <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" />
+      <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" showRoleName="${true}" showPattern="${true}"/>
     </tr>
   </template>
 

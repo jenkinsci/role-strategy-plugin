@@ -52,8 +52,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -283,6 +281,18 @@ public class RoleMap {
       this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
       matchingRoleMapCache.invalidateAll();
     }
+  }
+
+  /**
+   * Add the given role to this {@link RoleMap} and assign the sids to it.
+   * If a role
+   *
+   * @param role The {@link Role} to add
+   * @param sids The sids associated with the {@link Role}
+   */
+  public void addRole(Role role, Set<PermissionEntry> sids) {
+    this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
+    matchingRoleMapCache.invalidateAll();
   }
 
   /**

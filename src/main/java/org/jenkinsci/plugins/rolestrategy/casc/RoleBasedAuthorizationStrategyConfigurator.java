@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.rolestrategy.casc;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionTemplate;
 import com.michelin.cio.hudson.plugins.rolestrategy.Role;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
@@ -12,14 +13,19 @@ import io.jenkins.plugins.casc.BaseConfigurator;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.Configurator;
 import io.jenkins.plugins.casc.ConfiguratorException;
+import io.jenkins.plugins.casc.impl.attributes.MultivaluedAttribute;
 import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.kohsuke.accmod.Restricted;
@@ -56,7 +62,22 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   protected RoleBasedAuthorizationStrategy instance(Mapping map, ConfigurationContext context) throws ConfiguratorException {
     final Configurator<GrantedRoles> c = context.lookupOrFail(GrantedRoles.class);
     final GrantedRoles roles = c.configure(map.remove("roles"), context);
-    return new RoleBasedAuthorizationStrategy(roles.toMap());
+    final Set<PermissionTemplate> permissionTemplates = getPermissionTemplates(map, context);
+
+    return new RoleBasedAuthorizationStrategy(roles.toMap(), permissionTemplates);
+  }
+
+  private static Set<PermissionTemplate> getPermissionTemplates(Mapping map, ConfigurationContext context) throws ConfiguratorException {
+    final Configurator<PermissionTemplateDefinition> c = context.lookupOrFail(PermissionTemplateDefinition.class);
+    Set<PermissionTemplate> permissionTemplates = new TreeSet<>();
+    CNode sub = map.remove("permissionTemplates");
+    if (sub != null) {
+      for (CNode o : sub.asSequence()) {
+        PermissionTemplateDefinition template = c.configure(o, context);
+        permissionTemplates.add(template.getPermissionTemplate());
+      }
+    }
+    return permissionTemplates;
   }
 
   @Override
@@ -72,13 +93,16 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   @Override
   @NonNull
   public Set<Attribute<RoleBasedAuthorizationStrategy, ?>> describe() {
-    return Collections.singleton(
+    return new HashSet<>(Arrays.asList(
             new Attribute<RoleBasedAuthorizationStrategy, GrantedRoles>("roles", GrantedRoles.class).getter(target -> {
-              List<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
-              List<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Slave));
-              List<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Project));
+              SortedSet<RoleDefinition> globalRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Global));
+              SortedSet<RoleDefinition> agentRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Slave));
+              SortedSet<RoleDefinition> projectRoles = getRoleDefinitions(target.getGrantedRolesEntries(RoleType.Project));
               return new GrantedRoles(globalRoles, projectRoles, agentRoles);
-            }));
+            }),
+            new MultivaluedAttribute<RoleBasedAuthorizationStrategy, PermissionTemplateDefinition>("permissionTemplates",
+                PermissionTemplateDefinition.class).getter(target -> getPermissionTemplateDefinitions(target.getPermissionTemplates()))
+    ));
   }
 
   @CheckForNull
@@ -87,11 +111,25 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
     return compare(instance, new RoleBasedAuthorizationStrategy(Collections.emptyMap()), context);
   }
 
-  private List<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<PermissionEntry>> roleMap) {
-    if (roleMap == null) {
-      return Collections.emptyList();
+  private Set<PermissionTemplateDefinition> getPermissionTemplateDefinitions(Set<PermissionTemplate> permissionTemplates) {
+    if (permissionTemplates == null) {
+      return Collections.emptySortedSet();
     }
-    return roleMap.entrySet().stream().map(getRoleDefinition()).collect(Collectors.toList());
+    return new TreeSet<>(permissionTemplates.stream().map(RoleBasedAuthorizationStrategyConfigurator::getPermissionTemplateDefinition)
+            .collect(Collectors.toSet()));
+  }
+
+  private static PermissionTemplateDefinition getPermissionTemplateDefinition(PermissionTemplate permissionTemplate) {
+    List<String> permissions = permissionTemplate.getPermissions().stream()
+            .map(permission -> permission.group.getId() + "/" + permission.name).collect(Collectors.toList());
+    return new PermissionTemplateDefinition(permissionTemplate.getName(), permissions);
+  }
+
+  private SortedSet<RoleDefinition> getRoleDefinitions(@CheckForNull SortedMap<Role, Set<PermissionEntry>> roleMap) {
+    if (roleMap == null) {
+      return Collections.emptySortedSet();
+    }
+    return new TreeSet<>(roleMap.entrySet().stream().map(getRoleDefinition()).collect(Collectors.toSet()));
   }
 
   private Function<Map.Entry<Role, Set<PermissionEntry>>, RoleDefinition> getRoleDefinition() {
@@ -106,6 +144,7 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
       final RoleDefinition roleDefinition = new RoleDefinition(role.getName(), role.getDescription(),
               role.getPattern().pattern(), permissions);
       roleDefinition.setEntries(roleDefinitionEntries);
+      roleDefinition.setTemplateName(role.getTemplateName());
       return roleDefinition;
     };
   }

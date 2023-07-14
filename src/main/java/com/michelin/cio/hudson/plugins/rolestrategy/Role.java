@@ -26,8 +26,10 @@ package com.michelin.cio.hudson.plugins.rolestrategy;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.Util;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -65,6 +67,12 @@ public final class Role implements Comparable {
   private final String description;
 
   /**
+   * Flag to indicate that the role is template based.
+   */
+  @CheckForNull
+  private String templateName;
+
+  /**
    * {@link Permission}s hold by the role.
    */
   private final Set<Permission> permissions = new HashSet<>();
@@ -95,9 +103,15 @@ public final class Role implements Comparable {
   // TODO: comment is used for erasure cleanup only
   @DataBoundConstructor
   public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set<String> permissionIds,
+      @CheckForNull String description, String templateName) {
+    this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds, true),
+        description, templateName);
+  }
+
+  public Role(@NonNull String name, @CheckForNull String pattern, @CheckForNull Set<String> permissionIds,
       @CheckForNull String description) {
     this(name, Pattern.compile(pattern != null ? pattern : GLOBAL_ROLE_PATTERN), PermissionHelper.fromStrings(permissionIds, true),
-        description);
+        description, "");
   }
 
   /**
@@ -106,11 +120,26 @@ public final class Role implements Comparable {
    * @param name        The role name
    * @param pattern     The pattern matching {@link AccessControlled} objects names
    * @param permissions The {@link Permission}s associated to the role. {@code null} permissions will be ignored.
+   * @param description A description for the role
    */
   public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description) {
+    this(name, pattern, permissions, description, "");
+  }
+
+  /**
+   * Create a Role.
+   *
+   * @param name        The role name
+   * @param pattern     The pattern matching {@link AccessControlled} objects names
+   * @param permissions The {@link Permission}s associated to the role. {@code null} permissions will be ignored.
+   * @param description A description for the role
+   * @param templateName   True to mark this role as generated
+   */
+  public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description, String templateName) {
     this.name = name;
     this.pattern = pattern;
     this.description = description;
+    this.templateName = templateName;
     for (Permission perm : permissions) {
       if (perm == null) {
         LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
@@ -118,6 +147,14 @@ public final class Role implements Comparable {
         this.permissions.add(perm);
       }
     }
+  }
+
+  public void setTemplateName(@CheckForNull String templateName) {
+    this.templateName = templateName;
+  }
+
+  public String getTemplateName() {
+    return templateName;
   }
 
   /**
@@ -144,7 +181,39 @@ public final class Role implements Comparable {
    * @return {@link Permission}s set
    */
   public Set<Permission> getPermissions() {
-    return permissions;
+    return Collections.unmodifiableSet(permissions);
+  }
+
+  /**
+   * Update the permissions of the role.
+   *
+   * Internal use only.
+   */
+  private void setPermissions(Set<Permission> permissions) {
+    synchronized (this.permissions) {
+      this.permissions.clear();
+      this.permissions.addAll(permissions);
+      cachedHashCode = _hashCode();
+    }
+  }
+
+  /**
+   * Updates the permissions from the used template.
+   */
+  public void refreshPermissionsFromTemplate(Set<PermissionTemplate> permissionTemplates) {
+    if (Util.fixEmptyAndTrim(templateName) != null) {
+      boolean found = false;
+      for (PermissionTemplate pt : permissionTemplates) {
+        if (pt.getName().equals(templateName)) {
+          setPermissions(pt.getPermissions());
+          found = true;
+          break;
+        }
+      }
+      if (! found) {
+        this.templateName = null;
+      }
+    }
   }
 
   /**
@@ -164,7 +233,9 @@ public final class Role implements Comparable {
    * @return True if the role holds this permission
    */
   public Boolean hasPermission(Permission permission) {
-    return permissions.contains(permission);
+    synchronized (this.permissions) {
+      return permissions.contains(permission);
+    }
   }
 
   /**
@@ -174,7 +245,9 @@ public final class Role implements Comparable {
    * @return True if the role holds any of the given {@link Permission}s
    */
   public Boolean hasAnyPermission(Set<Permission> permissions) {
-    return CollectionUtils.containsAny(this.permissions, permissions);
+    synchronized (this.permissions) {
+      return CollectionUtils.containsAny(this.permissions, permissions);
+    }
   }
 
   /**
@@ -207,7 +280,9 @@ public final class Role implements Comparable {
     int hash = 7;
     hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
     hash = 53 * hash + (this.pattern != null ? this.pattern.hashCode() : 0);
-    hash = 53 * hash + (this.permissions != null ? this.permissions.hashCode() : 0);
+    synchronized (this.permissions) {
+      hash = 53 * hash + this.permissions.hashCode();
+    }
     return hash;
   }
 
@@ -229,8 +304,10 @@ public final class Role implements Comparable {
     if (!Objects.equals(this.pattern, other.pattern)) {
       return false;
     }
-    if (!Objects.equals(this.permissions, other.permissions)) {
-      return false;
+    synchronized (this.permissions) {
+      if (!Objects.equals(this.permissions, other.permissions)) {
+        return false;
+      }
     }
     return true;
   }

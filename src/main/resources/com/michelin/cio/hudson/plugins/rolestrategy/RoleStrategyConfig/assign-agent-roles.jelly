@@ -46,7 +46,7 @@
       <j:forEach var="entry" items="${agentSIDs}">
         <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
           <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-            <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.SLAVE}"/>
+            <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.SLAVE}" showRoleName="false" showPattern="false"/>
           </tr>
         </j:if>
       </j:forEach>

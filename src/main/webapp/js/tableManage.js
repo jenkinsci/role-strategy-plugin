@@ -37,7 +37,6 @@ var overlay;
 var closeModalBtn;
 
 
-
 function filterRows(filter, table) {
   for (let row of table.tBodies[0].rows) {
     let userCell = row.cells[1].textContent.toUpperCase();
@@ -145,11 +144,13 @@ updateTooltip = function(tr, td, pattern) {
   let impliedByList = impliedByString.split(" ");
   let input = td.getElementsByTagName('INPUT')[0];
   input.disabled = false;
-
-  let tooltipAttributeName = getTooltipAttributeName();
+  let disableCheckboxes = td.getAttribute("data-disable-checkboxes");
+  if (disableCheckboxes === 'true') {
+    input.disabled = true;
+  }
 
   let tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", escapeHTML(pattern)).replace("{{GRANTBYOTHER}}", "");
-  input.nextSibling.setAttribute(tooltipAttributeName, tooltip);
+  input.nextSibling.setAttribute("data-html-tooltip", tooltip);
 
   for (let permissionId of impliedByList) {
     let reference = tr.querySelector("td[data-permission-id='" + permissionId + "'] input");
@@ -157,7 +158,7 @@ updateTooltip = function(tr, td, pattern) {
       if (reference.checked) {
         input.disabled = true;
         tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", escapeHTML(pattern)).replace("{{GRANTBYOTHER}}", " is granted through another permission");;
-        input.nextSibling.setAttribute(tooltipAttributeName, tooltip); // 2.335+
+        input.nextSibling.setAttribute("data-html-tooltip", tooltip); // 2.335+
       }
     }
   }
@@ -175,9 +176,8 @@ Behaviour.specify(
       let tableId = elem.getAttribute("data-table-id");
       let table = document.getElementById(tableId);
       let templateId = elem.getAttribute("data-template-id");
-      let template = window[templateId].content.firstElementChild.cloneNode(true);
       let highlighter = window[elem.getAttribute("data-highlighter")];
-      addButtonAction(e, template, table, highlighter, tableId);
+      addButtonAction(e, templateId, table, highlighter, tableId);
       let tbody = table.tBodies[0];
       if (tbody.children.length >= filterLimit) {
         let rolefilters = document.querySelectorAll(".row-filter");
@@ -194,10 +194,10 @@ Behaviour.specify(
   }
 );
 
-addButtonAction = function(e, template, table, tableHighlighter, tableId) {
+addButtonAction = function(e, templateId, table, tableHighlighter, tableId) {
   let tbody = table.tBodies[0];
   let roleInput = document.getElementById(tableId + 'text')
-  let name = roleInput.value;
+  let name = roleInput.value.trim();
   if (name == "") {
     alert("Please enter a role name");
     return;
@@ -209,6 +209,9 @@ addButtonAction = function(e, template, table, tableHighlighter, tableId) {
     return;
   }
   let pattern = "";
+  let template = window[templateId].content.firstElementChild.cloneNode(true);
+  let templateName = "";
+
   if (tableId !== "globalRoles") {
     let patternInput = document.getElementById(tableId + 'pattern')
     pattern = patternInput.value;
@@ -216,11 +219,16 @@ addButtonAction = function(e, template, table, tableHighlighter, tableId) {
       alert("Please enter a pattern");
       return;
     }
+    if (tableId === "projectRoles") {
+      let templateSelect = document.getElementById(tableId + 'template');
+      let templateName = templateSelect.value;
+      if (templateName !== '__none__') {
+        template = window[templateId + "-" + templateName].content.firstElementChild.cloneNode(true);
+      }
+    }
   }
 
   let copy = document.importNode(template, true);
-  copy.removeAttribute("id");
-  copy.removeAttribute("style");
   let child = copy.childNodes[1];
   child.textContent = name;
   if (tableId !== "globalRoles") {
@@ -421,7 +429,7 @@ closeModal = function () {
 document.addEventListener('DOMContentLoaded', function() {
   // global roles initialization
   let globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
-  if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+  if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
     globalRoleInputFilter.style.display = "block"
   }
   newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
@@ -430,13 +438,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // item roles initialization
   let itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
-  if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+  if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit ) {
     itemRoleInputFilter.style.display = "block"
   }
 
   newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
 
-  projectTableHighlighter = new TableHighlighter('projectRoles', 3);
+  projectTableHighlighter = new TableHighlighter('projectRoles', 4);
 
   // Show jobs matching a pattern on click
   let projectRolesTable = document.getElementById('projectRoles')

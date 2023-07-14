@@ -29,7 +29,7 @@ import org.kohsuke.stapler.DataBoundSetter;
  * @since 2.11
  */
 @Restricted(NoExternalUse.class)
-public class RoleDefinition {
+public class RoleDefinition implements Comparable<RoleDefinition> {
 
   public static final Logger LOGGER = Logger.getLogger(RoleDefinition.class.getName());
   private transient Role role;
@@ -40,6 +40,8 @@ public class RoleDefinition {
   private final String description;
   @CheckForNull
   private final String pattern;
+
+  private String templateName;
   private final Set<String> permissions;
 
   private SortedSet<RoleDefinitionEntry> entries = Collections.emptySortedSet();
@@ -58,7 +60,6 @@ public class RoleDefinition {
     this.description = description;
     this.pattern = pattern;
     this.permissions = permissions != null ? new HashSet<>(permissions) : Collections.emptySet();
-    this.role = getRole();
   }
 
   /**
@@ -101,7 +102,7 @@ public class RoleDefinition {
     if (role == null) {
       Set<Permission> resolvedPermissions = PermissionHelper.fromStrings(permissions, false);
       Pattern p = Pattern.compile(pattern != null ? pattern : Role.GLOBAL_ROLE_PATTERN);
-      role = new Role(name, p, resolvedPermissions, description);
+      role = new Role(name, p, resolvedPermissions, description, templateName);
     }
     return role;
   }
@@ -119,6 +120,15 @@ public class RoleDefinition {
     return pattern;
   }
 
+  public String getTemplateName() {
+    return templateName;
+  }
+
+  @DataBoundSetter
+  public void setTemplateName(String templateName) {
+    this.templateName = templateName;
+  }
+
   public Set<String> getPermissions() {
     return Collections.unmodifiableSet(permissions);
   }
@@ -134,6 +144,28 @@ public class RoleDefinition {
 
   public SortedSet<RoleDefinitionEntry> getEntries() {
     return entries;
+  }
+
+  @Override
+  public int compareTo(@NonNull RoleDefinition o) {
+    return this.name.compareTo(o.name);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    RoleDefinition that = (RoleDefinition) o;
+    return Objects.equals(name, that.name);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name);
   }
 
   /**

@@ -40,6 +40,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.Functions;
+import hudson.Util;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.AbstractItem;
@@ -71,6 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -105,12 +107,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final String GLOBAL = "globalRoles";
   public static final String PROJECT = "projectRoles";
   public static final String SLAVE = "slaveRoles";
+  public static final String PERMISSION_TEMPLATES = "permissionTemplates";
+
   public static final String MACRO_ROLE = "roleMacros";
   public static final String MACRO_USER = "userMacros";
 
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
+  private Set<PermissionTemplate> permissionTemplates;
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -119,6 +124,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     agentRoles = new RoleMap();
     globalRoles = new RoleMap();
     itemRoles = new RoleMap();
+    permissionTemplates = new TreeSet<>();
   }
 
   /**
@@ -127,6 +133,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param grantedRoles the roles in the strategy
    */
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles) {
+    this(grantedRoles, null);
+  }
+
+  /**
+   * Creates a new {@link RoleBasedAuthorizationStrategy}.
+   *
+   * @param grantedRoles the roles in the strategy
+   * @param permissionTemplates the permission templates in the strategy
+   */
+  public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles, @CheckForNull Set<PermissionTemplate> permissionTemplates) {
+    this.permissionTemplates = permissionTemplates == null ? Collections.emptySet() : new TreeSet<>(permissionTemplates);
+
     RoleMap map = grantedRoles.get(SLAVE);
     agentRoles = map == null ? new RoleMap() : map;
 
@@ -135,6 +153,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     map = grantedRoles.get(PROJECT);
     itemRoles = map == null ? new RoleMap() : map;
+    refreshPermissionsFromTemplate();
+  }
+
+  /**
+   * Refresh item permissions from templates.
+   */
+  private void refreshPermissionsFromTemplate() {
+    SortedMap<Role, Set<PermissionEntry>> roles = getGrantedRolesEntries(RoleBasedAuthorizationStrategy.PROJECT);
+    for (Role role : roles.keySet()) {
+      role.refreshPermissionsFromTemplate(this.permissionTemplates);
+    }
   }
 
   /**
@@ -247,6 +276,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Deprecated
   public SortedMap<Role, Set<String>> getGrantedRoles(@NonNull RoleType type) {
     return getRoleMap(type).getGrantedRoles();
+  }
+
+  /**
+   * Get the permission templates.
+   *
+   * @return set of permission templates.
+   */
+  public Set<PermissionTemplate> getPermissionTemplates() {
+    return Collections.unmodifiableSet(permissionTemplates);
   }
 
   /**
@@ -870,6 +908,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context) {
       RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) source;
 
+      writer.startNode(PERMISSION_TEMPLATES);
+      for (PermissionTemplate permissionTemplate : strategy.permissionTemplates) {
+        writer.startNode("template");
+        writer.addAttribute("name", permissionTemplate.getName());
+        writer.startNode("permissions");
+        for (Permission permission : permissionTemplate.getPermissions()) {
+          writer.startNode("permission");
+          writer.setValue(permission.getId());
+          writer.endNode();
+        }
+        writer.endNode(); // end permissions
+        writer.endNode(); // end template
+      }
+      writer.endNode(); // end permissionTemplates
+
       // Role maps
       Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
       for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
@@ -883,6 +936,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             writer.startNode("role");
             writer.addAttribute("name", role.getName());
             writer.addAttribute("pattern", role.getPattern().pattern());
+            if (Util.fixEmptyAndTrim(role.getTemplateName()) != null) {
+              writer.addAttribute("templateName", role.getTemplateName());
+            }
 
             writer.startNode("permissions");
             for (Permission permission : role.getPermissions()) {
@@ -911,8 +967,32 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Override
     public Object unmarshal(HierarchicalStreamReader reader, final UnmarshallingContext context) {
       final Map<String, RoleMap> roleMaps = new HashMap<>();
+      final Set<PermissionTemplate> permissionTemplates = new HashSet<>();
       while (reader.hasMoreChildren()) {
         reader.moveDown();
+
+        if (reader.getNodeName().equals(PERMISSION_TEMPLATES)) {
+          while (reader.hasMoreChildren()) {
+            reader.moveDown();
+            Set<Permission> permissions = new HashSet<>();
+            String name = reader.getAttribute("name");
+            String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
+            if (next != null && next.equals("permissions")) {
+              reader.moveDown();
+              while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                Permission p = PermissionHelper.resolvePermissionFromString(reader.getValue());
+                if (p != null) {
+                  permissions.add(p);
+                }
+                reader.moveUp();
+              }
+              reader.moveUp();
+            }
+            permissionTemplates.add(new PermissionTemplate(permissions, name));
+            reader.moveUp();
+          }
+        }
 
         // roleMaps
         if (reader.getNodeName().equals("roleMap")) {
@@ -922,6 +1002,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             reader.moveDown();
             String name = reader.getAttribute("name");
             String pattern = reader.getAttribute("pattern");
+            String templateName = reader.getAttribute("templateName");
             Set<Permission> permissions = new HashSet<>();
 
             String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
@@ -939,7 +1020,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               reader.moveUp();
             }
 
-            Role role = new Role(name, pattern, permissions);
+            Role role = new Role(name, Pattern.compile(pattern), permissions, "", templateName);
             map.addRole(role);
 
             next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
@@ -969,10 +1050,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
           roleMaps.put(type, map);
         }
+
         reader.moveUp();
       }
 
-      return new RoleBasedAuthorizationStrategy(roleMaps);
+      return new RoleBasedAuthorizationStrategy(roleMaps, permissionTemplates);
     }
 
     protected RoleBasedAuthorizationStrategy create() {
@@ -1097,6 +1179,40 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
+     * Called on role generator form submission.
+     */
+    @RequirePOST
+    @Restricted(NoExternalUse.class)
+    public void doTemplatesSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
+      checkAdminPerm();
+      req.setCharacterEncoding("UTF-8");
+      JSONObject json = req.getSubmittedForm();
+      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
+      if (json.has(PERMISSION_TEMPLATES) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+        RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
+
+        JSONObject permissionTemplatesJson = json.getJSONObject(PERMISSION_TEMPLATES);
+        Set<PermissionTemplate> permissionTemplates = new TreeSet<>();
+        for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>)
+            permissionTemplatesJson.getJSONObject("data").entrySet()) {
+          String templateName = r.getKey();
+          Set<String> permissionStrings = new HashSet<>();
+          for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
+            if (e.getValue()) {
+              permissionStrings.add(e.getKey());
+            }
+          }
+          PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
+          permissionTemplates.add(permissionTemplate);
+        }
+
+        strategy.permissionTemplates = permissionTemplates;
+        strategy.refreshPermissionsFromTemplate();
+        persistChanges();
+      }
+    }
+
+    /**
      * Method called on Jenkins Manage panel submission, and plugin specific forms to create the
      * {@link AuthorizationStrategy} object.
      */
@@ -1109,33 +1225,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       // specifics forms, and we need to handle it.
       if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
-
-        JSONObject globalRoles = formData.getJSONObject(GLOBAL);
-        for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) globalRoles.getJSONObject("data").entrySet()) {
-          String roleName = r.getKey();
-          Set<Permission> permissions = new HashSet<>();
-          for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
-            if (e.getValue()) {
-              Permission p = Permission.fromId(e.getKey());
-              permissions.add(p);
-            }
-          }
-
-          Role role = new Role(roleName, permissions);
-          strategy.addRole(RoleType.Global, role);
-          RoleMap roleMap = ((RoleBasedAuthorizationStrategy) oldStrategy).getRoleMap(RoleType.Global);
-          if (roleMap != null) {
-            Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
-            if (sids != null) {
-              for (PermissionEntry sid : sids) {
-                strategy.assignRole(RoleType.Global, role, sid);
-              }
-            }
-          }
-        }
-
+        readRoles(formData, RoleType.Global, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
         readRoles(formData, RoleType.Project, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
         readRoles(formData, RoleType.Slave, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
+        strategy.permissionTemplates = ((RoleBasedAuthorizationStrategy) oldStrategy).permissionTemplates;
       } else if (oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         // When called from Hudson Manage panel, but was already on a role-based
         // strategy
@@ -1157,24 +1250,26 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     private void readRoles(JSONObject formData, final RoleType roleType, RoleBasedAuthorizationStrategy targetStrategy,
         RoleBasedAuthorizationStrategy oldStrategy) {
       final String roleTypeAsString = roleType.getStringType();
-      if (!formData.has(roleTypeAsString)) {
-        assert false : "Unexistent Role type " + roleTypeAsString;
-        return;
-      }
-      JSONObject projectRoles = formData.getJSONObject(roleTypeAsString);
-      if (!projectRoles.containsKey("data")) {
+      JSONObject roles = formData.getJSONObject(roleTypeAsString);
+      if (!roles.containsKey("data")) {
         assert false : "No data at role description";
         return;
       }
 
-      for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) projectRoles.getJSONObject("data").entrySet()) {
-        String roleName = r.getKey();
+      for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {
         Set<Permission> permissions = new HashSet<>();
-        String pattern = r.getValue().getString("pattern");
-        if (pattern != null) {
+        String pattern = ".*";
+        if (r.getValue().has("pattern")) {
+          pattern = r.getValue().getString("pattern");
           r.getValue().remove("pattern");
-        } else {
+        }
+        if (pattern == null) {
           pattern = ".*";
+        }
+        String templateName = null;
+        if (r.getValue().has("templateName")) {
+          templateName = r.getValue().getString("templateName");
+          r.getValue().remove("templateName");
         }
         for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
           if (e.getValue()) {
@@ -1182,17 +1277,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             permissions.add(p);
           }
         }
-
-        Role role = new Role(roleName, pattern, permissions);
+        String roleName = r.getKey();
+        RoleMap roleMap = oldStrategy.getRoleMap(roleType);
+        Role role = new Role(roleName, Pattern.compile(pattern), permissions, "", templateName);
         targetStrategy.addRole(roleType, role);
 
-        RoleMap roleMap = oldStrategy.getRoleMap(roleType);
-        if (roleMap != null) {
-          Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
-          if (sids != null) {
-            for (PermissionEntry sid : sids) {
-              targetStrategy.assignRole(roleType, role, sid);
-            }
+        Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
+        if (sids != null) {
+          for (PermissionEntry sid : sids) {
+            targetStrategy.assignRole(roleType, role, sid);
           }
         }
       }

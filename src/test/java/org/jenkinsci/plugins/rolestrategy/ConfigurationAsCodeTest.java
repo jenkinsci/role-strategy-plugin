@@ -159,6 +159,5 @@ public class ConfigurationAsCodeTest {
     String expected = toStringFromYamlFile(this, "Configuration-as-Code-no-permissions-export.yml");
 
     assertThat(exported, is(expected));
-
   }
 }

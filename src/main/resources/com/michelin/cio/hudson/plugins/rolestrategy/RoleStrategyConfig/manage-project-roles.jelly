@@ -24,10 +24,10 @@
   -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
-          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
+          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local" xmlns:rs="/lib/rolestrategy">
 
   <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
-  <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.PROJECT)}"/>
+  <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
   <j:set var="tableid" value="projectRoles"/>
 
   <div id="itemRoleInputFilter" data-table-id="${tableid}" data-initial-size="${itemGrantedRoles.size()}" class="row-filter">
@@ -35,23 +35,31 @@
       <input id="itemRoleInput" class="row-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>  
-  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
-    <local:thead permissionGroups="${itemPermissionGroups}" showPattern="true" strategy="${it.strategy.PROJECT}"/>
+    <local:thead permissionGroups="${itemPermissionGroups}" showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
+                 strategy="${it.strategy.PROJECT}"/>
     <tbody>
       <j:forEach var="role" items="${itemGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
-          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" global="${false}" type="${it.strategy.PROJECT}"
+          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}"
+                         disable="${role.key.templateName != null and role.key.templateName != ''}"
+                         showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
+                         type="${it.strategy.PROJECT}"
+                         templateName="${role.key.templateName}"
                          project="${true}"/>
         </tr>
       </j:forEach>
     </tbody>
-    <local:tfoot permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" roles="${itemGrantedRoles}" showPattern="true"/>
+    <local:tfoot permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" roles="${itemGrantedRoles}"
+                 showPattern="${true}" showTemplate="${true}"/>
   </table>
 
   <template id="newItemRoleTemplate">
     <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" />
+      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" templateName="{{TEMPLATENAME}}"
+                     showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
+      />
     </tr>
   </template>
 
@@ -62,6 +70,31 @@
     </f:entry>
     <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
       <f:textbox id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
+    </f:entry>
+    <f:entry>
+      <rs:dropdownList title="Permission Template" name="template" id="${tableid}template">
+        <f:dropdownListBlock title="None" selected="true" value="__none__">
+        </f:dropdownListBlock>
+        <j:forEach var="permissionTemplate" items="${it.strategy.getPermissionTemplates()}">
+          <f:dropdownListBlock title="${permissionTemplate.getName()}" selected="false" value="${permissionTemplate.getName()}">
+            <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}" style="display:none">
+            <local:thead permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}"/>
+            <tr>
+              <local:roleRow title="" role="${permissionTemplate}" disable="${true}" showRoleName="${false}" showPattern="${false}" type="${it.strategy.PROJECT}"
+                             project="${true}"/>
+            </tr>
+            </table>
+            <template id="newItemRoleTemplate-${permissionTemplate.getName()}">
+              <tr class="permission-row highlight-row">
+                <local:roleRow title="{{ROLE}}" role="${permissionTemplate}" global="${false}" pattern="{{PATTERN}}"
+                               type="${it.strategy.PROJECT}"
+                               showRoleName="${true}" showPattern="${true}" disable="${true}" showTemplate="${true}"
+                               templateName="${permissionTemplate.name}"/>
+              </tr>
+            </template>
+          </f:dropdownListBlock>
+        </j:forEach>
+      </rs:dropdownList>
     </f:entry>
     <f:entry>
       <local:addButton id="newItemRoleTemplate" tableid="${tableid}" highlighter="projectTableHighlighter"/>

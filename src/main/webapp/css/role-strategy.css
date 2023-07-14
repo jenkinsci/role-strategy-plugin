@@ -84,6 +84,7 @@ label.attach-previous {
 
 .global-matrix-authorization-strategy-table TD.left-most {
   text-align: left;
+  white-space: nowrap;
 }
 
 .global-matrix-authorization-strategy-table div.pattern-cell {

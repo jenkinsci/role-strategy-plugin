@@ -1,0 +1,215 @@
+<!--
+  - The MIT License
+  -
+  - Copyright (c) 2022 Markus Winter
+  -
+  - Permission is hereby granted, free of charge, to any person obtaining a copy
+  - of this software and associated documentation files (the "Software"), to deal
+  - in the Software without restriction, including without limitation the rights
+  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  - copies of the Software, and to permit persons to whom the Software is
+  - furnished to do so, subject to the following conditions:
+  -
+  - The above copyright notice and this permission notice shall be included in
+  - all copies or substantial portions of the Software.
+  -
+  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  - THE SOFTWARE.
+  -->
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
+
+  <l:layout permission="${app.SYSTEM_READ}" norefresh="true" title="${%Permission Templates}">
+    <l:breadcrumb title="Permission Templates"/>
+
+    <st:include page="sidepanel.jelly"/>
+
+    <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
+    <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
+    <j:set var="tableid" value="permissionTemplates"/>
+
+    <j:choose>
+      <j:when test="${app.hasPermission(app.ADMINISTER)}">
+        <j:set var="readOnlyMode" value="false"/>
+      </j:when>
+      <j:otherwise>
+        <j:set var="readOnlyMode" value="true"/>
+      </j:otherwise>
+    </j:choose>
+
+    <d:taglib uri="local">
+      <d:tag name="permissionRow">
+        <td class="start">
+          <l:isAdmin>
+            <div class="rsp-remove" data-is-used="${template.isUsed()}">
+              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
+            </div>
+          </l:isAdmin>
+        </td>
+        <td class="left-most" style="white-space: nowrap;">${title}</td>
+        <td><j:if test="${template.isUsed()}">
+          <l:icon src="symbol-checkmark-outline plugin-ionicons-api" class="icon-sm"/>
+        </j:if></td>
+        <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
+        <j:forEach var="g" items="${tableItems}">
+          <j:forEach var="p" items="${g.permissions}">
+            <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
+              <td width="*"
+                  class="rsp-highlight-input permissionInput"
+                  data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
+                  data-permission-id="${p.id}"
+                  data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Name&lt;/b&gt;: ${h.escape(attrs.title)}">
+                <f:checkbox name="[${p.id}]" checked="${attrs.template.hasPermission(p)}"/>
+              </td>
+            </j:if>
+          </j:forEach>
+        </j:forEach>
+        <l:isAdmin>
+          <td class="stop">
+            <div class="rsp-remove" data-is-used="${template.isUsed()}">
+              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"
+                      htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+            </div>
+          </td>
+        </l:isAdmin>
+      </d:tag>
+    </d:taglib>
+
+    <l:main-panel>
+      <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css"/>
+      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js"/>
+      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableTemplates.js"/>
+      <j:if test="${empty(descriptorPath)}">
+        <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
+      </j:if>
+      <h1>
+        ${%Permission Templates}
+      </h1>
+      ${%blurb}
+      <f:form method="post" name="config" action="templatesSubmit" class="jenkins-!-margin-top-5">
+        <div id="permissionInputFilter" data-table-id="${tableid}" data-initial-size="${permissionTemplates.size()}"
+             class="row-filter">
+          <f:entry title="${%Filter by Template}">
+            <input id="permissionTemplateInput" class="row-input-filter jenkins-input setting-input"
+                   data-table-id="${tableid}"/>
+          </f:entry>
+        </div>
+        <f:rowSet name="permissionTemplates">
+          <table id="${tableid}"
+                 class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}"
+                 name="data">
+
+            <!-- The first row will show grouping -->
+            <thead>
+              <tr class="group-row">
+                <td rowspan="2" class="start"/>
+                <td rowspan="2" class="pane-header blank">
+                  ${%Name}
+                </td>
+                <td rowspan="2" class="group-row pane-header"><span>In use</span></td>
+                <j:forEach var="g" items="${itemPermissionGroups}">
+                  <j:set var="cnt" value="${0}"/>
+                  <j:forEach var="p" items="${g.permissions}">
+                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                      <j:set var="cnt" value="${cnt+1}"/>
+                    </j:if>
+                  </j:forEach>
+
+                  <td class="pane-header" colspan="${cnt}">
+                    ${g.title}
+                  </td>
+                </j:forEach>
+                <td rowspan="2" class="stop"/>
+              </tr>
+              <!-- The second row for individual permission -->
+              <tr class="caption-row highlight-row">
+                <j:forEach var="g" items="${itemPermissionGroups}">
+                  <j:forEach var="p" items="${g.permissions}">
+                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                      <th class="pane" tooltip="${p.description}">
+                        <span>${p.name}</span>
+                      </th>
+                    </j:if>
+                  </j:forEach>
+                </j:forEach>
+              </tr>
+            </thead>
+            <tbody>
+              <j:forEach var="template" items="${permissionTemplates}">
+                <tr name="[${template.name}]" class="permission-row highlight-row">
+                  <local:permissionRow title="${template.name}" template="${template}" type="${it.strategy.PROJECT}"/>
+                </tr>
+              </j:forEach>
+            </tbody>
+            <j:set var="hidefooter" value=""/>
+            <j:if test="${permissionTemplates.size() lt 20}">
+              <j:set var="hidefooter" value="default-hidden"/>
+            </j:if>
+            <tfoot class="${hidefooter}">
+              <tr class="caption-row highlight-row">
+                <td rowspan="2" class="start"/>
+                <td rowspan="2" class="pane-header blank">
+                  ${%Name}
+                </td>
+                <td rowspan="2" class="group-row pane-header"><span>In use</span></td>
+                <j:forEach var="g" items="${itemPermissionGroups}">
+                  <j:forEach var="p" items="${g.permissions}">
+                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                      <th class="pane" tooltip="${p.description}">
+                        <span>${p.name}</span>
+                      </th>
+                    </j:if>
+                  </j:forEach>
+                </j:forEach>
+              </tr>
+              <tr class="group-row">
+                <j:forEach var="g" items="${itemPermissionGroups}">
+                  <j:set var="cnt" value="${0}"/>
+                  <j:forEach var="p" items="${g.permissions}">
+                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                      <j:set var="cnt" value="${cnt+1}"/>
+                    </j:if>
+                  </j:forEach>
+
+                  <td class="pane-header" colspan="${cnt}">
+                    ${g.title}
+                  </td>
+                </j:forEach>
+                <td rowspan="2" class="stop"/>
+              </tr>
+            </tfoot>
+          </table>
+        </f:rowSet>
+        <template id="newPermissionTemplate">
+          <tr class="permission-row highlight-row">
+            <local:permissionRow title="{{TEMPLATE}}" type="${it.strategy.PROJECT}"/>
+          </tr>
+        </template>
+        <l:isAdmin>
+          <br/>
+          <f:entry>
+            <button type="button" class="jenkins-button template-add-button" data-template-id="newPermissionTemplate"
+                    data-table-id="${tableid}" data-highlighter="templateTableHighlighter"
+                    data-prompt="${%Template Name}">${%Add}
+            </button>
+          </f:entry>
+        </l:isAdmin>
+
+        <l:isAdmin>
+          <f:bottomButtonBar>
+            <f:submit value="${%Save}"/>
+            <f:apply/>
+          </f:bottomButtonBar>
+        </l:isAdmin>
+        <script>
+        </script>
+      </f:form>
+    </l:main-panel>
+  </l:layout>
+</j:jelly>
