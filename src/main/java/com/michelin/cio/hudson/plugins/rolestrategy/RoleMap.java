@@ -156,12 +156,14 @@ public class RoleMap {
        */
       @CheckForNull
       private PermissionEntry hasPermission(Role current, PermissionEntry entry) {
-        if (current.containsPermissionEntry(entry)) {
-          return entry;
-        }
-        entry = new PermissionEntry(AuthorizationType.EITHER, entry.getSid());
-        if (current.containsPermissionEntry(entry)) {
-          return entry;
+        for (PermissionEntry declaredEntry : current.getPermissionEntries()) {
+          if (declaredEntry.equals(entry)) {
+            return entry;
+          }
+          if (declaredEntry.getType() == AuthorizationType.EITHER &&
+                  declaredEntry.getSid().equals(entry.getSid())) {
+            return entry;
+          }
         }
         return null;
       }

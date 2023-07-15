@@ -43,7 +43,7 @@ import java.util.Arrays;
  * @author Oleg Nenashev, Synopsys Inc.
  */
 public class Macro {
-  public static final String MACRO_PREFIX = "@";
+  public static final char MACRO_PREFIX = '@';
   private static final String PARAMS_LEFT_BORDER = "(";
   private static final String PARAMS_RIGHT_BORDER = ")";
   private static final String PARAMS_DELIMITER = "\\\"*,\\\"*";
@@ -133,7 +133,7 @@ public class Macro {
   }
 
   public static boolean isMacro(String macroString) {
-    return macroString.startsWith(MACRO_PREFIX);
+    return macroString.charAt(0) == MACRO_PREFIX;
   }
 
   /**
@@ -173,7 +173,7 @@ public class Macro {
     }
 
     // Macro name
-    String macroName = macroIdItems[0].substring(MACRO_PREFIX.length());
+    String macroName = macroIdItems[0].substring(1);
     if (macroName.isEmpty()) {
       throw new MacroException(MacroExceptionCode.WrongFormat, "Macro name is empty");
     }

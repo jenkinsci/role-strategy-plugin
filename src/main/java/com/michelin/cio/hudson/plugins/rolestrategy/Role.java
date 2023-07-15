@@ -77,11 +77,7 @@ public final class Role implements Comparable {
    */
   private final Set<Permission> permissions = new HashSet<>();
 
-  private final Set<PermissionEntry> userPermissionEntries = new HashSet<>();
-
-  private final Set<PermissionEntry> groupPermissionEntries = new HashSet<>();
-
-  private final Set<PermissionEntry> eitherPermissionEntries = new HashSet<>();
+  private final Set<PermissionEntry> permissionEntries = new HashSet<>();
 
   private transient Integer cachedHashCode = null;
 
@@ -162,18 +158,7 @@ public final class Role implements Comparable {
     this.pattern = pattern;
     this.description = description;
     this.templateName = templateName;
-    for (PermissionEntry entry : permissionEntries) {
-      switch (entry.getType()) {
-        case USER:
-          this.userPermissionEntries.add(entry);
-          break;
-        case GROUP:
-          this.groupPermissionEntries.add(entry);
-          break;
-        default:
-          this.eitherPermissionEntries.add(entry);
-      }
-    }
+    this.permissionEntries.addAll(permissionEntries);
     for (Permission perm : permissions) {
       if (perm == null) {
         LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
@@ -286,64 +271,29 @@ public final class Role implements Comparable {
 
 
   public void addPermissionEntry(PermissionEntry permissionEntry) {
-    switch (permissionEntry.getType()) {
-      case USER:
-        this.userPermissionEntries.add(permissionEntry);
-        break;
-      case GROUP:
-        this.groupPermissionEntries.add(permissionEntry);
-        break;
-      default:
-        this.eitherPermissionEntries.add(permissionEntry);
-    }
+    permissionEntries.add(permissionEntry);
   }
 
 
   public void removePermissionEntry(PermissionEntry permissionEntry) {
-    switch (permissionEntry.getType()) {
-      case USER:
-        this.userPermissionEntries.remove(permissionEntry);
-        break;
-      case GROUP:
-        this.groupPermissionEntries.remove(permissionEntry);
-        break;
-      default:
-        this.eitherPermissionEntries.remove(permissionEntry);
-    }
+    permissionEntries.remove(permissionEntry);
   }
 
   public void clearPermissionEntries() {
-    userPermissionEntries.clear();
-    groupPermissionEntries.clear();
-    eitherPermissionEntries.clear();
+    permissionEntries.clear();
   }
 
   public boolean containsPermissionEntry(PermissionEntry permissionEntry) {
-    switch (permissionEntry.getType()) {
-      case USER:
-        return this.userPermissionEntries.contains(permissionEntry);
-      case GROUP:
-        return this.groupPermissionEntries.contains(permissionEntry);
-      default:
-        return this.eitherPermissionEntries.contains(permissionEntry);
-    }
+    return permissionEntries.contains(permissionEntry);
   }
 
   public Set<PermissionEntry> getPermissionEntries() {
-    Set<PermissionEntry> entries = new HashSet<>();
-    entries.addAll(userPermissionEntries);
-    entries.addAll(groupPermissionEntries);
-    entries.addAll(eitherPermissionEntries);
-    return entries;
+    return Collections.unmodifiableSet(permissionEntries);
   }
 
   public void setPermissionEntries(Set<PermissionEntry> permissionEntries) {
-    this.userPermissionEntries.clear();
-    this.groupPermissionEntries.clear();
-    this.eitherPermissionEntries.clear();
-    for (PermissionEntry entry: permissionEntries) {
-      addPermissionEntry(entry);
-    }
+    this.permissionEntries.clear();
+    this.permissionEntries.addAll(permissionEntries);
   }
 
   /**
