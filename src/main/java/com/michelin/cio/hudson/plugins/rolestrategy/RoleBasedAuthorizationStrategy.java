@@ -70,8 +70,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,6 +81,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -94,6 +97,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.GET;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * Role-based authorization strategy.
@@ -115,7 +119,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap agentRoles;
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
-  private Set<PermissionTemplate> permissionTemplates;
+  private Map<String, PermissionTemplate> permissionTemplates;
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -124,7 +128,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     agentRoles = new RoleMap();
     globalRoles = new RoleMap();
     itemRoles = new RoleMap();
-    permissionTemplates = new TreeSet<>();
+    permissionTemplates = new TreeMap<>();
   }
 
   /**
@@ -143,7 +147,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param permissionTemplates the permission templates in the strategy
    */
   public RoleBasedAuthorizationStrategy(Map<String, RoleMap> grantedRoles, @CheckForNull Set<PermissionTemplate> permissionTemplates) {
-    this.permissionTemplates = permissionTemplates == null ? Collections.emptySet() : new TreeSet<>(permissionTemplates);
+
+    this.permissionTemplates = new TreeMap<>();
+    if (permissionTemplates != null) {
+      for (PermissionTemplate template : permissionTemplates) {
+        this.permissionTemplates.put(template.getName(), template);
+      }
+    }
 
     RoleMap map = grantedRoles.get(SLAVE);
     agentRoles = map == null ? new RoleMap() : map;
@@ -162,7 +172,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private void refreshPermissionsFromTemplate() {
     SortedMap<Role, Set<PermissionEntry>> roles = getGrantedRolesEntries(RoleBasedAuthorizationStrategy.PROJECT);
     for (Role role : roles.keySet()) {
-      role.refreshPermissionsFromTemplate(this.permissionTemplates);
+      if (Util.fixEmptyAndTrim(role.getTemplateName()) != null) {
+        role.refreshPermissionsFromTemplate(permissionTemplates.get(role.getTemplateName()));
+      }
     }
   }
 
@@ -284,7 +296,16 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @return set of permission templates.
    */
   public Set<PermissionTemplate> getPermissionTemplates() {
-    return Collections.unmodifiableSet(permissionTemplates);
+    return Set.copyOf(permissionTemplates.values());
+  }
+
+  @CheckForNull
+  public PermissionTemplate getPermissionTemplate(String templateName) {
+    return permissionTemplates.get(templateName);
+  }
+
+  public boolean hasPermissionTemplate(String name) {
+    return permissionTemplates.containsKey(name);
   }
 
   /**
@@ -392,9 +413,74 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
+   * API method to add a permission template.
+   *
+   * An existing template with the same will only be replaced when overwrite is set. Otherwise, the request will fail with status
+   * <code>400</code>
+   *
+   * @param name The template nae
+   * @param permissionIds Comma separated list of permission IDs
+   * @param overwrite If an existing template should be overwritten
+   */
+  @POST
+  @Restricted(NoExternalUse.class)
+  public void doAddTemplate(@QueryParameter(required = true) String name,
+                            @QueryParameter(required = true) String permissionIds,
+                            @QueryParameter(required = false) boolean overwrite)
+          throws IOException {
+    checkAdminPerm();
+    List<String> permissionList = Arrays.asList(permissionIds.split(","));
+    Set<Permission> permissionSet = PermissionHelper.fromStrings(permissionList, true);
+    PermissionTemplate template = new PermissionTemplate(permissionSet, name);
+    if (!overwrite && hasPermissionTemplate(name)) {
+      Stapler.getCurrentResponse().sendError(HttpServletResponse.SC_BAD_REQUEST, "A template with name " + name + " already exists.");
+      return;
+    }
+    permissionTemplates.put(name, template);
+    refreshPermissionsFromTemplate();
+    persistChanges();
+  }
+
+  /**
+   * API method to remove templates.
+   *
+   * <p>
+   * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/removeTemplates --data "templates=developer,qualits"}
+   *
+   * @param names  comma separated list of templates to remove
+   * @param force  If templates that are in use should be removed
+   * @throws IOException in case saving changes fails
+   */
+  @POST
+  @Restricted(NoExternalUse.class)
+  public void doRemoveTemplates(@QueryParameter(required = true) String names,
+                                @QueryParameter(required = false) boolean force) throws IOException {
+    checkAdminPerm();
+    String[] split = names.split(",");
+    for (String templateName : split) {
+      templateName = templateName.trim();
+      PermissionTemplate pt = getPermissionTemplate(templateName);
+      if (pt != null && (!pt.isUsed() || force)) {
+        permissionTemplates.remove(templateName);
+        RoleMap roleMap = getRoleMap(RoleType.Project);
+        for (Role role : roleMap.getRoles()) {
+          if (templateName.equals(role.getTemplateName())) {
+            role.setTemplateName(null);
+          }
+        }
+      }
+    }
+    persistChanges();
+  }
+
+  /**
    * API method to add a role.
    *
    * <p>Unknown and dangerous permissions are ignored.
+   *
+   * When specifying a <code>template</code> for an item role, the given permissions are ignored. The named template must exist,
+   * otherwise the request fails with status <code>400</code>.
+   * The <code>template</code> is ignored when adding global or agent roles.
    *
    * <p>Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/addRole --data "type=globalRoles&amp;roleName=ADM&amp;
@@ -406,6 +492,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * @param permissionIds Comma separated list of IDs for given roleName
    * @param overwrite     Overwrite existing role
    * @param pattern       Role pattern
+   * @param template      Name of template
    * @throws IOException In case saving changes fails
    * @since 2.5.0
    */
@@ -415,20 +502,31 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String permissionIds,
       @QueryParameter(required = true) String overwrite,
-      @QueryParameter(required = false) String pattern) throws IOException {
+      @QueryParameter(required = false) String pattern,
+      @QueryParameter(required = false) String template) throws IOException {
     checkAdminPerm();
 
-    boolean overwriteb = Boolean.parseBoolean(overwrite);
+    final boolean overwriteb = Boolean.parseBoolean(overwrite);
     String pttrn = ".*";
+    String templateName = Util.fixEmptyAndTrim(template);
 
     if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL) && pattern != null) {
       pttrn = pattern;
     }
-
     List<String> permissionList = Arrays.asList(permissionIds.split(","));
-
     Set<Permission> permissionSet = PermissionHelper.fromStrings(permissionList, true);
+
     Role role = new Role(roleName, pttrn, permissionSet);
+
+    if (RoleBasedAuthorizationStrategy.PROJECT.equals(type) && templateName != null) {
+      if (!hasPermissionTemplate(template)) {
+        Stapler.getCurrentResponse().sendError(HttpServletResponse.SC_BAD_REQUEST, "A template with name " + template + " doesn't exists.");
+        return;
+      }
+      role.setTemplateName(templateName);
+      role.refreshPermissionsFromTemplate(getPermissionTemplate(templateName));
+    }
+
     RoleType roleType = RoleType.fromString(type);
     if (overwriteb) {
       RoleMap roleMap = getRoleMap(roleType);
@@ -710,11 +808,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to get the granted permissions of a role and the SIDs assigned to it.
+   * API method to get the granted permissions of a template and if the template is used.
    *
    * <p>
-   * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getRole
-   * ?type=globalRoles&roleName=admin'}
+   * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getTemplate?name=developer'}
    *
    * <p>
    * Returns json with granted permissions and assigned sids.<br>
@@ -723,11 +820,60 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * <pre>{@code
    *   {
    *     "permissionIds": {
-   *         "hudson.model.Hudson.Read":true,
    *         "hudson.model.Item.Read":true,
    *         "hudson.model.Item.Build":true,
+   *         "hudson.model.Item.Cancel":true,
+   *      },
+   *      "isUsed": true
+   *   }
+   * }
+   * </pre>
+   *
+   */
+  @GET
+  @Restricted(NoExternalUse.class)
+  public void doGetTemplate(@QueryParameter(required = true) String name) throws IOException {
+    checkAdminPerm();
+    JSONObject responseJson = new JSONObject();
+
+    PermissionTemplate template = permissionTemplates.get(name);
+    if (template != null) {
+      Set<Permission> permissions = template.getPermissions();
+      Map<String, Boolean> permissionsMap = new HashMap<>();
+      for (Permission permission : permissions) {
+        permissionsMap.put(permission.getId(), permission.getEnabled());
+      }
+      responseJson.put("permissionIds", permissionsMap);
+      responseJson.put("isUsed", template.isUsed());
+    }
+    Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+    responseJson.write(writer);
+    writer.close();
+
+  }
+
+  /**
+   * API method to get the granted permissions of a role and the SIDs assigned to it.
+   *
+   * <p>
+   * Example: {@code curl -XGET 'http://localhost:8080/jenkins/role-strategy/strategy/getRole
+   * ?type=projectRoles&roleName=admin'}
+   *
+   * <p>
+   * Returns json with granted permissions and assigned sids.<br>
+   * Example:
+   *
+   * <pre>{@code
+   *   {
+   *     "permissionIds": {
+   *         "hudson.model.Item.Read":true,
+   *         "hudson.model.Item.Build":true,
+   *         "hudson.model.Item.Cancel":true,
    *      },
    *      "sids": [{"type":"USER","sid":"user1"}, {"type":"USER","sid":"user2"}]
+   *      "pattern": ".*",
+   *      "template": "developers",
    *   }
    * }
    * </pre>
@@ -758,6 +904,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
       Map<Role, Set<PermissionEntry>> grantedRoleMap = roleMap.getGrantedRolesEntries();
       responseJson.put("sids", grantedRoleMap.get(role));
+      if (type.equals(RoleBasedAuthorizationStrategy.PROJECT)) {
+        responseJson.put("template", role.getTemplateName());
+      }
     }
 
     Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
@@ -909,7 +1058,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) source;
 
       writer.startNode(PERMISSION_TEMPLATES);
-      for (PermissionTemplate permissionTemplate : strategy.permissionTemplates) {
+      for (PermissionTemplate permissionTemplate : strategy.permissionTemplates.values()) {
         writer.startNode("template");
         writer.addAttribute("name", permissionTemplate.getName());
         writer.startNode("permissions");
@@ -1192,7 +1341,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
 
         JSONObject permissionTemplatesJson = json.getJSONObject(PERMISSION_TEMPLATES);
-        Set<PermissionTemplate> permissionTemplates = new TreeSet<>();
+        Map<String, PermissionTemplate> permissionTemplates = new TreeMap<>();
         for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>)
             permissionTemplatesJson.getJSONObject("data").entrySet()) {
           String templateName = r.getKey();
@@ -1203,7 +1352,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             }
           }
           PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
-          permissionTemplates.add(permissionTemplate);
+          permissionTemplates.put(templateName, permissionTemplate);
         }
 
         strategy.permissionTemplates = permissionTemplates;

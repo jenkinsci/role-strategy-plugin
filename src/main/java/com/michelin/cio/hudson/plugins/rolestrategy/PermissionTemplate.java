@@ -59,14 +59,13 @@ public class PermissionTemplate implements Comparable<PermissionTemplate> {
   }
 
   /**
-   * Checks whether the template is used by one or more roles.#
+   * Checks whether the template is used by one or more roles.
    *
    * @return true when template is used.
    */
   public boolean isUsed() {
     AuthorizationStrategy auth = Jenkins.get().getAuthorizationStrategy();
-    ProjectNamingStrategy pns = Jenkins.get().getProjectNamingStrategy();
-    if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
+    if (auth instanceof RoleBasedAuthorizationStrategy) {
       RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
       Map<Role, Set<PermissionEntry>> roleMap = rbas.getGrantedRolesEntries(RoleType.Project);
       for (Role role : roleMap.keySet()) {
