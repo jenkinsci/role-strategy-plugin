@@ -201,10 +201,35 @@ public class ApiTest {
   @Test
   public void testRemoveTemplate() throws IOException {
     String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/removeTemplates";
+    rbas.doAddTemplate("quality", "Job/Read,Job/Workspace", false);
+    rbas.doAddTemplate("unused", "hudson.model.Item.Read", false);
+    rbas.doAddRole("projectRoles", "qa",
+            "", "false", ".*", "quality");
+
     URL apiUrl = new URL(url);
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(
-            Arrays.asList(new NameValuePair("names", "developer"),
+            Arrays.asList(new NameValuePair("names", "unused,quality"),
+                    new NameValuePair("force",
+                            "false")));
+    Page page = webClient.getPage(request);
+
+    // Verifying that web request is successful
+    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    Role role = rbas.getRoleMap(RoleType.Project).getRole("qa");
+    assertThat(role.getTemplateName(), is("quality"));
+    assertThat(role.hasPermission(Item.WORKSPACE), is(true));
+    assertThat(rbas.hasPermissionTemplate("unused"), is(false));
+    assertThat(rbas.hasPermissionTemplate("quality"), is(true));
+  }
+
+  @Test
+  public void testForceRemoveTemplate() throws IOException {
+    String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/removeTemplates";
+    URL apiUrl = new URL(url);
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(
+            Arrays.asList(new NameValuePair("names", "developer,unknown"),
                     new NameValuePair("force",
                             "true")));
     Page page = webClient.getPage(request);
@@ -214,6 +239,7 @@ public class ApiTest {
     Role role = rbas.getRoleMap(RoleType.Project).getRole("developers");
     assertThat(role.getTemplateName(), is(nullValue()));
     assertThat(role.hasPermission(Item.BUILD), is(true));
+    assertThat(rbas.hasPermissionTemplate("developer"), is(false));
   }
 
   @Test
