@@ -28,7 +28,6 @@ import java.util.regex.Pattern;
 import jenkins.benchmark.jmh.JmhBenchmark;
 import jenkins.benchmark.jmh.JmhBenchmarkState;
 import jenkins.model.Jenkins;
-import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Level;
@@ -125,7 +124,7 @@ public class FolderAccessBenchmark {
     }
   }
 
-  @org.openjdk.jmh.annotations.State(Scope.Thread)
+  @State(Scope.Thread)
   public static class ThreadState {
     @Setup(Level.Iteration)
     public void setup() {

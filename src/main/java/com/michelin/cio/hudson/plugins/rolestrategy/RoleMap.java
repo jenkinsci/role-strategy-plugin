@@ -156,14 +156,12 @@ public class RoleMap {
        */
       @CheckForNull
       private PermissionEntry hasPermission(Role current, PermissionEntry entry) {
-        for (PermissionEntry declaredEntry : current.getPermissionEntries()) {
-          if (declaredEntry.equals(entry)) {
-            return entry;
-          }
-          if (declaredEntry.getType() == AuthorizationType.EITHER &&
-                  declaredEntry.getSid().equals(entry.getSid())) {
-            return entry;
-          }
+        if (current.containsPermissionEntry(entry)) {
+          return entry;
+        }
+        entry = new PermissionEntry(AuthorizationType.EITHER, entry.getSid());
+        if (current.containsPermissionEntry(entry)) {
+          return entry;
         }
         return null;
       }
@@ -727,7 +725,7 @@ public class RoleMap {
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      boolean principal = sid instanceof PrincipalSid ? true : false;
+      boolean principal = sid instanceof PrincipalSid;
       PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, toString(sid));
       if (RoleMap.this.hasPermission(entry, permission, roleType, item)) {
         if (item instanceof Item) {
