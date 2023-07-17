@@ -38,7 +38,7 @@ public class MaliciousRegexBenchmark {
         if (rand.nextBoolean()) {
           rbas.doAddRole(RoleBasedAuthorizationStrategy.PROJECT, "role" + i,
               "hudson.model.Item.Discover,hudson.model.Item.Read,hudson.model.Item.Build", "true",
-              "F(o+)+lder[" + rand.nextInt(10) + rand.nextInt(10) + "]{1,2}");
+              "F(o+)+lder[" + rand.nextInt(10) + rand.nextInt(10) + "]{1,2}", "");
         }
         rbas.doAssignRole(RoleBasedAuthorizationStrategy.PROJECT, "role" + i, "user" + i);
       }

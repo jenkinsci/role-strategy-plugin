@@ -29,6 +29,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -38,6 +39,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -198,9 +201,13 @@ public final class Role implements Comparable {
   }
 
   /**
-   * Updates the permissions from the used template.
+   * Updates the permissions from the template matching the name.
+   *
+   * @param permissionTemplates List of templates to look for
+   * @deprecated Use {@link #refreshPermissionsFromTemplate(PermissionTemplate)}
    */
-  public void refreshPermissionsFromTemplate(Set<PermissionTemplate> permissionTemplates) {
+  @Deprecated
+  public void refreshPermissionsFromTemplate(Collection<PermissionTemplate> permissionTemplates) {
     if (Util.fixEmptyAndTrim(templateName) != null) {
       boolean found = false;
       for (PermissionTemplate pt : permissionTemplates) {
@@ -213,6 +220,20 @@ public final class Role implements Comparable {
       if (! found) {
         this.templateName = null;
       }
+    }
+  }
+
+  /**
+   * Updates the permissions from the given template.
+   *
+   * The name of the given template must match the configured template name in the role.
+   *
+   * @param permissionTemplate PermissionTemplate
+   */
+  @Restricted(NoExternalUse.class)
+  public void refreshPermissionsFromTemplate(@CheckForNull PermissionTemplate permissionTemplate) {
+    if (permissionTemplate != null && templateName != null && templateName.equals(permissionTemplate.getName())) {
+      setPermissions(permissionTemplate.getPermissions());
     }
   }
 
