@@ -90,8 +90,6 @@ import hudson.security.Permission
 import jenkins.model.Jenkins
 
 
-import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper
-
 Jenkins jenkins = Jenkins.get()
 def rbas = new RoleBasedAuthorizationStrategy()
 
