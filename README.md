@@ -81,16 +81,14 @@ Configuration management can be used via [Jenkins Script Console](https://www.je
 [Groovy Hook Scripts](https://www.jenkins.io/doc/book/managing/groovy-hook-scripts/), following example is creating an admin role & user based on plugin 3.1. 
 
 ```groovy
-import jenkins.model.Jenkins
-
-import hudson.security.PermissionGroup
-import hudson.security.Permission
-
+import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType
+import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy
 import com.michelin.cio.hudson.plugins.rolestrategy.Role
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType
+import hudson.security.Permission
+import jenkins.model.Jenkins
 
-import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper
 
 Jenkins jenkins = Jenkins.get()
 def rbas = new RoleBasedAuthorizationStrategy()
@@ -98,18 +96,19 @@ def rbas = new RoleBasedAuthorizationStrategy()
 /* create admin role */
 Set<Permission> permissions = new HashSet<>();
 permissions.add(Jenkins.ADMINISTER)
-Role adminRole = new Role("admin",permissions)
+Role adminRole = new Role("admin", permissions)
 
-/* assign admin role to admin user */
-globalRoleMap = rbas.getRoleMaps()[RoleType.Global]
+/* assign admin role to user 'admin' */
+adminRole.addPermissionEntry(new PermissionEntry(AuthorizationType.USER, 'admin'))
+/* assign admin role to group 'administrators' */
+adminRole.addPermissionEntry(new PermissionEntry(AuthorizationType.GROUP, 'administrators'))
+
+globalRoleMap = rbas.getRoleMap(RoleType.Global)
 globalRoleMap.addRole(adminRole)
-globalRoleMap.assignUserRole(adminRole, 'admin')
-globalRoleMap.assignGroupRole(adminRole, 'administrators')
 
 jenkins.setAuthorizationStrategy(rbas)
 
-jenkins.save()
-```
+jenkins.save()```
 ## License
 
 [MIT License](./LICENSE.md)
