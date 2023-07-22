@@ -57,7 +57,7 @@
 
   <template id="newItemRoleTemplate">
     <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" templateName="{{TEMPLATENAME}}"
+      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" templateName=""
                      showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
       />
     </tr>
@@ -73,7 +73,7 @@
     </f:entry>
     <f:entry>
       <rs:dropdownList title="Permission Template" name="template" id="${tableid}template">
-        <f:dropdownListBlock title="None" selected="true" value="__none__">
+        <f:dropdownListBlock title="None" selected="true" value="">
         </f:dropdownListBlock>
         <j:forEach var="permissionTemplate" items="${it.strategy.getPermissionTemplates()}">
           <f:dropdownListBlock title="${permissionTemplate.getName()}" selected="false" value="${permissionTemplate.getName()}">

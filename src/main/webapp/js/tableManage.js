@@ -222,7 +222,7 @@ addButtonAction = function(e, templateId, table, tableHighlighter, tableId) {
     if (tableId === "projectRoles") {
       let templateSelect = document.getElementById(tableId + 'template');
       let templateName = templateSelect.value;
-      if (templateName !== '__none__') {
+      if (templateName !== '') {
         template = window[templateId + "-" + templateName].content.firstElementChild.cloneNode(true);
       }
     }
