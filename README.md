@@ -98,17 +98,16 @@ Set<Permission> permissions = new HashSet<>();
 permissions.add(Jenkins.ADMINISTER)
 Role adminRole = new Role("admin", permissions)
 
-/* assign admin role to user 'admin' */
-adminRole.addPermissionEntry(new PermissionEntry(AuthorizationType.USER, 'admin'))
-/* assign admin role to group 'administrators' */
-adminRole.addPermissionEntry(new PermissionEntry(AuthorizationType.GROUP, 'administrators'))
-
 globalRoleMap = rbas.getRoleMap(RoleType.Global)
 globalRoleMap.addRole(adminRole)
-
+/* assign admin role to user 'admin' */
+globalRoleMap.assignRole(adminRole, new PermissionEntry(AuthorizationType.USER, 'admin'))
+/* assign admin role to group 'administrators' */
+globalRoleMap.assignRole(adminRole, new PermissionEntry(AuthorizationType.GROUP, 'administrators'))
 jenkins.setAuthorizationStrategy(rbas)
 
-jenkins.save()```
+jenkins.save()
+```
 ## License
 
 [MIT License](./LICENSE.md)
