@@ -70,8 +70,10 @@ import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * Class holding a map for each kind of {@link AccessControlled} object, associating each {@link Role} with the
@@ -402,8 +404,8 @@ public class RoleMap {
   /**
    * Clear specific role associated to the given sid.
    *
-   * @param sid      The sid for wich you want to clear the {@link Role}s
-   * @param rolename The role for wich you want to clear the {@link Role}s
+   * @param sid      The sid for which you want to clear the {@link Role}s
+   * @param rolename The role for which you want to clear the {@link Role}s
    * @since 2.6.0
    */
   public void deleteRoleSid(PermissionEntry sid, String rolename) {
@@ -421,8 +423,8 @@ public class RoleMap {
    * Clear specific role associated to the given sid.
    * This will only find sids of type {@link AuthorizationType#EITHER}
    *
-   * @param sid      The sid for wich you want to clear the {@link Role}s
-   * @param rolename The role for wich you want to clear the {@link Role}s
+   * @param sid      The sid for which you want to clear the {@link Role}s
+   * @param rolename The role for which you want to clear the {@link Role}s
    * @since 2.6.0
    * @deprecated use {@link #deleteRoleSid(PermissionEntry, String)}
    */
@@ -595,6 +597,51 @@ public class RoleMap {
       return ret.stream().map(PermissionEntry::getSid).collect(Collectors.toSet());
     }
     return null;
+  }
+
+  /**
+   * Get all roles associated with the given User.
+   *
+   * @param user The User for which to get the roles
+   * @return a set of roles
+   * @throws UsernameNotFoundException when user is not found
+   */
+  @NonNull
+  public Set<String> getRolesForUser(User user) throws UsernameNotFoundException {
+    return getRolesForAuth(user.impersonate2());
+  }
+
+  /**
+   * Get all roles associated with the given Authentication.
+   *
+   * @param auth The Authentication for which to get the roles
+   * @return a set of roles
+   */
+  @NonNull
+  @Restricted(NoExternalUse.class)
+  public Set<String> getRolesForAuth(Authentication auth) {
+    PermissionEntry userEntry = new PermissionEntry(AuthorizationType.USER, auth.getPrincipal().toString());
+    Set<String> roleSet = new HashSet<>(getRolesForSidEntry(userEntry));
+    for (GrantedAuthority group : auth.getAuthorities()) {
+      PermissionEntry groupEntry = new PermissionEntry(AuthorizationType.GROUP, group.getAuthority());
+      roleSet.addAll(getRolesForSidEntry(groupEntry));
+    }
+    return roleSet;
+  }
+
+  private Set<String> getRolesForSidEntry(PermissionEntry entry) {
+
+    Set<String> roleSet = new HashSet<>();
+    new RoleWalker() {
+      @Override
+      public void perform(Role current) {
+        if (grantedRoles.get(current).contains(entry)) {
+          roleSet.add(current.getName());
+        }
+      }
+    };
+
+    return roleSet;
   }
 
   /**
