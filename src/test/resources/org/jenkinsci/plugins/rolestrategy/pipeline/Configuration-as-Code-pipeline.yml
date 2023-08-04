@@ -1,0 +1,67 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "adminRole"
+            description: "Jenkins administrators"
+            permissions:
+              - "Overall/Administer"
+            entries:
+              - user: "admin"
+          - name: "readonlyRole"
+            description: "Read-only users"
+            permissions:
+              - "Overall/Read"
+            entries:
+              - group: "readers"
+        items:
+          - name: "builder1Role"
+            description: "build job pipeline"
+            pattern: "^pipeline$"
+            permissions:
+              - "Job/Configure"
+              - "Job/Workspace"
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Delete"
+              - "Job/Cancel"
+            entries:
+              - user: "builder1"
+          - name: "reader1Role"
+            description: "read job pipeline"
+            pattern: "^pipeline$"
+            permissions:
+              - "Job/Read"
+            entries:
+              - group: "readers"
+          - name: "builder2Role"
+            description: "build job pipeline 2"
+            pattern: "^job-pipeline$"
+            permissions:
+              - "Job/Configure"
+              - "Job/Read"
+              - "Job/Build"
+              - "Job/Delete"
+            entries:
+              - user: "builder2"
+          - name: "reader2Role"
+            description: "read job pipeline 2"
+            pattern: "^job-pipeline$"
+            permissions:
+              - "Job/Read"
+            entries:
+              - group: "readers"
+
+  # System for test
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "1234"
+        - id: "builder1"
+          password: "builder1"
+        - id: "builder2"
+          password: "builder2"
+

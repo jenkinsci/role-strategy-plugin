@@ -71,6 +71,21 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 
 ![Assign roles](/docs/images/assignRoles.png)
 
+### Getting roles in pipelines
+There are 2 steps available in pipeline jobs that allow to get the roles of the user running the build.
+When the build was triggered by a user via the UI or the REST API, the roles of this user are returned. In case the build was triggered
+by the times or an SCM event there is no dedicated user available and the `SYSTEM` user is used. This user is considered like an admin and will have all roles.<br/>
+With the [Authorize Project](https://plugins.jenkins.io/authorize-project/) plugin, it is possible to make builds triggered by timer or an SCM event
+to run as a specific user which is then used or run as `anonymous`. For `anonymous` it means no roles are returned. The user that triggered the build will always take 
+precedence over the user that is configured via `Authorize Project`.
+
+#### currentUserGlobalRoles
+The step `currentUserGlobalRoles` will return all global roles of the user.
+
+#### currentUserItemRoles
+The step `currentUserGlobalRoles` will return the item roles of the user. By default, it returns only those roles that
+match the currently building pipeline. The parameter `showAllRoles` will return all item roles of the user.
+
 ### Rest API
 
 The Rest API allows to query the current roles and assignments and to do changes to them.
