@@ -2,9 +2,11 @@ package org.jenkinsci.plugins.rolestrategy;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.PluginManager;
 import hudson.model.User;
@@ -31,8 +33,36 @@ public class RoleStrategyTest {
   @LocalData
   @Test
   public void testRoleAssignment() {
+    RoleMap.FORCE_CASE_SENSITIVE = false;
     try (ACLContext c = ACL.as(User.getById("alice", true))) {
       assertTrue(jenkinsRule.jenkins.hasPermission(Permission.READ));
+    }
+  }
+
+  @LocalData
+  @Test
+  public void testRoleAssignmentCaseInsensitiveNoMatchSucceeds() {
+    RoleMap.FORCE_CASE_SENSITIVE = false;
+    try (ACLContext c = ACL.as(User.getById("Alice", true))) {
+      assertTrue(jenkinsRule.jenkins.hasPermission(Permission.READ));
+    }
+  }
+
+  @LocalData
+  @Test
+  public void testRoleAssignmentCaseSensitiveMatch() {
+    RoleMap.FORCE_CASE_SENSITIVE = true;
+    try (ACLContext c = ACL.as(User.getById("alice", true))) {
+      assertTrue(jenkinsRule.jenkins.hasPermission(Permission.READ));
+    }
+  }
+
+  @LocalData
+  @Test
+  public void testRoleAssignmentCaseSensitiveNoMatchFails() {
+    RoleMap.FORCE_CASE_SENSITIVE = true;
+    try (ACLContext c = ACL.as(User.getById("Alice", true))) {
+      assertFalse(jenkinsRule.jenkins.hasPermission(Permission.READ));
     }
   }
 
