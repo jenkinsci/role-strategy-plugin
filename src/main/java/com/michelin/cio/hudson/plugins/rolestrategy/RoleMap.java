@@ -41,6 +41,7 @@ import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
+import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,6 +61,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import jenkins.model.IdStrategy;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -82,6 +84,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  * @author Thomas Maurel
  */
 public class RoleMap {
+
+  @SuppressFBWarnings("MS_SHOULD_BE_FINAL") // Used to allow old behaviour
+  @Restricted(NoExternalUse.class)
+  public static boolean FORCE_CASE_SENSITIVE = Boolean.getBoolean(RoleMap.class.getName() + ".FORCE_CASE_SENSITIVE");
 
   /**
    * Map associating each {@link Role} with the concerned {@link User}s/groups.
@@ -133,6 +139,9 @@ public class RoleMap {
   public boolean hasPermission(PermissionEntry sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
     final Set<Permission> permissions = getImplyingPermissions(permission);
     final boolean[] hasPermission = { false };
+    final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
+    final boolean principal = sid.getType() == AuthorizationType.USER;
+    final IdStrategy strategy = principal ? securityRealm.getUserIdStrategy() : securityRealm.getGroupIdStrategy();
 
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
@@ -149,12 +158,20 @@ public class RoleMap {
        */
       @CheckForNull
       private PermissionEntry hasPermission(Role current, PermissionEntry entry) {
-        if (grantedRoles.get(current).contains(entry)) {
+        Set<PermissionEntry> entries = grantedRoles.get(current);
+        if (entries.contains(entry)) {
           return entry;
         }
-        entry = new PermissionEntry(AuthorizationType.EITHER, entry.getSid());
-        if (grantedRoles.get(current).contains(entry)) {
-          return entry;
+        PermissionEntry eitherEntry = new PermissionEntry(AuthorizationType.EITHER, entry.getSid());
+        if (entries.contains(eitherEntry)) {
+          return eitherEntry;
+        }
+        if (!FORCE_CASE_SENSITIVE) {
+          for (PermissionEntry pe : entries) {
+            if (pe.isApplicable(principal) && strategy.equals(pe.getSid(), entry.getSid())) {
+              return pe;
+            }
+          }
         }
         return null;
       }

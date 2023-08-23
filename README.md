@@ -123,6 +123,16 @@ jenkins.setAuthorizationStrategy(rbas)
 
 jenkins.save()
 ```
+
+### Case sensitive mode
+In previous versions of this plugin, role assignments where always matched case-sensitive, even when the security realm 
+works case-insensitive (as do most of them). As of version 685 the plugin will use the strategy given by the security realm 
+to match assigned roles. If for some reason you need the old behaviour, set the property `com.michelin.cio.hudson.plugins.rolestrategy.RoleMap.FORCE_CASE_SENSITIVE`
+via command line `jenkins -Dcom.michelin.cio.hudson.plugins.rolestrategy.RoleMap.FORCE_CASE_SENSITIVE=true -war jenkins.war`, set it via the script console or via 
+an init hook script.
+
+
+
 ## License
 
 [MIT License](./LICENSE.md)
