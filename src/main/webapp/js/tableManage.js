@@ -32,9 +32,6 @@ var projectTableHighlighter;
 var newItemRoleTemplate;
 var agentTableHighlighter;
 var newAgentRoleTemplate;
-var modal;
-var overlay;
-var closeModalBtn;
 
 
 function filterRows(filter, table) {
@@ -107,7 +104,7 @@ endPatternInput = function(span, cancel) {
   let div = span.childNodes[0];
   let input = span.childNodes[1];
   let pattern = input.value;
-  let table = findAncestor(span, "TABLE");
+  let table = span.closest("TABLE");
   input.type = "hidden";
   div.style.display = "block";
   span.setAttribute("data-edit", "false");
@@ -116,7 +113,7 @@ endPatternInput = function(span, cancel) {
   } else {
     div.setAttribute("data-pattern", pattern);
     div.textContent = '"' + pattern + '"'
-    let row = findAncestor(span, "TR");
+    let row = span.closest("TR");
     for (td of row.getElementsByClassName('permissionInput')) {
       updateTooltip(row, td, pattern);
     }
@@ -257,15 +254,15 @@ addButtonAction = function(e, templateId, table, tableHighlighter, tableId) {
   }
   tbody.appendChild(copy);
   tableHighlighter.scan(copy);
-  Behaviour.applySubtree(findAncestor(copy, "TABLE"), true);
+  Behaviour.applySubtree(copy.closest("TABLE"), true);
 }
 
 
 Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
-    let table = findAncestor(this, "TABLE");
+    let table = this.closest("TABLE");
     let tableId = table.getAttribute("id");
-    let tr = findAncestor(this, "TR");
+    let tr = this.closest("TR");
     parent = tr.parentNode;
     parent.removeChild(tr);
     if (parent.children.length < filterLimit) {
@@ -290,12 +287,12 @@ Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'Ro
 });
 
 Behaviour.specify(".global-matrix-authorization-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  let row = findAncestor(e, "TR");
+  let row = e.closest("TR");
   let pattern = getPattern(row);
-  let td = findAncestor(e, "TD");
+  let td = e.closest("TD");
   updateTooltip(row, td, pattern);
   e.onchange = function() {
-    Behaviour.applySubtree(findAncestor(row, "TABLE"), true);
+    Behaviour.applySubtree(row.closest("TABLE"), true);
     return true;
   };
 });
@@ -346,7 +343,7 @@ showItemsModal = function(items, itemCount, maxItems, pattern) {
 }
 
 showErrorMessageModal = function() {
-  alert('Unable to fetch matching Jobs.');
+  dialog.alert('Unable to fetch matching Jobs.');
 }
 
 bindListenerToPattern = function(elem) {
@@ -398,33 +395,22 @@ showAgentsModal = function(agents, agentCount, maxAgents, pattern) {
 }
 
 showModal = function(title, itemlist) {
-  titleElement=document.getElementById("modaltitle");
-  titleElement.textContent = title;
-
-  messageElement=document.getElementById("modalmessage");
-  messageElement.textContent = "";
+  messageElement=document.createElement("div");
   for (let item of itemlist) {
     line = document.createTextNode("- " + item);
     messageElement.appendChild(line);
     messageElement.appendChild(document.createElement("br"));
   }
-
-  modal.style.display="flex";
-  overlay.classList.remove("default-hidden");
+  dialog.modal(messageElement, {title: title});
 }
 
 showAgentErrorMessageModal = function() {
-  alert('Unable to fetch matching Agents.');
+  dialogalert('Unable to fetch matching Agents.');
 }
 
 bindAgentListenerToPattern = function(elem) {
   elem.addEventListener('click', showMatchingAgents);
 }
-
-closeModal = function () {
-  modal.style.display="none";
-  overlay.classList.add("default-hidden");
-};
 
 document.addEventListener('DOMContentLoaded', function() {
   // global roles initialization
@@ -463,19 +449,4 @@ document.addEventListener('DOMContentLoaded', function() {
   for (let pattern of agentPatterns) {
     bindAgentListenerToPattern(pattern);
   }
-
-  //
-  modal = document.querySelector(".modal");
-
-  overlay = document.querySelector(".overlay");
-  overlay.addEventListener("click", closeModal);
-
-  closeModalBtn = document.querySelector(".btn-close");
-  closeModalBtn.addEventListener("click", closeModal);
-
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "Escape" && !modal.classList.contains("hidden")) {
-      closeModal();
-    }
-  });
 });

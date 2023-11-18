@@ -242,15 +242,6 @@
               </f:bottomButtonBar>
             </l:isAdmin>
           </f:form>
-          <section class="modal">
-            <div class="flex">
-              <button class="btn-close">⨉</button>
-            </div>
-            <h3 id="modaltitle">
-            </h3>
-            <div id="modalmessage">
-            </div>
-          </section>
           <div class="overlay default-hidden"/>
           <st:adjunct includes="lib.form.confirm" />
         </l:main-panel>

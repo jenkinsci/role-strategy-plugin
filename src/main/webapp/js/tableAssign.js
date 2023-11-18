@@ -145,9 +145,9 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
 
 Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
-    let table = findAncestor(this,"TABLE");
+    let table = this.closest("TABLE");
     let tableId = table.getAttribute("id");
-    let tr = findAncestor(this,"TR");
+    let tr = this.closest("TR");
     parent = tr.parentNode;
     parent.removeChild(tr);
     if (parent.children.length < filterLimit) {
@@ -185,7 +185,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TR.permission-row
  */
 Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
-    let tr = findAncestor(this,"TR");
+    let tr = this.closest("TR");
     let name = tr.getAttribute('name');
 
     let newName = name.replace('[EITHER:', '[USER:'); // migrate_user behavior
@@ -193,7 +193,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate"
       newName = name.replace('[EITHER:', '[GROUP:');
     }
 
-    let table = findAncestor(this,"TABLE");
+    let table = this.closest("TABLE");
     let tableRows = table.getElementsByTagName('tr');
     let newNameElement = null;
     for (let i = 0; i < tableRows.length; i++) {
@@ -212,7 +212,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table TD.stop .migrate"
       tr.removeAttribute('data-checked');
 
       // remove migration buttons from updated row
-      let buttonContainer = findAncestor(this, "TD");
+      let buttonContainer = this.closest("TD");
       let migrateButtons = buttonContainer.getElementsByClassName('migrate');
       for (let i = migrateButtons.length - 1; i >= 0; i--) {
         migrateButtons[i].remove();

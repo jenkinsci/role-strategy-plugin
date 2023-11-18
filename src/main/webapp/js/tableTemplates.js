@@ -124,7 +124,7 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
     if (tableHighlighter != null) {
       tableHighlighter.scan(copy);
     }
-    Behaviour.applySubtree(findAncestor(copy,"TABLE"), true);
+    Behaviour.applySubtree(copy.closest("TABLE"), true);
   })
 }
 
@@ -136,9 +136,9 @@ Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'Ro
       console.log("Not confirmed");
       return;
     }
-    let table = findAncestor(this,"TABLE");
+    let table = this.closest("TABLE");
     let tableId = table.getAttribute("id");
-    let tr = findAncestor(this,"TR");
+    let tr = this.closest("TR");
     parent = tr.parentNode;
     parent.removeChild(tr);
     if (parent.children.length < filterLimit) {
@@ -161,16 +161,16 @@ Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'Ro
 });
 
 Behaviour.specify(".global-matrix-authorization-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  let table = findAncestor(e, "TABLE");
+  let table = e.closest("TABLE");
   if (table.hasClassName('read-only')) {
     // if this is a read-only UI (ExtendedRead / SystemRead), do not enable checkboxes
     return;
   }
-  let row = findAncestor(e,"TR");
-  let td = findAncestor(e,"TD");
+  let row = e.closest("TR");
+  let td = e.closest("TD");
   updateTooltip(row, td);
   e.onchange = function() {
-    Behaviour.applySubtree(findAncestor(row,"TABLE"),true);
+    Behaviour.applySubtree(row.closest("TABLE"),true);
     return true;
   };
 });
