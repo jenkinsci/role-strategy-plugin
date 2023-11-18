@@ -113,35 +113,33 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
     let dataReference = e.target;
     let type = dataReference.getAttribute('data-type');
     let tbody = table.tBodies[0];
-    
-    let name = prompt(dataReference.getAttribute('data-prompt')).trim();
-    if (name=="") {
-      alert(dataReference.getAttribute('data-empty-message'));
-      return;
-    }
-    if (findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+type+':'+name+']';})!=null) {
-      alert(dataReference.getAttribute('data-error-message'));
-      return;
-    }
-    
-    let copy = document.importNode(template,true);
-    copy.removeAttribute("id");
-    copy.removeAttribute("style");
-    
-    let children = copy.childNodes;
-    let tooltipDescription = "Group";
-    if (type==="USER") {
-        tooltipDescription = "User";
-    }
-    children.forEach(function(item){
-      item.outerHTML= item.outerHTML.replace(/{{USER}}/g, doubleEscapeHTML(name)).replace(/{{USERGROUP}}/g, tooltipDescription);
+
+    dialog.prompt(dataReference.getAttribute('data-prompt')).then( (name) => {
+      name = name.trim();
+      if (findElementsBySelector(table,"TR").find(function(n){return n.getAttribute("name")=='['+type+':'+name+']';})!=null) {
+        dialog.alert(dataReference.getAttribute('data-error-message'))
+        return;
+      }
+
+      let copy = document.importNode(template,true);
+      copy.removeAttribute("id");
+      copy.removeAttribute("style");
+
+      let children = copy.childNodes;
+      let tooltipDescription = "Group";
+      if (type==="USER") {
+          tooltipDescription = "User";
+      }
+      children.forEach(function(item){
+        item.outerHTML= item.outerHTML.replace(/{{USER}}/g, doubleEscapeHTML(name)).replace(/{{USERGROUP}}/g, tooltipDescription);
+      });
+
+      copy.childNodes[1].innerHTML = escapeHTML(name);
+      copy.setAttribute("name",'['+type+':'+name+']');
+      tbody.appendChild(copy);
+      Behaviour.applySubtree(table, true);
+      tableHighlighter.scan(copy);
     });
-    
-    copy.childNodes[1].innerHTML = escapeHTML(name);
-    copy.setAttribute("name",'['+type+':'+name+']');
-    tbody.appendChild(copy);
-    Behaviour.applySubtree(table, true);
-    tableHighlighter.scan(copy);
   }
 
 
