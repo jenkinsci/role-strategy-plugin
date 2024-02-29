@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.75</version>
+    <version>4.78</version>
     <relativePath/>
   </parent>
 
@@ -51,7 +51,7 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>2.426.3</jenkins.version>
-    <checkstyle.version>10.12.4</checkstyle.version>
+    <checkstyle.version>10.13.0</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
   </properties>
 
@@ -74,6 +74,10 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>caffeine-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
     </dependency>
     <dependency>
       <groupId>io.jenkins</groupId>
@@ -99,11 +103,6 @@
       <groupId>com.synopsys.jenkinsci</groupId>
       <artifactId>ownership</artifactId>
       <version>0.13.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.jenkins.plugins</groupId>
-      <artifactId>commons-lang3-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

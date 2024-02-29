@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
 import org.acegisecurity.acls.sid.PrincipalSid;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest;
