@@ -115,7 +115,7 @@
                     </td>
                   </j:if>
                   <j:if test="${attrs.showTemplate}">
-                    <td class="pane-header blank">
+                    <td rowspan="2" class="pane-header blank">
                       ${%Template}
                     </td>
                   </j:if>
