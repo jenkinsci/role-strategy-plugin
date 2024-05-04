@@ -1404,7 +1404,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
 
       for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {
-        Set<Permission> permissions = new HashSet<>();
         String pattern = ".*";
         if (r.getValue().has("pattern")) {
           pattern = r.getValue().getString("pattern");
@@ -1418,6 +1417,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           templateName = r.getValue().getString("templateName");
           r.getValue().remove("templateName");
         }
+        Set<Permission> permissions = new HashSet<>();
         for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
           if (e.getValue()) {
             Permission p = Permission.fromId(e.getKey());

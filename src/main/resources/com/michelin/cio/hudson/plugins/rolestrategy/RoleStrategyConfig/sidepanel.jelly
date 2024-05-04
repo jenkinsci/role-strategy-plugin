@@ -23,7 +23,7 @@
   -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-    <l:side-panel>
+    <l:side-panel sticky="true">
         <l:tasks>
             <l:task href="${rootURL}/manage/role-strategy/" icon="symbol-finger-print-outline plugin-ionicons-api" title="${%Manage Roles}"/>
             <l:task href="${rootURL}/manage/role-strategy/assign-roles" icon="symbol-people-outline plugin-ionicons-api" title="${%Assign Roles}"/>
