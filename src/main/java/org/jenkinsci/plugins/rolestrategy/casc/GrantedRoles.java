@@ -7,7 +7,6 @@ import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;

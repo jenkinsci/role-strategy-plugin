@@ -48,7 +48,7 @@
         <td class="start">
           <l:isAdmin>
             <div class="rsp-remove" data-is-used="${template.isUsed()}">
-              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
+              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
             </div>
           </l:isAdmin>
         </td>
@@ -73,7 +73,7 @@
         <l:isAdmin>
           <td class="stop">
             <div class="rsp-remove" data-is-used="${template.isUsed()}">
-              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"
+              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"
                       htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
             </div>
           </td>
@@ -210,6 +210,7 @@
         <script>
         </script>
       </f:form>
+      <st:adjunct includes="lib.form.confirm" />
     </l:main-panel>
   </l:layout>
 </j:jelly>

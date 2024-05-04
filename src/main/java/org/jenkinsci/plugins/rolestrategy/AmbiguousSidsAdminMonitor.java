@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.rolestrategy;
 import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
 import com.michelin.cio.hudson.plugins.rolestrategy.Messages;
 import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.ExtensionList;
 import hudson.model.AdministrativeMonitor;
@@ -10,7 +11,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nonnull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -23,9 +23,9 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public class AmbiguousSidsAdminMonitor extends AdministrativeMonitor {
 
-  private @Nonnull List<String> ambiguousEntries = Collections.emptyList();
+  private @NonNull List<String> ambiguousEntries = Collections.emptyList();
 
-  public static @Nonnull AmbiguousSidsAdminMonitor get() {
+  public static @NonNull AmbiguousSidsAdminMonitor get() {
     return ExtensionList.lookupSingleton(AmbiguousSidsAdminMonitor.class);
   }
 
@@ -34,7 +34,7 @@ public class AmbiguousSidsAdminMonitor extends AdministrativeMonitor {
    *
    * @param entries All entries in the system.
    */
-  public void updateEntries(@Nonnull Collection<PermissionEntry> entries) {
+  public void updateEntries(@NonNull Collection<PermissionEntry> entries) {
     List<String> ambiguous = new ArrayList<>();
     for (PermissionEntry entry : entries) {
       try {
@@ -48,7 +48,7 @@ public class AmbiguousSidsAdminMonitor extends AdministrativeMonitor {
     ambiguousEntries = ambiguous;
   }
 
-  public @Nonnull List<String> getAmbiguousEntries() {
+  public @NonNull List<String> getAmbiguousEntries() {
     return ambiguousEntries;
   }
 

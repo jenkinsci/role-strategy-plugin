@@ -115,7 +115,7 @@
                     </td>
                   </j:if>
                   <j:if test="${attrs.showTemplate}">
-                    <td class="pane-header blank">
+                    <td rowspan="2" class="pane-header blank">
                       ${%Template}
                     </td>
                   </j:if>
@@ -153,7 +153,7 @@
                 <td class="start">
                   <l:isAdmin>
                     <div class="rsp-remove">
-                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon"/>
+                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
                     </div>
                   </l:isAdmin>
                 </td>
@@ -206,7 +206,7 @@
                 <l:isAdmin>
                   <td class="stop">
                     <div class="rsp-remove">
-                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm alert-danger rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                     </div>
                   </td>
                 </l:isAdmin>
@@ -242,15 +242,6 @@
               </f:bottomButtonBar>
             </l:isAdmin>
           </f:form>
-          <section class="modal">
-            <div class="flex">
-              <button class="btn-close">⨉</button>
-            </div>
-            <h3 id="modaltitle">
-            </h3>
-            <div id="modalmessage">
-            </div>
-          </section>
           <div class="overlay default-hidden"/>
           <st:adjunct includes="lib.form.confirm" />
         </l:main-panel>
