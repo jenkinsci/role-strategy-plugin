@@ -83,7 +83,7 @@ precedence over the user that is configured via `Authorize Project`.
 The step `currentUserGlobalRoles` will return all global roles of the user.
 
 #### currentUserItemRoles
-The step `currentUserGlobalRoles` will return the item roles of the user. By default, it returns only those roles that
+The step `currentUserItemRoles` will return the item roles of the user. By default, it returns only those roles that
 match the currently building pipeline. The parameter `showAllRoles` will return all item roles of the user.
 
 ### Rest API
