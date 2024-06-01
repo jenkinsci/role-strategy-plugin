@@ -52,7 +52,7 @@
     <jenkins.base>2.440</jenkins.base>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.version>${jenkins.base}.3</jenkins.version>
-    <checkstyle.version>10.16.0</checkstyle.version>
+    <checkstyle.version>10.17.0</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
   </properties>
 
