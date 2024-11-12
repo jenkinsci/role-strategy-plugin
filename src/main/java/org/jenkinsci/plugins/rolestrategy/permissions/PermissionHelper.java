@@ -154,7 +154,7 @@ public class PermissionHelper {
   }
 
   /**
-   * Attempt to match a given permission to what is defined in the UI or from the ID representation used in the config.xml
+   * Attempt to match a given permission to what is defined in the UI or from the ID representation used in the config.xml.
    *
    * @param id String of the form "Title/Permission" (Look in the UI) for a particular permission or in the form used in the config.xml
    * @return a matched permission, null if permission couldn't be resolved or is dangerous
