@@ -60,6 +60,8 @@ import hudson.security.PermissionGroup;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import hudson.util.FormValidation;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -78,8 +80,6 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -91,8 +91,8 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.GET;
 import org.kohsuke.stapler.verb.POST;
@@ -431,7 +431,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     Set<Permission> permissionSet = PermissionHelper.fromStrings(permissionList, true);
     PermissionTemplate template = new PermissionTemplate(permissionSet, name);
     if (!overwrite && hasPermissionTemplate(name)) {
-      Stapler.getCurrentResponse().sendError(HttpServletResponse.SC_BAD_REQUEST, "A template with name " + name + " already exists.");
+      Stapler.getCurrentResponse2().sendError(HttpServletResponse.SC_BAD_REQUEST, "A template with name " + name + " already exists.");
       return;
     }
     permissionTemplates.put(name, template);
@@ -518,7 +518,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     if (RoleBasedAuthorizationStrategy.PROJECT.equals(type) && templateName != null) {
       if (!hasPermissionTemplate(template)) {
-        Stapler.getCurrentResponse().sendError(HttpServletResponse.SC_BAD_REQUEST, "A template with name " + template + " doesn't exists.");
+        Stapler.getCurrentResponse2().sendError(
+                HttpServletResponse.SC_BAD_REQUEST, "A template with name " + template + " doesn't exists."
+        );
         return;
       }
       role.setTemplateName(templateName);
@@ -844,8 +846,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       responseJson.put("permissionIds", permissionsMap);
       responseJson.put("isUsed", template.isUsed());
     }
-    Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
-    Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse2().getWriter();
     responseJson.write(writer);
     writer.close();
 
@@ -907,8 +909,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
     }
 
-    Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
-    Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse2().getWriter();
     responseJson.write(writer);
     writer.close();
   }
@@ -948,8 +950,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
     }
 
-    Stapler.getCurrentResponse().setContentType("application/json;charset=UTF-8");
-    Writer writer = Stapler.getCurrentResponse().getCompressedWriter(Stapler.getCurrentRequest());
+    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse2().getWriter();
     responseJson.write(writer);
     writer.close();
   }
@@ -974,9 +976,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     JSONObject responseJson = new JSONObject();
     responseJson.put("matchingJobs", matchingItems);
     responseJson.put("itemCount", itemCount);
-    StaplerResponse response = Stapler.getCurrentResponse();
+    StaplerResponse2 response = Stapler.getCurrentResponse2();
     response.setContentType("application/json;charset=UTF-8");
-    Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
+    Writer writer = response.getWriter();
     responseJson.write(writer);
     writer.close();
   }
@@ -1001,9 +1003,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     JSONObject responseJson = new JSONObject();
     responseJson.put("matchingAgents", matchingAgents);
     responseJson.put("agentCount", agentCount);
-    StaplerResponse response = Stapler.getCurrentResponse();
+    StaplerResponse2 response = Stapler.getCurrentResponse2();
     response.setContentType("application/json;charset=UTF-8");
-    Writer writer = response.getCompressedWriter(Stapler.getCurrentRequest());
+    Writer writer = response.getWriter();
     responseJson.write(writer);
     writer.close();
   }
@@ -1269,7 +1271,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
+    public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
       checkAdminPerm();
 
       req.setCharacterEncoding("UTF-8");
@@ -1285,7 +1287,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
+    public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
       checkAdminPerm();
 
       req.setCharacterEncoding("UTF-8");
@@ -1330,7 +1332,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doTemplatesSubmit(StaplerRequest req, StaplerResponse rsp) throws ServletException, IOException {
+    public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
       checkAdminPerm();
       req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
@@ -1364,7 +1366,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      * {@link AuthorizationStrategy} object.
      */
     @Override
-    public AuthorizationStrategy newInstance(StaplerRequest req, JSONObject formData) {
+    public AuthorizationStrategy newInstance(StaplerRequest2 req, JSONObject formData) {
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
       RoleBasedAuthorizationStrategy strategy;
 

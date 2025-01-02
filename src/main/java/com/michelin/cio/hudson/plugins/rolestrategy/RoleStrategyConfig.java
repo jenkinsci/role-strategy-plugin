@@ -35,13 +35,13 @@ import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.util.FormApply;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
-import javax.servlet.ServletException;
 import jenkins.model.Jenkins;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
@@ -149,7 +149,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doRolesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+  public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
     Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
@@ -162,7 +162,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doTemplatesSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+  public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
     Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
@@ -186,7 +186,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doAssignSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
+  public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
     Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
