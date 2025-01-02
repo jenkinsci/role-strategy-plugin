@@ -28,7 +28,7 @@ import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -52,14 +52,14 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
 
   @Override
   public void checkName(String name) throws Failure {
-    StaplerRequest request = Stapler.getCurrentRequest();
+    StaplerRequest2 request = Stapler.getCurrentRequest2();
     // Workaround until JENKINS-68602 is implemented
     // This works only for requests via the UI. In case this method is called due to
     // job creation request via the CLI, we have no way to determine the
     // the parent so just check the name
     String parentName = "";
     if (request != null) {
-      ItemGroup<?> i = Stapler.getCurrentRequest().findAncestorObject(ItemGroup.class);
+      ItemGroup<?> i = Stapler.getCurrentRequest2().findAncestorObject(ItemGroup.class);
       parentName = i.getFullName();
     }
     checkName(parentName, name);
