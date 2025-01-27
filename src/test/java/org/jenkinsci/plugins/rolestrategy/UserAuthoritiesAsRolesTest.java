@@ -1,6 +1,6 @@
 package org.jenkinsci.plugins.rolestrategy;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.model.User;
 import hudson.security.ACL;
@@ -9,33 +9,34 @@ import hudson.security.AbstractPasswordBasedSecurityRealm;
 import hudson.security.GroupDetails;
 import hudson.security.Permission;
 import java.util.Collections;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-public class UserAuthoritiesAsRolesTest {
+@WithJenkins
+class UserAuthoritiesAsRolesTest {
 
-  @Rule
-  public JenkinsRule jenkinsRule = new JenkinsRule();
+  private JenkinsRule jenkinsRule;
 
-  @Before
-  public void enableUserAuthorities() {
+  @BeforeEach
+  void enableUserAuthorities(JenkinsRule jenkinsRule) {
+    this.jenkinsRule = jenkinsRule;
     Settings.TREAT_USER_AUTHORITIES_AS_ROLES = true;
   }
 
-  @After
-  public void disableUserAuthorities() {
+  @AfterEach
+  void disableUserAuthorities() {
     Settings.TREAT_USER_AUTHORITIES_AS_ROLES = false;
   }
 
   @LocalData
   @Test
-  public void testRoleAuthority() {
+  void testRoleAuthority() {
     jenkinsRule.jenkins.setSecurityRealm(new MockSecurityRealm());
 
     try (ACLContext c = ACL.as(User.getById("alice", true))) {

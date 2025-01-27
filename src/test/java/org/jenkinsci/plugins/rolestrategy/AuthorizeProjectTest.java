@@ -29,25 +29,26 @@ import jenkins.security.QueueItemAuthenticatorConfiguration;
 import org.jenkinsci.plugins.authorizeproject.AuthorizeProjectProperty;
 import org.jenkinsci.plugins.authorizeproject.ProjectQueueItemAuthenticator;
 import org.jenkinsci.plugins.authorizeproject.strategy.TriggeringUsersAuthorizationStrategy;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class AuthorizeProjectTest {
+@WithJenkins
+class AuthorizeProjectTest {
 
-  @Rule
-  public JenkinsRule jenkinsRule = new JenkinsRule();
+  private JenkinsRule jenkinsRule;
 
   private Slave node;
   private FreeStyleProject project;
   private AuthorizationCheckBuilder checker;
 
-  @Before
+  @BeforeEach
   @LocalData
-  public void setup() throws Exception {
+  void setup(JenkinsRule jenkinsRule) throws Exception {
+    this.jenkinsRule = jenkinsRule;
     QueueItemAuthenticatorConfiguration.get().getAuthenticators().add(new ProjectQueueItemAuthenticator(Collections.emptyMap()));
     node = jenkinsRule.createSlave("TestAgent", null, null);
     jenkinsRule.waitOnline(node);
@@ -62,7 +63,7 @@ public class AuthorizeProjectTest {
 
   @Test
   @LocalData
-  public void agentBuildPermissionsAllowsToBuildOnAgent() throws Exception {
+  void agentBuildPermissionsAllowsToBuildOnAgent() throws Exception {
     try (ACLContext c = ACL.as(User.getById("tester", true))) {
       project.scheduleBuild2(0, new Cause.UserIdCause());
     }
@@ -75,7 +76,7 @@ public class AuthorizeProjectTest {
 
   @Test
   @LocalData
-  public void missingAgentBuildPermissionsBlockBuild() throws Exception {
+  void missingAgentBuildPermissionsBlockBuild() throws Exception {
     try (ACLContext c = ACL.as(User.getById("reader", true))) {
       project.scheduleBuild2(0, new Cause.UserIdCause());
     }
@@ -102,7 +103,7 @@ public class AuthorizeProjectTest {
     }
 
     public static class DescriptorImpl extends BuildStepDescriptor<Builder> {
-      @SuppressWarnings("rawtypes")
+
       @Override
       public boolean isApplicable(Class<? extends AbstractProject> jobType) {
         return true;

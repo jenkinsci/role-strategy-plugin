@@ -1,22 +1,23 @@
 package org.jenkinsci.plugins.rolestrategy;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import hudson.model.User;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import jenkins.model.Jenkins;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class UserGroupSeparationTest {
-  @Rule
-  public JenkinsRule jenkinsRule = new JenkinsRule();
+@WithJenkins
+class UserGroupSeparationTest {
+
+  private JenkinsRule jenkinsRule;
 
   private User user;
   private User group;
@@ -25,8 +26,9 @@ public class UserGroupSeparationTest {
   private User groupAsUser;
   private User eitherGroup;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup(JenkinsRule jenkinsRule) {
+    this.jenkinsRule = jenkinsRule;
     DummySecurityRealm securityRealm = jenkinsRule.createDummySecurityRealm();
     jenkinsRule.jenkins.setSecurityRealm(securityRealm);
     user = User.getById("user", true);
@@ -45,7 +47,7 @@ public class UserGroupSeparationTest {
    */
   @LocalData
   @Test
-  public void user_matches_user_has_access() {
+  void user_matches_user_has_access() {
     try (ACLContext c = ACL.as(User.getById("user", false))) {
       assertTrue(jenkinsRule.jenkins.hasPermission(Jenkins.ADMINISTER));
     }
@@ -56,7 +58,7 @@ public class UserGroupSeparationTest {
    */
   @LocalData
   @Test
-  public void usergroup_matches_group_has_acess() {
+  void usergroup_matches_group_has_acess() {
     try (ACLContext c = ACL.as(User.getById("userWithGroup", false))) {
       assertTrue(jenkinsRule.jenkins.hasPermission(Jenkins.ADMINISTER));
     }
@@ -67,7 +69,7 @@ public class UserGroupSeparationTest {
    */
   @LocalData
   @Test
-  public void user_matches_group_has_no_access() {
+  void user_matches_group_has_no_access() {
     try (ACLContext c = ACL.as(User.getById("group", false))) {
       assertFalse(jenkinsRule.jenkins.hasPermission(Jenkins.ADMINISTER));
     }
@@ -78,7 +80,7 @@ public class UserGroupSeparationTest {
    */
   @LocalData
   @Test
-  public void group_matches_user_has_no_acess() {
+  void group_matches_user_has_no_acess() {
     try (ACLContext c = ACL.as(User.getById("groupAsUser", false))) {
       assertFalse(jenkinsRule.jenkins.hasPermission(Jenkins.ADMINISTER));
     }
@@ -89,7 +91,7 @@ public class UserGroupSeparationTest {
    */
   @LocalData
   @Test
-  public void user_matches_either_has_access() {
+  void user_matches_either_has_access() {
     try (ACLContext c = ACL.as(User.getById("either", false))) {
       assertTrue(jenkinsRule.jenkins.hasPermission(Jenkins.ADMINISTER));
     }
@@ -100,7 +102,7 @@ public class UserGroupSeparationTest {
    */
   @LocalData
   @Test
-  public void group_matches_either_has_access() {
+  void group_matches_either_has_access() {
     try (ACLContext c = ACL.as(User.getById("eitherGroup", false))) {
       assertTrue(jenkinsRule.jenkins.hasPermission(Jenkins.ADMINISTER));
     }

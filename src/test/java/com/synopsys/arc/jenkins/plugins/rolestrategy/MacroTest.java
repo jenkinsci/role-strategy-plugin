@@ -24,8 +24,12 @@
 
 package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * Contains tests for Macro.
@@ -34,10 +38,10 @@ import org.junit.Test;
  * @since 2.1.0
  * @author Oleg Nenashev
  */
-public class MacroTest {
+class MacroTest {
 
   @Test
-  public void correctFormatsSanityCheck() {
+  void correctFormatsSanityCheck() {
     parseMacro("@Dummy");
     parseMacro("@Dummy:1");
     parseMacro("@Dummy(aaa)");
@@ -47,7 +51,7 @@ public class MacroTest {
   }
 
   @Test
-  public void testValidUsers() {
+  void testValidUsers() {
     parseWrongMacro("test", MacroExceptionCode.Not_Macro);
     parseWrongMacro("logged_user", MacroExceptionCode.Not_Macro);
     parseWrongMacro("anonymous", MacroExceptionCode.Not_Macro);
@@ -56,7 +60,7 @@ public class MacroTest {
   }
 
   @Test
-  public void testWrongBrackets() {
+  void testWrongBrackets() {
     parseWrongMacro("@test:1(aaa,bbb(", MacroExceptionCode.WrongFormat);
     parseWrongMacro("@test:1(aaa,bbb(", MacroExceptionCode.WrongFormat);
     parseWrongMacro("@test:1()(aaa,bbb)", MacroExceptionCode.WrongFormat);
@@ -66,12 +70,12 @@ public class MacroTest {
   }
 
   @Test
-  public void err_WrongEnding() {
+  void err_WrongEnding() {
     parseWrongMacro("@test:1(aaa,bbb)error", MacroExceptionCode.WrongFormat);
   }
 
   @Test
-  public void err_Quotes() {
+  void err_Quotes() {
     parseWrongMacro("@test':1(aaa,bbb)", MacroExceptionCode.WrongFormat);
     parseWrongMacro("@'test':1(aaa,bbb)", MacroExceptionCode.WrongFormat);
     parseWrongMacro("@test:1('aaa',bbb)", MacroExceptionCode.WrongFormat);
@@ -85,13 +89,13 @@ public class MacroTest {
   }
 
   @Test
-  public void emptyParameters() {
+  void emptyParameters() {
     parseMacro("@Dummy()");
     parseMacro("@Dummy:1()");
   }
 
   @Test
-  public void test_MacroSanity() {
+  void test_MacroSanity() {
     testCycle("test1", null, null);
     testCycle("test2", 1, null);
     testCycle("test3", -1, null);
@@ -114,13 +118,13 @@ public class MacroTest {
   }
 
   private static void assertEquals(Macro expected, Macro actual) {
-    Assert.assertEquals("Wrong name", expected.getName(), expected.getName());
-    Assert.assertEquals("Wrong index", expected.getIndex(), expected.getIndex());
+    Assertions.assertEquals(expected.getName(), actual.getName(), "Wrong name");
+    Assertions.assertEquals(expected.getIndex(), actual.getIndex(), "Wrong index");
 
     if (expected.hasParameters()) {
-      Assert.assertArrayEquals("Wrong parameters set", expected.getParameters(), actual.getParameters());
+      assertArrayEquals(expected.getParameters(), actual.getParameters(), "Wrong parameters set");
     } else {
-      Assert.assertFalse("Actual macro shouldn't have parameters", actual.hasParameters());
+      assertFalse(actual.hasParameters(), "Actual macro shouldn't have parameters");
     }
   }
 
@@ -132,15 +136,15 @@ public class MacroTest {
     } catch (MacroException ex) {
       ex.printStackTrace();
       if (expectException) {
-        Assert.assertEquals(errorMessage + ". Wrong error code", expectedError, ex.getErrorCode());
+        Assertions.assertEquals(expectedError, ex.getErrorCode(), errorMessage + ". Wrong error code");
       } else {
-        Assert.fail(errorMessage + ". Got Macro Exception: " + ex.getMessage());
+        fail(errorMessage + ". Got Macro Exception: " + ex.getMessage());
       }
       return res;
     }
 
     if (expectException) {
-      Assert.fail(errorMessage + ". Haven't got exception. Expected code is " + expectedError);
+      fail(errorMessage + ". Haven't got exception. Expected code is " + expectedError);
     }
     return res;
   }

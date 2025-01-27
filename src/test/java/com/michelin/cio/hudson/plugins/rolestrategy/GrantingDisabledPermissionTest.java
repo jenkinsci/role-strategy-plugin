@@ -1,6 +1,6 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import hudson.model.User;
 import hudson.security.ACL;
@@ -11,17 +11,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import jenkins.model.Jenkins;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class GrantingDisabledPermissionTest {
-
-  @Rule
-  public JenkinsRule r = new JenkinsRule();
+@WithJenkins
+class GrantingDisabledPermissionTest {
 
   @Test
-  public void grantDisabledPermissionTest() throws Exception {
+  void grantDisabledPermissionTest(JenkinsRule r) throws Exception {
     HudsonPrivateSecurityRealm realm = new HudsonPrivateSecurityRealm(true, false, null);
     realm.createAccount("admin", "admin");
     realm.createAccount("alice", "alice");

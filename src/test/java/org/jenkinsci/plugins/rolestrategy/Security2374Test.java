@@ -30,8 +30,9 @@ import static com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType.USE
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
@@ -40,6 +41,7 @@ import hudson.security.ACL;
 import hudson.security.SidACL;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import java.io.File;
 import java.io.FileReader;
 import java.io.Reader;
@@ -50,21 +52,20 @@ import jenkins.model.Jenkins;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
 import org.htmlunit.html.HtmlPage;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
 
-public class Security2374Test {
-
-  @Rule
-  public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
+@WithJenkins
+class Security2374Test {
 
   @Test
+  @WithJenkinsConfiguredWithCode
   @ConfiguredWithCode("Security2374Test/casc.yaml")
-  public void readFromCasc() throws Exception {
+  void readFromCasc(JenkinsConfiguredWithCodeRule j) throws Exception {
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) j.jenkins.getAuthorizationStrategy();
 
     // So we can log in
@@ -103,7 +104,7 @@ public class Security2374Test {
 
   @Test
   @WithoutJenkins
-  public void createPermissionEntry() {
+  void createPermissionEntry() {
     assertThat(PermissionEntry.user("foo"), equalTo(permissionEntry("USER:foo")));
     assertThat(PermissionEntry.group("foo"), equalTo(permissionEntry("GROUP:foo")));
     assertThat(permissionEntry(""), nullValue());
@@ -118,7 +119,7 @@ public class Security2374Test {
   }
 
   @Test
-  public void adminMonitor() throws Exception {
+  void adminMonitor(JenkinsRule j) throws Exception {
     AmbiguousSidsAdminMonitor am = AmbiguousSidsAdminMonitor.get();
     assertFalse(am.isActivated());
     assertThat(am.getAmbiguousEntries(), Matchers.emptyIterable());
@@ -143,8 +144,8 @@ public class Security2374Test {
 
   @LocalData
   @Test
-  public void test3xDataMigration() throws Exception {
-    assertTrue(j.jenkins.getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy);
+  void test3xDataMigration(JenkinsRule j) throws Exception {
+    assertInstanceOf(RoleBasedAuthorizationStrategy.class, j.jenkins.getAuthorizationStrategy());
     final RoleBasedAuthorizationStrategy authorizationStrategy = (RoleBasedAuthorizationStrategy) j.jenkins.getAuthorizationStrategy();
     final SidACL acl = authorizationStrategy.getRootACL();
     final File configXml = new File(j.jenkins.getRootDir(), "config.xml");
