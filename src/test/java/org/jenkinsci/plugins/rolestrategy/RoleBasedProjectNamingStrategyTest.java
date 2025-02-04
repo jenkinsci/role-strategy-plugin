@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import hudson.model.Failure;
@@ -16,18 +17,17 @@ import hudson.security.ACLContext;
 import hudson.security.AuthorizationStrategy;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import jenkins.model.ProjectNamingStrategy;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 
-public class RoleBasedProjectNamingStrategyTest {
+@WithJenkinsConfiguredWithCode
+class RoleBasedProjectNamingStrategyTest {
 
-  @Rule
-  public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
+  private JenkinsConfiguredWithCodeRule j;
 
   private DummySecurityRealm securityRealm;
   private User userGlobal;
@@ -43,8 +43,9 @@ public class RoleBasedProjectNamingStrategyTest {
   private User userEitherJobCreateGroup;
   private User userEitherReadGroup;
 
-  @Before
-  public void setup() {
+  @BeforeEach
+  void setup(JenkinsConfiguredWithCodeRule j) {
+    this.j = j;
     securityRealm = j.createDummySecurityRealm();
     j.jenkins.setSecurityRealm(securityRealm);
     userGlobal = User.getById("userGlobal", true);
@@ -69,7 +70,7 @@ public class RoleBasedProjectNamingStrategyTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
-  public void createPermission() {
+  void createPermission() {
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
@@ -91,7 +92,7 @@ public class RoleBasedProjectNamingStrategyTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
-  public void globalUserCanCreateAnyJob() {
+  void globalUserCanCreateAnyJob() {
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
@@ -104,7 +105,7 @@ public class RoleBasedProjectNamingStrategyTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
-  public void itemUserCanCreateOnlyAllowedJobs() {
+  void itemUserCanCreateOnlyAllowedJobs() {
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
@@ -115,36 +116,36 @@ public class RoleBasedProjectNamingStrategyTest {
     checkName(userJobCreateGroup, "jobAllowed", "folder");
     checkName(eitherJobCreate, "jobAllowed", null);
     checkName(userEitherJobCreateGroup, "jobAllowed", "folder");
-    Failure f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
+    Failure f = assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "jobAllowed", "folder2"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreate, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", null));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "jobAllowed", "folder2"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
 
-    f = Assert.assertThrows(Failure.class, () -> checkName(eitherJobCreate, "notAllowed", null));
+    f = assertThrows(Failure.class, () -> checkName(eitherJobCreate, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(eitherJobCreate, "notAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(eitherJobCreate, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(eitherJobCreate, "jobAllowed", "folder2"));
+    f = assertThrows(Failure.class, () -> checkName(eitherJobCreate, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "notAllowed", null));
+    f = assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "notAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "jobAllowed", "folder2"));
+    f = assertThrows(Failure.class, () -> checkName(userEitherJobCreateGroup, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
   }
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Macro.yml")
-  public void macroRolesDoNotGrantCreate() {
+  void macroRolesDoNotGrantCreate() {
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
@@ -153,50 +154,50 @@ public class RoleBasedProjectNamingStrategyTest {
     checkName(userJobCreate, "jobAllowed", "folder");
     checkName(userJobCreateGroup, "jobAllowed", null);
     checkName(userJobCreateGroup, "jobAllowed", "folder");
-    Failure f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
+    Failure f = assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreate, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreate, "jobAllowed", "folder2"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreate, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", null));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", null));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "notAllowed", "folder"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "jobAllowed", "folder2"));
+    f = assertThrows(Failure.class, () -> checkName(userJobCreateGroup, "jobAllowed", "folder2"));
     assertThat(f.getMessage(), containsString("does not match the job name convention"));
   }
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
-  public void readUserCantCreateAllowedJobs() {
+  void readUserCantCreateAllowedJobs() {
     AuthorizationStrategy s = j.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly",
         s, instanceOf(RoleBasedAuthorizationStrategy.class));
 
-    Failure f = Assert.assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", null));
+    Failure f = assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", null));
     assertThat(f.getMessage(), is("No Create Permissions!"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userRead, "jobAllowed", "folder"));
     assertThat(f.getMessage(), is("No Create Permissions!"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userReadGroup, "jobAllowed", null));
+    f = assertThrows(Failure.class, () -> checkName(userReadGroup, "jobAllowed", null));
     assertThat(f.getMessage(), is("No Create Permissions!"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userReadGroup, "jobAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userReadGroup, "jobAllowed", "folder"));
     assertThat(f.getMessage(), is("No Create Permissions!"));
 
-    f = Assert.assertThrows(Failure.class, () -> checkName(eitherRead, "jobAllowed", null));
+    f = assertThrows(Failure.class, () -> checkName(eitherRead, "jobAllowed", null));
     assertThat(f.getMessage(), is("No Create Permissions!"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(eitherRead, "jobAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(eitherRead, "jobAllowed", "folder"));
     assertThat(f.getMessage(), is("No Create Permissions!"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherReadGroup, "jobAllowed", null));
+    f = assertThrows(Failure.class, () -> checkName(userEitherReadGroup, "jobAllowed", null));
     assertThat(f.getMessage(), is("No Create Permissions!"));
-    f = Assert.assertThrows(Failure.class, () -> checkName(userEitherReadGroup, "jobAllowed", "folder"));
+    f = assertThrows(Failure.class, () -> checkName(userEitherReadGroup, "jobAllowed", "folder"));
     assertThat(f.getMessage(), is("No Create Permissions!"));
   }
 
   @Test
   @Issue("JENKINS-69625")
   @ConfiguredWithCode("Configuration-as-Code-Naming.yml")
-  public void systemUserCanCreateAnyJob() {
+  void systemUserCanCreateAnyJob() {
     checkName("jobAllowed", null);
     checkName("jobAllowed", "folder");
     checkName("anyJob", null);

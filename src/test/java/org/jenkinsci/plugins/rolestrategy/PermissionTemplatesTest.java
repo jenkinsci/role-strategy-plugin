@@ -10,17 +10,15 @@ import hudson.model.Item;
 import hudson.model.User;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
-import org.junit.Rule;
-import org.junit.Test;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
+import org.junit.jupiter.api.Test;
 
-
-public class PermissionTemplatesTest {
-  @Rule
-  public JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
+@WithJenkinsConfiguredWithCode
+class PermissionTemplatesTest {
 
   @Test
   @ConfiguredWithCode("PermissionTemplatesTest/casc.yaml")
-  public void readFromCasc() throws Exception {
+  void readFromCasc(JenkinsConfiguredWithCodeRule j) throws Exception {
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) j.jenkins.getAuthorizationStrategy();
 
     // So we can log in

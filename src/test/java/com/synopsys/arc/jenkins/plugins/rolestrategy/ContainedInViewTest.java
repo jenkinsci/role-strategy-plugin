@@ -5,28 +5,30 @@ import static org.hamcrest.Matchers.is;
 
 import hudson.model.FreeStyleProject;
 import org.htmlunit.html.HtmlPage;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class ContainedInViewTest {
-  @Rule
-  public JenkinsRule jenkinsRule = new JenkinsRule();
+@WithJenkins
+class ContainedInViewTest {
 
-  @Before
+  private JenkinsRule jenkinsRule;
+
+  @BeforeEach
   @LocalData
-  public void setup() throws Exception {
+  void setup(JenkinsRule jenkinsRule) throws Exception {
+    this.jenkinsRule = jenkinsRule;
     DummySecurityRealm sr = jenkinsRule.createDummySecurityRealm();
     jenkinsRule.jenkins.setSecurityRealm(sr);
   }
 
   @Test
   @LocalData
-  public void userCanAccessJobInRootView() throws Exception {
+  void userCanAccessJobInRootView() throws Exception {
     FreeStyleProject project = jenkinsRule.jenkins.getItemByFullName("testJob", FreeStyleProject.class);
     WebClient wc = jenkinsRule.createWebClient();
     wc.withThrowExceptionOnFailingStatusCode(false);
@@ -37,7 +39,7 @@ public class ContainedInViewTest {
 
   @Test
   @LocalData
-  public void userCantAccessJobNotInRootView() throws Exception {
+  void userCantAccessJobNotInRootView() throws Exception {
     FreeStyleProject project = jenkinsRule.jenkins.getItemByFullName("hiddenJob", FreeStyleProject.class);
     WebClient wc = jenkinsRule.createWebClient();
     wc.withThrowExceptionOnFailingStatusCode(false);
@@ -48,7 +50,7 @@ public class ContainedInViewTest {
 
   @Test
   @LocalData
-  public void userCanAccessJobInFolderView() throws Exception {
+  void userCanAccessJobInFolderView() throws Exception {
     FreeStyleProject project = jenkinsRule.jenkins.getItemByFullName("folder/testjob2", FreeStyleProject.class);
     WebClient wc = jenkinsRule.createWebClient();
     wc.withThrowExceptionOnFailingStatusCode(false);

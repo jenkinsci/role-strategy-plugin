@@ -9,6 +9,7 @@ import com.synopsys.arc.jenkins.plugins.ownership.nodes.OwnerNodeProperty;
 import hudson.model.Node;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import java.net.URL;
 import java.util.Collections;
 import org.htmlunit.HttpMethod;
@@ -16,17 +17,15 @@ import org.htmlunit.WebRequest;
 import org.htmlunit.WebResponse;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.NameValuePair;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule.WebClient;
 
-public class OwnershipTest {
-  @Rule
-  public JenkinsConfiguredWithCodeRule jcwcRule = new JenkinsConfiguredWithCodeRule();
+@WithJenkinsConfiguredWithCode
+class OwnershipTest {
 
   @Test
   @ConfiguredWithCode("OwnershipTest.yml")
-  public void currentUserIsPrimaryOwnerGrantsPermissions() throws Exception {
+  void currentUserIsPrimaryOwnerGrantsPermissions(JenkinsConfiguredWithCodeRule jcwcRule) throws Exception {
     Node n = jcwcRule.createOnlineSlave();
     n.getNodeProperties().add(new OwnerNodeProperty(n, new OwnershipDescription(true, "nodePrimaryTester", null)));
     String nodeUrl = n.toComputer().getUrl();
@@ -56,7 +55,7 @@ public class OwnershipTest {
 
   @Test
   @ConfiguredWithCode("OwnershipTest.yml")
-  public void currentUserIsSecondaryOwnerGrantsPermissions() throws Exception {
+  void currentUserIsSecondaryOwnerGrantsPermissions(JenkinsConfiguredWithCodeRule jcwcRule) throws Exception {
     Node n = jcwcRule.createOnlineSlave();
     n.getNodeProperties()
         .add(new OwnerNodeProperty(n, new OwnershipDescription(true, "nodePrimaryTester", Collections.singleton("nodeSecondaryTester"))));

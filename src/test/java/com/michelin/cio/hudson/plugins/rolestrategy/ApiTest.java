@@ -5,10 +5,10 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.PluginManager;
@@ -27,29 +27,30 @@ import org.htmlunit.HttpMethod;
 import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
 import org.htmlunit.util.NameValuePair;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 import org.jvnet.hudson.test.MockFolder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.core.Authentication;
 
 /**
  * Tests for {@link RoleBasedAuthorizationStrategy} Web API Methods.
  */
-public class ApiTest {
+@WithJenkins
+class ApiTest {
 
-  @Rule
-  public final JenkinsRule jenkinsRule = new JenkinsRule();
+  private JenkinsRule jenkinsRule;
   private JenkinsRule.WebClient webClient;
   private DummySecurityRealm securityRealm;
 
   private RoleBasedAuthorizationStrategy rbas;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp(JenkinsRule jenkinsRule) throws Exception {
+    this.jenkinsRule = jenkinsRule;
     // Setting up jenkins configurations
     securityRealm = jenkinsRule.createDummySecurityRealm();
     jenkinsRule.jenkins.setSecurityRealm(securityRealm);
@@ -70,7 +71,7 @@ public class ApiTest {
 
   @Test
   @Issue("JENKINS-61470")
-  public void testAddRole() throws IOException {
+  void testAddRole() throws IOException {
     String roleName = "new-role";
     String pattern = "test-folder.*";
     // Adding role via web request
@@ -82,7 +83,7 @@ public class ApiTest {
                 "hudson.model.Item.Configure,hudson.model.Item.Discover,hudson.model.Item.Build,hudson.model.Item.Read"),
             new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that the role is in
     RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
@@ -95,11 +96,11 @@ public class ApiTest {
         break;
       }
     }
-    assertTrue("Checking if the role is found.", foundRole);
+    assertTrue(foundRole, "Checking if the role is found.");
   }
 
   @Test
-  public void testAddRoleWithTemplate() throws IOException {
+  void testAddRoleWithTemplate() throws IOException {
     String roleName = "new-role";
     String pattern = "test-folder.*";
     String template = "developer";
@@ -113,7 +114,7 @@ public class ApiTest {
                     new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern),
                     new NameValuePair("template", template)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that the role is in
     SortedMap<Role, Set<PermissionEntry>> grantedRoles = rbas.getGrantedRolesEntries(RoleType.Project);
@@ -131,7 +132,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testAddRoleWithMissingTemplate() throws IOException {
+  void testAddRoleWithMissingTemplate() throws IOException {
     String roleName = "new-role";
     String pattern = "test-folder.*";
     String template = "quality";
@@ -145,11 +146,11 @@ public class ApiTest {
                     new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern),
                     new NameValuePair("template", template)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request failed", HttpURLConnection.HTTP_BAD_REQUEST, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, page.getWebResponse().getStatusCode(), "Testing if request failed");
   }
 
   @Test
-  public void testAddTemplate() throws IOException {
+  void testAddTemplate() throws IOException {
     String template = "quality";
     // Adding role via web request
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addTemplate");
@@ -160,7 +161,7 @@ public class ApiTest {
                             "hudson.model.Item.Read"),
                     new NameValuePair("overwrite", "false")));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that the role is in
     PermissionTemplate pt = rbas.getPermissionTemplate(template);
@@ -170,7 +171,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testAddExistingTemplate() throws IOException {
+  void testAddExistingTemplate() throws IOException {
     String template = "developer";
     // Adding role via web request
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addTemplate");
@@ -181,25 +182,25 @@ public class ApiTest {
                             "hudson.model.Item.Read"),
                     new NameValuePair("overwrite", "false")));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is failed", HttpURLConnection.HTTP_BAD_REQUEST, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, page.getWebResponse().getStatusCode(), "Testing if request is failed");
   }
 
   @Test
-  public void testGetTemplate() throws IOException {
+  void testGetTemplate() throws IOException {
     String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getTemplate?name=developer";
     URL apiUrl = new URL(url);
     WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
     Page page = webClient.getPage(request);
 
     // Verifying that web request is successful and that the role is found
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
     String templateString = page.getWebResponse().getContentAsString();
     JSONObject responseJson = JSONObject.fromObject(templateString);
     assertThat(responseJson.get("isUsed"), equalTo(true));
   }
 
   @Test
-  public void testRemoveTemplate() throws IOException {
+  void testRemoveTemplate() throws IOException {
     String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/removeTemplates";
     rbas.doAddTemplate("quality", "Job/Read,Job/Workspace", false);
     rbas.doAddTemplate("unused", "hudson.model.Item.Read", false);
@@ -215,7 +216,7 @@ public class ApiTest {
     Page page = webClient.getPage(request);
 
     // Verifying that web request is successful
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
     Role role = rbas.getRoleMap(RoleType.Project).getRole("qa");
     assertThat(role.getTemplateName(), is("quality"));
     assertThat(role.hasPermission(Item.WORKSPACE), is(true));
@@ -224,7 +225,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testForceRemoveTemplate() throws IOException {
+  void testForceRemoveTemplate() throws IOException {
     String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/removeTemplates";
     URL apiUrl = new URL(url);
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
@@ -235,7 +236,7 @@ public class ApiTest {
     Page page = webClient.getPage(request);
 
     // Verifying that web request is successful
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
     Role role = rbas.getRoleMap(RoleType.Project).getRole("developers");
     assertThat(role.getTemplateName(), is(nullValue()));
     assertThat(role.hasPermission(Item.BUILD), is(true));
@@ -243,7 +244,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testGetRole() throws IOException {
+  void testGetRole() throws IOException {
     String url = jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getRole?type=" + RoleType.Global.getStringType()
             + "&roleName=adminRole";
     URL apiUrl = new URL(url);
@@ -251,7 +252,7 @@ public class ApiTest {
     Page page = webClient.getPage(request);
 
     // Verifying that web request is successful and that the role is found
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
     String roleString = page.getWebResponse().getContentAsString();
     assertTrue(roleString.length() > 2);
     assertNotEquals("{}", roleString); // {} is returned when no role is found
@@ -259,7 +260,7 @@ public class ApiTest {
 
   @Test
   @Issue("JENKINS-61470")
-  public void testAssignRole() throws IOException {
+  void testAssignRole() throws IOException {
     String roleName = "new-role";
     String sid = "alice";
     PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.EITHER, sid);
@@ -275,7 +276,7 @@ public class ApiTest {
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
         new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that alice is assigned to the role "new-role"
     SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
@@ -295,7 +296,7 @@ public class ApiTest {
 
   @Test
   @Issue("JENKINS-61470")
-  public void testUnassignRole() throws IOException {
+  void testUnassignRole() throws IOException {
 
     String roleName = "new-role";
     String sid = "alice";
@@ -306,14 +307,14 @@ public class ApiTest {
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
         new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that alice no longer has permissions
     SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
       Set<PermissionEntry> sids = entry.getValue();
-      assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains(sidEntry));
+      assertFalse(role.getName().equals("new-role") && sids.contains(sidEntry), "Checking if Alice is still assigned to new-role");
     }
     // Verifying that ACL is updated
     Authentication alice = User.getById("alice", false).impersonate2();
@@ -322,7 +323,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testAssignUserRole() throws IOException {
+  void testAssignUserRole() throws IOException {
     String roleName = "new-role";
     String sid = "alice";
     PermissionEntry sidEntry = new PermissionEntry(AuthorizationType.USER, sid);
@@ -338,7 +339,7 @@ public class ApiTest {
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
         new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that alice is assigned to the role "new-role"
     SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
@@ -357,7 +358,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testUnassignUserRole() throws IOException {
+  void testUnassignUserRole() throws IOException {
 
     String roleName = "new-role";
     String sid = "alice";
@@ -368,14 +369,14 @@ public class ApiTest {
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
         new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that alice no longer has permissions
     SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
       Set<PermissionEntry> sids = entry.getValue();
-      assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains(sidEntry));
+      assertFalse(role.getName().equals("new-role") && sids.contains(sidEntry), "Checking if Alice is still assigned to new-role");
     }
     // Verifying that ACL is updated
     Authentication alice = User.getById("alice", false).impersonate2();
@@ -384,7 +385,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testAssignGroupRole() throws IOException {
+  void testAssignGroupRole() throws IOException {
     String roleName = "new-role";
     String sid = "alice";
     String group = "group";
@@ -403,7 +404,7 @@ public class ApiTest {
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
         new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that alice is assigned to the role "new-role"
     SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
@@ -422,7 +423,7 @@ public class ApiTest {
   }
 
   @Test
-  public void testUnassignGroupRole() throws IOException {
+  void testUnassignGroupRole() throws IOException {
 
     String roleName = "new-role";
     String sid = "alice";
@@ -434,14 +435,14 @@ public class ApiTest {
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
         new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that alice no longer has permissions
     SortedMap<Role, Set<PermissionEntry>> roles = rbas.getGrantedRolesEntries(RoleType.Project);
     for (Map.Entry<Role, Set<PermissionEntry>> entry : roles.entrySet()) {
       Role role = entry.getKey();
       Set<PermissionEntry> sids = entry.getValue();
-      assertFalse("Checking if Alice is still assigned to new-role", role.getName().equals("new-role") && sids.contains(sidEntry));
+      assertFalse(role.getName().equals("new-role") && sids.contains(sidEntry), "Checking if Alice is still assigned to new-role");
     }
     // Verifying that ACL is updated
     Authentication alice = User.getById("alice", false).impersonate2();
@@ -450,7 +451,7 @@ public class ApiTest {
   }
 
   @Test
-  public void ignoreDangerousPermissionInAddRole() throws IOException {
+  void ignoreDangerousPermissionInAddRole() throws IOException {
     String roleName = "new-role";
     // Adding role via web request
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
@@ -462,7 +463,7 @@ public class ApiTest {
                 + "hudson.model.Hudson.UploadPlugins,hudson.model.Item.Read"),
             new NameValuePair("overwrite", "false")));
     Page page = webClient.getPage(request);
-    assertEquals("Testing if request is successful", HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
     // Verifying that the role is in
     assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(PluginManager.CONFIGURE_UPDATECENTER), is(false));

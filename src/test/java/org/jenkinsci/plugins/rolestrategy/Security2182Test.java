@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.rolestrategy;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleMap;
@@ -14,30 +15,27 @@ import hudson.model.queue.QueueTaskFuture;
 import jenkins.model.Jenkins;
 import org.htmlunit.Page;
 import org.htmlunit.html.HtmlPage;
-import org.junit.Assert;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.SleepBuilder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class Security2182Test {
+@WithJenkins
+class Security2182Test {
   private static final String BUILD_CONTENT = "Started by user";
   private static final String JOB_CONTENT = "Full project name: folder/job";
 
-  @Rule
-  public JenkinsRule jenkinsRule = new JenkinsRule();
-
   @Test
   @LocalData
-  public void testQueuePath() throws Exception {
+  void testQueuePath(JenkinsRule jenkinsRule) throws Exception {
     jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
     Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
     job.save();
 
     job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
-    Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
+    assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
     final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
     final HtmlPage htmlPage = webClient.goTo("queue/items/0/task/");
@@ -47,14 +45,14 @@ public class Security2182Test {
 
   @Test
   @LocalData
-  public void testQueueContent() throws Exception {
+  void testQueueContent(JenkinsRule jenkinsRule) throws Exception {
     jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
     Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
     job.save();
 
     job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
-    Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
+    assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
     final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient();
     final Page page = webClient.goTo("queue/api/xml/", "application/xml");
@@ -64,7 +62,7 @@ public class Security2182Test {
 
   @Test
   @LocalData
-  public void testExecutorsPath() throws Exception {
+  void testExecutorsPath(JenkinsRule jenkinsRule) throws Exception {
     jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
     Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
@@ -83,7 +81,7 @@ public class Security2182Test {
 
   @Test
   @LocalData
-  public void testExecutorsContent() throws Exception {
+  void testExecutorsContent(JenkinsRule jenkinsRule) throws Exception {
     jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
     Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
@@ -101,7 +99,7 @@ public class Security2182Test {
 
   @Test
   @LocalData
-  public void testWidgets() throws Exception {
+  void testWidgets(JenkinsRule jenkinsRule) throws Exception {
     jenkinsRule.jenkins.setSecurityRealm(jenkinsRule.createDummySecurityRealm());
     Folder folder = jenkinsRule.jenkins.createProject(Folder.class, "folder");
     FreeStyleProject job = folder.createProject(FreeStyleProject.class, "job");
@@ -110,7 +108,7 @@ public class Security2182Test {
 
     FreeStyleBuild b1 = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart(); // schedule one build now
     QueueTaskFuture<?> f2 = job.scheduleBuild2(0, new Cause.UserIdCause("admin")); // schedule an additional queue item
-    Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length); // expect there to be one queue item
+    assertEquals(1, Jenkins.get().getQueue().getItems().length); // expect there to be one queue item
 
     final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
 
@@ -123,7 +121,7 @@ public class Security2182Test {
 
   @Test
   @LocalData
-  public void testEscapeHatch() throws Exception {
+  void testEscapeHatch(JenkinsRule jenkinsRule) throws Exception {
     final String propertyName = RoleMap.class.getName() + ".checkParentPermissions";
     try {
       System.setProperty(propertyName, "false");
@@ -136,7 +134,7 @@ public class Security2182Test {
       job.save();
 
       job.scheduleBuild2(1000, new Cause.UserIdCause("admin"));
-      Assert.assertEquals(1, Jenkins.get().getQueue().getItems().length);
+      assertEquals(1, Jenkins.get().getQueue().getItems().length);
 
       final JenkinsRule.WebClient webClient = jenkinsRule.createWebClient().withThrowExceptionOnFailingStatusCode(false);
 
@@ -152,7 +150,7 @@ public class Security2182Test {
 
         final FreeStyleBuild build = job.scheduleBuild2(0, new Cause.UserIdCause("admin")).waitForStart();
         final int number = build.getExecutor().getNumber();
-        Assert.assertEquals(0, Jenkins.get().getQueue().getItems().length); // collapsed queue items
+        assertEquals(0, Jenkins.get().getQueue().getItems().length); // collapsed queue items
 
         { // executor related assertions
           final HtmlPage htmlPage = webClient.goTo("computer/(master)/executors/" + number + "/currentExecutable/");

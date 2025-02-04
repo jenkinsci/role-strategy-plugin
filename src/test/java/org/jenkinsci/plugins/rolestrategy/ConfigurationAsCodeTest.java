@@ -9,8 +9,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasNoPermission;
 import static org.jenkinsci.plugins.rolestrategy.PermissionAssert.assertHasPermission;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.cloudbees.hudson.plugins.folder.Folder;
 import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
@@ -28,13 +28,13 @@ import io.jenkins.plugins.casc.Configurator;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import io.jenkins.plugins.casc.model.CNode;
 import java.util.Map;
 import java.util.Set;
 import jenkins.model.Jenkins;
 import org.jenkinsci.plugins.rolestrategy.casc.RoleBasedAuthorizationStrategyConfigurator;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 
 /**
@@ -43,23 +43,21 @@ import org.jvnet.hudson.test.Issue;
  * @author Oleg Nenashev
  * @since 2.11
  */
-public class ConfigurationAsCodeTest {
-
-  @Rule
-  public JenkinsConfiguredWithCodeRule jcwcRule = new JenkinsConfiguredWithCodeRule();
+@WithJenkinsConfiguredWithCode
+class ConfigurationAsCodeTest {
 
   @Test
-  public void shouldReturnCustomConfigurator() {
+  void shouldReturnCustomConfigurator(JenkinsConfiguredWithCodeRule jcwcRule) {
     ConfiguratorRegistry registry = ConfiguratorRegistry.get();
     Configurator<?> c = registry.lookup(RoleBasedAuthorizationStrategy.class);
-    assertNotNull("Failed to find configurator for RoleBasedAuthorizationStrategy", c);
-    assertEquals("Retrieved wrong configurator", RoleBasedAuthorizationStrategyConfigurator.class, c.getClass());
+    assertNotNull(c, "Failed to find configurator for RoleBasedAuthorizationStrategy");
+    assertEquals(RoleBasedAuthorizationStrategyConfigurator.class, c.getClass(), "Retrieved wrong configurator");
   }
 
   @Test
   @Issue("Issue #48")
   @ConfiguredWithCode("Configuration-as-Code.yml")
-  public void shouldReadRolesCorrectly() throws Exception {
+  void shouldReadRolesCorrectly(JenkinsConfiguredWithCodeRule jcwcRule) throws Exception {
     jcwcRule.jenkins.setSecurityRealm(jcwcRule.createDummySecurityRealm());
     User admin = User.getById("admin", false);
     User user1 = User.getById("user1", false);
@@ -113,7 +111,7 @@ public class ConfigurationAsCodeTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code.yml")
-  public void shouldExportRolesCorrect() throws Exception {
+  void shouldExportRolesCorrect(JenkinsConfiguredWithCodeRule jcwcRule) throws Exception {
     ConfiguratorRegistry registry = ConfiguratorRegistry.get();
     ConfigurationContext context = new ConfigurationContext(registry);
     CNode yourAttribute = getJenkinsRoot(context).get("authorizationStrategy");
@@ -127,7 +125,7 @@ public class ConfigurationAsCodeTest {
   @Test
   @Issue("Issue #214")
   @ConfiguredWithCode("Configuration-as-Code2.yml")
-  public void shouldHandleNullItemsAndAgentsCorrectly() {
+  void shouldHandleNullItemsAndAgentsCorrectly(JenkinsConfiguredWithCodeRule jcwcRule) {
     AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
@@ -138,7 +136,7 @@ public class ConfigurationAsCodeTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code3.yml")
-  public void dangerousPermissionsAreIgnored() {
+  void dangerousPermissionsAreIgnored(JenkinsConfiguredWithCodeRule jcwcRule) {
     AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
     assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
     RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
@@ -150,7 +148,7 @@ public class ConfigurationAsCodeTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-no-permissions.yml")
-  public void exportWithEmptyRole() throws Exception {
+  void exportWithEmptyRole(JenkinsConfiguredWithCodeRule jcwcRule) throws Exception {
     ConfiguratorRegistry registry = ConfiguratorRegistry.get();
     ConfigurationContext context = new ConfigurationContext(registry);
     CNode yourAttribute = getJenkinsRoot(context).get("authorizationStrategy");
