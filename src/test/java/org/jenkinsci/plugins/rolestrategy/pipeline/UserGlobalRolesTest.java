@@ -7,6 +7,7 @@ import hudson.security.ACLContext;
 import hudson.triggers.TimerTrigger;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import java.io.IOException;
 import jenkins.security.QueueItemAuthenticatorConfiguration;
 import org.jenkinsci.plugins.authorizeproject.GlobalQueueItemAuthenticator;
@@ -15,19 +16,20 @@ import org.jenkinsci.plugins.authorizeproject.strategy.SpecificUsersAuthorizatio
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule.DummySecurityRealm;
 
-public class UserGlobalRolesTest {
-  @Rule
-  public JenkinsConfiguredWithCodeRule jenkinsRule = new JenkinsConfiguredWithCodeRule();
+@WithJenkinsConfiguredWithCode
+class UserGlobalRolesTest {
+
+  private JenkinsConfiguredWithCodeRule jenkinsRule;
 
   private WorkflowJob pipeline;
 
-  @Before
-  public void setup() throws IOException {
+  @BeforeEach
+  void setup(JenkinsConfiguredWithCodeRule jenkinsRule) throws IOException {
+    this.jenkinsRule = jenkinsRule;
     DummySecurityRealm securityRealm = jenkinsRule.createDummySecurityRealm();
     jenkinsRule.jenkins.setSecurityRealm(securityRealm);
     securityRealm.addGroups("builder1", "readers");
@@ -39,7 +41,7 @@ public class UserGlobalRolesTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-pipeline.yml")
-  public void systemUserHasAllGlobalRoles() throws Exception {
+  void systemUserHasAllGlobalRoles() throws Exception {
     pipeline.setDefinition(new CpsFlowDefinition("roles = currentUserGlobalRoles()\n"
             + "for (r in roles) {\n"
             + "    echo(\"Global Role: \" + r)\n"
@@ -51,7 +53,7 @@ public class UserGlobalRolesTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-pipeline.yml")
-  public void builderUserHasGlobalRoles() throws Exception {
+  void builderUserHasGlobalRoles() throws Exception {
     pipeline.setDefinition(new CpsFlowDefinition("roles = currentUserGlobalRoles()\n"
             + "for (r in roles) {\n"
             + "    echo(\"Global Role: \" + r)\n"
@@ -67,7 +69,7 @@ public class UserGlobalRolesTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-pipeline.yml")
-  public void anonymousUserHasNoRoles() throws Exception {
+  void anonymousUserHasNoRoles() throws Exception {
     pipeline.setDefinition(new CpsFlowDefinition("roles = currentUserGlobalRoles()\n"
             + "for (r in roles) {\n"
             + "    echo(\"Global Role: \" + r)\n"
@@ -91,7 +93,7 @@ public class UserGlobalRolesTest {
 
   @Test
   @ConfiguredWithCode("Configuration-as-Code-pipeline.yml")
-  public void builderUserHasRoles() throws Exception {
+  void builderUserHasRoles() throws Exception {
     pipeline.setDefinition(new CpsFlowDefinition("roles = currentUserGlobalRoles()\n"
             + "for (r in roles) {\n"
             + "    echo(\"Global Role: \" + r)\n"
