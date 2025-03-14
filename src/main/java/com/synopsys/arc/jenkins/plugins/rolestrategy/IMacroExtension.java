@@ -26,7 +26,6 @@ package com.synopsys.arc.jenkins.plugins.rolestrategy;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType;
 import com.michelin.cio.hudson.plugins.rolestrategy.PermissionEntry;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.AccessControlled;
 import hudson.security.Permission;
 
@@ -54,7 +53,6 @@ public interface IMacroExtension {
    * @return {@code true} if the macro is applicable to the specified role type
    */
   // TODO: fix naming conventions
-  @SuppressFBWarnings(value = "NM_METHOD_NAMING_CONVENTION", justification = "Old code, should be fixed later")
   @SuppressWarnings("checkstyle:MethodName")
   boolean IsApplicable(RoleType roleType);
 

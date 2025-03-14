@@ -793,7 +793,6 @@ public class RoleMap {
      * @param permission The permission to check
      * @return True if the sid has the given permission
      */
-    @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "As declared in Jenkins API")
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
