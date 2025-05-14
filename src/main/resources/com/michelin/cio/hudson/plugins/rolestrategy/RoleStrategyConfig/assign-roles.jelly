@@ -110,7 +110,7 @@
                 >${%Add Group}</button>
               </div>
               <j:if test="${it.strategy.descriptor.hasAmbiguousEntries(attrs.roles)}">
-                <div class="alert alert-warning" data-table-id="${attrs.tableid}">
+                <div class="jenkins-alert jenkins-alert-warning" data-table-id="${attrs.tableid}">
                   ${%ambiguous}
                 </div>
               </j:if>
