@@ -138,7 +138,9 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
       copy.setAttribute("name",'['+type+':'+name+']');
       tbody.appendChild(copy);
       Behaviour.applySubtree(table, true);
-      tableHighlighter.scan(copy);
+      if (tableHighlighter !== null) {
+        tableHighlighter.scan(copy);
+      }
     });
   }
 
@@ -283,7 +285,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     newItemRowTemplate = document.getElementById('newItemRowTemplate');
 
-    itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+    const projectRolesTable = document.getElementById("projectRoles");
+    if (projectRolesTable.dataset.disableHighlighter !== "true") {
+        itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+    }
+
 
     // agent roles initialization
     newAgentRowTemplate = document.getElementById('newAgentRowTemplate');

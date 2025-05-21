@@ -51,7 +51,7 @@
         </j:if>
       </j:forEach>
     </tbody>
-    <local:tfoot roles="${agentGrantedRoles}" sids="${agentSIDs}"/>
+    <local:tfoot roles="${agentGrantedRoles}" sids="${agentSIDs}" showPattern="true"/>
   </table>
 
   <template id="newAgentRowTemplate">
