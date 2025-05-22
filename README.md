@@ -71,9 +71,14 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 
 #### Working with many roles
 The UI becomes slow to load when working with many roles. A setup with 400 item roles and one user/group assigned to each role will result in
-a table with 160k checkboxes. This will cause a high memory consumption of the browser and loading the page will take quite long (~30s and more).
+a table with 160k checkboxes. This will cause a high memory consumption of the browser and loading the page will take quite long (~ 1min and more).
 To improve the loading tooltips and table highlighting are disabled when the total number of checkboxes exceeds 40000 (that is 200 roles with 200 users/groups).
-To further improve UI response times use the filters for users and items.
+
+To further improve UI response times use the filters for users and roles.
+
+Another limitation is that when you run Jenkins via the built-in Jetty, that the max number of parameters in a form submission is 10000 and the max formsize is 200000. This can be
+increased by passing the parameter `--maxParamCount=N` to the Jenkins java call (See the [Winstone](https://github.com/jenkinsci/winstone) documentation) and setting the system 
+property `-Dorg.eclipse.jetty.server.Request.maxFormContentSize=n` at jvm start.
 
 ![Assign roles](/docs/images/assignRoles.png)
 
