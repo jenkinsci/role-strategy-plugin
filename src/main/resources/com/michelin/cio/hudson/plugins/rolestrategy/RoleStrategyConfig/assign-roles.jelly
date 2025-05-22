@@ -86,8 +86,17 @@
                     ${%User/group}
                   </td>
                   <j:forEach var="role" items="${attrs.roles}">
+                    <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
+                    <j:forEach var="p" items="${role.key.permissions}">
+                      <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
+                    </j:forEach>
+                    <j:set var="patternTooltip" value=""/>
+                    <j:if test="${attrs.showPattern == 'true'}">
+                      <j:set var="patternTooltip" value="  &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
+                    </j:if>
+                    <j:set var="permissionList" value="${permissionList} ${patternTooltip}"/>
                     <td class="pane-header">
-                      <span>${role.key.name}</span>
+                      <span data-html-tooltip="${permissionList}">${role.key.name}</span>
                     </td>
                   </j:forEach>
                   <td class="stop" />
@@ -151,9 +160,16 @@
                 <j:if test="${attrs.type == it.strategy.GLOBAL}">
                   <j:set var="pattern" value=""/>
                 </j:if>
-                <td class="rsp-highlight-input" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
-                  <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
-                </td>
+                <j:if test="${attrs.disableTooltips}">
+                  <td class="rsp-highlight-input">
+                    <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
+                  </td>
+                </j:if>
+                <j:if test="${!attrs.disableTooltips}">
+                  <td class="rsp-highlight-input" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
+                    <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
+                  </td>
+                </j:if>
               </j:forEach>
               <td class="stop">
                 <l:isAdmin>
