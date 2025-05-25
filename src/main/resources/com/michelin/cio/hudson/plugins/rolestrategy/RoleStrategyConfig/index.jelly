@@ -53,22 +53,22 @@
               <thead>
                 <tr class="group-row">
                   <j:if test="${attrs.showRoleName}">
-                    <td rowspan="2" class="start" />
-                    <td rowspan="2" class="pane-header blank">
+                    <l:isAdmin><td rowspan="2" class="start" /></l:isAdmin>
+                    <th rowspan="2" class="rsp-table__header-column">
                       ${%Role}
-                    </td>
+                    </th>
                   </j:if>
                   <j:if test="${attrs.showPattern}">
-                    <td rowspan="2" class="pane-header blank">
+                    <th rowspan="2" class="rsp-table__header-column">
                       ${%Pattern}
-                    </td>
+                    </th>
                   </j:if>
                   <j:if test="${attrs.showTemplate}">
-                    <td rowspan="2" class="pane-header blank">
+                    <th rowspan="2" class="rsp-table__header-column">
                       ${%Template}
-                    </td>
+                    </th>
                   </j:if>
-                  <j:forEach var="g" items="${attrs.permissionGroups}">
+                  <j:forEach var="g" items="${attrs.permissionGroups}" varStatus="s">
                     <j:set var="cnt" value="${0}" />
                     <j:forEach var="p" items="${g.permissions}">
                       <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
@@ -76,9 +76,9 @@
                       </j:if>
                     </j:forEach>
 
-                    <td class="pane-header" colspan="${cnt}">
+                    <th colspan="${cnt}" class="rsp-table--header-th ${s.first ? 'first' : ''} ${s.last ? 'last' : ''}">
                       ${g.title}
-                    </td>
+                    </th>
                   </j:forEach>
                   <j:if test="${attrs.showRoleName != 'false'}">
                     <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
@@ -89,7 +89,7 @@
                   <j:forEach var="g" items="${attrs.permissionGroups}">
                     <j:forEach var="p" items="${g.permissions}">
                       <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
-                        <th class="pane" tooltip="${p.description}">
+                        <th tooltip="${p.description}" class="rsp-table__permission">
                           <span>${p.name}</span>
                         </th>
                       </j:if>
@@ -105,24 +105,24 @@
               </j:if>
               <tfoot class="${hidefooter}">
                 <tr class="caption-row highlight-row">
-                  <td rowspan="2" class="start" />
-                  <td rowspan="2" class="pane-header blank">
+                  <l:isAdmin><td rowspan="2" class="start" /></l:isAdmin>
+                  <th rowspan="2" class="rsp-table__footer-column">
                     ${%Role}
-                  </td>
+                  </th>
                   <j:if test="${attrs.showPattern}">
-                    <td rowspan="2" class="pane-header blank">
+                    <th rowspan="2" class="rsp-table__footer-column">
                       ${%Pattern}
-                    </td>
+                    </th>
                   </j:if>
                   <j:if test="${attrs.showTemplate}">
-                    <td rowspan="2" class="pane-header blank">
+                    <th rowspan="2" class="rsp-table__footer-column">
                       ${%Template}
-                    </td>
+                    </th>
                   </j:if>
                   <j:forEach var="g" items="${attrs.permissionGroups}">
                     <j:forEach var="p" items="${g.permissions}">
                       <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
-                        <th class="pane" tooltip="${p.description}">
+                        <th tooltip="${p.description}" class="rsp-table__permission rsp-table__permission-footer">
                           <span>${p.name}</span>
                         </th>
                       </j:if>
@@ -130,7 +130,7 @@
                   </j:forEach>
                 </tr>
                 <tr class="group-row">
-                  <j:forEach var="g" items="${attrs.permissionGroups}">
+                  <j:forEach var="g" items="${attrs.permissionGroups}" varStatus="s">
                     <j:set var="cnt" value="${0}" />
                     <j:forEach var="p" items="${g.permissions}">
                       <j:if test="${it.strategy.descriptor.showPermission(attrs.strategy, p)}">
@@ -138,9 +138,9 @@
                       </j:if>
                     </j:forEach>
 
-                    <td class="pane-header" colspan="${cnt}">
+                    <th colspan="${cnt}" class="rsp-table--header-th ${s.first ? 'first' : ''} ${s.last ? 'last' : ''}">
                       ${g.title}
-                    </td>
+                    </th>
                   </j:forEach>
                 </tr>
               </tfoot>
@@ -150,13 +150,13 @@
             </d:tag>
             <d:tag name="roleRow">
               <j:if test="${attrs.showRoleName}">
-                <td class="start">
-                  <l:isAdmin>
+                <l:isAdmin>
+                  <td class="start">
                     <div class="rsp-remove">
                       <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
                     </div>
-                  </l:isAdmin>
-                </td>
+                  </td>
+                </l:isAdmin>
                 <td class="left-most" style="white-space: nowrap;">${title}</td>
               </j:if>
               <j:set var="pattern" value=""/>

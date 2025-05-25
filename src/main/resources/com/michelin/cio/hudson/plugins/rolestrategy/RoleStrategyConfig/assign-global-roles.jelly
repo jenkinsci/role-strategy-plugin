@@ -26,50 +26,32 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-    <j:set var="tableid" value="globalRoles"/>
-    <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
-    <j:set var="globalSIDs" value="${it.strategy.getSidEntries(it.strategy.GLOBAL)}"/>
+  <j:set var="tableid" value="globalRoles"/>
+  <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
+  <j:set var="globalSIDs" value="${it.strategy.getSidEntries(it.strategy.GLOBAL)}"/>
 
-    <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
-      <f:entry title="${%Filter by User/Group}">
-        <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
-      </f:entry>
-    </div>
-    <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="role-filter">
-      <f:entry title="${%Filter by Role}">
-        <input id="globalRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
-      </f:entry>
-    </div>
-    <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table" name="data">
+  <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
+    <f:entry title="${%Filter by User/Group}">
+      <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
+    </f:entry>
+  </div>
+  <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="role-filter">
+    <f:entry title="${%Filter by Role}">
+      <input id="globalRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
+    </f:entry>
+  </div>
 
-      <!-- The first row will show grouping -->
-      <local:thead roles="${globalGrantedRoles}" showPattern="false"/>
-      <tbody>
-        <tr name="[USER:anonymous]" class="highlight-row">
-          <local:userRow sid="anonymous" title="${%Anonymous}" type="${it.strategy.GLOBAL}" permissionType="USER" typedescription="User" noremove="true"/>
+  <local:table id="${tableid}" roles="${globalGrantedRoles}" showPattern="false" template="newGlobalRowTemplate" highlighter="globalTableHighlighter">
+    <j:if test="${rspMode == 'rsp-navigation'}">
+      <template id="newGlobalRowTemplate">
+        <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
+          <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
         </tr>
-        <tr name="[GROUP:authenticated]" class="highlight-row">
-          <local:userRow sid="authenticated" title="authenticated" type="${it.strategy.GLOBAL}" permissionType="GROUP" typedescription="Group" noremove="true"/>
-        </tr>
-        <j:forEach var="entry" items="${globalSIDs}">
-          <j:if test="${entry.sid != 'authenticated' or entry.type.toString() != 'GROUP'}">
-            <tr name="[${entry.type}:${entry.sid}]" class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-              <local:userRow sid="${entry.sid}" title="${entry.sid}" permissionType="${entry.type.toString()}" typedescription="${entry.type.getDescription()}" type="${it.strategy.GLOBAL}"/>
-            </tr>
-          </j:if>
-        </j:forEach>
-      </tbody>
-      <local:tfoot roles="${globalGrantedRoles}" sids="${globalSIDs}"/>
-    </table>
+      </template>
 
-    <template id="newGlobalRowTemplate">
-      <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-        <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
-      </tr>
-    </template>
-
-  <l:isAdmin>
-      <br/>
-      <local:addButtons sids="${globalSIDs}" tableid="${tableid}" id="newGlobalRowTemplate" roles="${globalGrantedRoles}" highlighter="globalTableHighlighter"/>
-    </l:isAdmin>
+      <l:isAdmin>
+        <local:addButtons sids="${globalSIDs}" tableid="${tableid}" id="newGlobalRowTemplate" roles="${globalGrantedRoles}" highlighter="globalTableHighlighter"/>
+      </l:isAdmin>
+    </j:if>
+  </local:table>
 </j:jelly>

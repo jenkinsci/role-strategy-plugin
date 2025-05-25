@@ -22,6 +22,31 @@
  * THE SOFTWARE.
  */
 
+function debounce(func, timeout = 300) {
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { func.apply(this, args); }, timeout);
+  };
+}
+
+function ignoreKeys(code) {
+  switch (code) {
+    case "KeyS":
+    case "ArrowDown":
+    case "KeyW":
+    case "ArrowUp":
+    case "KeyA":
+    case "ArrowLeft":
+    case "KeyD":
+    case "ArrowRight":
+    case "Enter":
+    case "Escape":
+      return true;
+  }
+  return false;
+}
+
 function getPreviousSiblings(elem, filter) {
     let sibs = [];
     while (elem = elem.previousSibling) {

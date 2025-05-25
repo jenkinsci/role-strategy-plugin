@@ -22,84 +22,111 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
- 
-.global-matrix-authorization-strategy-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-  #border: 1px solid #D3D7CF;
+
+.role-strategy-table {
+  border-spacing: 2px;
 }
 
-.global-matrix-authorization-strategy-table .caption-row TH span {
-  writing-mode: vertical-rl;
-  padding-top: 3px;
+.role-strategy-table tbody>tr>td {
+  height: 30px;
 }
 
-.global-matrix-authorization-strategy-table .caption-row {
-  border-right: hidden;
+.role-strategy-table .rsp-table--header-th {
+  text-align: center!important;
 }
 
-.global-matrix-authorization-strategy-table .group-row TD {
+.role-strategy-table thead .rsp-table--header-th.first {
+  border-top-left-radius: var(--table-border-radius);
+}
+
+.role-strategy-table thead .rsp-table--header-th.last {
+  border-top-right-radius: var(--table-border-radius);
+}
+
+.role-strategy-table tfoot .rsp-table--header-th.first {
+  border-bottom-left-radius: var(--table-border-radius);
+}
+
+.role-strategy-table tfoot .rsp-table--header-th.last {
+  border-bottom-right-radius: var(--table-border-radius);
+}
+
+.rsp-table__header-column {
+  vertical-align: bottom!important;
+  text-align: left!important;
+}
+
+.rsp-table__footer-column {
+  vertical-align: top!important;
+  text-align: left!important;
+}
+
+.role-strategy-table th, .role-strategy-table td
+{
+  padding: 0 0.25rem!important;
   vertical-align: middle;
   text-align: center;
 }
 
-.global-matrix-authorization-strategy-table .group-row TD span {
+.role-strategy-table .caption-row TH {
+  padding: 0.25rem!important;
+  width: 1rem;
+}
+
+.role-strategy-table tfoot th {
+  font-size: .875rem;
+  font-weight: 500;
+}
+
+.role-strategy-table .rsp-table__permission,
+.role-strategy-table .rsp-table--header-th
+{
+  background: var(--table-body-background);
+}
+
+.role-strategy-table .caption-row TH span,
+.role-strategy-table .rsp-table--vertical span,
+.role-strategy-table .group-row TD span
+{
   writing-mode: vertical-rl;
-  padding-top: 3px;
+  padding: 5px 0;
 }
 
-.global-matrix-authorization-strategy-table TD.start {
-  border: 0;
-}
-
-.global-matrix-authorization-strategy-table TD.stop {
+.role-strategy-table TD.stop,
+.role-strategy-table TD.start {
   white-space: nowrap;
   text-align: left;
-  border: 0;
+  width: 16px;
+}
+
+.role-strategy-table TD.left-most {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.role-strategy-table div.pattern-cell {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
+.role-strategy-table div.pattern-cell svg {
+  margin-right: 3px;
+  cursor: pointer;
+}
+
+.role-strategy-table div.pattern-cell span {
+  white-space: nowrap;
 }
 
 label.attach-previous {
   margin-left: 0;
 }
 
-.global-matrix-authorization-strategy-table th, .global-matrix-authorization-strategy-table td {
-  padding: 0px 3px;
-  border: 1px solid #D3D7CF;
-  vertical-align: middle;
-}
-
-.highlighted {
-  background-color: #FFF9C9;
-  color: var(--black);
-}
-
-.global-matrix-authorization-strategy-table TD.blank {
-  vertical-align: middle;
-  padding: 0.2em;
-}
-
-.global-matrix-authorization-strategy-table .caption-row TH {
-  font-weight: lighter;
-}
-
-.global-matrix-authorization-strategy-table TD.left-most {
-  text-align: left;
-  white-space: nowrap;
-}
-
-.global-matrix-authorization-strategy-table div.pattern-cell {
-  display: flex;
-  justify-content: left;
-  align-items: center;
-}
-
-.global-matrix-authorization-strategy-table div.pattern-cell svg {
-  margin-right: 3px;
-  cursor: pointer;
-}
-
-.global-matrix-authorization-strategy-table div.pattern-cell span {
-  white-space: nowrap;
+.highlighted,
+.highlighted td {
+  background-color: #FFF9C9!important;
+  color: var(--black)!important;
 }
 
 .jenkins-checkbox {
@@ -118,17 +145,13 @@ label.attach-previous {
   animation: highlightentry 5s;
 }
 
-.alert {
+.jenkins-alert {
 	margin-top: 10px;
 }
 
 .rsp-entry-not-found {
     text-decoration: line-through;
     color: grey;
-}
-
-.rsp-table__icon {
-  vertical-align: initial!important;
 }
 
 .rsp-table__icon-alert {
@@ -144,6 +167,14 @@ label.attach-previous {
 .rsp-remove, .migrate {
   cursor: pointer;
   height: 16px;
+  display: flex;
+}
+
+button.migrate {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0;
 }
 
 .patternAnchor {
@@ -159,4 +190,15 @@ label.attach-previous {
 .row-filter, .user-filter, .role-filter {
   display: none;
   max-width: 500px;
+}
+
+
+.rsp-navigation__entries {
+  display: flex;
+  gap: 1rem;
+  margin-top: -15px;
+}
+
+.rsp-navigation__entries .jenkins-select {
+  max-width: 5rem;
 }

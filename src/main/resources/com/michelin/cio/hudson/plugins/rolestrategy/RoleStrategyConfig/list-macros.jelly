@@ -34,36 +34,37 @@
         -->
         <d:tag name="roleMacroTable">           
             <j:invoke var="items" method="${attrs.getmethod}" on="${it}"/>            
-            <table id="${attrs.tableId}" 
-                   class="center-align global-matrix-authorization-strategy-table" 
-                   name="${attrs.tableId}" width="1000px">
-                
-                <tr name="Caption" class="group-row">
-                    <td rowspan="2" class="pane-header blank">
-                      ${%Name}
-                    </td>
-                    <td colspan="3" class="pane-header blank">
-                      ${%Applicable Role Types}
-                    </td>
-                    <td rowspan="2" class="pane-header blank">
-                      ${%Description}
-                    </td>
-                </tr>
-                <!--Second header row-->
-                <tr name="Caption" class="group-row">
-                    <td class="pane-header blank">GLOBAL</td>
-                    <td class="pane-header blank">ITEM</td>
-                    <td class="pane-header blank">AGENT</td>                    
-                </tr>
-                <j:forEach var="macroExt" items="${items}">
-                    <tr name="test" class="permission-row">
-                        <td>${macroExt.getName()}</td>
-                        <td>${macroExt.IsApplicable(it.globalRoleType)}</td>
-                        <td>${macroExt.IsApplicable(it.projectRoleType)}</td>
-                        <td>${macroExt.IsApplicable(it.slaveRoleType)}</td>
-                        <td><j:out value="${macroExt.getDescription()}"/></td>
+            <table id="${attrs.tableId}" class="jenkins-table role-strategy-table jenkins-table--auto-width">
+                <thead>
+                    <tr name="Caption">
+                        <th rowspan="2" class="rsp-table__header-column">
+                          ${%Name}
+                        </th>
+                        <th colspan="3" class="rsp-table__header-column rsp-table--header-th first last">
+                          ${%Applicable Role Types}
+                        </th>
+                        <th rowspan="2" class="rsp-table__header-column">
+                          ${%Description}
+                        </th>
                     </tr>
-                </j:forEach>
+                    <!--Second header row-->
+                    <tr name="Caption">
+                        <th class="rsp-table__header-column rsp-table--header-th">GLOBAL</th>
+                        <th class="rsp-table__header-column rsp-table--header-th">ITEM</th>
+                        <th class="rsp-table__header-column rsp-table--header-th">AGENT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <j:forEach var="macroExt" items="${items}">
+                        <tr name="test" class="permission-row">
+                            <td>${macroExt.getName()}</td>
+                            <td>${macroExt.IsApplicable(it.globalRoleType)}</td>
+                            <td>${macroExt.IsApplicable(it.projectRoleType)}</td>
+                            <td>${macroExt.IsApplicable(it.slaveRoleType)}</td>
+                            <td><j:out value="${macroExt.getDescription()}"/></td>
+                        </tr>
+                    </j:forEach>
+                </tbody>
             </table>
         </d:tag>
     </d:taglib>
@@ -101,22 +102,7 @@
             </div>
             <h2>${%Available Macros}</h2>  
             <p>The listed macros can be used in the "Role" field of the "Manage Roles" page.</p>
-            <f:form method="post" name="config" action="macrosSubmit">
-                <f:section title="${%Role Macros}">
-                    <f:block>
-                        <local:roleMacroTable tableId="rolesMacros" getmethod="getRoleMacroExtensions"/>
-                    </f:block>
-                </f:section> 
-                <!--TODO: Enable after adding support of user macros-->
-                <!--
-                <f:section title="${%User Macros}">
-                    <f:block>
-                        <p style="color:red">Warning! Not supported in the current version</p>
-                        <local:roleMacroTable tableId="userMacros" getmethod="getUserMacroExtensions"/>
-                    </f:block>
-                </f:section>
-                -->
-            </f:form>                  
+            <local:roleMacroTable getmethod="getRoleMacroExtensions"/>
         </l:main-panel>
     </l:layout>
 </j:jelly>

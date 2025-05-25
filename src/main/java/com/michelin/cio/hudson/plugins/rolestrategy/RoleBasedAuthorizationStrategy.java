@@ -81,6 +81,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.lang3.StringUtils;
@@ -407,7 +408,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   private static void checkAdminPerm() {
-    instance().checkPermission(Jenkins.ADMINISTER);
+    instance().checkPermission(Jenkins.MANAGE);
   }
 
   /**
@@ -956,6 +957,33 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     writer.close();
   }
 
+  @GET
+  @Restricted(NoExternalUse.class)
+  public void doGetRoleAssignments(@QueryParameter(fixEmpty = true) String type) throws IOException {
+      instance().checkPermission(Jenkins.SYSTEM_READ);
+
+      Set<PermissionEntry> sidEntries = getRoleMap(RoleType.fromString(type)).getSidEntries(true);
+
+      JSONArray responseJson = new JSONArray();
+      for (PermissionEntry entry: sidEntries) {
+          JSONObject userEntry = new JSONObject();
+          userEntry.put("name", entry.getSid());
+          userEntry.put("type", entry.getType().toString());
+          JSONArray roles = new JSONArray();
+          SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(type);
+          for (Map.Entry<Role, Set<PermissionEntry>> roleEntry: rolesEntries.entrySet()) {
+              if (roleEntry.getValue().contains(entry)) {
+                  roles.add(roleEntry.getKey().getName());
+              }
+          }
+          userEntry.put("roles", roles);
+          responseJson.add(userEntry);
+      }
+      Writer writer = Stapler.getCurrentResponse2().getWriter();
+      responseJson.write(writer);
+      writer.close();
+  }
+
   /**
    * API method to get a list of items matching a pattern.
    *
@@ -1287,40 +1315,33 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
+    public void doAssignSubmit(StaplerRequest2 req, JSONObject json) throws ServletException, IOException {
       checkAdminPerm();
 
       req.setCharacterEncoding("UTF-8");
-      JSONObject json = req.getSubmittedForm();
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
 
-      if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
-        RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
+      if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
         Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
 
         for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
+
           // Get roles and skip non-existent role entries (backward-comp)
           RoleMap roleMap = map.getValue();
-          roleMap.clearSids();
-          JSONObject roles = json.getJSONObject(map.getKey().getStringType());
-          if (roles.isNullObject()) {
-            continue;
-          }
+          JSONArray userEntries = json.getJSONArray(map.getKey().getStringType());
 
-          for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {
-            String sid = r.getKey();
-            if (sid != null && !sid.equals("")) {
-              PermissionEntry pe = PermissionEntry.fromString(sid);
-              for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
-                if (e.getValue()) {
-                  Role role = roleMap.getRole(e.getKey());
-                  if (role != null) {
-                    roleMap.assignRole(role, pe);
-                  }
-                }
+          roleMap.clearSids();
+
+          userEntries.forEach(e -> {
+            JSONObject entry = (JSONObject) e;
+            PermissionEntry pe = new PermissionEntry(AuthorizationType.valueOf(entry.getString("type")), entry.getString("name"));
+            entry.getJSONArray("roles").forEach(r -> {
+              Role role = roleMap.getRole((String) r);
+              if (role != null) {
+                roleMap.assignRole(role, pe);
               }
-            }
-          }
+            });
+          });
         }
         // Persist the data
         persistChanges();
@@ -1605,7 +1626,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       String sid = unbracketedValue.substring(splitIndex + 1);
       String escapedSid = Functions.escape(sid);
 
-      if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+      if (!Jenkins.get().hasPermission(Jenkins.SYSTEM_READ)) {
         return FormValidation.ok(escapedSid); // can't check
       }
 

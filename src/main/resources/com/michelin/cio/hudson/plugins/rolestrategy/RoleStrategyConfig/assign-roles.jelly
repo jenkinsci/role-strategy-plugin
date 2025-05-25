@@ -49,14 +49,34 @@
           </j:if>
 
           <d:taglib uri="local">
+            <d:tag name="table">
+              <div id="${attrs.id}-container" class="rsp-roles-container" data-highlighter="${attrs.highlighter}" data-template="${attrs.template}">
+                <j:set var="rspMode" value="rsp-filters"/>
+                <d:invokeBody/>
+                <table id="${attrs.id}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table" name="data"
+                       data-template-id="${attrs.template}">
+
+                  <!-- The first row will show grouping -->
+                  <local:thead roles="${attrs.roles}" showPattern="true"/>
+                  <tbody>
+                    <tr>
+                      <td colspan="100%"><l:spinner text="${%Loading Data}"/></td>
+                    </tr>
+                  </tbody>
+                  <local:tfoot roles="${attrs.roles}" showPattern="${attrs.showPattern}"/>
+                </table>
+                <j:set var="rspMode" value="rsp-navigation"/>
+                <d:invokeBody/>
+              </div>
+            </d:tag>
             <d:tag name="thead">
               <thead>
                 <tr class="group-row highlight-row">
-                  <td class="start" />
-                  <td class="pane-header blank">
+                  <l:isAdmin><td class="start" /></l:isAdmin>
+                  <th class="rsp-table__header-column">
                     ${%User/Group}
-                  </td>
-                  <j:forEach var="role" items="${attrs.roles}">
+                  </th>
+                  <j:forEach var="role" items="${attrs.roles}" varStatus="s">
                     <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
                     <j:forEach var="p" items="${role.key.permissions}">
                       <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
@@ -66,26 +86,22 @@
                       <j:set var="patternTooltip" value="  &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
                     </j:if>
                     <j:set var="permissionList" value="${permissionList} ${patternTooltip}"/>
-                    <td class="pane-header">
+                    <th class="rsp-table--vertical rsp-table__header-column rsp-table--header-th ${s.first ? 'first' : ''} ${s.last ? 'last' : ''}">
                       <span data-html-tooltip="${permissionList}">${role.key.name}</span>
-                    </td>
+                    </th>
                   </j:forEach>
                   <l:isAdmin><td class="stop" /></l:isAdmin>
                 </tr>
               </thead>
             </d:tag>
             <d:tag name="tfoot">
-              <j:set var="hidefooter" value="0"/>
-              <j:if test="${attrs.sids.size() lt 18}">
-                <j:set var="hidefooter" value="default-hidden"/>
-              </j:if>
-              <tfoot class="${hidefooter}">
+              <tfoot class="jenkins-hidden">
                 <tr class="group-row highlight-row">
-                  <td class="start" />
-                  <td class="pane-header blank">
-                    ${%User/group}
-                  </td>
-                  <j:forEach var="role" items="${attrs.roles}">
+                  <l:isAdmin><td class="start" /></l:isAdmin>
+                  <th class="rsp-table__footer-column">
+                    ${%User/Group}
+                  </th>
+                  <j:forEach var="role" items="${attrs.roles}" varStatus="s">
                     <j:set var="permissionList" value="&lt;b&gt;Permissions&lt;/b&gt;:"/>
                     <j:forEach var="p" items="${role.key.permissions}">
                       <j:set var="permissionList" value="${permissionList}&lt;br/&gt;${p.group.title}/${p.name}"/>
@@ -95,13 +111,27 @@
                       <j:set var="patternTooltip" value="  &lt;br/&gt; &lt;b&gt;Pattern&lt;/b&gt;: ${h.escape(role.key.pattern.toString())}"/>
                     </j:if>
                     <j:set var="permissionList" value="${permissionList} ${patternTooltip}"/>
-                    <td class="pane-header">
+                    <th class="rsp-table--vertical rsp-table__footer-column rsp-table--header-th ${s.first ? 'first' : ''} ${s.last ? 'last' : ''}">
                       <span data-html-tooltip="${permissionList}">${role.key.name}</span>
-                    </td>
+                    </th>
                   </j:forEach>
-                  <td class="stop" />
+                  <l:isAdmin><td class="stop" /></l:isAdmin>
                 </tr>
               </tfoot>
+            </d:tag>
+            <d:tag name="navigationButtons">
+              <div class="rsp-navigation__entries jenkins-hidden jenkins-!-margin-bottom-3">
+                <button type="button" class="jenkins-button rsp-navigation__button-entry-up" tooltip="${%Previous page of Users/Groups}">
+                  <l:icon src="symbol-arrow-up-outline plugin-ionicons-api" class="icon-md"/>
+                </button>
+                <div class="jenkins-select">
+                  <select class="jenkins-select__input rsp-navigation__select">
+                  </select>
+                </div>
+                <button type="button" class="jenkins-button rsp-navigation__button-entry-down" tooltip="${%Next page of Users/Groups}">
+                  <l:icon src="symbol-arrow-down-outline plugin-ionicons-api" class="icon-md"/>
+                </button>
+              </div>
             </d:tag>
             <d:tag name="addButtons">
               <div class="jenkins-buttons-row jenkins-buttons-row--equal-width">
@@ -126,77 +156,54 @@
             </d:tag>
             <d:tag name="userRow">
               <j:set var="permissionEntry" value="${it.strategy.descriptor.entryFor(attrs.permissionType, attrs.sid)}"/>
-              <td class="start">
-                <l:isAdmin>
-                  <j:if test="${attrs.noremove != 'true'}">
-                      <div class="rsp-remove">
-                        <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
-                      </div>
-                  </j:if>
-                </l:isAdmin>
-              </td>
-			        <j:choose>
-			          <j:when test="${attrs.sid == 'authenticated' and attrs.permissionType == 'GROUP'}">
-			            <td class="left-most">
-			              <div title="authenticated" class="rsp-table__cell">
-			                <l:icon src="symbol-people-outline plugin-ionicons-api" class="icon-sm"/> ${%Authenticated Users}
-			              </div>
-			            </td>
-			          </j:when>
-			          <j:when test="${attrs.sid == 'anonymous' and attrs.permissionType == 'USER'}">
-			            <td class="left-most">
-			              <div title="anonymous" class="rsp-table__cell">
-                      <l:icon src="symbol-person-outline plugin-ionicons-api" class="icon-sm"/> ${%Anonymous}
-			              </div>
-			            </td>
-			          </j:when>
-			          <j:otherwise>
-			            <td class="left-most">${title}</td>
-			          </j:otherwise>
-			        </j:choose>
+              <l:isAdmin>
+                <td class="start">
+                    <div class="rsp-remove">
+                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
+                    </div>
+                </td>
+              </l:isAdmin>
+	            <td class="left-most">${title}</td>
               <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(r.key.pattern.toString())}"/>
               <j:forEach var="r" items="${it.strategy.getGrantedRolesEntries(attrs.type)}">
                 <j:set var="pattern" value="&lt;b&gt;Pattern&lt;/b&gt; : ${h.escape(r.key.pattern.toString())}"/>
                 <j:if test="${attrs.type == it.strategy.GLOBAL}">
                   <j:set var="pattern" value=""/>
                 </j:if>
-                <j:if test="${attrs.disableTooltips}">
-                  <td class="rsp-highlight-input">
-                    <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
-                  </td>
-                </j:if>
-                <j:if test="${!attrs.disableTooltips}">
-                  <td class="rsp-highlight-input" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
-                    <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}"/>
-                  </td>
-                </j:if>
+                <td class="rsp-highlight-input" data-role-name="${r.key.name}" data-html-tooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(r.key.name)} &lt;br/&gt; &lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)} &lt;br/&gt; ${pattern}">
+                  <f:checkbox name="[${r.key.name}]" checked="${r.value.contains(permissionEntry)}" class="rsp-checkbox"/>
+                </td>
               </j:forEach>
-              <td class="stop">
-                <l:isAdmin>
-                  <j:if test="${attrs.noremove != 'true'}">
-                    <div class="rsp-table__cell">
-                      <div class="rsp-remove">
-                        <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon" htmlTooltip="&lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
-                      </div>
-                      <j:if test="${attrs.permissionType == 'EITHER'}">
-                        <!-- migration options -->
-                        <div class="migrate migrate_user">
-                          <l:icon alt="${%Migrate entry to user}" tooltip="${%migrate_user(attrs.sid)}" src="symbol-person-outline plugin-ionicons-api" class="icon-sm rsp-table__icon" />
-                        </div>
-                        <div class="migrate migrate_group">
-                          <l:icon alt="${%Migrate entry to group}" tooltip="${%migrate_group(attrs.sid)}" src="symbol-people-outline plugin-ionicons-api" class="icon-sm rsp-table__icon" />
-                        </div>
-                      </j:if>
+              <l:isAdmin>
+                <td class="stop">
+                  <div class="rsp-table__cell">
+                    <div class="rsp-remove">
+                      <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon" htmlTooltip="&lt;b&gt;${attrs.typedescription}&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                     </div>
-                  </j:if>
-                </l:isAdmin>
-              </td>
+                    <!-- migration options -->
+                    <button class="migrate migrate_user jenkins-hidden" type="button">
+                      <l:icon alt="${%Migrate entry to user}" tooltip="${%migrate_user('{{USER}}')}" src="symbol-person-outline plugin-ionicons-api" class="icon-sm rsp-table__icon" />
+                    </button>
+                    <button class="migrate migrate_group jenkins-hidden" type="button">
+                      <l:icon alt="${%Migrate entry to group}" tooltip="${%migrate_group('{{USER}}')}" src="symbol-people-outline plugin-ionicons-api" class="icon-sm rsp-table__icon" />
+                    </button>
+                  </div>
+                </td>
+              </l:isAdmin>
             </d:tag>
           </d:taglib>
 
-          <f:form method="post" name="config" action="assignSubmit">
+          <div id="assign-roles" data-fetch-url="${rootURL}/role-strategy/strategy/getRoleAssignments"
+               data-save-url="${rootURL}/role-strategy/strategy/saveRoleAssignments" data-text-anonymous="${%Anonymous}"
+               data-text-authenticated="${%Authenticated Users}"
+               data-max-rows="${it.maxRows}"/>
+          <template id="assign-roles-icons">
+            <l:icon src="symbol-people-outline plugin-ionicons-api" class="icon-sm" id="rsp-people-icon"/>
+            <l:icon src="symbol-person-outline plugin-ionicons-api" class="icon-sm" id="rsp-person-icon"/>
+          </template>
+          <div>
             <h1>
-                ${it.assignRolesName}
+              ${it.assignRolesName}
             </h1>
             <button class="default-hidden" id="rs-dirty-indicator"/>
 
@@ -217,13 +224,16 @@
                 <f:block><st:include page="assign-agent-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-            <l:isAdmin>
-              <f:bottomButtonBar>
-                <f:submit value="${%Save}" />
-                <f:apply />
-              </f:bottomButtonBar>
-            </l:isAdmin>
+          </div>
+          <f:form method="post" name="config" action="assignSubmit" id="rsp-roles-form">
+            <input type="hidden" name="rolesMapping"/>
           </f:form>
+          <l:isAdmin>
+            <f:bottomButtonBar>
+              <button id="rsp-roles-save" type="button" class="jenkins-button jenkins-button--primary">${%Save}</button>
+              <button id="rsp-roles-apply" type="button" class="jenkins-button" data-message="${%Saved}">${%Apply}</button>
+            </f:bottomButtonBar>
+          </l:isAdmin>
           <st:adjunct includes="lib.form.confirm" />
         </l:main-panel>
     </l:layout>

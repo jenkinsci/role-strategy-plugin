@@ -38,6 +38,8 @@ import hudson.util.FormApply;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
+import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -51,6 +53,10 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
  */
 @Extension
 public class RoleStrategyConfig extends ManagementLink {
+
+  public static int getMaxRows() {
+    return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
+  }
 
   /**
    * Provides the icon for the Manage Hudson page link.
@@ -150,7 +156,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkPermission(Jenkins.MANAGE);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -163,7 +169,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkPermission(Jenkins.MANAGE);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -187,9 +193,13 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkPermission(Jenkins.MANAGE);
     // Let the strategy descriptor handle the form
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rsp);
+
+    String rm = req.getParameter("rolesMapping");
+    JSONObject rolesMapping = JSONObject.fromObject(rm);
+    rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
+    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rolesMapping);
     FormApply.success(".").generateResponse(req, rsp, this);
   }
 
