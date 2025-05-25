@@ -70,14 +70,15 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 * Hovering over a checkbox will show a tooltip with role, user/group and pattern.
 
 #### Working with many roles
-The UI becomes slow to load when working with many roles. A setup with 400 item roles and one user/group assigned to each role will result in
-a table with 160k checkboxes. This will cause a high memory consumption of the browser and loading the page will take quite long (~ 1min and more).
-To improve the loading tooltips and table highlighting are disabled when the total number of checkboxes exceeds 40000 (that is 200 roles with 200 users/groups).
+To ensure a responsive UI the item assignment works with pagination. With many roles the tooltips and the highlighter might still be a bit laggy.
+Applying a role filter will make them work smoothly usually.
 
-To further improve UI response times use the filters for users and roles.
+By default the number of rows is limited to 30 for the item role assignment page. You can change this by setting the system property
+`com.michelin.cio.hudson.plugins.rolestrategy.RoleStrategyConfig.MAX_ROWS` at jvm start or via the script console.
 
-Another limitation is that when you run Jenkins via the built-in Jetty, that the max number of parameters in a form submission is 10000 and the max formsize is 200000. This can be
-increased by passing the parameter `--maxParamCount=N` to the Jenkins java call (See the [Winstone](https://github.com/jenkinsci/winstone) documentation) and setting the system 
+The number of parameters in a form submission is limited to 10000 by default in Jenkins and the max formsize is limited to 200000 by Jetty.
+If you encounter problems when saving the "Manage Roles" due to too many form keys this can be increased by passing the parameter `--maxParamCount=N` 
+to the Jenkins java call (See the [Winstone](https://github.com/jenkinsci/winstone) documentation) and setting the system
 property `-Dorg.eclipse.jetty.server.Request.maxFormContentSize=n` at jvm start.
 
 ![Assign roles](/docs/images/assignRoles.png)
@@ -152,5 +153,4 @@ an init hook script.
 
 * [Changelog](https://github.com/jenkinsci/role-strategy-plugin/releases)
 * [Macro extensions](./docs/MACROS.md)
-* [Greasemonkey Addons for Web UI](./docs/USERSCRIPTS.md)
 * [Developer documentation](./docs/DEVELOPER.md)

@@ -33,7 +33,7 @@
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
   <j:set var="tableid" value="agentRoles"/>
   
-  <table id="${tableid}" class="center-align global-matrix-authorization-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
+  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
     <local:thead permissionGroups="${agentGroups}" showRoleName="${true}" showPattern="${true}" strategy="${it.strategy.SLAVE}"/>
     <tbody>

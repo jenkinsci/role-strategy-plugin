@@ -719,7 +719,7 @@ public class RoleMap {
     int count = 0;
     for (Item i : Jenkins.get().allItems(Item.class, i -> pattern.matcher(i.getFullName()).matches())) {
       if (matchedItems.size() < maxJobs) {
-        matchedItems.add(i.getFullName());
+        matchedItems.add(i.getFullDisplayName());
       }
       count++;
     }

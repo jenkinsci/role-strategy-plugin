@@ -57,11 +57,14 @@ getPattern = function(row) {
 
 
 Behaviour.specify(".row-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
-  e.onkeyup = function() {
+  e.onkeyup = debounce((event) => {
+    if (ignoreKeys(event.code)) {
+      return;
+    }
     let filter = e.value.toUpperCase();
     let table = document.getElementById(e.getAttribute("data-table-id"));
     filterRows(filter, table);
-  }
+  });
 });
 
 
@@ -119,19 +122,6 @@ endPatternInput = function(span, cancel) {
     }
     Behaviour.applySubtree(row, true);
   }
-}
-
-/*
- * Determine which attribute to set tooltips in. Changed in Jenkins 2.379 with Tippy and data-html-tooltip support.
- */
-function getTooltipAttributeName() {
-  let coreVersion = document.body.getAttribute('data-version');
-  if (coreVersion === null) {
-    return 'tooltip'
-  }
-  // TODO remove after minimum version is 2.379 or higher
-  let tippySupported = coreVersion >= '2.379';
-  return tippySupported ? 'data-html-tooltip' : 'tooltip';
 }
 
 
@@ -258,7 +248,7 @@ addButtonAction = function(e, templateId, table, tableHighlighter, tableId) {
 }
 
 
-Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".role-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   e.onclick = function() {
     let table = this.closest("TABLE");
     let tableId = table.getAttribute("id");
@@ -286,7 +276,7 @@ Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'Ro
   }
 });
 
-Behaviour.specify(".global-matrix-authorization-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".role-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   let row = e.closest("TR");
   let pattern = getPattern(row);
   let td = e.closest("TD");
