@@ -156,7 +156,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.MANAGE);
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -169,7 +169,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.MANAGE);
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -193,7 +193,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.MANAGE);
+    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
 
     String rm = req.getParameter("rolesMapping");

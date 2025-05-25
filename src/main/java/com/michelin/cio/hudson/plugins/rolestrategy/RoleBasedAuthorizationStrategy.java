@@ -408,7 +408,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   private static void checkAdminPerm() {
-    instance().checkPermission(Jenkins.MANAGE);
+    instance().checkPermission(Jenkins.ADMINISTER);
   }
 
   /**
@@ -957,31 +957,60 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     writer.close();
   }
 
+  /**
+   * API method to get all SIDs and the assigned roles for a roletype.
+   *
+   * <p>
+   * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getRoleAssignments?type=projectRoles}
+   *
+   * <p>
+   * Returns a json with sids and roles<br>
+   * Example:
+   *
+   * <pre>{@code
+   *   [
+   *     {
+   *       "name": "d032386",
+   *       "type": "USER",
+   *       "roles": ["admin"]
+   *     },
+   *     {
+   *       "name": "tester",
+   *       "type": "USER",
+   *       "roles": ["reader", "tester"]
+   *     }
+   *   ]
+   * }</pre>
+   *
+   * @param type (globalRoles by default, projectRoles, slaveRoles)
+   *
+   * @since 2.6.0
+   */
   @GET
   @Restricted(NoExternalUse.class)
   public void doGetRoleAssignments(@QueryParameter(fixEmpty = true) String type) throws IOException {
-      instance().checkPermission(Jenkins.SYSTEM_READ);
+    instance().checkPermission(Jenkins.SYSTEM_READ);
 
-      Set<PermissionEntry> sidEntries = getRoleMap(RoleType.fromString(type)).getSidEntries(true);
+    Set<PermissionEntry> sidEntries = getRoleMap(RoleType.fromString(type)).getSidEntries(true);
 
-      JSONArray responseJson = new JSONArray();
-      for (PermissionEntry entry: sidEntries) {
-          JSONObject userEntry = new JSONObject();
-          userEntry.put("name", entry.getSid());
-          userEntry.put("type", entry.getType().toString());
-          JSONArray roles = new JSONArray();
-          SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(type);
-          for (Map.Entry<Role, Set<PermissionEntry>> roleEntry: rolesEntries.entrySet()) {
-              if (roleEntry.getValue().contains(entry)) {
-                  roles.add(roleEntry.getKey().getName());
-              }
-          }
-          userEntry.put("roles", roles);
-          responseJson.add(userEntry);
+    JSONArray responseJson = new JSONArray();
+    for (PermissionEntry entry : sidEntries) {
+      JSONObject userEntry = new JSONObject();
+      userEntry.put("name", entry.getSid());
+      userEntry.put("type", entry.getType().toString());
+      JSONArray roles = new JSONArray();
+      SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(type);
+      for (Map.Entry<Role, Set<PermissionEntry>> roleEntry : rolesEntries.entrySet()) {
+        if (roleEntry.getValue().contains(entry)) {
+          roles.add(roleEntry.getKey().getName());
+        }
       }
-      Writer writer = Stapler.getCurrentResponse2().getWriter();
-      responseJson.write(writer);
-      writer.close();
+      userEntry.put("roles", roles);
+      responseJson.add(userEntry);
+    }
+    Writer writer = Stapler.getCurrentResponse2().getWriter();
+    responseJson.write(writer);
+    writer.close();
   }
 
   /**

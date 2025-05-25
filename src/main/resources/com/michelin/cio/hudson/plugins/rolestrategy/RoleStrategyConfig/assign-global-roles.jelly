@@ -30,18 +30,20 @@
   <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
   <j:set var="globalSIDs" value="${it.strategy.getSidEntries(it.strategy.GLOBAL)}"/>
 
-  <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
-    <f:entry title="${%Filter by User/Group}">
-      <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
-    </f:entry>
-  </div>
-  <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="role-filter">
-    <f:entry title="${%Filter by Role}">
-      <input id="globalRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
-    </f:entry>
-  </div>
 
   <local:table id="${tableid}" roles="${globalGrantedRoles}" showPattern="false" template="newGlobalRowTemplate" highlighter="globalTableHighlighter">
+    <j:if test="${rspMode == 'rsp-filters'}">
+      <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
+        <f:entry title="${%Filter by User/Group}">
+          <input id="globalUserInput" class="user-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
+        </f:entry>
+      </div>
+      <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="role-filter">
+        <f:entry title="${%Filter by Role}">
+          <input id="globalRoleInput" class="role-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
+        </f:entry>
+      </div>
+    </j:if>
     <j:if test="${rspMode == 'rsp-navigation'}">
       <template id="newGlobalRowTemplate">
         <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
