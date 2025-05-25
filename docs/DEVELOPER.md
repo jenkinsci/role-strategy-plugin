@@ -29,8 +29,10 @@ Verify that following things work on `Assign Roles`:
 2. Deleting a role by pressing on the red x deletes the role
 3. Hovering over the checkboxes properly highlights the row and column and shows a tooltip
 4. Entering html as user is printed as plain text in the field and in the tooltips.
+5. Check that pagination works especially in combination with the filters.
 
-
+Creating some hundred item roles and assignments
+Use the file [roles.groovy](roles.groovy) to generate 400 item roles and assign each role a user and a group
 
 ### Code details
 

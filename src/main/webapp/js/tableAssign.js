@@ -210,7 +210,10 @@ function addButtonAction(button, template, table, tableHighlighter) {
     addPermissionEntry(json, name, type);
     const container = table.closest(".rsp-roles-container");
     const roleInputFilter = container.querySelector(".role-input-filter");
-    const roleFilter = roleInputFilter.value.toUpperCase();
+    let roleFilter = "";
+    if (roleInputFilter !== null) {
+      roleFilter = roleInputFilter.value.toUpperCase();
+    }
     filterRoles(roleFilter, table);
     Behaviour.applySubtree(table, true);
   });

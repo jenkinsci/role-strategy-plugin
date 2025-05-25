@@ -153,5 +153,4 @@ an init hook script.
 
 * [Changelog](https://github.com/jenkinsci/role-strategy-plugin/releases)
 * [Macro extensions](./docs/MACROS.md)
-* [Greasemonkey Addons for Web UI](./docs/USERSCRIPTS.md)
 * [Developer documentation](./docs/DEVELOPER.md)
