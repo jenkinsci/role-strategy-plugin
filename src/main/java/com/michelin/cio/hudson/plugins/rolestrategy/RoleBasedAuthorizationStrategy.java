@@ -1008,6 +1008,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       userEntry.put("roles", roles);
       responseJson.add(userEntry);
     }
+    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
     Writer writer = Stapler.getCurrentResponse2().getWriter();
     responseJson.write(writer);
     writer.close();
