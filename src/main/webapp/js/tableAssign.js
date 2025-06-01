@@ -562,7 +562,10 @@ Behaviour.specify("#rsp-roles-apply", "RoleBasedAuthorizationStrategy", 0, funct
     const form = document.getElementById("rsp-roles-form");
     const url = form.action;
     const formData = new FormData();
-    formData.append("rolesMapping", JSON.stringify(roleStrategyEntries));
+    const rolesMapping = {
+      "rolesMapping": roleStrategyEntries
+    }
+    formData.append("json", JSON.stringify(rolesMapping));
     fetch(url, {
       method: "POST",
       headers: crumb.wrap({}),
@@ -570,6 +573,8 @@ Behaviour.specify("#rsp-roles-apply", "RoleBasedAuthorizationStrategy", 0, funct
     }).then((rsp => {
       if (rsp.ok) {
         notificationBar.show(button.dataset.message, notificationBar.SUCCESS)
+      } else {
+        notificationBar.error("Failed to apply changes.", notificationBar.ERROR)
       }
     }));
   }
