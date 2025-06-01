@@ -195,11 +195,17 @@ public class RoleStrategyConfig extends ManagementLink {
   public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
     Jenkins.get().checkPermission(Jenkins.ADMINISTER);
     // Let the strategy descriptor handle the form
-
-    String rm = req.getParameter("rolesMapping");
-    JSONObject rolesMapping = JSONObject.fromObject(rm);
+    req.setCharacterEncoding("UTF-8");
+    JSONObject json = req.getSubmittedForm();
+    JSONObject rolesMapping;
+    if (json.has("submit")) {
+      String rm = json.getString("rolesMapping");
+      rolesMapping = JSONObject.fromObject(rm);
+    } else {
+      rolesMapping = json.getJSONObject("rolesMapping");
+    }
     rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(req, rolesMapping);
+    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
     FormApply.success(".").generateResponse(req, rsp, this);
   }
 

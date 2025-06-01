@@ -227,6 +227,7 @@
           </div>
           <f:form method="post" name="config" action="assignSubmit" id="rsp-roles-form">
             <input type="hidden" name="rolesMapping"/>
+            <input type="hidden" name="submit" value="true"/>
           </f:form>
           <l:isAdmin>
             <f:bottomButtonBar>

@@ -1345,10 +1345,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(StaplerRequest2 req, JSONObject json) throws ServletException, IOException {
+    public void doAssignSubmit(JSONObject json) throws ServletException, IOException {
       checkAdminPerm();
 
-      req.setCharacterEncoding("UTF-8");
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
 
       if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
