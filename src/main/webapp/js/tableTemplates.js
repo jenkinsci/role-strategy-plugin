@@ -46,7 +46,7 @@ updateTooltip = function(tr, td) {
   let input = td.getElementsByTagName('INPUT')[0];
   input.disabled = false;
   let tooltip = tooltipTemplate.replace("{{GRANTBYOTHER}}", "");
-  td.setAttribute("tooltip", tooltip);
+  input.nextSibling.setAttribute("data-html-tooltip", tooltip);
 
   for (let permissionId of impliedByList) {
     let reference = tr.querySelector("td[data-permission-id='" + permissionId + "'] input");
@@ -54,7 +54,7 @@ updateTooltip = function(tr, td) {
       if (reference.checked) {
         input.disabled = true;
         tooltip = tooltipTemplate.replace("{{GRANTBYOTHER}}", " is granted through another permission");;
-        td.nextSibling.setAttribute('data-html-tooltip', tooltip); // 2.335+
+        input.nextSibling.setAttribute('data-html-tooltip', tooltip); // 2.335+
       }
     }
   }
@@ -128,41 +128,47 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
   })
 }
 
-
-Behaviour.specify(".global-matrix-authorization-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  e.onclick = function() {
-    let inuse = e.getAttribute("data-is-used") === "true";
-    if (inuse && !confirm("This template is used. Are you sure you want to delete it?")) {
-      console.log("Not confirmed");
-      return;
-    }
-    let table = this.closest("TABLE");
-    let tableId = table.getAttribute("id");
-    let tr = this.closest("TR");
-    parent = tr.parentNode;
-    parent.removeChild(tr);
-    if (parent.children.length < filterLimit) {
-      let userfilters = document.querySelectorAll(".row-filter")
-      for (let filter of userfilters) {
-        if (filter.getAttribute("data-table-id") === tableId) {
-          filter.style.display = "none";
-          let inputs = filter.getElementsByTagName("INPUT");
-          inputs[0].value=""
-          let event = new Event("keyup");
-          inputs[0].dispatchEvent(event);
-        }
+function deleteTemplate(button) {
+  let table = button.closest("TABLE");
+  let tableId = table.getAttribute("id");
+  let tr = button.closest("TR");
+  parent = tr.parentNode;
+  parent.removeChild(tr);
+  if (parent.children.length < filterLimit) {
+    let userfilters = document.querySelectorAll(".row-filter")
+    for (let filter of userfilters) {
+      if (filter.getAttribute("data-table-id") === tableId) {
+        filter.style.display = "none";
+        let inputs = filter.getElementsByTagName("INPUT");
+        inputs[0].value=""
+        let event = new Event("keyup");
+        inputs[0].dispatchEvent(event);
       }
     }
-    if (parent.children.length < footerLimit) {
-      table.tFoot.style.display = "none";
+  }
+  if (parent.children.length < footerLimit) {
+    table.tFoot.style.display = "none";
+  }
+
+}
+
+Behaviour.specify(".role-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+  e.onclick = function() {
+    let inuse = e.getAttribute("data-is-used") === "true";
+    if (inuse) {
+      dialog.confirm("This template is used. Are you sure you want to delete it?").then(() => {
+        deleteTemplate(e);
+      });
+      return;
     }
+    deleteTemplate(e);
     return false;
   }
 });
 
-Behaviour.specify(".global-matrix-authorization-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+Behaviour.specify(".role-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
   let table = e.closest("TABLE");
-  if (table.hasClassName('read-only')) {
+  if (table.classList.contains('read-only')) {
     // if this is a read-only UI (ExtendedRead / SystemRead), do not enable checkboxes
     return;
   }
@@ -184,6 +190,8 @@ document.addEventListener('DOMContentLoaded', function() {
   if (parseInt(permissionInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
     permissionInputFilter.style.display = "block"
   }
+  const table = document.getElementById("permissionTemplates");
+  const readOnly = table.classList.contains("read-only");
   newPermissionTemplate = document.getElementById('newPermissionTemplate');
-  templateTableHighlighter = new TableHighlighter('permissionTemplates', 3);
+  templateTableHighlighter = new TableHighlighter('permissionTemplates', readOnly ? 2 : 3);
 });

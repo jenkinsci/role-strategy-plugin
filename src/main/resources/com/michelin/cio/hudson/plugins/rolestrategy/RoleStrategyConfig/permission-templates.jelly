@@ -45,13 +45,13 @@
 
     <d:taglib uri="local">
       <d:tag name="permissionRow">
-        <td class="start">
-          <l:isAdmin>
+        <l:isAdmin>
+          <td class="start">
             <div class="rsp-remove" data-is-used="${template.isUsed()}">
               <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
             </div>
-          </l:isAdmin>
-        </td>
+          </td>
+        </l:isAdmin>
         <td class="left-most" style="white-space: nowrap;">${title}</td>
         <td><j:if test="${template.isUsed()}">
           <l:icon src="symbol-checkmark-outline plugin-ionicons-api" class="icon-sm"/>
