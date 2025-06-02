@@ -277,6 +277,12 @@ Behaviour.specify(".role-strategy-table .rsp-remove", 'RoleBasedAuthorizationStr
 });
 
 Behaviour.specify(".role-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
+  let table = e.closest("TABLE");
+  if (table.classList.contains('read-only')) {
+    // if this is a read-only UI (ExtendedRead / SystemRead), do not enable checkboxes
+    return;
+  }
+
   let row = e.closest("TR");
   let pattern = getPattern(row);
   let td = e.closest("TD");
@@ -403,6 +409,10 @@ bindAgentListenerToPattern = function(elem) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+
+  const table = document.getElementById("globalRoles");
+  const readOnly = table.classList.contains("read-only");
+
   // global roles initialization
   let globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
   if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
@@ -410,7 +420,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
 
-  globalTableHighlighter = new TableHighlighter('globalRoles', 2);
+  globalTableHighlighter = new TableHighlighter('globalRoles', readOnly ? 1 : 2);
 
   // item roles initialization
   let itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
@@ -420,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
 
-  projectTableHighlighter = new TableHighlighter('projectRoles', 4);
+  projectTableHighlighter = new TableHighlighter('projectRoles', readOnly ? 3 : 4);
 
   // Show jobs matching a pattern on click
   let projectRolesTable = document.getElementById('projectRoles')
@@ -432,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // agent roles initialization
   newAgentRoleTemplate = document.getElementById('newAgentRoleTemplate');
 
-  agentTableHighlighter = new TableHighlighter('agentRoles', 3);
+  agentTableHighlighter = new TableHighlighter('agentRoles', readOnly ? 2 : 3);
   // Show agents matching a pattern on click
   let agentRolesTable = document.getElementById('agentRoles')
   let agentPatterns = agentRolesTable.getElementsByClassName('patternAnchor');
