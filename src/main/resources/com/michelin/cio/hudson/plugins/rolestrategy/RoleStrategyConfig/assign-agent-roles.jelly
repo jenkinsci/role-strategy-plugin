@@ -34,6 +34,7 @@
 
   <local:table id="${tableid}" roles="${agentGrantedRoles}" showPattern="true" template="newAgentRowTemplate" highlighter="agentTableHighlighter">
     <j:if test="${rspMode == 'rsp-navigation'}">
+      <local:navigationButtons/>
       <template id="newAgentRowTemplate">
         <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
           <local:userRow title="{{USER}}" type="${it.strategy.SLAVE}" typedescription="{{USERGROUP}}"/>
