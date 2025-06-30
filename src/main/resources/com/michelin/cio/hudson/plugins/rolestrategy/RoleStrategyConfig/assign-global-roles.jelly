@@ -45,6 +45,7 @@
       </div>
     </j:if>
     <j:if test="${rspMode == 'rsp-navigation'}">
+      <local:navigationButtons/>
       <template id="newGlobalRowTemplate">
         <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
           <local:userRow title="{{USER}}" type="${it.strategy.GLOBAL}" typedescription="{{USERGROUP}}"/>
