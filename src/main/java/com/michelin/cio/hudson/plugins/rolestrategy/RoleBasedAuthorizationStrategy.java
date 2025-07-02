@@ -87,6 +87,7 @@ import org.acegisecurity.acls.sid.PrincipalSid;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.rolestrategy.AmbiguousSidsAdminMonitor;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
+import org.jenkinsci.plugins.rolestrategy.permissions.RoleStrategyPermissions;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -1525,11 +1526,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         case PROJECT:
           filterGroups.remove(PermissionGroup.get(Hudson.class));
           filterGroups.remove(PermissionGroup.get(Computer.class));
+
+          // RoleStrategy permissions
+          filterGroups.remove(PermissionGroup.get(RoleStrategyPermissions.class));
           break;
         case SLAVE:
           filterGroups.remove(PermissionGroup.get(Permission.class));
           filterGroups.remove(PermissionGroup.get(Hudson.class));
           filterGroups.remove(PermissionGroup.get(View.class));
+
+          // RoleStrategy permissions
+          filterGroups.remove(PermissionGroup.get(RoleStrategyPermissions.class));
 
           // Project, SCM and Run permissions
           filterGroups.remove(PermissionGroup.get(Item.class));
