@@ -29,9 +29,9 @@
   <j:set var="tableid" value="globalRoles"/>
   <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
   <j:set var="globalSIDs" value="${it.strategy.getSidEntries(it.strategy.GLOBAL)}"/>
+  <j:set var="neededPermission" value="${it.GLOBAL_ROLES_ADMIN}"/>
 
-
-  <local:table id="${tableid}" roles="${globalGrantedRoles}" showPattern="false" template="newGlobalRowTemplate" highlighter="globalTableHighlighter">
+  <local:table id="${tableid}" roles="${globalGrantedRoles}" showPattern="false" template="newGlobalRowTemplate" highlighter="globalTableHighlighter" neededPermission="${neededPermission}">
     <j:if test="${rspMode == 'rsp-filters'}">
       <div id="globalUserInputFilter" data-table-id="${tableid}" data-initial-size="${globalSIDs.size()}" class="user-filter">
         <f:entry title="${%Filter by User/Group}">
@@ -52,9 +52,9 @@
         </tr>
       </template>
 
-      <l:isAdmin>
+      <l:hasPermission permission="${it.GLOBAL_ROLES_ADMIN}">
         <local:addButtons sids="${globalSIDs}" tableid="${tableid}" id="newGlobalRowTemplate" roles="${globalGrantedRoles}" highlighter="globalTableHighlighter"/>
-      </l:isAdmin>
+      </l:hasPermission>
     </j:if>
   </local:table>
 </j:jelly>

@@ -25,7 +25,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <l:layout permission="${app.SYSTEM_READ}" norefresh="true" title="${%Permission Templates}">
+  <l:layout permissions="${app.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" norefresh="true" title="${%Permission Templates}">
     <l:breadcrumb title="Permission Templates"/>
 
     <st:include page="sidepanel.jelly"/>
@@ -34,24 +34,24 @@
     <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
     <j:set var="tableid" value="permissionTemplates"/>
 
-    <j:choose>
-      <j:when test="${app.hasPermission(app.ADMINISTER)}">
-        <j:set var="readOnlyMode" value="false"/>
-      </j:when>
-      <j:otherwise>
-        <j:set var="readOnlyMode" value="true"/>
-      </j:otherwise>
-    </j:choose>
+        <j:choose>
+          <j:when test="${app.hasPermission(it.ITEM_ROLES_ADMIN)}">
+            <j:set var="readOnlyModeItemRoles" value="false" />
+          </j:when>
+          <j:otherwise>
+            <j:set var="readOnlyModeItemRoles" value="true" />
+          </j:otherwise>
+        </j:choose>
 
     <d:taglib uri="local">
       <d:tag name="permissionRow">
-        <l:isAdmin>
+        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
           <td class="start">
             <div class="rsp-remove" data-is-used="${template.isUsed()}">
               <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
             </div>
           </td>
-        </l:isAdmin>
+        </l:hasPermission>
         <td class="left-most" style="white-space: nowrap;">${title}</td>
         <td><j:if test="${template.isUsed()}">
           <l:icon src="symbol-checkmark-outline plugin-ionicons-api" class="icon-sm"/>
@@ -70,14 +70,14 @@
             </j:if>
           </j:forEach>
         </j:forEach>
-        <l:isAdmin>
+        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
           <td class="stop">
             <div class="rsp-remove" data-is-used="${template.isUsed()}">
               <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"
                       htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
             </div>
           </td>
-        </l:isAdmin>
+        </l:hasPermission>
       </d:tag>
     </d:taglib>
 
@@ -102,13 +102,13 @@
         </div>
         <f:rowSet name="permissionTemplates">
           <table id="${tableid}"
-                 class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}"
+                 class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyModeItemsRoles ? 'read-only' : ''}"
                  name="data">
 
             <!-- The first row will show grouping -->
             <thead>
               <tr class="group-row">
-                <l:isAdmin><td rowspan="2" class="start"/></l:isAdmin>
+                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
                 <th rowspan="2" class="rsp-table__header-column">
                   ${%Name}
                 </th>
@@ -125,7 +125,7 @@
                     ${g.title}
                   </th>
                 </j:forEach>
-                <l:isAdmin><td rowspan="2" class="stop"/></l:isAdmin>
+                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
               </tr>
               <!-- The second row for individual permission -->
               <tr class="caption-row highlight-row">
@@ -153,7 +153,7 @@
             </j:if>
             <tfoot class="${hidefooter}">
               <tr class="caption-row highlight-row">
-                <l:isAdmin><td rowspan="2" class="start"/></l:isAdmin>
+                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
                 <td rowspan="2" class="pane-header blank">
                   ${%Name}
                 </td>
@@ -181,7 +181,7 @@
                     ${g.title}
                   </td>
                 </j:forEach>
-                <l:isAdmin><td rowspan="2" class="stop"/></l:isAdmin>
+                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
               </tr>
             </tfoot>
           </table>
@@ -191,7 +191,7 @@
             <local:permissionRow title="{{TEMPLATE}}" type="${it.strategy.PROJECT}"/>
           </tr>
         </template>
-        <l:isAdmin>
+        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
           <br/>
           <f:entry>
             <button type="button" class="jenkins-button template-add-button" data-template-id="newPermissionTemplate"
@@ -199,14 +199,14 @@
                     data-prompt="${%Template Name}">${%Add}
             </button>
           </f:entry>
-        </l:isAdmin>
+        </l:hasPermission>
 
-        <l:isAdmin>
+        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
           <f:bottomButtonBar>
             <f:submit value="${%Save}"/>
             <f:apply/>
           </f:bottomButtonBar>
-        </l:isAdmin>
+        </l:hasPermission>
         <script>
         </script>
       </f:form>
