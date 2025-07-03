@@ -8,6 +8,8 @@ import hudson.security.Permission;
 import hudson.security.PermissionGroup;
 import hudson.security.PermissionScope;
 import jenkins.model.Jenkins;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 public final class RoleStrategyPermissions {
     public static final PermissionGroup GROUP =
@@ -33,6 +35,18 @@ public final class RoleStrategyPermissions {
             Messages._RoleBasedAuthorizationStrategy_AgentRolesAdminPermissionDescription(),
             GLOBAL_ROLES_ADMIN,
             PermissionScope.JENKINS);
+
+    @Restricted(NoExternalUse.class) // called by jelly
+    public static final Permission[] SYSTEM_READ_AND_ITEM_ROLES_ADMIN =
+            new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
+
+    @Restricted(NoExternalUse.class) // called by jelly
+    public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
+            new Permission[] { Jenkins.SYSTEM_READ, GLOBAL_ROLES_ADMIN, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
+
+    @Restricted(NoExternalUse.class) // called by jelly
+    public static final Permission[] ADMINISTER_AND_SOME_ROLES_ADMIN =
+            new Permission[] { Jenkins.ADMINISTER, GLOBAL_ROLES_ADMIN, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
     private RoleStrategyPermissions() {}
 
