@@ -29,16 +29,17 @@
   <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
   <j:set var="tableid" value="projectRoles"/>
+  <j:set var="neededPermission" value="${it.ITEM_ROLES_ADMIN}"/>
 
   <div id="itemRoleInputFilter" data-table-id="${tableid}" data-initial-size="${itemGrantedRoles.size()}" class="row-filter">
     <f:entry title="${%Filter by Role}">
       <input id="itemRoleInput" class="row-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
-  </div>  
-  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
+  </div>
+  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyModeItemRoles ? 'read-only' : ''}" name="data">
 
     <local:thead permissionGroups="${itemPermissionGroups}" showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
-                 strategy="${it.strategy.PROJECT}"/>
+                 strategy="${it.strategy.PROJECT}" neededPermission="${neededPermission}"/>
     <tbody>
       <j:forEach var="role" items="${itemGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
@@ -47,23 +48,23 @@
                          showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
                          type="${it.strategy.PROJECT}"
                          templateName="${role.key.templateName}"
-                         project="${true}"/>
+                         project="${true}" neededPermission="${neededPermission}"/>
         </tr>
       </j:forEach>
     </tbody>
     <local:tfoot permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" roles="${itemGrantedRoles}"
-                 showPattern="${true}" showTemplate="${true}"/>
+                 showPattern="${true}" showTemplate="${true}" neededPermission="${neededPermission}"/>
+
   </table>
 
   <template id="newItemRoleTemplate">
     <tr class="permission-row highlight-row">
       <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" templateName=""
-                     showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
-      />
+                     showRoleName="${true}" showPattern="${true}" showTemplate="${true}" neededPermission="${neededPermission}" />
     </tr>
   </template>
 
-  <l:isAdmin>
+  <l:hasPermission permission="${neededPermission}">
     <br />
     <f:entry title="${%Role to add}">
       <f:textbox id="${tableid}text" />
@@ -77,11 +78,11 @@
         </f:dropdownListBlock>
         <j:forEach var="permissionTemplate" items="${it.strategy.getPermissionTemplates()}">
           <f:dropdownListBlock title="${permissionTemplate.getName()}" selected="false" value="${permissionTemplate.getName()}">
-            <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width center-align role-strategy-table ${readOnlyMode ? 'read-only' : ''}" style="display:none">
-            <local:thead permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}"/>
+            <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width center-align role-strategy-table ${readOnlyModeItemRoles ? 'read-only' : ''}" style="display:none">
+            <local:thead permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" neededPermission="${neededPermission}"/>
             <tr>
               <local:roleRow title="" role="${permissionTemplate}" disable="${true}" showRoleName="${false}" showPattern="${false}" type="${it.strategy.PROJECT}"
-                             project="${true}"/>
+                             project="${true}" neededPermission="${neededPermission}"/>
             </tr>
             </table>
             <template id="newItemRoleTemplate-${permissionTemplate.getName()}">
@@ -89,7 +90,7 @@
                 <local:roleRow title="{{ROLE}}" role="${permissionTemplate}" global="${false}" pattern="{{PATTERN}}"
                                type="${it.strategy.PROJECT}"
                                showRoleName="${true}" showPattern="${true}" disable="${true}" showTemplate="${true}"
-                               templateName="${permissionTemplate.name}"/>
+                               templateName="${permissionTemplate.name}" neededPermission="${neededPermission}"/>
               </tr>
             </template>
           </f:dropdownListBlock>
@@ -99,5 +100,5 @@
     <f:entry>
       <local:addButton id="newItemRoleTemplate" tableid="${tableid}" highlighter="projectTableHighlighter"/>
     </f:entry>
-  </l:isAdmin>
+  </l:hasPermission>
 </j:jelly>

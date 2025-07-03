@@ -28,14 +28,30 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
-    <l:layout permission="${app.SYSTEM_READ}" norefresh="true" title="${%Manage Roles}">
+    <l:layout permissions="${it.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" norefresh="true" title="${%Manage Roles}">
       <l:breadcrumb title="Manage Roles"/>
         <j:choose>
-          <j:when test="${app.hasPermission(app.ADMINISTER)}">
-            <j:set var="readOnlyMode" value="false" />
+          <j:when test="${app.hasPermission(it.GLOBAL_ROLES_ADMIN)}">
+            <j:set var="readOnlyModeGlobalRoles" value="false" />
           </j:when>
           <j:otherwise>
-            <j:set var="readOnlyMode" value="true" />
+            <j:set var="readOnlyModeGlobalRoles" value="true" />
+          </j:otherwise>
+        </j:choose>
+        <j:choose>
+          <j:when test="${app.hasPermission(it.ITEM_ROLES_ADMIN)}">
+            <j:set var="readOnlyModeItemRoles" value="false" />
+          </j:when>
+          <j:otherwise>
+            <j:set var="readOnlyModeItemRoles" value="true" />
+          </j:otherwise>
+        </j:choose>
+        <j:choose>
+          <j:when test="${app.hasPermission(it.AGENT_ROLES_ADMIN)}">
+            <j:set var="readOnlyModeAgentRoles" value="false" />
+          </j:when>
+          <j:otherwise>
+            <j:set var="readOnlyModeAgentRoles" value="true" />
           </j:otherwise>
         </j:choose>
         <st:include page="sidepanel.jelly"/>
@@ -53,7 +69,7 @@
               <thead>
                 <tr class="group-row">
                   <j:if test="${attrs.showRoleName}">
-                    <l:isAdmin><td rowspan="2" class="start" /></l:isAdmin>
+                    <l:hasPermission permission="${attrs.neededPermission}"><td rowspan="2" class="start" /></l:hasPermission>
                     <th rowspan="2" class="rsp-table__header-column">
                       ${%Role}
                     </th>
@@ -81,7 +97,7 @@
                     </th>
                   </j:forEach>
                   <j:if test="${attrs.showRoleName != 'false'}">
-                    <l:isAdmin><td rowspan="2" class="stop" /></l:isAdmin>
+                    <l:hasPermission permission="${attrs.neededPermission}"><td rowspan="2" class="stop" /></l:hasPermission>
                   </j:if>
                 </tr>
                 <!-- The second row for individual permission -->
@@ -105,7 +121,7 @@
               </j:if>
               <tfoot class="${hidefooter}">
                 <tr class="caption-row highlight-row">
-                  <l:isAdmin><td rowspan="2" class="start" /></l:isAdmin>
+                  <l:hasPermission permission="${attrs.neededPermission}"><td rowspan="2" class="start" /></l:hasPermission>
                   <th rowspan="2" class="rsp-table__footer-column">
                     ${%Role}
                   </th>
@@ -150,13 +166,13 @@
             </d:tag>
             <d:tag name="roleRow">
               <j:if test="${attrs.showRoleName}">
-                <l:isAdmin>
+                <l:hasPermission permission="${attrs.neededPermission}">
                   <td class="start">
                     <div class="rsp-remove">
                       <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
                     </div>
                   </td>
-                </l:isAdmin>
+                </l:hasPermission>
                 <td class="left-most" style="white-space: nowrap;">${title}</td>
               </j:if>
               <j:set var="pattern" value=""/>
@@ -186,7 +202,7 @@
                   </td>
                 </j:if>
               </j:if>
-                                   
+
               <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
               <j:forEach var="g" items="${tableItems}">
                 <j:forEach var="p" items="${g.permissions}">
@@ -203,13 +219,13 @@
                 </j:forEach>
               </j:forEach>
               <j:if test="${attrs.showRoleName}">
-                <l:isAdmin>
+                <l:hasPermission permission="${attrs.neededPermission}">
                   <td class="stop">
                     <div class="rsp-remove">
                       <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon" htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
                     </div>
                   </td>
-                </l:isAdmin>
+                </l:hasPermission>
               </j:if>
             </d:tag>
           </d:taglib>
@@ -235,16 +251,15 @@
                 <f:block><st:include page="manage-agent-roles.jelly" optional="true" /></f:block>
               </f:rowSet>
             </f:section>
-            <l:isAdmin>
+            <j:if test="${app.hasAnyPermission(it.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
               <f:bottomButtonBar>
                 <f:submit value="${%Save}" />
                 <f:apply />
               </f:bottomButtonBar>
-            </l:isAdmin>
+            </j:if>
           </f:form>
           <div class="overlay default-hidden"/>
           <st:adjunct includes="lib.form.confirm" />
         </l:main-panel>
     </l:layout>
 </j:jelly>
-

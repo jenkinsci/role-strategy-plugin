@@ -31,19 +31,20 @@
   <j:set var="tableid" value="agentRoles"/>
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
   <j:set var="agentSIDs" value="${it.strategy.getSidEntries(it.strategy.SLAVE)}"/>
+  <j:set var="neededPermission" value="${it.AGENT_ROLES_ADMIN}"/>
 
-  <local:table id="${tableid}" roles="${agentGrantedRoles}" showPattern="true" template="newAgentRowTemplate" highlighter="agentTableHighlighter">
+  <local:table id="${tableid}" roles="${agentGrantedRoles}" showPattern="true" template="newAgentRowTemplate" highlighter="agentTableHighlighter" neededPermission="${neededPermission}">
     <j:if test="${rspMode == 'rsp-navigation'}">
       <local:navigationButtons/>
       <template id="newAgentRowTemplate">
         <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-          <local:userRow title="{{USER}}" type="${it.strategy.SLAVE}" typedescription="{{USERGROUP}}"/>
+          <local:userRow title="{{USER}}" type="${it.strategy.SLAVE}" typedescription="{{USERGROUP}}" neededPermission="${neededPermission}"/>
         </tr>
       </template>
 
-      <l:isAdmin>
+      <l:hasPermission permission="${neededPermission}">
         <local:addButtons sids="${agentSIDs}" tableid="${tableid}" id="newAgentRowTemplate" roles="${agentGrantedRoles}" highlighter="agentTableHighlighter"/>
-      </l:isAdmin>
+      </l:hasPermission>
     </j:if>
   </local:table>
 
