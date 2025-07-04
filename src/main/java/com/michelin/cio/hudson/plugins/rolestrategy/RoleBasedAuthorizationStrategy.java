@@ -206,7 +206,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final Permission[] ADMINISTER_AND_SOME_ROLES_ADMIN =
           new Permission[] { Jenkins.ADMINISTER, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
-    /**
+  /**
    * Refresh item permissions from templates.
    */
   private void refreshPermissionsFromTemplate() {
@@ -1438,7 +1438,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           // if no permission, take the globalRoles from the oldStrategy
           try {
             checkPermByRoleTypeForUpdates(roleTypeAsString);
-          } catch(AccessDeniedException ignore) {
+          } catch (AccessDeniedException ignore) {
             LOGGER.info("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
             continue;
           }
@@ -1534,7 +1534,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       return strategy;
     }
 
-    private void copyRolesFromOldStrategy(final RoleType roleType, RoleBasedAuthorizationStrategy targetStrategy, RoleBasedAuthorizationStrategy oldStrategy) {
+    private void copyRolesFromOldStrategy(final RoleType roleType, RoleBasedAuthorizationStrategy targetStrategy,
+        RoleBasedAuthorizationStrategy oldStrategy) {
       RoleMap roleMap = oldStrategy.getRoleMap(roleType);
       for (Role role : roleMap.getRoles()) {
         targetStrategy.addRole(roleType, role);
@@ -1558,7 +1559,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       // if no permission, take the roles from the oldStrategy
       try {
         checkPermByRoleTypeForUpdates(roleTypeAsString);
-      } catch(AccessDeniedException ignore) {
+      } catch (AccessDeniedException ignore) {
         LOGGER.log(Level.INFO, "Not enough permissions to save roles for " + roleTypeAsString + ". Copying roles from old strategy.");
         copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
         return;
