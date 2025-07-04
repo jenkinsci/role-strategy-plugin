@@ -54,175 +54,174 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @Extension
 public class RoleStrategyConfig extends ManagementLink {
 
-    public static int getMaxRows() {
-        return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
-    }
+  public static int getMaxRows() {
+    return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
+  }
 
-    /**
-     * Provides the icon for the Manage Hudson page link.
-     *
-     * @return Path to the icon, or {@code null} if not enabled
-     */
-    @Override
-    public String getIconFileName() {
-        // Only show this link if the role-based authorization strategy has been enabled
-        if (Jenkins.get().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
-            return "symbol-lock-closed-outline plugin-ionicons-api";
-        }
-        return null;
+  /**
+   * Provides the icon for the Manage Hudson page link.
+   *
+   * @return Path to the icon, or {@code null} if not enabled
+   */
+  @Override
+  public String getIconFileName() {
+    // Only show this link if the role-based authorization strategy has been enabled
+    if (Jenkins.get().getAuthorizationStrategy() instanceof RoleBasedAuthorizationStrategy) {
+      return "symbol-lock-closed-outline plugin-ionicons-api";
     }
+    return null;
+  }
 
-    @NonNull
-    @Override
-    public Permission getRequiredPermission() {
-        return Jenkins.SYSTEM_READ;
+  @NonNull
+  @Override
+  public Permission getRequiredPermission() {
+    return Jenkins.SYSTEM_READ;
+  }
+
+  /**
+   * URL name for the strategy management.
+   *
+   * @return Path to the strategy admin panel
+   */
+  @Override
+  public String getUrlName() {
+    return "role-strategy";
+  }
+
+  @NonNull
+  @Override
+  public String getCategoryName() {
+    return "SECURITY";
+  }
+
+  /**
+   * Text displayed in the Manage Hudson panel.
+   *
+   * @return Link text in the Admin panel
+   */
+  @Override
+  public String getDisplayName() {
+    return Messages.RoleBasedAuthorizationStrategy_ManageAndAssign();
+  }
+
+  /**
+   * Text displayed for the roles assignment panel.
+   *
+   * @return Title of the Role assignment panel
+   */
+  public String getAssignRolesName() {
+    return Messages.RoleBasedAuthorizationStrategy_Assign();
+  }
+
+  /**
+   * Text displayed for the roles management panel.
+   *
+   * @return Title of the Role management panel
+   */
+  public String getManageRolesName() {
+    return Messages.RoleBasedAuthorizationStrategy_Manage();
+  }
+
+  /**
+   * The description of the link.
+   *
+   * @return The description of the link
+   */
+  @Override
+  public String getDescription() {
+    return Messages.RoleBasedAuthorizationStrategy_Description();
+  }
+
+  /**
+   * Retrieve the {@link RoleBasedAuthorizationStrategy} object from the Hudson instance.
+   * <p>
+   * Used by the views to build matrix.
+   * </p>
+   *
+   * @return The {@link RoleBasedAuthorizationStrategy} object. {@code null} if the strategy is not used.
+   */
+  @CheckForNull
+  public AuthorizationStrategy getStrategy() {
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy) {
+      return strategy;
+    } else {
+      return null;
     }
+  }
 
-    /**
-     * URL name for the strategy management.
-     *
-     * @return Path to the strategy admin panel
-     */
-    @Override
-    public String getUrlName() {
-        return "role-strategy";
+  /**
+   * Called on roles management form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    // Let the strategy descriptor handle the form
+    RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
+    // Redirect to the plugin index page
+    FormApply.success(".").generateResponse(req, rsp, this);
+  }
+
+  /**
+   * Called on roles generator form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
+    // Let the strategy descriptor handle the form
+    RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
+    // Redirect to the plugin index page
+    FormApply.success(".").generateResponse(req, rsp, this);
+  }
+
+  // no configuration on this page for submission
+  // public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException,
+  // ServletException, FormException {
+  // Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
+  //
+  // // TODO: Macros Enable/Disable
+  //
+  // // Redirect to the plugin index page
+  // FormApply.success(".").generateResponse(req, rsp, this);
+  // }
+
+  /**
+   * Called on role's assignment form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    // Let the strategy descriptor handle the form
+    req.setCharacterEncoding("UTF-8");
+    JSONObject json = req.getSubmittedForm();
+    JSONObject rolesMapping;
+    if (json.has("submit")) {
+      String rm = json.getString("rolesMapping");
+      rolesMapping = JSONObject.fromObject(rm);
+    } else {
+      rolesMapping = json.getJSONObject("rolesMapping");
     }
+    rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
+    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
+    FormApply.success(".").generateResponse(req, rsp, this);
+  }
 
-    @NonNull
-    @Override
-    public String getCategoryName() {
-        return "SECURITY";
-    }
+  public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
+    return RoleMacroExtension.all();
+  }
 
-    /**
-     * Text displayed in the Manage Hudson panel.
-     *
-     * @return Link text in the Admin panel
-     */
-    @Override
-    public String getDisplayName() {
-        return Messages.RoleBasedAuthorizationStrategy_ManageAndAssign();
-    }
+  public final RoleType getGlobalRoleType() {
+    return RoleType.Global;
+  }
 
-    /**
-     * Text displayed for the roles assignment panel.
-     *
-     * @return Title of the Role assignment panel
-     */
-    public String getAssignRolesName() {
-        return Messages.RoleBasedAuthorizationStrategy_Assign();
-    }
+  public final RoleType getProjectRoleType() {
+    return RoleType.Project;
+  }
 
-    /**
-     * Text displayed for the roles management panel.
-     *
-     * @return Title of the Role management panel
-     */
-    public String getManageRolesName() {
-        return Messages.RoleBasedAuthorizationStrategy_Manage();
-    }
-
-    /**
-     * The description of the link.
-     *
-     * @return The description of the link
-     */
-    @Override
-    public String getDescription() {
-        return Messages.RoleBasedAuthorizationStrategy_Description();
-    }
-
-    /**
-     * Retrieve the {@link RoleBasedAuthorizationStrategy} object from the Hudson instance.
-     * <p>
-     * Used by the views to build matrix.
-     * </p>
-     *
-     * @return The {@link RoleBasedAuthorizationStrategy} object. {@code null} if the strategy is not used.
-     */
-    @CheckForNull
-    public AuthorizationStrategy getStrategy() {
-        AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
-        if (strategy instanceof RoleBasedAuthorizationStrategy) {
-            return strategy;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Called on roles management form submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-        Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-        // Let the strategy descriptor handle the form
-        RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
-        // Redirect to the plugin index page
-        FormApply.success(".").generateResponse(req, rsp, this);
-    }
-
-    /**
-     * Called on roles generator form submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-        Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
-        // Let the strategy descriptor handle the form
-        RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
-        // Redirect to the plugin index page
-        FormApply.success(".").generateResponse(req, rsp, this);
-    }
-
-    // no configuration on this page for submission
-    // public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException,
-    // UnsupportedEncodingException,
-    // ServletException, FormException {
-    // Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-    //
-    // // TODO: Macros Enable/Disable
-    //
-    // // Redirect to the plugin index page
-    // FormApply.success(".").generateResponse(req, rsp, this);
-    // }
-
-    /**
-     * Called on role's assignment form submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-        Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-        // Let the strategy descriptor handle the form
-        req.setCharacterEncoding("UTF-8");
-        JSONObject json = req.getSubmittedForm();
-        JSONObject rolesMapping;
-        if (json.has("submit")) {
-            String rm = json.getString("rolesMapping");
-            rolesMapping = JSONObject.fromObject(rm);
-        } else {
-            rolesMapping = json.getJSONObject("rolesMapping");
-        }
-        rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
-        RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
-        FormApply.success(".").generateResponse(req, rsp, this);
-    }
-
-    public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
-        return RoleMacroExtension.all();
-    }
-
-    public final RoleType getGlobalRoleType() {
-        return RoleType.Global;
-    }
-
-    public final RoleType getProjectRoleType() {
-        return RoleType.Project;
-    }
-
-    public final RoleType getSlaveRoleType() {
-        return RoleType.Slave;
-    }
+  public final RoleType getSlaveRoleType() {
+    return RoleType.Slave;
+  }
 }
