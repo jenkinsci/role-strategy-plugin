@@ -54,7 +54,7 @@ THE SOFTWARE.
     <div class="jenkins-select">
       <!-- create drop-down list -->
       <select class="jenkins-select__input dropdownList"
-              disabled="${readOnlyMode ? 'true' : null}"
+              disabled="${readOnlyModeItemRoles ? 'true' : null}"
               id="${attrs.id}"
       >
         <j:set var="dropdownListMode" value="createSelectField"/>
