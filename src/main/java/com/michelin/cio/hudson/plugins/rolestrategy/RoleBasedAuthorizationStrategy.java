@@ -168,43 +168,43 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     refreshPermissionsFromTemplate();
   }
 
-    public static final PermissionGroup GROUP =
-            new PermissionGroup(RoleBasedAuthorizationStrategy.class, Messages._RoleBasedAuthorizationStrategy_PermissionGroupTitle());
+  public static final PermissionGroup GROUP =
+          new PermissionGroup(RoleBasedAuthorizationStrategy.class, Messages._RoleBasedAuthorizationStrategy_PermissionGroupTitle());
 
-    public static final Permission ITEM_ROLES_ADMIN = new Permission(
-            GROUP,
-            "ItemRoles",
-            Messages._RoleBasedAuthorizationStrategy_ItemRolesAdminPermissionDescription(),
-            Jenkins.ADMINISTER,
-            PermissionScope.JENKINS);
+  public static final Permission ITEM_ROLES_ADMIN = new Permission(
+          GROUP,
+          "ItemRoles",
+          Messages._RoleBasedAuthorizationStrategy_ItemRolesAdminPermissionDescription(),
+          Jenkins.ADMINISTER,
+          PermissionScope.JENKINS);
 
-    public static final Permission AGENT_ROLES_ADMIN = new Permission(
-            GROUP,
-            "AgentRoles",
-            Messages._RoleBasedAuthorizationStrategy_AgentRolesAdminPermissionDescription(),
-            Jenkins.ADMINISTER,
-            PermissionScope.JENKINS);
+  public static final Permission AGENT_ROLES_ADMIN = new Permission(
+          GROUP,
+          "AgentRoles",
+          Messages._RoleBasedAuthorizationStrategy_AgentRolesAdminPermissionDescription(),
+          Jenkins.ADMINISTER,
+          PermissionScope.JENKINS);
 
-    @SuppressFBWarnings(
-            value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
-            justification = "getEnabled return value discarded")
-    @Initializer(after = InitMilestone.PLUGINS_STARTED, before = InitMilestone.EXTENSIONS_AUGMENTED)
-    public static void ensurePermissionsRegistered() {
-        ITEM_ROLES_ADMIN.getEnabled();
-        AGENT_ROLES_ADMIN.getEnabled();
-    }
+  @SuppressFBWarnings(
+          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
+          justification = "getEnabled return value discarded")
+  @Initializer(after = InitMilestone.PLUGINS_STARTED, before = InitMilestone.EXTENSIONS_AUGMENTED)
+  public static void ensurePermissionsRegistered() {
+    ITEM_ROLES_ADMIN.getEnabled();
+    AGENT_ROLES_ADMIN.getEnabled();
+  }
 
-    @Restricted(NoExternalUse.class) // called by jelly
-    public static final Permission[] SYSTEM_READ_AND_ITEM_ROLES_ADMIN =
-            new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
+  @Restricted(NoExternalUse.class) // called by jelly
+  public static final Permission[] SYSTEM_READ_AND_ITEM_ROLES_ADMIN =
+          new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
 
-    @Restricted(NoExternalUse.class) // called by jelly
-    public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
-            new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
+  @Restricted(NoExternalUse.class) // called by jelly
+  public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
+          new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
-    @Restricted(NoExternalUse.class) // called by jelly
-    public static final Permission[] ADMINISTER_AND_SOME_ROLES_ADMIN =
-            new Permission[] { Jenkins.ADMINISTER, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
+  @Restricted(NoExternalUse.class) // called by jelly
+  public static final Permission[] ADMINISTER_AND_SOME_ROLES_ADMIN =
+          new Permission[] { Jenkins.ADMINISTER, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
     /**
    * Refresh item permissions from templates.
