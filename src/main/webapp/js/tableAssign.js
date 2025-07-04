@@ -38,11 +38,11 @@ const roleStrategyEntries = {};
 function filterUsers(filter, tableId, page) {
   const json = roleStrategyEntries[tableId];
   const table= document.getElementById(tableId);
-  const filtered = json.filter((entry) => entry["name"].toUpperCase().indexOf(filter) > -1);
+  const filtered = filter != null ? json.filter((entry) => entry["name"].toUpperCase().indexOf(filter) > -1) : json;
   showEntries(tableId, filtered, page);
   const container = table.closest(".rsp-roles-container");
   const roleInputFilter = container.querySelector(".role-input-filter");
-  const roleFilter = roleInputFilter.value.toUpperCase();
+  const roleFilter = roleInputFilter != null ? roleInputFilter.value.toUpperCase() : "";
   filterRoles(roleFilter, table);
 }
 
@@ -53,7 +53,7 @@ function filterRoles(filter, table) {
   const endColumn = headerRow.cells.length; // last column is the delete button
   for (let c = 0; c < endColumn; c++) {
     let shouldFilter = true;
-    if (!headerRow.cells[c].classList.contains("rsp-table--header-th") || headerRow.cells[c].textContent.toUpperCase().indexOf(filter) > -1) {
+    if (filter==null||!headerRow.cells[c].classList.contains("rsp-table--header-th") || headerRow.cells[c].textContent.toUpperCase().indexOf(filter) > -1) {
       shouldFilter = false;
     }
     for (let r = 0; r < rowCount; r++) {
@@ -345,7 +345,7 @@ Behaviour.specify(".rsp-navigation__button-entry-down", "RoleBasedAuthorizationS
     const select = navgiationDiv.querySelector(".rsp-navigation__select");
     const page = parseInt(select.value) + 1;
     const userInputFilter = container.querySelector(".user-input-filter");
-    const userFilter = userInputFilter.value.toUpperCase();
+    const userFilter = userInputFilter != null ? userInputFilter.value.toUpperCase() : "";
     filterUsers(userFilter, tableId, page);
   }
 });
@@ -359,7 +359,7 @@ Behaviour.specify(".rsp-navigation__button-entry-up", "RoleBasedAuthorizationStr
     const select = navgiationDiv.querySelector(".rsp-navigation__select");
     const page = parseInt(select.value) - 1;
     const userInputFilter = container.querySelector(".user-input-filter");
-    const userFilter = userInputFilter.value.toUpperCase();
+    const userFilter = userInputFilter != null ? userInputFilter.value.toUpperCase() : "";
     filterUsers(userFilter, tableId, page);
   }
 });
@@ -371,7 +371,7 @@ Behaviour.specify(".rsp-navigation__select", "RoleBasedAuthorizationStrategy", 0
     const tableId = table.id;
     const page = parseInt(select.value);
     const userInputFilter = container.querySelector(".user-input-filter");
-    const userFilter = userInputFilter.value.toUpperCase();
+    const userFilter = userInputFilter != null ? userInputFilter.value.toUpperCase() : "";
     filterUsers(userFilter, tableId, page);
   }
 });
