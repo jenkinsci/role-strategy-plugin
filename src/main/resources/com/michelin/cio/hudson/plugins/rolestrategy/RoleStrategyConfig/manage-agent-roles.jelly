@@ -32,7 +32,7 @@
   <j:set var="agentGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
   <j:set var="tableid" value="agentRoles"/>
-  <j:set var="neededPermission" value="${it.AGENT_ROLES_ADMIN}"/>
+  <j:set var="neededPermission" value="${it.strategy.AGENT_ROLES_ADMIN}"/>
 
   <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyModeAgentRoles ? 'read-only' : ''}" name="data">
 

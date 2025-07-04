@@ -35,7 +35,7 @@
     <j:set var="tableid" value="permissionTemplates"/>
 
         <j:choose>
-          <j:when test="${app.hasPermission(it.ITEM_ROLES_ADMIN)}">
+          <j:when test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}">
             <j:set var="readOnlyModeItemRoles" value="false" />
           </j:when>
           <j:otherwise>
@@ -45,7 +45,7 @@
 
     <d:taglib uri="local">
       <d:tag name="permissionRow">
-        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
+        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
           <td class="start">
             <div class="rsp-remove" data-is-used="${template.isUsed()}">
               <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
@@ -70,7 +70,7 @@
             </j:if>
           </j:forEach>
         </j:forEach>
-        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
+        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
           <td class="stop">
             <div class="rsp-remove" data-is-used="${template.isUsed()}">
               <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"
@@ -108,7 +108,7 @@
             <!-- The first row will show grouping -->
             <thead>
               <tr class="group-row">
-                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
+                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
                 <th rowspan="2" class="rsp-table__header-column">
                   ${%Name}
                 </th>
@@ -125,7 +125,7 @@
                     ${g.title}
                   </th>
                 </j:forEach>
-                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
+                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
               </tr>
               <!-- The second row for individual permission -->
               <tr class="caption-row highlight-row">
@@ -153,7 +153,7 @@
             </j:if>
             <tfoot class="${hidefooter}">
               <tr class="caption-row highlight-row">
-                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
+                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
                 <td rowspan="2" class="pane-header blank">
                   ${%Name}
                 </td>
@@ -181,7 +181,7 @@
                     ${g.title}
                   </td>
                 </j:forEach>
-                <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
+                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
               </tr>
             </tfoot>
           </table>
@@ -191,7 +191,7 @@
             <local:permissionRow title="{{TEMPLATE}}" type="${it.strategy.PROJECT}"/>
           </tr>
         </template>
-        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
+        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
           <br/>
           <f:entry>
             <button type="button" class="jenkins-button template-add-button" data-template-id="newPermissionTemplate"
@@ -201,7 +201,7 @@
           </f:entry>
         </l:hasPermission>
 
-        <l:hasPermission permission="${it.ITEM_ROLES_ADMIN}">
+        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
           <f:bottomButtonBar>
             <f:submit value="${%Save}"/>
             <f:apply/>

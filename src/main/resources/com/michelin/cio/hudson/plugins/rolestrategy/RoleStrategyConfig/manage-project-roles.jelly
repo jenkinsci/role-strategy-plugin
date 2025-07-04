@@ -29,7 +29,7 @@
   <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
   <j:set var="tableid" value="projectRoles"/>
-  <j:set var="neededPermission" value="${it.ITEM_ROLES_ADMIN}"/>
+  <j:set var="neededPermission" value="${it.strategy.ITEM_ROLES_ADMIN}"/>
 
   <div id="itemRoleInputFilter" data-table-id="${tableid}" data-initial-size="${itemGrantedRoles.size()}" class="row-filter">
     <f:entry title="${%Filter by Role}">
