@@ -28,10 +28,10 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" 
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
-    <l:layout permissions="${it.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" title="${%Assign Roles}" norefresh="true">
+    <l:layout permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" title="${%Assign Roles}" norefresh="true">
       <l:breadcrumb title="Assign Roles"/>
         <j:choose>
-          <j:when test="${app.hasPermission(it.GLOBAL_ROLES_ADMIN)}">
+          <j:when test="${app.hasPermission(app.ADMINISTER)}">
             <j:set var="readOnlyModeGlobalRoles" value="false" />
           </j:when>
           <j:otherwise>
@@ -39,7 +39,7 @@
           </j:otherwise>
         </j:choose>
         <j:choose>
-          <j:when test="${app.hasPermission(it.ITEM_ROLES_ADMIN)}">
+          <j:when test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}">
             <j:set var="readOnlyModeItemRoles" value="false" />
           </j:when>
           <j:otherwise>
@@ -47,7 +47,7 @@
           </j:otherwise>
         </j:choose>
         <j:choose>
-          <j:when test="${app.hasPermission(it.AGENT_ROLES_ADMIN)}">
+          <j:when test="${app.hasPermission(it.strategy.AGENT_ROLES_ADMIN)}">
             <j:set var="readOnlyModeAgentRoles" value="false" />
           </j:when>
           <j:otherwise>
@@ -244,7 +244,7 @@
             <input type="hidden" name="rolesMapping"/>
             <input type="hidden" name="submit" value="true"/>
           </f:form>
-          <j:if test="${app.hasAnyPermission(it.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
+          <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
             <f:bottomButtonBar>
               <button id="rsp-roles-save" type="button" class="jenkins-button jenkins-button--primary">${%Save}</button>
               <button id="rsp-roles-apply" type="button" class="jenkins-button" data-message="${%Saved}">${%Apply}</button>

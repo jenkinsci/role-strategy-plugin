@@ -31,7 +31,7 @@
   <j:set var="tableid" value="agentRoles"/>
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
   <j:set var="agentSIDs" value="${it.strategy.getSidEntries(it.strategy.SLAVE)}"/>
-  <j:set var="neededPermission" value="${it.AGENT_ROLES_ADMIN}"/>
+  <j:set var="neededPermission" value="${it.strategy.AGENT_ROLES_ADMIN}"/>
 
   <local:table id="${tableid}" roles="${agentGrantedRoles}" showPattern="true" template="newAgentRowTemplate" highlighter="agentTableHighlighter" neededPermission="${neededPermission}">
     <j:if test="${rspMode == 'rsp-navigation'}">

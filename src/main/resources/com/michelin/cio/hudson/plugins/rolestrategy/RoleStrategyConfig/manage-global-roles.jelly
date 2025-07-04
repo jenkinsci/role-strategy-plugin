@@ -30,7 +30,7 @@
 
   <j:set var="globalPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
   <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
-  <j:set var="neededPermission" value="${it.GLOBAL_ROLES_ADMIN}"/>
+  <j:set var="neededPermission" value="${app.ADMINISTER}"/>
 
   <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="row-filter">
     <f:entry title="${%Filter by Role}">
@@ -57,7 +57,7 @@
     </tr>
   </template>
 
-  <l:hasPermission permission="${it.GLOBAL_ROLES_ADMIN}">
+  <l:hasPermission permission="${app.ADMINISTER}">
     <br />
     <f:entry title="${%Role to add}">
       <f:textbox id="${tableid}text" />
