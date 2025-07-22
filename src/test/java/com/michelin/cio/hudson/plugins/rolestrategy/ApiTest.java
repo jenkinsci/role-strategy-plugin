@@ -110,10 +110,10 @@ class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(
-            Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("roleName", roleName),
-                    new NameValuePair("permissionIds",
-                            "hudson.model.Item.Configure,hudson.model.Item.Discover,hudson.model.Item.Build,hudson.model.Item.Read"),
-                    new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern)));
+        Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("roleName", roleName),
+            new NameValuePair("permissionIds",
+                "hudson.model.Item.Configure,hudson.model.Item.Discover,hudson.model.Item.Build,hudson.model.Item.Read"),
+            new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
