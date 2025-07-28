@@ -71,6 +71,7 @@
 .role-strategy-table .caption-row TH {
   padding: 0.25rem!important;
   width: 1rem;
+  text-align: center;
 }
 
 .role-strategy-table tfoot th {
