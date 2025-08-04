@@ -151,6 +151,7 @@ public final class Role implements Comparable {
         this.permissions.add(perm);
       }
     }
+    cachedHashCode = _hashCode();
   }
 
   public void setTemplateName(@CheckForNull String templateName) {
@@ -193,7 +194,7 @@ public final class Role implements Comparable {
    *
    * Internal use only.
    */
-  private void setPermissions(Set<Permission> permissions) {
+  private synchronized void setPermissions(Set<Permission> permissions) {
     this.permissions = new HashSet<>(permissions);
     cachedHashCode = _hashCode();
   }
@@ -317,9 +318,6 @@ public final class Role implements Comparable {
     if (!Objects.equals(this.pattern, other.pattern)) {
       return false;
     }
-    if (!Objects.equals(this.permissions, other.permissions)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(this.permissions, other.permissions);
   }
 }
