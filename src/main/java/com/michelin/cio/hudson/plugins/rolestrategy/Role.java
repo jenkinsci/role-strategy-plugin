@@ -78,7 +78,7 @@ public final class Role implements Comparable {
   /**
    * {@link Permission}s hold by the role.
    */
-  private final Set<Permission> permissions = new HashSet<>();
+  private Set<Permission> permissions;
 
   private transient Integer cachedHashCode = null;
 
@@ -143,6 +143,7 @@ public final class Role implements Comparable {
     this.pattern = pattern;
     this.description = description;
     this.templateName = templateName;
+    this.permissions = new HashSet<>();
     for (Permission perm : permissions) {
       if (perm == null) {
         LOGGER.log(Level.WARNING, "Found some null permission(s) in role " + this.name, new IllegalArgumentException());
@@ -150,6 +151,7 @@ public final class Role implements Comparable {
         this.permissions.add(perm);
       }
     }
+    cachedHashCode = _hashCode();
   }
 
   public void setTemplateName(@CheckForNull String templateName) {
@@ -192,12 +194,9 @@ public final class Role implements Comparable {
    *
    * Internal use only.
    */
-  private void setPermissions(Set<Permission> permissions) {
-    synchronized (this.permissions) {
-      this.permissions.clear();
-      this.permissions.addAll(permissions);
-      cachedHashCode = _hashCode();
-    }
+  private synchronized void setPermissions(Set<Permission> permissions) {
+    this.permissions = new HashSet<>(permissions);
+    cachedHashCode = _hashCode();
   }
 
   /**
@@ -254,9 +253,7 @@ public final class Role implements Comparable {
    * @return True if the role holds this permission
    */
   public Boolean hasPermission(Permission permission) {
-    synchronized (this.permissions) {
-      return permissions.contains(permission);
-    }
+    return permissions.contains(permission);
   }
 
   /**
@@ -266,9 +263,7 @@ public final class Role implements Comparable {
    * @return True if the role holds any of the given {@link Permission}s
    */
   public Boolean hasAnyPermission(Set<Permission> permissions) {
-    synchronized (this.permissions) {
-      return CollectionUtils.containsAny(this.permissions, permissions);
-    }
+    return CollectionUtils.containsAny(this.permissions, permissions);
   }
 
   /**
@@ -301,9 +296,7 @@ public final class Role implements Comparable {
     int hash = 7;
     hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
     hash = 53 * hash + (this.pattern != null ? this.pattern.hashCode() : 0);
-    synchronized (this.permissions) {
-      hash = 53 * hash + this.permissions.hashCode();
-    }
+    hash = 53 * hash + this.permissions.hashCode();
     return hash;
   }
 
@@ -325,11 +318,6 @@ public final class Role implements Comparable {
     if (!Objects.equals(this.pattern, other.pattern)) {
       return false;
     }
-    synchronized (this.permissions) {
-      if (!Objects.equals(this.permissions, other.permissions)) {
-        return false;
-      }
-    }
-    return true;
+    return Objects.equals(this.permissions, other.permissions);
   }
 }
