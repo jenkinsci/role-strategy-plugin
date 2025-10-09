@@ -83,6 +83,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -122,6 +123,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
   private Map<String, PermissionTemplate> permissionTemplates;
+
+  private static final boolean useItemAndAgentRoles = SystemProperties.getBoolean(
+          RoleBasedAuthorizationStrategy.class.getName() + ".useItemAndAgentRoles", true);
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -185,13 +189,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           Jenkins.ADMINISTER,
           PermissionScope.JENKINS);
 
+  /**
+   * Ensuring permissions registered.
+   */
   @SuppressFBWarnings(
           value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
           justification = "getEnabled return value discarded")
   @Initializer(after = InitMilestone.PLUGINS_STARTED, before = InitMilestone.EXTENSIONS_AUGMENTED)
   public static void ensurePermissionsRegistered() {
-    ITEM_ROLES_ADMIN.getEnabled();
-    AGENT_ROLES_ADMIN.getEnabled();
+    if (useItemAndAgentRoles) {
+      ITEM_ROLES_ADMIN.getEnabled();
+      AGENT_ROLES_ADMIN.getEnabled();
+    }
   }
 
   @Restricted(NoExternalUse.class) // called by jelly
