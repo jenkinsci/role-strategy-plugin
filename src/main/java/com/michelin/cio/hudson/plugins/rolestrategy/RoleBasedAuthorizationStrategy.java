@@ -124,8 +124,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap itemRoles;
   private Map<String, PermissionTemplate> permissionTemplates;
 
-  private static final boolean useItemAndAgentRoles = SystemProperties.getBoolean(
-          RoleBasedAuthorizationStrategy.class.getName() + ".useItemAndAgentRoles", true);
+  static /* not final */ boolean USE_ITEM_AND_AGENT_ROLES = SystemProperties.getBoolean(
+            RoleBasedAuthorizationStrategy.class.getName() + ".useItemAndAgentRoles", false);
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -180,14 +180,16 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           "ItemRoles",
           Messages._RoleBasedAuthorizationStrategy_ItemRolesAdminPermissionDescription(),
           Jenkins.ADMINISTER,
-          PermissionScope.JENKINS);
+          USE_ITEM_AND_AGENT_ROLES,
+          new PermissionScope[]{PermissionScope.JENKINS});
 
   public static final Permission AGENT_ROLES_ADMIN = new Permission(
           GROUP,
           "AgentRoles",
           Messages._RoleBasedAuthorizationStrategy_AgentRolesAdminPermissionDescription(),
           Jenkins.ADMINISTER,
-          PermissionScope.JENKINS);
+          USE_ITEM_AND_AGENT_ROLES,
+          new PermissionScope[]{PermissionScope.JENKINS});
 
   /**
    * Ensuring permissions registered.
@@ -197,10 +199,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           justification = "getEnabled return value discarded")
   @Initializer(after = InitMilestone.PLUGINS_STARTED, before = InitMilestone.EXTENSIONS_AUGMENTED)
   public static void ensurePermissionsRegistered() {
-    if (useItemAndAgentRoles) {
-      ITEM_ROLES_ADMIN.getEnabled();
-      AGENT_ROLES_ADMIN.getEnabled();
-    }
+    ITEM_ROLES_ADMIN.getEnabled();
+    AGENT_ROLES_ADMIN.getEnabled();
   }
 
   @Restricted(NoExternalUse.class) // called by jelly

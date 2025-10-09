@@ -1,0 +1,36 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            description: "Jenkins administrators"
+            permissions:
+              - "Overall/Administer"
+            entries:
+              - user: "adminUser"
+          - name: "itemAdmin"
+            description: "Item roles administrators"
+            permissions:
+              - "Overall/Read"
+              - "RoleBasedStrategy/ItemRoles"
+            entries:
+              - user: "itemAdminUser"
+          - name: "agentAdmin"
+            description: "Agent roles administrators"
+            permissions:
+              - "Overall/Read"
+              - "RoleBasedStrategy/AgentRoles"
+            entries:
+              - user: "agentAdminUser"
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "adminUser"
+          password: "admin"
+        - id: "itemAdminUser"
+          password: "itemAdmin"
+        - id: "agentAdminUser"
+          password: "agentAdmin"

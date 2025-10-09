@@ -28,6 +28,7 @@ import org.htmlunit.HttpMethod;
 import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
 import org.htmlunit.util.NameValuePair;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
@@ -43,6 +44,21 @@ import org.springframework.security.core.Authentication;
 @WithJenkins
 class ApiTest {
 
+  // Note: Reading Global roles requires SYSTEM_READ, which itemAdminUser and agentAdminUser don't have
+  private static final List<Map<String, Object>> getExecutions = Arrays.asList(
+          Map.of("username", "adminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Global),
+          Map.of("username", "adminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Project),
+          Map.of("username", "adminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Slave),
+          Map.of("username", "itemAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Global),
+          Map.of("username", "itemAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Project),
+          Map.of("username", "itemAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Slave),
+          Map.of("username", "agentAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Global),
+          Map.of("username", "agentAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Project),
+          Map.of("username", "agentAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Slave),
+          Map.of("username", "developerUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Global),
+          Map.of("username", "developerUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Project),
+          Map.of("username", "developerUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Slave)
+  );
   private JenkinsRule jenkinsRule;
   private JenkinsRule.WebClient webClient;
   private DummySecurityRealm securityRealm;
@@ -50,9 +66,9 @@ class ApiTest {
   private RoleBasedAuthorizationStrategy rbas;
 
   private Map<String, String> roleTypeToPermissionIds = Map.of(
-      RoleType.Global.getStringType(), "hudson.model.Hudson.Read,hudson.model.Hudson.Administer,hudson.security.Permission.GenericRead",
-      RoleType.Project.getStringType(), "hudson.model.Item.Read,hudson.model.Item.Build,hudson.model.Item.Cancel",
-      RoleType.Slave.getStringType(), "hudson.model.Computer.Connect,hudson.model.Computer.Create"
+          RoleType.Global.getStringType(), "hudson.model.Hudson.Read,hudson.model.Hudson.Administer,hudson.security.Permission.GenericRead",
+          RoleType.Project.getStringType(), "hudson.model.Item.Read,hudson.model.Item.Build,hudson.model.Item.Cancel",
+          RoleType.Slave.getStringType(), "hudson.model.Computer.Connect,hudson.model.Computer.Create"
   );
 
   @BeforeEach
@@ -66,7 +82,7 @@ class ApiTest {
     jenkinsRule.jenkins.setCrumbIssuer(null);
     // Adding admin role and assigning adminUser
     rbas.doAddRole("globalRoles", "adminRole",
-        "hudson.model.Hudson.Read,hudson.model.Hudson.Administer,hudson.security.Permission.GenericRead", "false", "", "");
+            "hudson.model.Hudson.Read,hudson.model.Hudson.Administer,hudson.security.Permission.GenericRead", "false", "", "");
     rbas.doAssignUserRole("globalRoles", "adminRole", "adminUser");
     // Adding itemAdmin and assigning itemAdminUser
     rbas.doAddRole("globalRoles", "itemAdminRole",
@@ -89,16 +105,12 @@ class ApiTest {
     webClient.login("adminUser", "adminUser");
   }
 
-  private void performAsAndExpect(String username, WebRequest request, int expectedCode, String expectedContent) throws Exception {
+  private void performAsAndExpect(String username, WebRequest request, int expectedCode, String roleTypeStr) throws Exception {
     webClient.login(username, username);
     Page page = webClient.getPage(request);
 
-    assertEquals(expectedCode, page.getWebResponse().getStatusCode(), "HTTP code mismatch for user " + username);
-    String body = page.getWebResponse().getContentAsString();
-
-    if (expectedContent != null) {
-      assertTrue(body.contains(expectedContent), "Expected content not found: " + expectedContent);
-    }
+    assertEquals(expectedCode, page.getWebResponse().getStatusCode(), "HTTP code mismatch for user " + username
+            + " with roleType " + roleTypeStr);
   }
 
   @Test
@@ -110,10 +122,10 @@ class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(
-        Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("roleName", roleName),
-            new NameValuePair("permissionIds",
-                "hudson.model.Item.Configure,hudson.model.Item.Discover,hudson.model.Item.Build,hudson.model.Item.Read"),
-            new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern)));
+            Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("roleName", roleName),
+                    new NameValuePair("permissionIds",
+                            "hudson.model.Item.Configure,hudson.model.Item.Discover,hudson.model.Item.Build,hudson.model.Item.Read"),
+                    new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -134,23 +146,10 @@ class ApiTest {
   @Test
   void testAddRoleAs() throws Exception {
     String pattern = "test-folder.*";
-    // List of Maps of executions for different users and expected results
-    List<Map<String, Object>> roleExecutions = Arrays.asList(
-            Map.of("username", "adminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Global),
-            Map.of("username", "adminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Project),
-            Map.of("username", "adminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Slave),
-            Map.of("username", "itemAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Global),
-            Map.of("username", "itemAdminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Project),
-            Map.of("username", "itemAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Slave),
-            Map.of("username", "agentAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Global),
-            Map.of("username", "agentAdminUser", "expectedCode", HttpURLConnection.HTTP_FORBIDDEN, "roleType", RoleType.Project),
-            Map.of("username", "agentAdminUser", "expectedCode", HttpURLConnection.HTTP_OK, "roleType", RoleType.Slave)
-    );
     // Loop through each execution and perform the request
-    for (Map<String, Object> execution : roleExecutions) {
+    for (Map<String, Object> execution : getExecutions) {
       String username = (String) execution.get("username");
       int expectedCode = (int) execution.get("expectedCode");
-      String expectedContent = null;
       RoleType roleType = (RoleType) execution.get("roleType");
       String roleTypeStr = roleType.getStringType();
       String roleName = "testAddRoleAs" + username + roleType.getStringType();
@@ -160,10 +159,11 @@ class ApiTest {
               Arrays.asList(new NameValuePair("type", roleTypeStr), new NameValuePair("roleName", roleName),
                       new NameValuePair("permissionIds", roleTypeToPermissionIds.get(roleTypeStr)),
                       new NameValuePair("overwrite", "false"), new NameValuePair("pattern", pattern)));
-      performAsAndExpect(username, request, expectedCode, expectedContent);
+      performAsAndExpect(username, request, expectedCode, roleTypeStr);
       if (expectedCode == HttpURLConnection.HTTP_OK) {
         // Verifying that the role is in
         RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+        Assertions.assertNotNull(strategy);
         SortedMap<Role, Set<PermissionEntry>> grantedRoles = strategy.getGrantedRolesEntries(roleType);
         boolean foundRole = false;
         for (Map.Entry<Role, Set<PermissionEntry>> entry : grantedRoles.entrySet()) {
@@ -357,7 +357,7 @@ class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
+            new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -388,7 +388,7 @@ class ApiTest {
     URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignRole");
     WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
+            new NameValuePair("roleName", roleName), new NameValuePair("sid", sid)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -420,7 +420,7 @@ class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignUserRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
+            new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -450,7 +450,7 @@ class ApiTest {
     URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignUserRole");
     WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
+            new NameValuePair("roleName", roleName), new NameValuePair("user", sid)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -485,7 +485,7 @@ class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/assignGroupRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
+            new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -516,7 +516,7 @@ class ApiTest {
     URL apiURL = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/unassignGroupRole");
     WebRequest request = new WebRequest(apiURL, HttpMethod.POST);
     request.setRequestParameters(Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
-        new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
+            new NameValuePair("roleName", roleName), new NameValuePair("group", group)));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -540,11 +540,11 @@ class ApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
     request.setRequestParameters(
-        Arrays.asList(new NameValuePair("type", RoleType.Global.getStringType()), new NameValuePair("roleName", roleName),
-            new NameValuePair("permissionIds",
-                "hudson.model.Hudson.RunScripts,hudson.model.Hudson.ConfigureUpdateCenter,"
-                + "hudson.model.Hudson.UploadPlugins,hudson.model.Item.Read"),
-            new NameValuePair("overwrite", "false")));
+            Arrays.asList(new NameValuePair("type", RoleType.Global.getStringType()), new NameValuePair("roleName", roleName),
+                    new NameValuePair("permissionIds",
+                            "hudson.model.Hudson.RunScripts,hudson.model.Hudson.ConfigureUpdateCenter,"
+                                    + "hudson.model.Hudson.UploadPlugins,hudson.model.Item.Read"),
+                    new NameValuePair("overwrite", "false")));
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
 
@@ -553,5 +553,136 @@ class ApiTest {
     assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(PluginManager.UPLOAD_PLUGINS), is(false));
     assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(Jenkins.RUN_SCRIPTS), is(false));
     assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(Item.READ), is(true));
+  }
+
+  @Test
+  void testRemoveRolesAs() throws Exception {
+
+    String pattern = "test-folder.*";
+
+    // Create roles first
+    for (Map<String, Object> execution : getExecutions) {
+      String username = (String) execution.get("username");
+      RoleType roleType = (RoleType) execution.get("roleType");
+      String roleTypeStr = roleType.getStringType();
+      String roleName = "testRemoveRolesAs" + username + roleType.getStringType();
+      rbas.doAddRole(roleTypeStr, roleName, roleTypeToPermissionIds.get(roleTypeStr), "false", pattern, "");
+    }
+
+    // Now test removal with different users
+    for (Map<String, Object> execution : getExecutions) {
+      String username = (String) execution.get("username");
+      int expectedCode = (int) execution.get("expectedCode");
+      RoleType roleType = (RoleType) execution.get("roleType");
+      String roleTypeStr = roleType.getStringType();
+      String roleName = "testRemoveRolesAs" + username + roleType.getStringType();
+
+      URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/removeRoles");
+      WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+      request.setRequestParameters(
+              Arrays.asList(
+                      new NameValuePair("type", roleTypeStr),
+                      new NameValuePair("roleNames", roleName)
+              )
+      );
+
+      performAsAndExpect(username, request, expectedCode, roleTypeStr);
+
+      // Verify the role state
+      RoleBasedAuthorizationStrategy strategy = RoleBasedAuthorizationStrategy.getInstance();
+      Assertions.assertNotNull(strategy);
+      Role role = strategy.getRoleMap(roleType).getRole(roleName);
+
+      if (expectedCode == HttpURLConnection.HTTP_OK) {
+        assertThat("Role should be removed for user: " + username, role, nullValue());
+      } else {
+        assertThat("Role should still exist for user: " + username, role, notNullValue());
+      }
+    }
+  }
+
+  @Test
+  void testGetRoleAs() throws Exception {
+
+    for (Map<String, Object> execution : getExecutions) {
+      String username = (String) execution.get("username");
+      int expectedCode = (int) execution.get("expectedCode");
+      RoleType roleType = (RoleType) execution.get("roleType");
+      String roleTypeStr = roleType.getStringType();
+
+      // Use existing roles from setup
+      String roleName = roleType == RoleType.Global ? "adminRole"
+              : roleType == RoleType.Project ? "developers" : "developerAgentRole";
+
+      URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl()
+              + "role-strategy/strategy/getRole?type=" + roleTypeStr + "&roleName=" + roleName);
+      WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
+
+      performAsAndExpect(username, request, expectedCode, roleTypeStr);
+
+      if (expectedCode == HttpURLConnection.HTTP_OK) {
+        webClient.login(username, username);
+        Page page = webClient.getPage(request);
+        String content = page.getWebResponse().getContentAsString();
+        JSONObject json = JSONObject.fromObject(content);
+        assertThat("Response should contain permissionIds for user: " + username,
+                json.has("permissionIds"), is(true));
+        assertThat("Response should contain sids for user: " + username,
+                json.has("sids"), is(true));
+      }
+    }
+  }
+
+  @Test
+  void testGetAllRolesAs() throws Exception {
+
+    for (Map<String, Object> execution : getExecutions) {
+      String username = (String) execution.get("username");
+      int expectedCode = (int) execution.get("expectedCode");
+      RoleType roleType = (RoleType) execution.get("roleType");
+      String roleTypeStr = roleType.getStringType();
+
+      URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl()
+              + "role-strategy/strategy/getAllRoles?type=" + roleTypeStr);
+      WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
+
+      performAsAndExpect(username, request, expectedCode, roleTypeStr);
+
+      if (expectedCode == HttpURLConnection.HTTP_OK) {
+        webClient.login(username, username);
+        Page page = webClient.getPage(request);
+        String content = page.getWebResponse().getContentAsString();
+        JSONObject json = JSONObject.fromObject(content);
+        assertThat("Response should be a JSON object for user: " + username,
+                json.isEmpty(), is(false));
+      }
+    }
+  }
+
+  @Test
+  void testGetRoleAssignmentsAs() throws Exception {
+
+    for (Map<String, Object> execution : getExecutions) {
+      String username = (String) execution.get("username");
+      int expectedCode = (int) execution.get("expectedCode");
+      RoleType roleType = (RoleType) execution.get("roleType");
+      String roleTypeStr = roleType.getStringType();
+
+      URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl()
+              + "role-strategy/strategy/getRoleAssignments?type=" + roleTypeStr);
+      WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
+
+      performAsAndExpect(username, request, expectedCode, roleTypeStr);
+
+      if (expectedCode == HttpURLConnection.HTTP_OK) {
+        webClient.login(username, username);
+        Page page = webClient.getPage(request);
+        String content = page.getWebResponse().getContentAsString();
+        net.sf.json.JSONArray jsonArray = net.sf.json.JSONArray.fromObject(content);
+        // Should return an array of user/group assignments with their roles
+        assertThat("Response should be a JSON array for user: " + username,
+                jsonArray, notNullValue());
+      }
+    }
   }
 }

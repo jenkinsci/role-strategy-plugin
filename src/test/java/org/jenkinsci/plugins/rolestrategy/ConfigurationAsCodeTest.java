@@ -46,6 +46,11 @@ import org.jvnet.hudson.test.Issue;
 @WithJenkinsConfiguredWithCode
 class ConfigurationAsCodeTest {
 
+  static {
+    RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN.setEnabled(true);
+    RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN.setEnabled(true);
+  }
+
   @Test
   void shouldReturnCustomConfigurator(JenkinsConfiguredWithCodeRule jcwcRule) {
     ConfiguratorRegistry registry = ConfiguratorRegistry.get();
@@ -157,5 +162,29 @@ class ConfigurationAsCodeTest {
     String expected = toStringFromYamlFile(this, "Configuration-as-Code-no-permissions-export.yml");
 
     assertThat(exported, is(expected));
+  }
+
+  @Test
+  @ConfiguredWithCode("Configuration-as-Code-granular-permissions.yml")
+  void shouldLoadGranularPermissions(JenkinsConfiguredWithCodeRule jcwcRule) {
+    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
+    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
+    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
+
+    // Verify itemAdmin role has ITEM_ROLES_ADMIN permission
+    Role itemAdminRole = rbas.getRoleMap(RoleType.Global).getRole("itemAdmin");
+    assertNotNull(itemAdminRole, "itemAdmin role should exist");
+    assertThat("itemAdmin role should have ITEM_ROLES_ADMIN permission",
+        itemAdminRole.hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN), is(true));
+    assertThat("itemAdmin role should NOT have ADMINISTER permission",
+        itemAdminRole.hasPermission(Jenkins.ADMINISTER), is(false));
+
+    // Verify agentAdmin role has AGENT_ROLES_ADMIN permission
+    Role agentAdminRole = rbas.getRoleMap(RoleType.Global).getRole("agentAdmin");
+    assertNotNull(agentAdminRole, "agentAdmin role should exist");
+    assertThat("agentAdmin role should have AGENT_ROLES_ADMIN permission",
+        agentAdminRole.hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN), is(true));
+    assertThat("agentAdmin role should NOT have ADMINISTER permission",
+        agentAdminRole.hasPermission(Jenkins.ADMINISTER), is(false));
   }
 }
