@@ -13,14 +13,14 @@ jenkins:
             description: "Item roles administrators"
             permissions:
               - "Overall/Read"
-              - "RoleBasedStrategy/ItemRoles"
+              - "Role Based Strategy/ItemRoles"
             entries:
               - user: "itemAdminUser"
           - name: "agentAdmin"
             description: "Agent roles administrators"
             permissions:
               - "Overall/Read"
-              - "RoleBasedStrategy/AgentRoles"
+              - "Role Based Strategy/AgentRoles"
             entries:
               - user: "agentAdminUser"
 
