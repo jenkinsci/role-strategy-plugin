@@ -1514,7 +1514,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Nullable
     public List<PermissionGroup> getGroups(@NonNull String type) {
       List<PermissionGroup> groups = new ArrayList<>();
-      List<PermissionGroup> filterGroups = PermissionGroup.getAll();
       PermissionScope permissionScope;
       switch (type) {
         case GLOBAL:
