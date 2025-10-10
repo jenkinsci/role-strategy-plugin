@@ -191,18 +191,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           USE_ITEM_AND_AGENT_ROLES,
           new PermissionScope[]{PermissionScope.JENKINS});
 
-  /**
-   * Ensuring permissions registered.
-   */
-  @SuppressFBWarnings(
-          value = "RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT",
-          justification = "getEnabled return value discarded")
-  @Initializer(after = InitMilestone.PLUGINS_STARTED, before = InitMilestone.EXTENSIONS_AUGMENTED)
-  public static void ensurePermissionsRegistered() {
-    ITEM_ROLES_ADMIN.getEnabled();
-    AGENT_ROLES_ADMIN.getEnabled();
-  }
-
   @Restricted(NoExternalUse.class) // called by jelly
   public static final Permission[] SYSTEM_READ_AND_ITEM_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
