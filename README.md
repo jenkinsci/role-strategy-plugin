@@ -117,6 +117,8 @@ Once enabled, these permissions can be assigned in global roles just like any ot
 
 Users with these permissions also need `Jenkins.SYSTEM_READ` to access the role management pages (`$JENKINS_URL/manage/role-strategy/`).
 
+The `Jenkins.SYSTEM_READ` permission can be enabled either via a system property or by using the [Extended Read Permission Plugin](https://plugins.jenkins.io/extended-read-permission/).
+
 > [!NOTE]
 > These permissions are alternatives to `Jenkins.ADMINISTER` for role management tasks. Users with `Jenkins.ADMINISTER` always have full access to all role management functionality.
 
