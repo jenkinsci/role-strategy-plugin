@@ -104,8 +104,7 @@ RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN.setEnabled(true)
 
 Or via command line when starting Jenkins:
 ```bash
-java -Dhudson.security.Permission.ITEM_ROLES_ADMIN=true \
-     -Dhudson.security.Permission.AGENT_ROLES_ADMIN=true \
+java -Dcom.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy.useItemAndAgentRoles=true \
      -jar jenkins.war
 ```
 
