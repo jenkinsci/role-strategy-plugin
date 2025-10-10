@@ -124,7 +124,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap itemRoles;
   private Map<String, PermissionTemplate> permissionTemplates;
 
-  static /* not final */ boolean USE_ITEM_AND_AGENT_ROLES = SystemProperties.getBoolean(
+  private static final boolean USE_ITEM_AND_AGENT_ROLES = SystemProperties.getBoolean(
             RoleBasedAuthorizationStrategy.class.getName() + ".useItemAndAgentRoles", false);
 
   /**
