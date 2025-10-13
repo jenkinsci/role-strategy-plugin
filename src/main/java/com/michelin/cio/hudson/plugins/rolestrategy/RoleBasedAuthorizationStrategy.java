@@ -454,18 +454,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     instance().checkAnyPermission(permission);
   }
 
-    private static boolean hasPermissionByRoleTypeForUpdates(String roleTypeAsString) {
-      switch (roleTypeAsString) {
-        case RoleBasedAuthorizationStrategy.GLOBAL:
-          return instance().hasPermission(Jenkins.ADMINISTER);
-        case RoleBasedAuthorizationStrategy.PROJECT:
-          return instance().hasAnyPermission(ITEM_ROLES_ADMIN);
-        case RoleBasedAuthorizationStrategy.SLAVE:
-          return instance().hasAnyPermission(AGENT_ROLES_ADMIN);
-        default:
-          throw new IllegalArgumentException("Unknown RoleType: " + roleTypeAsString);
-      }
+  private static boolean hasPermissionByRoleTypeForUpdates(String roleTypeAsString) {
+    switch (roleTypeAsString) {
+      case RoleBasedAuthorizationStrategy.GLOBAL:
+        return instance().hasPermission(Jenkins.ADMINISTER);
+      case RoleBasedAuthorizationStrategy.PROJECT:
+        return instance().hasAnyPermission(ITEM_ROLES_ADMIN);
+      case RoleBasedAuthorizationStrategy.SLAVE:
+        return instance().hasAnyPermission(AGENT_ROLES_ADMIN);
+      default:
+        throw new IllegalArgumentException("Unknown RoleType: " + roleTypeAsString);
     }
+  }
 
 
 
