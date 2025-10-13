@@ -54,6 +54,16 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @Extension
 public class RoleStrategyConfig extends ManagementLink {
 
+  /**
+   * Get the singleton instance of RoleStrategyConfig.
+   *
+   * @return The RoleStrategyConfig instance
+   */
+  @NonNull
+  public static RoleStrategyConfig get() {
+    return ExtensionList.lookupSingleton(RoleStrategyConfig.class);
+  }
+
   public static int getMaxRows() {
     return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
   }
