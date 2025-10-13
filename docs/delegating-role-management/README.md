@@ -13,22 +13,27 @@ These permissions enable you to create "role administrators" who can manage spec
 
 ## How It Works
 
+### The SYSTEM_READ permission
+
+The `Jenkins.SYSTEM_READ` permission can be enabled either via a system property or by using the [Extended Read Permission Plugin](https://plugins.jenkins.io/extended-read-permission/).
+
 ### With SYSTEM_READ Permission
 
 Users who have `ITEM_ROLES_ADMIN` or `AGENT_ROLES_ADMIN` **and** `SYSTEM_READ` (or `ADMINISTER`) can access role management through the standard "Manage Jenkins" menu. They will see:
 
-- **Manage Jenkins � Manage and Assign Roles**: Standard access path
+- **Manage Jenkins -> Manage and Assign Roles**: Standard access path
 - They can view all role sections in read-only mode, but can only edit the sections they have permission for
 
 ### Without SYSTEM_READ Permission
 
 Users who have `ITEM_ROLES_ADMIN` or `AGENT_ROLES_ADMIN` **without** `SYSTEM_READ` cannot access "Manage Jenkins". For these users, a special root-level link is provided:
 
-- **Root Dashboard � Manage and Assign Roles**: Direct link at the Jenkins root level
+- **Root Dashboard -> Manage and Assign Roles**: Direct link at the Jenkins root level
 - This link is only visible to users with role admin permissions but without `SYSTEM_READ`
 - It provides the same functionality as the management link, but accessible without needing to access "Manage Jenkins"
 
 This design ensures that:
+
 1. Users with `SYSTEM_READ` don't see duplicate links (they use the management link)
 2. Users without `SYSTEM_READ` can still access role management directly
 3. Regular users without any admin permissions see no role management links

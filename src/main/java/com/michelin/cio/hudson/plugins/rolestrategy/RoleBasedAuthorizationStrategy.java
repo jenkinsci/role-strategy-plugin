@@ -1436,9 +1436,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           // if no permission, take the globalRoles from the oldStrategy
           try {
             checkPermByRoleTypeForUpdates(roleTypeAsString);
-            LOGGER.info("Saving assignments for " + roleTypeAsString);
+            LOGGER.fine("Saving assignments for " + roleTypeAsString);
           } catch (AccessDeniedException ignore) {
-            LOGGER.info("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
+            LOGGER.fine("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
             continue;
           }
 
@@ -1553,9 +1553,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       // if no permission, take the roles from the oldStrategy
       try {
         checkPermByRoleTypeForUpdates(roleTypeAsString);
-        LOGGER.info("Saving roles for " + roleTypeAsString);
+        LOGGER.fine("Saving roles for " + roleTypeAsString);
       } catch (AccessDeniedException ignore) {
-        LOGGER.info("Not enough permissions to save roles for " + roleTypeAsString + ". Copying roles from old strategy.");
+        LOGGER.fine("Not enough permissions to save roles for " + roleTypeAsString + ". Copying roles from old strategy.");
         copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
         return;
       }

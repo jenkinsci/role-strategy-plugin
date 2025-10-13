@@ -90,6 +90,15 @@ By default, only users with the `Jenkins.ADMINISTER` permission can manage roles
 * **Manage Item Roles and Permissions Templates** (`ITEM_ROLES_ADMIN`): Grants the ability to manage item roles and permission templates without requiring full Jenkins administrator access.
 * **Manage Agent Roles** (`AGENT_ROLES_ADMIN`): Grants the ability to manage agent roles without requiring full Jenkins administrator access.
 
+> [!NOTE]
+> These roles alone do not permit you to see the other role configurations. If you wish to see the other configurations in read-only format, you can include the `SYSTEM_READ` permission.
+
+For a detailed guide on setting up and testing delegated role management, including example configurations and test scenarios, see [Delegating Role Management](./docs/delegating-role-management/README.md).
+
+> [!NOTE]
+> These permissions are alternatives to `Jenkins.ADMINISTER` for role management tasks. Users with `Jenkins.ADMINISTER` always have full access to all role management functionality.
+> The `Jenkins.SYSTEM_READ` permission can be enabled either via a system property or by using the [Extended Read Permission Plugin](https://plugins.jenkins.io/extended-read-permission/).
+
 #### Enabling the optional permissions
 
 These permissions are disabled by default. To enable them, set the following system properties when starting Jenkins or via the script console:
@@ -107,24 +116,6 @@ Or via command line when starting Jenkins:
 java -Dcom.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy.useItemAndAgentRoles=true \
      -jar jenkins.war
 ```
-
-#### Using the optional permissions
-
-Once enabled, these permissions can be assigned in global roles just like any other permission. Users with these permissions will be able to:
-
-* **ITEM_ROLES_ADMIN**: Access and modify the "Item Roles" and "Permission Templates" tabs in the role management UI, and use the corresponding REST API endpoints
-* **AGENT_ROLES_ADMIN**: Access and modify the "Agent Roles" tab in the role management UI, and use the corresponding REST API endpoints
-
-Users with these permissions also need `Jenkins.SYSTEM_READ` to access the role management pages via the "Manage Jenkins" menu (`$JENKINS_URL/manage/role-strategy/`).
-
-Users **without** `Jenkins.SYSTEM_READ` can access role management through a root-level link that appears on the Jenkins dashboard (`$JENKINS_URL/role-strategy/`).
-
-The `Jenkins.SYSTEM_READ` permission can be enabled either via a system property or by using the [Extended Read Permission Plugin](https://plugins.jenkins.io/extended-read-permission/).
-
-> [!NOTE]
-> These permissions are alternatives to `Jenkins.ADMINISTER` for role management tasks. Users with `Jenkins.ADMINISTER` always have full access to all role management functionality.
-
-For a detailed guide on setting up and testing delegated role management, including example configurations and test scenarios, see [Delegating Role Management](./docs/delegating-role-management/README.md).
 
 ### Getting roles in pipelines
 There are 2 steps available in pipeline jobs that allow to get the roles of the user running the build.

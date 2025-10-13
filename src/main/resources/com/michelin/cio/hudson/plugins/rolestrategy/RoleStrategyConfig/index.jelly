@@ -212,7 +212,7 @@
             </h1>
             <button class="default-hidden" id="rs-dirty-indicator"/>
 
-            <j:if test="${app.hasPermission(app.ADMINISTER) or app.hasPermission(app.SYSTEM_READ)}">
+            <j:if test="${app.hasPermission(app.SYSTEM_READ)}">
               <f:section title="${%Global roles}">
                 <j:set var="readOnlyMode" value="${!app.hasPermission(app.ADMINISTER)}" />
                 <f:rowSet name="globalRoles">

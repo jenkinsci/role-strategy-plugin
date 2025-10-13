@@ -48,7 +48,7 @@
       <local:navigationButtons/>
       <template id="newItemRowTemplate">
         <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-          <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}" typedescription="{{USERGROUP}}"/>
+          <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}" typedescription="{{USERGROUP}}" neededPermission="${neededPermission}"/>
         </tr>
       </template>
 
