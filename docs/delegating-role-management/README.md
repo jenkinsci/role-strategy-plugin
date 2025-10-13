@@ -17,14 +17,14 @@ These permissions enable you to create "role administrators" who can manage spec
 
 Users who have `ITEM_ROLES_ADMIN` or `AGENT_ROLES_ADMIN` **and** `SYSTEM_READ` (or `ADMINISTER`) can access role management through the standard "Manage Jenkins" menu. They will see:
 
-- **Manage Jenkins ’ Manage and Assign Roles**: Standard access path
+- **Manage Jenkins ï¿½ Manage and Assign Roles**: Standard access path
 - They can view all role sections in read-only mode, but can only edit the sections they have permission for
 
 ### Without SYSTEM_READ Permission
 
 Users who have `ITEM_ROLES_ADMIN` or `AGENT_ROLES_ADMIN` **without** `SYSTEM_READ` cannot access "Manage Jenkins". For these users, a special root-level link is provided:
 
-- **Root Dashboard ’ Manage and Assign Roles**: Direct link at the Jenkins root level
+- **Root Dashboard ï¿½ Manage and Assign Roles**: Direct link at the Jenkins root level
 - This link is only visible to users with role admin permissions but without `SYSTEM_READ`
 - It provides the same functionality as the management link, but accessible without needing to access "Manage Jenkins"
 
@@ -41,11 +41,11 @@ This directory contains a Configuration-as-Code YAML file that sets up multiple 
 |------|------------|---------------|------------|
 | `admin` | Overall/Administer | Manage Jenkins | All roles (global, item, agent) |
 | `item-admin` | ItemRoles only | **Root-level link** | Item roles only |
-| `item-admin-sysread` | ItemRoles + Overall/Administer | Manage Jenkins | Item roles only |
+| `item-admin-sysread` | ItemRoles + Overall/SystemRead | Manage Jenkins | Item roles only |
 | `agent-admin` | AgentRoles only | **Root-level link** | Agent roles only |
-| `agent-admin-sysread` | AgentRoles + Overall/Administer | Manage Jenkins | Agent roles only |
+| `agent-admin-sysread` | AgentRoles + Overall/SystemRead | Manage Jenkins | Agent roles only |
 | `both-admin` | ItemRoles + AgentRoles | **Root-level link** | Item and agent roles |
-| `both-admin-sysread` | ItemRoles + AgentRoles + Overall/Administer | Manage Jenkins | Item and agent roles |
+| `both-admin-sysread` | ItemRoles + AgentRoles + Overall/SystemRead | Manage Jenkins | Item and agent roles |
 
 ### Key Differences to Test
 
@@ -81,7 +81,7 @@ mvn hpi:run
 ### Test Each User
 
 1. **admin / admin**
-   - Go to "Manage Jenkins" ’ "Manage and Assign Roles"
+   - Go to "Manage Jenkins" ï¿½ "Manage and Assign Roles"
    - Can edit all three sections (Global, Item, Agent)
    - Has full control
 
@@ -92,7 +92,7 @@ mvn hpi:run
    - Can **view** Global and Agent roles in read-only mode (checkboxes disabled, no add/delete buttons)
 
 3. **item-admin-sysread / item-admin-sysread**
-   - Go to "Manage Jenkins" ’ "Manage and Assign Roles"
+   - Go to "Manage Jenkins" ï¿½ "Manage and Assign Roles"
    - Same editing capabilities as `item-admin`, but accessed via Manage Jenkins
    - No root-level link visible
 
@@ -102,7 +102,7 @@ mvn hpi:run
    - Can **view** Global and Item roles in read-only mode
 
 5. **agent-admin-sysread / agent-admin-sysread**
-   - Go to "Manage Jenkins" ’ "Manage and Assign Roles"
+   - Go to "Manage Jenkins" ï¿½ "Manage and Assign Roles"
    - Same editing capabilities as `agent-admin`, but accessed via Manage Jenkins
 
 6. **both-admin / both-admin**
@@ -111,7 +111,7 @@ mvn hpi:run
    - Can **view** Global roles in read-only mode
 
 7. **both-admin-sysread / both-admin-sysread**
-   - Go to "Manage Jenkins" ’ "Manage and Assign Roles"
+   - Go to "Manage Jenkins" ï¿½ "Manage and Assign Roles"
    - Same editing capabilities as `both-admin`, but accessed via Manage Jenkins
 
 ## Expected Behavior
