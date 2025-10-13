@@ -115,12 +115,16 @@ Once enabled, these permissions can be assigned in global roles just like any ot
 * **ITEM_ROLES_ADMIN**: Access and modify the "Item Roles" and "Permission Templates" tabs in the role management UI, and use the corresponding REST API endpoints
 * **AGENT_ROLES_ADMIN**: Access and modify the "Agent Roles" tab in the role management UI, and use the corresponding REST API endpoints
 
-Users with these permissions also need `Jenkins.SYSTEM_READ` to access the role management pages (`$JENKINS_URL/manage/role-strategy/`).
+Users with these permissions also need `Jenkins.SYSTEM_READ` to access the role management pages via the "Manage Jenkins" menu (`$JENKINS_URL/manage/role-strategy/`).
+
+Users **without** `Jenkins.SYSTEM_READ` can access role management through a root-level link that appears on the Jenkins dashboard (`$JENKINS_URL/role-strategy/`).
 
 The `Jenkins.SYSTEM_READ` permission can be enabled either via a system property or by using the [Extended Read Permission Plugin](https://plugins.jenkins.io/extended-read-permission/).
 
 > [!NOTE]
 > These permissions are alternatives to `Jenkins.ADMINISTER` for role management tasks. Users with `Jenkins.ADMINISTER` always have full access to all role management functionality.
+
+For a detailed guide on setting up and testing delegated role management, including example configurations and test scenarios, see [Delegating Role Management](./docs/delegating-role-management/README.md).
 
 ### Getting roles in pipelines
 There are 2 steps available in pipeline jobs that allow to get the roles of the user running the build.
@@ -192,4 +196,5 @@ an init hook script.
 
 * [Changelog](https://github.com/jenkinsci/role-strategy-plugin/releases)
 * [Macro extensions](./docs/MACROS.md)
+* [Delegating role management](./docs/delegating-role-management/README.md)
 * [Developer documentation](./docs/DEVELOPER.md)

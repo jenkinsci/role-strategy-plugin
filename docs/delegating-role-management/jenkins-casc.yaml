@@ -1,0 +1,204 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      permissionTemplates:
+      - name: "read-build-template"
+        permissions:
+        - "Job/Cancel"
+        - "Job/Build"
+        - "Job/Read"
+      - name: "configure-template"
+        permissions:
+        - "Job/Cancel"
+        - "Job/Build"
+        - "Job/Read"
+        - "Job/Configure"
+      roles:
+        global:
+        # Full administrator
+        - name: "admin"
+          pattern: ".*"
+          permissions:
+          - "Overall/Read"
+          - "Overall/Administer"
+          entries:
+          - user: "admin"
+
+        # Item admin without SYSTEM_READ (will see root-level link)
+        - name: "item-admin-role"
+          pattern: ".*"
+          permissions:
+          - "Overall/Read"
+          - "Role Based Strategy/ItemRoles"
+          entries:
+          - user: "item-admin"
+
+        # Item admin with SYSTEM_READ (will see management link)
+        - name: "item-admin-sysread-role"
+          pattern: ".*"
+          permissions:
+          - "Overall/Read"
+          - "Overall/SystemRead"
+          - "Role Based Strategy/ItemRoles"
+          entries:
+          - user: "item-admin-sysread"
+
+        # Agent admin without SYSTEM_READ (will see root-level link)
+        - name: "agent-admin-role"
+          pattern: ".*"
+          permissions:
+          - "Overall/Read"
+          - "Role Based Strategy/AgentRoles"
+          entries:
+          - user: "agent-admin"
+
+        # Agent admin with SYSTEM_READ (will see management link)
+        - name: "agent-admin-sysread-role"
+          pattern: ".*"
+          permissions:
+          - "Overall/Read"
+          - "Overall/SystemRead"
+          - "Role Based Strategy/AgentRoles"
+          entries:
+          - user: "agent-admin-sysread"
+
+        # Both permissions without SYSTEM_READ (will see root-level link)
+        - name: "both-admin-role"
+          pattern: ".*"
+          permissions:
+          - "Overall/Read"
+          - "Role Based Strategy/ItemRoles"
+          - "Role Based Strategy/AgentRoles"
+          entries:
+          - user: "both-admin"
+
+        # Both permissions with SYSTEM_READ (will see management link)
+        - name: "both-admin-sysread-role"
+          pattern: ".*"
+          permissions:
+          - "Overall/Read"
+          - "Overall/SystemRead"
+          - "Role Based Strategy/ItemRoles"
+          - "Role Based Strategy/AgentRoles"
+          entries:
+          - user: "both-admin-sysread"
+
+        items:
+        # Example item roles that can be managed by item admins
+        - name: "project-a-developers"
+          pattern: "project-a.*"
+          permissions:
+          - "Job/Read"
+          - "Job/Build"
+          - "Job/Cancel"
+          entries:
+          - user: "item-admin"
+
+        - name: "project-b-maintainers"
+          pattern: "project-b.*"
+          permissions:
+          - "Job/Read"
+          - "Job/Build"
+          - "Job/Configure"
+          - "Job/Delete"
+          entries:
+          - user: "item-admin-sysread"
+
+        agents:
+        # Example agent roles that can be managed by agent admins
+        - name: "linux-nodes"
+          pattern: "linux-.*"
+          permissions:
+          - "Agent/Build"
+          - "Agent/Configure"
+          entries:
+          - user: "agent-admin"
+
+        - name: "windows-nodes"
+          pattern: "windows-.*"
+          permissions:
+          - "Agent/Build"
+          - "Agent/Connect"
+          - "Agent/Configure"
+          entries:
+          - user: "agent-admin-sysread"
+
+  nodes:
+  - permanent:
+      labelString: "linux"
+      launcher:
+        inbound:
+          workDirSettings:
+            disabled: false
+            failIfWorkDirIsMissing: false
+            internalDir: "remoting"
+      name: "linux-node-1"
+      remoteFS: "/tmp/linux-node-1"
+      retentionStrategy: "always"
+  - permanent:
+      labelString: "windows"
+      launcher:
+        inbound:
+          workDirSettings:
+            disabled: false
+            failIfWorkDirIsMissing: false
+            internalDir: "remoting"
+      name: "windows-node-1"
+      remoteFS: "/tmp/windows-node-1"
+      retentionStrategy: "always"
+
+  numExecutors: 2
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      enableCaptcha: false
+      users:
+      - id: "admin"
+        name: "admin"
+        password: "admin"
+        properties:
+        - mailer:
+            emailAddress: "admin@example.com"
+
+      - id: "item-admin"
+        name: "item-admin"
+        password: "item-admin"
+        properties:
+        - mailer:
+            emailAddress: "item-admin@example.com"
+
+      - id: "item-admin-sysread"
+        name: "item-admin-sysread"
+        password: "item-admin-sysread"
+        properties:
+        - mailer:
+            emailAddress: "item-admin-sysread@example.com"
+
+      - id: "agent-admin"
+        name: "agent-admin"
+        password: "agent-admin"
+        properties:
+        - mailer:
+            emailAddress: "agent-admin@example.com"
+
+      - id: "agent-admin-sysread"
+        name: "agent-admin-sysread"
+        password: "agent-admin-sysread"
+        properties:
+        - mailer:
+            emailAddress: "agent-admin-sysread@example.com"
+
+      - id: "both-admin"
+        name: "both-admin"
+        password: "both-admin"
+        properties:
+        - mailer:
+            emailAddress: "both-admin@example.com"
+
+      - id: "both-admin-sysread"
+        name: "both-admin-sysread"
+        password: "both-admin-sysread"
+        properties:
+        - mailer:
+            emailAddress: "both-admin-sysread@example.com"
