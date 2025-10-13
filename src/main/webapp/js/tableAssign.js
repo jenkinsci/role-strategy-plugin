@@ -583,35 +583,43 @@ Behaviour.specify("#rsp-roles-apply", "RoleBasedAuthorizationStrategy", 0, funct
 
 document.addEventListener('DOMContentLoaded', function() {
 
+  const dataHolder = document.getElementById("assign-roles");
+  maxRows = parseInt(dataHolder.dataset.maxRows);
+
   // global roles initialization
   const globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
-  if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
-      globalRoleInputFilter.style.display = "block"
-  }
-  const globalUserInputFilter = document.getElementById('globalUserInputFilter');
-  if (parseInt(globalUserInputFilter.getAttribute("data-initial-size")) >= 10) {
-      globalUserInputFilter.style.display = "block"
-  }
+  if (globalRoleInputFilter) {
+    if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+        globalRoleInputFilter.style.display = "block"
+    }
+    const globalUserInputFilter = document.getElementById('globalUserInputFilter');
+    if (globalUserInputFilter && parseInt(globalUserInputFilter.getAttribute("data-initial-size")) >= 10) {
+        globalUserInputFilter.style.display = "block"
+    }
 
-  globalTableHighlighter = new TableHighlighter('globalRoles', 0);
+    globalTableHighlighter = new TableHighlighter('globalRoles', 0);
+    loadTable("globalRoles", "globalRoles");
+  }
 
   // item roles initialization
   const itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
-  if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
-      itemRoleInputFilter.style.display = "block"
-  }
-  let itemUserInputFilter = document.getElementById('itemUserInputFilter');
-  if (parseInt(itemUserInputFilter.getAttribute("data-initial-size")) >= 10) {
-      itemUserInputFilter.style.display = "block"
-  }
+  if (itemRoleInputFilter) {
+    if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+        itemRoleInputFilter.style.display = "block"
+    }
+    const itemUserInputFilter = document.getElementById('itemUserInputFilter');
+    if (itemUserInputFilter && parseInt(itemUserInputFilter.getAttribute("data-initial-size")) >= 10) {
+        itemUserInputFilter.style.display = "block"
+    }
 
-  itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+    itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+    loadTable("projectRoles", "projectRoles");
+  }
 
   // agent roles initialization
-  agentTableHighlighter = new TableHighlighter('agentRoles', 0);
-  const dataHolder = document.getElementById("assign-roles");
-  maxRows = parseInt(dataHolder.dataset.maxRows);
-  loadTable("globalRoles", "globalRoles");
-  loadTable("projectRoles", "projectRoles");
-  loadTable("agentRoles", "slaveRoles");
+  const agentRolesTable = document.getElementById('agentRoles');
+  if (agentRolesTable) {
+    agentTableHighlighter = new TableHighlighter('agentRoles', 0);
+    loadTable("agentRoles", "slaveRoles");
+  }
 });
