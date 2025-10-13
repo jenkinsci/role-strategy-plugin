@@ -36,10 +36,10 @@
 
         <j:choose>
           <j:when test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}">
-            <j:set var="readOnlyModeItemRoles" value="false" />
+            <j:set var="readOnlyMode" value="false" />
           </j:when>
           <j:otherwise>
-            <j:set var="readOnlyModeItemRoles" value="true" />
+            <j:set var="readOnlyMode" value="true" />
           </j:otherwise>
         </j:choose>
 
@@ -102,7 +102,7 @@
         </div>
         <f:rowSet name="permissionTemplates">
           <table id="${tableid}"
-                 class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyModeItemsRoles ? 'read-only' : ''}"
+                 class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}"
                  name="data">
 
             <!-- The first row will show grouping -->

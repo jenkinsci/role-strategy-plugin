@@ -30,30 +30,6 @@
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
     <l:layout permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" norefresh="true" title="${%Manage Roles}">
       <l:breadcrumb title="Manage Roles"/>
-        <j:choose>
-          <j:when test="${app.hasPermission(app.ADMINISTER)}">
-            <j:set var="readOnlyModeGlobalRoles" value="false" />
-          </j:when>
-          <j:otherwise>
-            <j:set var="readOnlyModeGlobalRoles" value="true" />
-          </j:otherwise>
-        </j:choose>
-        <j:choose>
-          <j:when test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}">
-            <j:set var="readOnlyModeItemRoles" value="false" />
-          </j:when>
-          <j:otherwise>
-            <j:set var="readOnlyModeItemRoles" value="true" />
-          </j:otherwise>
-        </j:choose>
-        <j:choose>
-          <j:when test="${app.hasPermission(it.strategy.AGENT_ROLES_ADMIN)}">
-            <j:set var="readOnlyModeAgentRoles" value="false" />
-          </j:when>
-          <j:otherwise>
-            <j:set var="readOnlyModeAgentRoles" value="true" />
-          </j:otherwise>
-        </j:choose>
         <st:include page="sidepanel.jelly"/>
         <l:main-panel>
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
@@ -236,21 +212,30 @@
             </h1>
             <button class="default-hidden" id="rs-dirty-indicator"/>
 
-            <f:section title="${%Global roles}">
-              <f:rowSet name="globalRoles">
-                <f:block><st:include page="manage-global-roles.jelly" optional="true" /></f:block>
-              </f:rowSet>
-            </f:section>
-            <f:section title="${%Item roles}">
-              <f:rowSet name="projectRoles">
-                <f:block><st:include page="manage-project-roles.jelly" optional="true" /></f:block>
-              </f:rowSet>
-            </f:section>
-            <f:section title="${%Agent roles}">
-              <f:rowSet name="slaveRoles">
-                <f:block><st:include page="manage-agent-roles.jelly" optional="true" /></f:block>
-              </f:rowSet>
-            </f:section>
+            <j:if test="${app.hasPermission(app.ADMINISTER) or app.hasPermission(app.SYSTEM_READ)}">
+              <f:section title="${%Global roles}">
+                <j:set var="readOnlyMode" value="${!app.hasPermission(app.ADMINISTER)}" />
+                <f:rowSet name="globalRoles">
+                  <f:block><st:include page="manage-global-roles.jelly" optional="true" /></f:block>
+                </f:rowSet>
+              </f:section>
+            </j:if>
+            <j:if test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN) or app.hasPermission(app.SYSTEM_READ)}">
+              <f:section title="${%Item roles}">
+                <j:set var="readOnlyMode" value="${!app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}" />
+                <f:rowSet name="projectRoles">
+                  <f:block><st:include page="manage-project-roles.jelly" optional="true" /></f:block>
+                </f:rowSet>
+              </f:section>
+            </j:if>
+            <j:if test="${app.hasPermission(it.strategy.AGENT_ROLES_ADMIN) or app.hasPermission(app.SYSTEM_READ)}">
+              <f:section title="${%Agent roles}">
+                <j:set var="readOnlyMode" value="${!app.hasPermission(it.strategy.AGENT_ROLES_ADMIN)}" />
+                <f:rowSet name="slaveRoles">
+                  <f:block><st:include page="manage-agent-roles.jelly" optional="true" /></f:block>
+                </f:rowSet>
+              </f:section>
+            </j:if>
             <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
               <f:bottomButtonBar>
                 <f:submit value="${%Save}" />

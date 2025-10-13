@@ -1428,7 +1428,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
 
-      if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
+      if (oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
         Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
 
         for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
@@ -1436,6 +1436,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           // if no permission, take the globalRoles from the oldStrategy
           try {
             checkPermByRoleTypeForUpdates(roleTypeAsString);
+            LOGGER.info("Saving assignments for " + roleTypeAsString);
           } catch (AccessDeniedException ignore) {
             LOGGER.info("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
             continue;
@@ -1508,7 +1509,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
-      if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+      if ((formData.has(GLOBAL) || formData.has(PROJECT) || formData.has(SLAVE)) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
         readRoles(formData, RoleType.Global, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
         readRoles(formData, RoleType.Project, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
@@ -1549,19 +1550,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     private void readRoles(JSONObject formData, final RoleType roleType, RoleBasedAuthorizationStrategy targetStrategy,
         RoleBasedAuthorizationStrategy oldStrategy) {
       final String roleTypeAsString = roleType.getStringType();
+      // if no permission, take the roles from the oldStrategy
+      try {
+        checkPermByRoleTypeForUpdates(roleTypeAsString);
+        LOGGER.info("Saving roles for " + roleTypeAsString);
+      } catch (AccessDeniedException ignore) {
+        LOGGER.info("Not enough permissions to save roles for " + roleTypeAsString + ". Copying roles from old strategy.");
+        copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
+        return;
+      }
+      // Check if there's data for the role type in the form
+      if (!formData.has(roleTypeAsString)) {
+        LOGGER.log(Level.INFO, "Form data does not contain " + roleTypeAsString + ". Copying roles from old strategy.");
+        copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
+        return;
+      }
       JSONObject roles = formData.getJSONObject(roleTypeAsString);
       if (!roles.containsKey("data")) {
         assert false : "No data at role description";
         return;
       }
-      // if no permission, take the roles from the oldStrategy
-      try {
-        checkPermByRoleTypeForUpdates(roleTypeAsString);
-      } catch (AccessDeniedException ignore) {
-        LOGGER.log(Level.INFO, "Not enough permissions to save roles for " + roleTypeAsString + ". Copying roles from old strategy.");
-        copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
-        return;
-      }
+      // Continue processing the roles
       RoleMap roleMap = oldStrategy.getRoleMap(roleType);
 
       for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {

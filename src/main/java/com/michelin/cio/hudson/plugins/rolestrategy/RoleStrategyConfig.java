@@ -204,7 +204,9 @@ public class RoleStrategyConfig extends ManagementLink {
     } else {
       rolesMapping = json.getJSONObject("rolesMapping");
     }
-    rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
+    if (rolesMapping.has("agentRoles")) {
+      rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
+    }
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
     FormApply.success(".").generateResponse(req, rsp, this);
   }

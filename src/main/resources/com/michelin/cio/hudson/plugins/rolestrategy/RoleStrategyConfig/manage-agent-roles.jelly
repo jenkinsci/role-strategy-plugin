@@ -34,7 +34,7 @@
   <j:set var="tableid" value="agentRoles"/>
   <j:set var="neededPermission" value="${it.strategy.AGENT_ROLES_ADMIN}"/>
 
-  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyModeAgentRoles ? 'read-only' : ''}" name="data">
+  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
     <local:thead permissionGroups="${agentGroups}" showRoleName="${true}" showPattern="${true}" strategy="${it.strategy.SLAVE}" neededPermission="${neededPermission}"/>
     <tbody>

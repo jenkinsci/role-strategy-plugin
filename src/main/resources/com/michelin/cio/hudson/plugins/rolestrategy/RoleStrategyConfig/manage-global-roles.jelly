@@ -37,7 +37,7 @@
       <input id="globalRoleInput" class="row-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
   </div>
-  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width center-align role-strategy-table ${readOnlyModeGlobalRoles ? 'read-only' : ''}" name="data">
+  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width center-align role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
       <!-- The first row shows grouping -->
     <local:thead permissionGroups="${globalPermissionGroups}" showRoleName="${true}" showPattern="${false}" strategy="${it.strategy.GLOBAL}" neededPermission="${neededPermission}"/>

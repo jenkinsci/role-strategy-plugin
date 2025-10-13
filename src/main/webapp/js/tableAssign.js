@@ -116,7 +116,7 @@ Behaviour.specify(
   }
 );
 
-function insertRow(template, tbody, tableHighlighter, name, type, roles, title, icon) {
+function insertRow(template, tbody, tableHighlighter, name, type, roles, title, icon, isReadOnly) {
   const copy = template.cloneNode(true);
   const removeDeleteButton = title != null;
   const children = copy.childNodes;
@@ -128,18 +128,35 @@ function insertRow(template, tbody, tableHighlighter, name, type, roles, title, 
     item.outerHTML= item.outerHTML.replace(/{{USER}}/g, doubleEscapeHTML(name)).replace(/{{USERGROUP}}/g, tooltipDescription);
   });
 
-  if (removeDeleteButton) {
+  if (removeDeleteButton || isReadOnly) {
     copy.classList.remove("permission-row");
   }
   copy.dataset.name = name;
   copy.dataset.type = type;
+
+  // Handle start/stop columns and delete buttons
+  const elementsToRemove = [];
   children.forEach(function(item) {
-    if (removeDeleteButton) {
+    // In read-only mode, remove the entire start/stop columns
+    if (isReadOnly && item.classList && (item.classList.contains("start") || item.classList.contains("stop"))) {
+      elementsToRemove.push(item);
+    }
+    // For fixed entries (not read-only), just remove the delete buttons but keep the columns
+    else if (removeDeleteButton) {
       const removeButtons = item.querySelectorAll(".rsp-remove");
       removeButtons.forEach((r) => {
         r.remove();
       });
     }
+  });
+
+  // Remove collected elements
+  elementsToRemove.forEach(function(element) {
+    element.remove();
+  });
+
+  // Check role assignments and set checkboxes
+  children.forEach(function(item) {
     const roleName = item.dataset.roleName;
     if (roles !== null && roleName !== null && roles.indexOf(roleName) != -1) {
       const input = item.querySelector("input");
@@ -206,7 +223,9 @@ function addButtonAction(button, template, table, tableHighlighter) {
       return;
     }
 
-    insertRow(template, tbody, tableHighlighter, name, type, [], null, null)
+    // Check if table is in read-only mode (though add button shouldn't be visible in read-only)
+    const isReadOnly = table.classList.contains("read-only");
+    insertRow(template, tbody, tableHighlighter, name, type, [], null, null, isReadOnly)
     addPermissionEntry(json, name, type);
     const container = table.closest(".rsp-roles-container");
     const roleInputFilter = container.querySelector(".role-input-filter");
@@ -512,6 +531,9 @@ function showEntries(tableId, json, startPage) {
   const tbody = document.createElement("tbody");
   const template = document.getElementById(container.dataset.template).content.firstElementChild;
 
+  // Check if table is in read-only mode
+  const isReadOnly = table.classList.contains("read-only");
+
   const start = startPage * maxRows;
   const end = Math.min(start + maxRows, json.length);
   for (let i = start; i < end; i++) {
@@ -521,7 +543,7 @@ function showEntries(tableId, json, startPage) {
     const roles = line["roles"];
     const title = line["title"];
     const icon = line["icon"];
-    insertRow(template, tbody, tableHighLighter, name, type, roles, title, icon);
+    insertRow(template, tbody, tableHighLighter, name, type, roles, title, icon, isReadOnly);
   }
   table.replaceChild(tbody, table.tBodies[0]);
   Behaviour.applySubtree(table, true);
@@ -583,35 +605,43 @@ Behaviour.specify("#rsp-roles-apply", "RoleBasedAuthorizationStrategy", 0, funct
 
 document.addEventListener('DOMContentLoaded', function() {
 
+  const dataHolder = document.getElementById("assign-roles");
+  maxRows = parseInt(dataHolder.dataset.maxRows);
+
   // global roles initialization
   const globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
-  if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
-      globalRoleInputFilter.style.display = "block"
-  }
-  const globalUserInputFilter = document.getElementById('globalUserInputFilter');
-  if (parseInt(globalUserInputFilter.getAttribute("data-initial-size")) >= 10) {
-      globalUserInputFilter.style.display = "block"
-  }
+  if (globalRoleInputFilter) {
+    if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+        globalRoleInputFilter.style.display = "block"
+    }
+    const globalUserInputFilter = document.getElementById('globalUserInputFilter');
+    if (globalUserInputFilter && parseInt(globalUserInputFilter.getAttribute("data-initial-size")) >= 10) {
+        globalUserInputFilter.style.display = "block"
+    }
 
-  globalTableHighlighter = new TableHighlighter('globalRoles', 0);
+    globalTableHighlighter = new TableHighlighter('globalRoles', 0);
+    loadTable("globalRoles", "globalRoles");
+  }
 
   // item roles initialization
   const itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
-  if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
-      itemRoleInputFilter.style.display = "block"
-  }
-  let itemUserInputFilter = document.getElementById('itemUserInputFilter');
-  if (parseInt(itemUserInputFilter.getAttribute("data-initial-size")) >= 10) {
-      itemUserInputFilter.style.display = "block"
-  }
+  if (itemRoleInputFilter) {
+    if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= 10) {
+        itemRoleInputFilter.style.display = "block"
+    }
+    const itemUserInputFilter = document.getElementById('itemUserInputFilter');
+    if (itemUserInputFilter && parseInt(itemUserInputFilter.getAttribute("data-initial-size")) >= 10) {
+        itemUserInputFilter.style.display = "block"
+    }
 
-  itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+    itemTableHighlighter = new TableHighlighter('projectRoles', 0);
+    loadTable("projectRoles", "projectRoles");
+  }
 
   // agent roles initialization
-  agentTableHighlighter = new TableHighlighter('agentRoles', 0);
-  const dataHolder = document.getElementById("assign-roles");
-  maxRows = parseInt(dataHolder.dataset.maxRows);
-  loadTable("globalRoles", "globalRoles");
-  loadTable("projectRoles", "projectRoles");
-  loadTable("agentRoles", "slaveRoles");
+  const agentRolesTable = document.getElementById('agentRoles');
+  if (agentRolesTable) {
+    agentTableHighlighter = new TableHighlighter('agentRoles', 0);
+    loadTable("agentRoles", "slaveRoles");
+  }
 });
