@@ -454,6 +454,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     instance().checkAnyPermission(permission);
   }
 
+    private static boolean hasPermissionByRoleTypeForUpdates(String roleTypeAsString) {
+      switch (roleTypeAsString) {
+        case RoleBasedAuthorizationStrategy.GLOBAL:
+          return instance().hasPermission(Jenkins.ADMINISTER);
+        case RoleBasedAuthorizationStrategy.PROJECT:
+          return instance().hasAnyPermission(ITEM_ROLES_ADMIN);
+        case RoleBasedAuthorizationStrategy.SLAVE:
+          return instance().hasAnyPermission(AGENT_ROLES_ADMIN);
+        default:
+          throw new IllegalArgumentException("Unknown RoleType: " + roleTypeAsString);
+      }
+    }
+
+
+
   private static void checkPermByRoleTypeForUpdates(@NonNull String roleType) {
     switch (roleType) {
       case RoleBasedAuthorizationStrategy.GLOBAL:
@@ -1434,13 +1449,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
           final String roleTypeAsString = map.getKey().getStringType();
           // if no permission, take the globalRoles from the oldStrategy
-          try {
-            checkPermByRoleTypeForUpdates(roleTypeAsString);
-            LOGGER.fine("Saving assignments for " + roleTypeAsString);
-          } catch (AccessDeniedException ignore) {
+          if (!hasPermissionByRoleTypeForUpdates(roleTypeAsString)) {
             LOGGER.fine("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
             continue;
           }
+          LOGGER.fine("Saving assignments for " + roleTypeAsString);
 
           // Get roles and skip non-existent role entries (backward-comp)
           RoleMap roleMap = map.getValue();
@@ -1551,10 +1564,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         RoleBasedAuthorizationStrategy oldStrategy) {
       final String roleTypeAsString = roleType.getStringType();
       // if no permission, take the roles from the oldStrategy
-      try {
-        checkPermByRoleTypeForUpdates(roleTypeAsString);
-        LOGGER.fine("Saving roles for " + roleTypeAsString);
-      } catch (AccessDeniedException ignore) {
+      if (!hasPermissionByRoleTypeForUpdates(roleTypeAsString)) {
         LOGGER.fine("Not enough permissions to save roles for " + roleTypeAsString + ". Copying roles from old strategy.");
         copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
         return;
@@ -1570,6 +1580,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         assert false : "No data at role description";
         return;
       }
+      LOGGER.fine("Saving roles for " + roleTypeAsString);
       // Continue processing the roles
       RoleMap roleMap = oldStrategy.getRoleMap(roleType);
 
