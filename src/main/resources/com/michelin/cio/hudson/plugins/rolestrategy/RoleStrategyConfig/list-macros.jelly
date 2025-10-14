@@ -69,7 +69,7 @@
         </d:tag>
     </d:taglib>
     
-    <l:layout title="${%Role-Strategy Macros Info}" permission="${app.SYSTEM_READ}" norefresh="true">
+    <l:layout title="${%Role-Strategy Macros Info}" permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" norefresh="true">
         <l:breadcrumb title="Macros"/>
         <st:include page="sidepanel.jelly"/>
         
