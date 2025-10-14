@@ -25,7 +25,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <l:layout permissions="${app.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" norefresh="true" title="${%Permission Templates}">
+  <l:layout permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" norefresh="true" title="${%Permission Templates}">
     <l:breadcrumb title="Permission Templates"/>
 
     <st:include page="sidepanel.jelly"/>
