@@ -29,9 +29,9 @@
   <j:set var="tableid" value="projectRoles"/>
   <j:set var="projectSIDs" value="${it.strategy.getSidEntries(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
+  <j:set var="neededPermission" value="${it.strategy.ITEM_ROLES_ADMIN}"/>
 
-
-  <local:table id="${tableid}" roles="${itemGrantedRoles}" showPattern="true" template="newItemRowTemplate" highlighter="itemTableHighlighter">
+  <local:table id="${tableid}" roles="${itemGrantedRoles}" showPattern="true" template="newItemRowTemplate" highlighter="itemTableHighlighter" neededPermission="${neededPermission}">
     <j:if test="${rspMode == 'rsp-filters'}">
       <div id="itemUserInputFilter" data-table-id="${tableid}" data-initial-size="${projectSIDs.size()}" class="user-filter">
         <f:entry title="${%Filter by User/Group}">
@@ -48,13 +48,13 @@
       <local:navigationButtons/>
       <template id="newItemRowTemplate">
         <tr class="permission-row highlight-row" data-descriptor-url="${descriptorPath}">
-          <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}" typedescription="{{USERGROUP}}"/>
+          <local:userRow title="{{USER}}" type="${it.strategy.PROJECT}" typedescription="{{USERGROUP}}" neededPermission="${neededPermission}"/>
         </tr>
       </template>
 
-      <l:isAdmin>
+      <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
         <local:addButtons sids="${projectSIDs}" tableid="${tableid}" id="newItemRowTemplate" roles="${itemGrantedRoles}" highlighter="itemTableHighlighter"/>
-      </l:isAdmin>
+      </l:hasPermission>
     </j:if>
   </local:table>
 

@@ -38,6 +38,7 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Util;
@@ -57,6 +58,7 @@ import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
+import hudson.security.PermissionScope;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import hudson.util.FormValidation;
@@ -81,6 +83,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.acegisecurity.acls.sid.PrincipalSid;
@@ -97,6 +100,7 @@ import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.GET;
 import org.kohsuke.stapler.verb.POST;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Role-based authorization strategy.
@@ -119,6 +123,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap globalRoles;
   private final RoleMap itemRoles;
   private Map<String, PermissionTemplate> permissionTemplates;
+
+  private static final boolean USE_ITEM_AND_AGENT_ROLES = SystemProperties.getBoolean(
+            RoleBasedAuthorizationStrategy.class.getName() + ".useItemAndAgentRoles", false);
 
   /**
    * Create new RoleBasedAuthorizationStrategy.
@@ -164,6 +171,38 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     itemRoles = map == null ? new RoleMap() : map;
     refreshPermissionsFromTemplate();
   }
+
+  public static final PermissionGroup GROUP =
+          new PermissionGroup(RoleBasedAuthorizationStrategy.class, Messages._RoleBasedAuthorizationStrategy_PermissionGroupTitle());
+
+  public static final Permission ITEM_ROLES_ADMIN = new Permission(
+          GROUP,
+          "ItemRoles",
+          Messages._RoleBasedAuthorizationStrategy_ItemRolesAdminPermissionDescription(),
+          Jenkins.ADMINISTER,
+          USE_ITEM_AND_AGENT_ROLES,
+          new PermissionScope[]{PermissionScope.JENKINS});
+
+  public static final Permission AGENT_ROLES_ADMIN = new Permission(
+          GROUP,
+          "AgentRoles",
+          Messages._RoleBasedAuthorizationStrategy_AgentRolesAdminPermissionDescription(),
+          Jenkins.ADMINISTER,
+          USE_ITEM_AND_AGENT_ROLES,
+          new PermissionScope[]{PermissionScope.JENKINS});
+
+  @Restricted(NoExternalUse.class) // called by jelly
+  public static final Permission[] SYSTEM_READ_AND_ITEM_ROLES_ADMIN =
+          new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
+
+  @Restricted(NoExternalUse.class) // called by jelly
+  public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
+          new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
+
+  @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Used by jelly pages")
+  @Restricted(NoExternalUse.class) // called by jelly
+  public static final Permission[] ADMINISTER_AND_SOME_ROLES_ADMIN =
+          new Permission[] { Jenkins.ADMINISTER, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
   /**
    * Refresh item permissions from templates.
@@ -411,6 +450,57 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     instance().checkPermission(Jenkins.ADMINISTER);
   }
 
+  private static void checkPerms(@NonNull Permission... permission) {
+    instance().checkAnyPermission(permission);
+  }
+
+  private static boolean hasPermissionByRoleTypeForUpdates(String roleTypeAsString) {
+    switch (roleTypeAsString) {
+      case RoleBasedAuthorizationStrategy.GLOBAL:
+        return instance().hasPermission(Jenkins.ADMINISTER);
+      case RoleBasedAuthorizationStrategy.PROJECT:
+        return instance().hasAnyPermission(ITEM_ROLES_ADMIN);
+      case RoleBasedAuthorizationStrategy.SLAVE:
+        return instance().hasAnyPermission(AGENT_ROLES_ADMIN);
+      default:
+        throw new IllegalArgumentException("Unknown RoleType: " + roleTypeAsString);
+    }
+  }
+
+
+
+  private static void checkPermByRoleTypeForUpdates(@NonNull String roleType) {
+    switch (roleType) {
+      case RoleBasedAuthorizationStrategy.GLOBAL:
+        checkAdminPerm();
+        break;
+      case RoleBasedAuthorizationStrategy.PROJECT:
+        checkPerms(ITEM_ROLES_ADMIN);
+        break;
+      case RoleBasedAuthorizationStrategy.SLAVE:
+        checkPerms(AGENT_ROLES_ADMIN);
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown RoleType: " + roleType);
+    }
+  }
+
+  private static void checkPermByRoleTypeForReading(@NonNull String roleType) {
+    switch (roleType) {
+      case RoleBasedAuthorizationStrategy.GLOBAL:
+        checkPerms(Jenkins.SYSTEM_READ);
+        break;
+      case RoleBasedAuthorizationStrategy.PROJECT:
+        checkPerms(Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN);
+        break;
+      case RoleBasedAuthorizationStrategy.SLAVE:
+        checkPerms(Jenkins.SYSTEM_READ, AGENT_ROLES_ADMIN);
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown RoleType: " + roleType);
+    }
+  }
+
   /**
    * API method to add a permission template.
    *
@@ -427,7 +517,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                             @QueryParameter(required = true) String permissionIds,
                             @QueryParameter(required = false) boolean overwrite)
           throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(PROJECT);
     List<String> permissionList = Arrays.asList(permissionIds.split(","));
     Set<Permission> permissionSet = PermissionHelper.fromStrings(permissionList, true);
     PermissionTemplate template = new PermissionTemplate(permissionSet, name);
@@ -454,7 +544,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doRemoveTemplates(@QueryParameter(required = true) String names,
                                 @QueryParameter(required = false) boolean force) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(PROJECT);
     String[] split = names.split(",");
     for (String templateName : split) {
       templateName = templateName.trim();
@@ -503,7 +593,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       @QueryParameter(required = true) String overwrite,
       @QueryParameter(required = false) String pattern,
       @QueryParameter(required = false) String template) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
 
     final boolean overwriteb = Boolean.parseBoolean(overwrite);
     String pttrn = ".*";
@@ -556,7 +646,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doRemoveRoles(@QueryParameter(required = true) String type, @QueryParameter(required = true) String roleNames)
       throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
 
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
     String[] split = roleNames.split(",");
@@ -591,7 +681,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doAssignRole(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String sid) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     final RoleType roleType = RoleType.fromString(type);
     Role role = getRoleMap(roleType).getRole(roleName);
     if (role != null) {
@@ -619,7 +709,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doAssignUserRole(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String user) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     final RoleType roleType = RoleType.fromString(type);
     Role role = getRoleMap(roleType).getRole(roleName);
     if (role != null) {
@@ -647,7 +737,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doAssignGroupRole(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String group) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     final RoleType roleType = RoleType.fromString(type);
     Role role = getRoleMap(roleType).getRole(roleName);
     if (role != null) {
@@ -673,7 +763,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doDeleteSid(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String sid) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.EITHER, sid));
     persistChanges();
   }
@@ -694,7 +784,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doDeleteUser(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String user) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.USER, user));
     persistChanges();
   }
@@ -715,7 +805,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doDeleteGroup(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String group) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     getRoleMap(RoleType.fromString(type)).deleteSids(new PermissionEntry(AuthorizationType.GROUP, group));
     persistChanges();
   }
@@ -743,7 +833,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doUnassignRole(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String sid) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
     Role role = roleMap.getRole(roleName);
     if (role != null) {
@@ -771,7 +861,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doUnassignUserRole(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String user) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
     Role role = roleMap.getRole(roleName);
     if (role != null) {
@@ -799,7 +889,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doUnassignGroupRole(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String roleName,
       @QueryParameter(required = true) String group) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForUpdates(type);
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
     Role role = roleMap.getRole(roleName);
     if (role != null) {
@@ -834,7 +924,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @GET
   @Restricted(NoExternalUse.class)
   public void doGetTemplate(@QueryParameter(required = true) String name) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForReading(PROJECT);
     JSONObject responseJson = new JSONObject();
 
     PermissionTemplate template = permissionTemplates.get(name);
@@ -889,7 +979,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doGetRole(@QueryParameter(required = true) String type,
       @QueryParameter(required = true) String roleName) throws IOException {
-    checkAdminPerm();
+    checkPermByRoleTypeForReading(type);
     JSONObject responseJson = new JSONObject();
     RoleMap roleMap = getRoleMap(RoleType.fromString(type));
     Role role = roleMap.getRole(roleName);
@@ -940,13 +1030,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @GET
   @Restricted(NoExternalUse.class)
   public void doGetAllRoles(@QueryParameter(fixEmpty = true) String type) throws IOException {
-    checkAdminPerm();
-    JSONObject responseJson = new JSONObject();
-    RoleMap roleMap = getRoleMap(RoleType.Global);
-    if (type != null) {
-      roleMap = getRoleMap(RoleType.fromString(type));
+    if (type == null) {
+      type = RoleType.Global.getStringType();
     }
+    checkPermByRoleTypeForReading(type);
+    RoleMap roleMap = getRoleMap(RoleType.fromString(type));
 
+    JSONObject responseJson = new JSONObject();
     for (Map.Entry<Role, Set<PermissionEntry>> grantedRole : roleMap.getGrantedRolesEntries().entrySet()) {
       responseJson.put(grantedRole.getKey().getName(), grantedRole.getValue());
     }
@@ -989,7 +1079,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @GET
   @Restricted(NoExternalUse.class)
   public void doGetRoleAssignments(@QueryParameter(fixEmpty = true) String type) throws IOException {
-    instance().checkPermission(Jenkins.SYSTEM_READ);
+    if (type == null) {
+      type = RoleType.Global.getStringType();
+    }
+    checkPermByRoleTypeForReading(type);
 
     Set<PermissionEntry> sidEntries = getRoleMap(RoleType.fromString(type)).getSidEntries(true);
 
@@ -1316,7 +1409,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @RequirePOST
     public FormValidation doCheckForWhitespace(@QueryParameter String value) {
-      checkAdminPerm();
+      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
       if (value == null || value.trim().equals(value)) {
         return FormValidation.ok();
       } else {
@@ -1330,7 +1423,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @RequirePOST
     @Restricted(NoExternalUse.class)
     public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
-      checkAdminPerm();
+      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
 
       req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
@@ -1346,14 +1439,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @RequirePOST
     @Restricted(NoExternalUse.class)
     public void doAssignSubmit(JSONObject json) throws ServletException, IOException {
-      checkAdminPerm();
+      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
 
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
 
-      if (json.has(GLOBAL) && json.has(PROJECT) && oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
+      if (oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
         Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
 
         for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
+          final String roleTypeAsString = map.getKey().getStringType();
+          // if no permission, take the globalRoles from the oldStrategy
+          if (!hasPermissionByRoleTypeForUpdates(roleTypeAsString)) {
+            LOGGER.fine("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
+            continue;
+          }
+          LOGGER.fine("Saving assignments for " + roleTypeAsString);
 
           // Get roles and skip non-existent role entries (backward-comp)
           RoleMap roleMap = map.getValue();
@@ -1383,7 +1483,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @RequirePOST
     @Restricted(NoExternalUse.class)
     public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
-      checkAdminPerm();
+      checkPermByRoleTypeForUpdates(PROJECT);
       req.setCharacterEncoding("UTF-8");
       JSONObject json = req.getSubmittedForm();
       AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
@@ -1422,7 +1522,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
       // If the form contains data, it means the method has been called by plugin
       // specifics forms, and we need to handle it.
-      if (formData.has(GLOBAL) && formData.has(PROJECT) && formData.has(SLAVE) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
+      if ((formData.has(GLOBAL) || formData.has(PROJECT) || formData.has(SLAVE)) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
         strategy = new RoleBasedAuthorizationStrategy();
         readRoles(formData, RoleType.Global, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
         readRoles(formData, RoleType.Project, strategy, (RoleBasedAuthorizationStrategy) oldStrategy);
@@ -1446,14 +1546,43 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       return strategy;
     }
 
+    private void copyRolesFromOldStrategy(final RoleType roleType, RoleBasedAuthorizationStrategy targetStrategy,
+        RoleBasedAuthorizationStrategy oldStrategy) {
+      RoleMap roleMap = oldStrategy.getRoleMap(roleType);
+      for (Role role : roleMap.getRoles()) {
+        targetStrategy.addRole(roleType, role);
+        Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(role.getName());
+        if (sids != null) {
+          for (PermissionEntry sid : sids) {
+            targetStrategy.assignRole(roleType, role, sid);
+          }
+        }
+      }
+    }
+
     private void readRoles(JSONObject formData, final RoleType roleType, RoleBasedAuthorizationStrategy targetStrategy,
         RoleBasedAuthorizationStrategy oldStrategy) {
       final String roleTypeAsString = roleType.getStringType();
+      // if no permission, take the roles from the oldStrategy
+      if (!hasPermissionByRoleTypeForUpdates(roleTypeAsString)) {
+        LOGGER.fine("Not enough permissions to save roles for " + roleTypeAsString + ". Copying roles from old strategy.");
+        copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
+        return;
+      }
+      // Check if there's data for the role type in the form
+      if (!formData.has(roleTypeAsString)) {
+        LOGGER.log(Level.INFO, "Form data does not contain " + roleTypeAsString + ". Copying roles from old strategy.");
+        copyRolesFromOldStrategy(roleType, targetStrategy, oldStrategy);
+        return;
+      }
       JSONObject roles = formData.getJSONObject(roleTypeAsString);
       if (!roles.containsKey("data")) {
         assert false : "No data at role description";
         return;
       }
+      LOGGER.fine("Saving roles for " + roleTypeAsString);
+      // Continue processing the roles
+      RoleMap roleMap = oldStrategy.getRoleMap(roleType);
 
       for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>) roles.getJSONObject("data").entrySet()) {
         String pattern = ".*";
@@ -1477,7 +1606,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
         String roleName = r.getKey();
-        RoleMap roleMap = oldStrategy.getRoleMap(roleType);
         Role role = new Role(roleName, Pattern.compile(pattern), permissions, "", templateName);
         targetStrategy.addRole(roleType, role);
 
@@ -1525,11 +1653,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         case PROJECT:
           filterGroups.remove(PermissionGroup.get(Hudson.class));
           filterGroups.remove(PermissionGroup.get(Computer.class));
+
+          // RoleStrategy permissions
+          filterGroups.remove(PermissionGroup.get(RoleBasedAuthorizationStrategy.class));
           break;
         case SLAVE:
           filterGroups.remove(PermissionGroup.get(Permission.class));
           filterGroups.remove(PermissionGroup.get(Hudson.class));
           filterGroups.remove(PermissionGroup.get(View.class));
+
+          // RoleStrategy permissions
+          filterGroups.remove(PermissionGroup.get(RoleBasedAuthorizationStrategy.class));
 
           // Project, SCM and Run permissions
           filterGroups.remove(PermissionGroup.get(Item.class));

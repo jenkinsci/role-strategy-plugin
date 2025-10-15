@@ -410,43 +410,53 @@ bindAgentListenerToPattern = function(elem) {
 
 document.addEventListener('DOMContentLoaded', function() {
 
-  const table = document.getElementById("globalRoles");
-  const readOnly = table.classList.contains("read-only");
-
   // global roles initialization
-  let globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
-  if (parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
-    globalRoleInputFilter.style.display = "block"
-  }
-  newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
+  const globalTable = document.getElementById("globalRoles");
+  if (globalTable) {
+    const readOnly = globalTable.classList.contains("read-only");
 
-  globalTableHighlighter = new TableHighlighter('globalRoles', readOnly ? 1 : 2);
+    let globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
+    if (globalRoleInputFilter && parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
+      globalRoleInputFilter.style.display = "block"
+    }
+    newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
+
+    globalTableHighlighter = new TableHighlighter('globalRoles', readOnly ? 1 : 2);
+  }
 
   // item roles initialization
-  let itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
-  if (parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit ) {
-    itemRoleInputFilter.style.display = "block"
-  }
+  const projectRolesTable = document.getElementById('projectRoles');
+  if (projectRolesTable) {
+    const readOnly = projectRolesTable.classList.contains("read-only");
 
-  newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
+    let itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
+    if (itemRoleInputFilter && parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit ) {
+      itemRoleInputFilter.style.display = "block"
+    }
 
-  projectTableHighlighter = new TableHighlighter('projectRoles', readOnly ? 3 : 4);
+    newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
 
-  // Show jobs matching a pattern on click
-  let projectRolesTable = document.getElementById('projectRoles')
-  let itemPatterns = projectRolesTable.getElementsByClassName('patternAnchor');
-  for (let pattern of itemPatterns) {
-    bindListenerToPattern(pattern);
+    projectTableHighlighter = new TableHighlighter('projectRoles', readOnly ? 3 : 4);
+
+    // Show jobs matching a pattern on click
+    let itemPatterns = projectRolesTable.getElementsByClassName('patternAnchor');
+    for (let pattern of itemPatterns) {
+      bindListenerToPattern(pattern);
+    }
   }
 
   // agent roles initialization
-  newAgentRoleTemplate = document.getElementById('newAgentRoleTemplate');
+  const agentRolesTable = document.getElementById('agentRoles');
+  if (agentRolesTable) {
+    const readOnly = agentRolesTable.classList.contains("read-only");
 
-  agentTableHighlighter = new TableHighlighter('agentRoles', readOnly ? 2 : 3);
-  // Show agents matching a pattern on click
-  let agentRolesTable = document.getElementById('agentRoles')
-  let agentPatterns = agentRolesTable.getElementsByClassName('patternAnchor');
-  for (let pattern of agentPatterns) {
-    bindAgentListenerToPattern(pattern);
+    newAgentRoleTemplate = document.getElementById('newAgentRoleTemplate');
+
+    agentTableHighlighter = new TableHighlighter('agentRoles', readOnly ? 2 : 3);
+    // Show agents matching a pattern on click
+    let agentPatterns = agentRolesTable.getElementsByClassName('patternAnchor');
+    for (let pattern of agentPatterns) {
+      bindAgentListenerToPattern(pattern);
+    }
   }
 });

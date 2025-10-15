@@ -30,33 +30,34 @@
 
   <j:set var="globalPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.GLOBAL)}"/>
   <j:set var="globalGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.GLOBAL)}"/>
-  
+  <j:set var="neededPermission" value="${app.ADMINISTER}"/>
+
   <div id="globalRoleInputFilter" data-table-id="${tableid}" data-initial-size="${globalGrantedRoles.size()}" class="row-filter">
     <f:entry title="${%Filter by Role}">
       <input id="globalRoleInput" class="row-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
     </f:entry>
-  </div>  
+  </div>
   <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width center-align role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
       <!-- The first row shows grouping -->
-    <local:thead permissionGroups="${globalPermissionGroups}" showRoleName="${true}" showPattern="${false}" strategy="${it.strategy.GLOBAL}"/>
+    <local:thead permissionGroups="${globalPermissionGroups}" showRoleName="${true}" showPattern="${false}" strategy="${it.strategy.GLOBAL}" neededPermission="${neededPermission}"/>
     <tbody>
       <j:forEach var="role" items="${globalGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
-          <local:roleRow title="${role.key.name}" role="${role.key}" showRoleName="${true}" showPattern="${false}" type="${it.strategy.GLOBAL}" />
+          <local:roleRow title="${role.key.name}" role="${role.key}" showRoleName="${true}" showPattern="${false}" type="${it.strategy.GLOBAL}" neededPermission="${neededPermission}"/>
         </tr>
       </j:forEach>
     </tbody>
-    <local:tfoot permissionGroups="${globalPermissionGroups}" strategy="${it.strategy.GLOBAL}" roles="${globalGrantedRoles}" showPattern="${false}"/>
+    <local:tfoot permissionGroups="${globalPermissionGroups}" strategy="${it.strategy.GLOBAL}" roles="${globalGrantedRoles}" showPattern="${false}" neededPermission="${neededPermission}"/>
   </table>
 
   <template id="newGlobalRoleTemplate">
     <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" showRoleName="${true}" showPattern="${false}"/>
+      <local:roleRow title="{{ROLE}}" global="${true}" type="${it.strategy.GLOBAL}" showRoleName="${true}" showPattern="${false}" neededPermission="${neededPermission}"/>
     </tr>
   </template>
 
-  <l:isAdmin>
+  <l:hasPermission permission="${app.ADMINISTER}">
     <br />
     <f:entry title="${%Role to add}">
       <f:textbox id="${tableid}text" />
@@ -64,5 +65,5 @@
     <f:entry>
       <local:addButton id="newGlobalRoleTemplate" tableid="${tableid}" highlighter="globalTableHighlighter"/>
     </f:entry>
-  </l:isAdmin>
+  </l:hasPermission>
 </j:jelly>
