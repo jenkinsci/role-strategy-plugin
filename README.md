@@ -83,6 +83,40 @@ property `-Dorg.eclipse.jetty.server.Request.maxFormContentSize=n` at jvm start.
 
 ![Assign roles](/docs/images/assignRoles.png)
 
+### Delegating role management with optional permissions
+
+By default, only users with the `Jenkins.ADMINISTER` permission can manage roles. However, you can optionally enable more granular permissions to delegate role management to non-admin users:
+
+* **Manage Item Roles and Permissions Templates** (`ITEM_ROLES_ADMIN`): Grants the ability to manage item roles and permission templates without requiring full Jenkins administrator access.
+* **Manage Agent Roles** (`AGENT_ROLES_ADMIN`): Grants the ability to manage agent roles without requiring full Jenkins administrator access.
+
+> [!NOTE]
+> These roles alone do not permit you to see the other role configurations. If you wish to see the other configurations in read-only format, you can include the `SYSTEM_READ` permission.
+
+For a detailed guide on setting up and testing delegated role management, including example configurations and test scenarios, see [Delegating Role Management](./docs/delegating-role-management/README.md).
+
+> [!NOTE]
+> These permissions are alternatives to `Jenkins.ADMINISTER` for role management tasks. Users with `Jenkins.ADMINISTER` always have full access to all role management functionality.
+> The `Jenkins.SYSTEM_READ` permission can be enabled either via a system property or by using the [Extended Read Permission Plugin](https://plugins.jenkins.io/extended-read-permission/).
+
+#### Enabling the optional permissions
+
+These permissions are disabled by default. To enable them, set the following system properties when starting Jenkins or via the script console:
+
+```groovy
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy
+
+// Enable the optional permissions
+RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN.setEnabled(true)
+RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN.setEnabled(true)
+```
+
+Or via command line when starting Jenkins:
+```bash
+java -Dcom.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy.useItemAndAgentRoles=true \
+     -jar jenkins.war
+```
+
 ### Getting roles in pipelines
 There are 2 steps available in pipeline jobs that allow to get the roles of the user running the build.
 When the build was triggered by a user via the UI or the REST API, the roles of this user are returned. In case the build was triggered
@@ -153,4 +187,5 @@ an init hook script.
 
 * [Changelog](https://github.com/jenkinsci/role-strategy-plugin/releases)
 * [Macro extensions](./docs/MACROS.md)
+* [Delegating role management](./docs/delegating-role-management/README.md)
 * [Developer documentation](./docs/DEVELOPER.md)

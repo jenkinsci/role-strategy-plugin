@@ -54,6 +54,16 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 @Extension
 public class RoleStrategyConfig extends ManagementLink {
 
+  /**
+   * Get the singleton instance of RoleStrategyConfig.
+   *
+   * @return The RoleStrategyConfig instance
+   */
+  @NonNull
+  public static RoleStrategyConfig get() {
+    return ExtensionList.lookupSingleton(RoleStrategyConfig.class);
+  }
+
   public static int getMaxRows() {
     return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
   }
@@ -156,7 +166,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -169,7 +179,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
     // Let the strategy descriptor handle the form
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
     // Redirect to the plugin index page
@@ -193,7 +203,7 @@ public class RoleStrategyConfig extends ManagementLink {
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
     // Let the strategy descriptor handle the form
     req.setCharacterEncoding("UTF-8");
     JSONObject json = req.getSubmittedForm();
@@ -204,7 +214,9 @@ public class RoleStrategyConfig extends ManagementLink {
     } else {
       rolesMapping = json.getJSONObject("rolesMapping");
     }
-    rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
+    if (rolesMapping.has("agentRoles")) {
+      rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
+    }
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
     FormApply.success(".").generateResponse(req, rsp, this);
   }

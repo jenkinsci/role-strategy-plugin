@@ -27,7 +27,7 @@
         <l:tasks>
             <l:task href="${rootURL}/manage/role-strategy/" icon="symbol-finger-print-outline plugin-ionicons-api" title="${%Manage Roles}"/>
             <l:task href="${rootURL}/manage/role-strategy/assign-roles" icon="symbol-people-outline plugin-ionicons-api" title="${%Assign Roles}"/>
-            <l:task href="${rootURL}/manage/role-strategy/permission-templates" icon="symbol-braces plugin-role-strategy" title="${%Permission Templates}"/>
+            <l:task href="${rootURL}/manage/role-strategy/permission-templates" icon="symbol-braces plugin-role-strategy" title="${%Permission Templates}" permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}"/>
             <l:task href="${rootURL}/manage/role-strategy/list-macros" icon="symbol-extension-puzzle-outline plugin-ionicons-api" title="${%Role Strategy Macros}"/>
         </l:tasks>
     </l:side-panel>

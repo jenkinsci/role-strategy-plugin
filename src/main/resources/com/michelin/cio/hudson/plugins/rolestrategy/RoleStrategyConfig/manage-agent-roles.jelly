@@ -32,28 +32,29 @@
   <j:set var="agentGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
   <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
   <j:set var="tableid" value="agentRoles"/>
-  
+  <j:set var="neededPermission" value="${it.strategy.AGENT_ROLES_ADMIN}"/>
+
   <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
 
-    <local:thead permissionGroups="${agentGroups}" showRoleName="${true}" showPattern="${true}" strategy="${it.strategy.SLAVE}"/>
+    <local:thead permissionGroups="${agentGroups}" showRoleName="${true}" showPattern="${true}" strategy="${it.strategy.SLAVE}" neededPermission="${neededPermission}"/>
     <tbody>
       <j:forEach var="role" items="${agentGrantedRoles}">
         <tr name="[${role.key.name}]" class="permission-row highlight-row">
           <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" showRoleName="${true}" showPattern="${true}" type="${it.strategy.SLAVE}"
-                         project="${false}"/>
+                         project="${false}" neededPermission="${neededPermission}"/>
         </tr>
       </j:forEach>
     </tbody>
-    <local:tfoot permissionGroups="${agentGroups}" strategy="${it.strategy.SLAVE}" roles="${agentGrantedRoles}" showPattern="${true}"/>
+    <local:tfoot permissionGroups="${agentGroups}" strategy="${it.strategy.SLAVE}" roles="${agentGrantedRoles}" showPattern="${true}" neededPermission="${neededPermission}"/>
   </table>
 
   <template id="newAgentRoleTemplate">
     <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" showRoleName="${true}" showPattern="${true}"/>
+      <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" showRoleName="${true}" showPattern="${true}" neededPermission="${neededPermission}"/>
     </tr>
   </template>
 
-  <l:isAdmin>
+  <l:hasPermission permission="${neededPermission}">
     <br/>
     <f:entry title="${%Role to add}">
       <f:textbox id="${tableid}text" />
@@ -64,6 +65,6 @@
     <f:entry>
       <local:addButton id="newAgentRoleTemplate" tableid="${tableid}" highlighter="agentTableHighlighter"/>
     </f:entry>
-  </l:isAdmin>
+  </l:hasPermission>
 
 </j:jelly>
