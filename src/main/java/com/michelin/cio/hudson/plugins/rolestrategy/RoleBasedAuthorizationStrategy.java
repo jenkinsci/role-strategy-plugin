@@ -47,13 +47,8 @@ import hudson.init.Initializer;
 import hudson.model.AbstractItem;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
-import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Node;
-import hudson.model.Run;
-import hudson.model.View;
-import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
@@ -1646,36 +1641,25 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     @Nullable
     public List<PermissionGroup> getGroups(@NonNull String type) {
       List<PermissionGroup> groups = new ArrayList<>();
-      List<PermissionGroup> filterGroups = new ArrayList<>(PermissionGroup.getAll());
+      PermissionScope permissionScope;
       switch (type) {
         case GLOBAL:
+          permissionScope = PermissionScope.JENKINS;
           break;
         case PROJECT:
-          filterGroups.remove(PermissionGroup.get(Hudson.class));
-          filterGroups.remove(PermissionGroup.get(Computer.class));
-
-          // RoleStrategy permissions
-          filterGroups.remove(PermissionGroup.get(RoleBasedAuthorizationStrategy.class));
+          permissionScope = PermissionScope.ITEM_GROUP;
           break;
         case SLAVE:
-          filterGroups.remove(PermissionGroup.get(Permission.class));
-          filterGroups.remove(PermissionGroup.get(Hudson.class));
-          filterGroups.remove(PermissionGroup.get(View.class));
-
-          // RoleStrategy permissions
-          filterGroups.remove(PermissionGroup.get(RoleBasedAuthorizationStrategy.class));
-
-          // Project, SCM and Run permissions
-          filterGroups.remove(PermissionGroup.get(Item.class));
-          filterGroups.remove(PermissionGroup.get(SCM.class));
-          filterGroups.remove(PermissionGroup.get(Run.class));
+          permissionScope = PermissionScope.COMPUTER;
           break;
         default:
-          filterGroups = new ArrayList<>();
-          break;
+          return groups;
       }
-      for (PermissionGroup group : filterGroups) {
+      for (PermissionGroup group : PermissionGroup.getAll()) {
         if (group == PermissionGroup.get(Permission.class)) {
+          continue;
+        }
+        if (!group.hasPermissionContainedBy(permissionScope)) {
           continue;
         }
         for (Permission p : group.getPermissions()) {
@@ -1704,9 +1688,15 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
           return p.getEnabled();
         case PROJECT:
+          if (!p.isContainedBy(PermissionScope.ITEM_GROUP)) {
+            return false;
+          }
           return p.getEnabled();
         case SLAVE:
-          return p != Computer.CREATE && p.getEnabled();
+          if (!p.isContainedBy(PermissionScope.COMPUTER)) {
+            return false;
+          }
+          return p.getEnabled();
         default:
           return false;
       }
