@@ -35,7 +35,7 @@
     <jenkins.baseline>2.479</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <checkstyle.version>11.1.0</checkstyle.version>
+    <checkstyle.version>12.1.1</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
   </properties>
