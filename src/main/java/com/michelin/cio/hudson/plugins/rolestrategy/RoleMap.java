@@ -250,21 +250,14 @@ public class RoleMap {
    */
   private static Set<Permission> cacheImplyingPermissions(Permission permission) {
     Set<Permission> implyingPermissions;
-    if (PermissionHelper.isDangerous(permission)) {
-      /*
-       * if this is a dangerous permission, fall back to Administer unless we're in compat mode
-       */
-      implyingPermissions = getImplyingPermissions(Jenkins.ADMINISTER);
-    } else {
-      implyingPermissions = new HashSet<>();
+    implyingPermissions = new HashSet<>();
 
-      // Get the implying permissions
-      for (Permission p = permission; p != null; p = p.impliedBy) {
-        if (!p.getEnabled()) {
-          continue;
-        }
-        implyingPermissions.add(p);
+    // Get the implying permissions
+    for (Permission p = permission; p != null; p = p.impliedBy) {
+      if (!p.getEnabled()) {
+        continue;
       }
+      implyingPermissions.add(p);
     }
 
     return implyingPermissions;
