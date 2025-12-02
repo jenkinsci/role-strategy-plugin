@@ -28,7 +28,7 @@ class GrantingDisabledPermissionTest {
     RoleMap roleMap = new RoleMap();
     Role adminRole = new Role("admin-role", new HashSet<>(Collections.singletonList(Jenkins.ADMINISTER)));
     roleMap.addRole(adminRole);
-    Role manage = new Role("manage-role", new HashSet<>(Collections.singletonList(Jenkins.MANAGE)));
+    Role manage = new Role("system-read-role", new HashSet<>(Collections.singletonList(Jenkins.SYSTEM_READ)));
     roleMap.addRole(manage);
     roleMap.assignRole(adminRole, "admin");
     roleMap.assignRole(manage, "alice");
@@ -39,7 +39,7 @@ class GrantingDisabledPermissionTest {
     r.jenkins.setAuthorizationStrategy(new RoleBasedAuthorizationStrategy(constructorArg));
 
     try (ACLContext ctx = ACL.as2(User.get("alice").impersonate2())) {
-      assertFalse(Jenkins.get().hasPermission(Jenkins.MANAGE));
+      assertFalse(Jenkins.get().hasPermission(Jenkins.SYSTEM_READ));
     }
   }
 }
