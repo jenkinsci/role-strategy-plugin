@@ -560,7 +560,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   /**
    * API method to add a role.
    *
-   * <p>Unknown and dangerous permissions are ignored.
+   * <p>Unknown permissions are ignored.
    *
    * When specifying a <code>template</code> for an item role, the given permissions are ignored. The named template must exist,
    * otherwise the request fails with status <code>400</code>.
@@ -1683,9 +1683,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public boolean showPermission(String type, Permission p) {
       switch (type) {
         case GLOBAL:
-          if (PermissionHelper.isDangerous(p)) {
-            return false;
-          }
           return p.getEnabled();
         case PROJECT:
           if (!p.isContainedBy(PermissionScope.ITEM_GROUP)) {
