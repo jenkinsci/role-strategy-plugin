@@ -30,114 +30,72 @@ function debounce(func, timeout = 300) {
   };
 }
 
-function ignoreKeys(code) {
-  switch (code) {
-    case "KeyS":
-    case "ArrowDown":
-    case "KeyW":
-    case "ArrowUp":
-    case "KeyA":
-    case "ArrowLeft":
-    case "KeyD":
-    case "ArrowRight":
-    case "Enter":
-    case "Escape":
-      return true;
-  }
-  return false;
-}
-
-function getPreviousSiblings(elem, filter) {
-    let sibs = [];
-    while (elem = elem.previousSibling) {
-        if (elem.nodeType === 3) continue; // text node
-        sibs.push(elem);
-    }
-    return sibs;
-}
-
-class TableHighlighter {
-
-  constructor(id, decalx) {
-    this.table = document.getElementById(id);
-    this.decalx = decalx;
-    let trs = this.table.querySelectorAll('tbody tr');
-    for (let row of trs){
-        this.scan(row);
-    }
-  };
-
-  scan(tr) {
-    let descendants = tr.querySelectorAll('.rsp-highlight-input');
-    for (let td of descendants) {
-        td.addEventListener('mouseenter', this.highlight);
-        td.addEventListener('mouseleave', this.highlight);
-    }
-    let stopNodes = tr.querySelectorAll("div.rsp-remove");
-    let lastStop = stopNodes[stopNodes.length - 1];
-    if (lastStop != null) {
-      let td = lastStop.closest('td');
-      td.addEventListener('mouseenter', this.highlightRowOnly);
-      td.addEventListener('mouseleave', this.highlightRowOnly);
-    }
-  };
-
-  highlightRowOnly = e => {
-    let enable = e.type === 'mouseenter';
-    let tr = e.target.closest("TR");
-    if (enable) {
-      tr.classList.add('highlighted');
-    } else {
-      tr.classList.remove('highlighted');
-    }
-  }
-
-  highlight = e => {
-    let enable = e.type === 'mouseenter';
-    if (e.target.tagName === 'TD') {
-      let td = e.target;
-      let tr = td.parentNode;
-      let trs = this.table.querySelectorAll('tr.highlight-row');
-      let position = getPreviousSiblings(td).length;
-
-      let p = 0;
-      for (let row of trs) {
-        let num = position;
-        if (p==0) num = num - this.decalx;
-        p++;
-        let element = row.childNodes[num];
-        if (enable) {
-          element.classList.add('highlighted');
-        } else {
-          element.classList.remove('highlighted');
-        }
-      }
-      if (enable) {
-        tr.classList.add('highlighted');
-      } else {
-        tr.classList.remove('highlighted');
-      }
-    }
-  };
-};
-
 var doubleEscapeHTML = function(unsafe) {
   return escapeHTML(escapeHTML(unsafe));
 };
 
-var escapeHTML = function(unsafe) {
-  return unsafe.replace(/[&<>"']/g, function(m) {
-    switch (m) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      case '"':
-        return '&quot;';
-      default:
-        return '&#039;';
-    }
-  });
+var toQueryString = function(params) {
+  return '?' + new URLSearchParams(params).toString();
 };
+
+function getPreviousSiblings(elem) {
+  const sibs = [];
+  while (elem = elem.previousSibling) {
+    if (elem.nodeType === 3) continue;
+    sibs.push(elem);
+  }
+  return sibs;
+}
+
+/* TableHighlighter - used by Permission Templates page */
+class TableHighlighter {
+  constructor(id, decalx) {
+    this.table = document.getElementById(id);
+    this.decalx = decalx;
+    const trs = this.table.querySelectorAll('tbody tr');
+    for (const row of trs) {
+      this.scan(row);
+    }
+  }
+
+  scan(tr) {
+    const descendants = tr.querySelectorAll('.rsp-highlight-input');
+    for (const td of descendants) {
+      td.addEventListener('mouseenter', this.highlight);
+      td.addEventListener('mouseleave', this.highlight);
+    }
+    const stopNodes = tr.querySelectorAll("div.rsp-remove");
+    const lastStop = stopNodes[stopNodes.length - 1];
+    if (lastStop != null) {
+      const td = lastStop.closest('td');
+      td.addEventListener('mouseenter', this.highlightRowOnly);
+      td.addEventListener('mouseleave', this.highlightRowOnly);
+    }
+  }
+
+  highlightRowOnly = (e) => {
+    const enable = e.type === 'mouseenter';
+    const tr = e.target.closest("TR");
+    tr.classList.toggle('highlighted', enable);
+  }
+
+  highlight = (e) => {
+    const enable = e.type === 'mouseenter';
+    if (e.target.tagName === 'TD') {
+      const td = e.target;
+      const tr = td.parentNode;
+      const trs = this.table.querySelectorAll('tr.highlight-row');
+      const position = getPreviousSiblings(td).length;
+
+      let p = 0;
+      for (const row of trs) {
+        let num = position;
+        if (p === 0) num = num - this.decalx;
+        p++;
+        const element = row.childNodes[num];
+        if (element) element.classList.toggle('highlighted', enable);
+      }
+      tr.classList.toggle('highlighted', enable);
+    }
+  }
+}

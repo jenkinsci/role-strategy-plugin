@@ -1,34 +1,9 @@
-<!--
-  - The MIT License
-  -
-  - Copyright (c) 2022 Markus Winter
-  -
-  - Permission is hereby granted, free of charge, to any person obtaining a copy
-  - of this software and associated documentation files (the "Software"), to deal
-  - in the Software without restriction, including without limitation the rights
-  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  - copies of the Software, and to permit persons to whom the Software is
-  - furnished to do so, subject to the following conditions:
-  -
-  - The above copyright notice and this permission notice shall be included in
-  - all copies or substantial portions of the Software.
-  -
-  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  - THE SOFTWARE.
-  -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <l:layout permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" norefresh="true" title="${%Permission Templates}">
+  <l:layout permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" type="one-column" title="${%Permission Templates}">
     <l:breadcrumb title="Permission Templates"/>
-
-    <st:include page="sidepanel.jelly"/>
 
     <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
     <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
@@ -88,11 +63,15 @@
       <j:if test="${empty(descriptorPath)}">
         <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
       </j:if>
-      <h1>
-        ${%Permission Templates}
-      </h1>
-      ${%blurb}
-      <f:form method="post" name="config" action="templatesSubmit" class="jenkins-!-margin-top-5">
+
+      <l:app-bar title="${%Permission Templates}">
+      </l:app-bar>
+
+      <p class="jenkins-!-margin-bottom-2">
+        ${%blurb}
+      </p>
+
+      <f:form method="post" name="config" action="templatesSubmit">
         <div id="permissionInputFilter" data-table-id="${tableid}" data-initial-size="${permissionTemplates.size()}"
              class="row-filter">
           <f:entry title="${%Filter by Template}">
@@ -104,14 +83,10 @@
           <table id="${tableid}"
                  class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}"
                  name="data">
-
-            <!-- The first row will show grouping -->
             <thead>
               <tr class="group-row">
                 <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
-                <th rowspan="2" class="rsp-table__header-column">
-                  ${%Name}
-                </th>
+                <th rowspan="2" class="rsp-table__header-column">${%Name}</th>
                 <th rowspan="2" class="rsp-table--vertical rsp-table__header-column"><span>In use</span></th>
                 <j:forEach var="g" items="${itemPermissionGroups}" varStatus="s">
                   <j:set var="cnt" value="${0}"/>
@@ -120,21 +95,15 @@
                       <j:set var="cnt" value="${cnt+1}"/>
                     </j:if>
                   </j:forEach>
-
-                  <th colspan="${cnt}" class="rsp-table--header-th ${s.first ? 'first' : ''} ${s.last ? 'last' : ''}">
-                    ${g.title}
-                  </th>
+                  <th colspan="${cnt}" class="rsp-table--header-th ${s.first ? 'first' : ''} ${s.last ? 'last' : ''}">${g.title}</th>
                 </j:forEach>
                 <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
               </tr>
-              <!-- The second row for individual permission -->
               <tr class="caption-row highlight-row">
                 <j:forEach var="g" items="${itemPermissionGroups}">
                   <j:forEach var="p" items="${g.permissions}">
                     <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                      <th tooltip="${p.description}" class="rsp-table__permission">
-                        <span>${p.name}</span>
-                      </th>
+                      <th tooltip="${p.description}" class="rsp-table__permission"><span>${p.name}</span></th>
                     </j:if>
                   </j:forEach>
                 </j:forEach>
@@ -154,16 +123,12 @@
             <tfoot class="${hidefooter}">
               <tr class="caption-row highlight-row">
                 <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
-                <td rowspan="2" class="pane-header blank">
-                  ${%Name}
-                </td>
+                <td rowspan="2" class="pane-header blank">${%Name}</td>
                 <td rowspan="2" class="group-row pane-header"><span>In use</span></td>
                 <j:forEach var="g" items="${itemPermissionGroups}">
                   <j:forEach var="p" items="${g.permissions}">
                     <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                      <th class="pane" tooltip="${p.description}">
-                        <span>${p.name}</span>
-                      </th>
+                      <th class="pane" tooltip="${p.description}"><span>${p.name}</span></th>
                     </j:if>
                   </j:forEach>
                 </j:forEach>
@@ -176,10 +141,7 @@
                       <j:set var="cnt" value="${cnt+1}"/>
                     </j:if>
                   </j:forEach>
-
-                  <td class="pane-header" colspan="${cnt}">
-                    ${g.title}
-                  </td>
+                  <td class="pane-header" colspan="${cnt}">${g.title}</td>
                 </j:forEach>
                 <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
               </tr>
@@ -196,8 +158,7 @@
           <f:entry>
             <button type="button" class="jenkins-button template-add-button" data-template-id="newPermissionTemplate"
                     data-table-id="${tableid}" data-highlighter="templateTableHighlighter"
-                    data-prompt="${%Template Name}">${%Add}
-            </button>
+                    data-prompt="${%Template Name}">${%Add}</button>
           </f:entry>
         </l:hasPermission>
 
@@ -207,8 +168,6 @@
             <f:apply/>
           </f:bottomButtonBar>
         </l:hasPermission>
-        <script>
-        </script>
       </f:form>
       <st:adjunct includes="lib.form.confirm" />
     </l:main-panel>

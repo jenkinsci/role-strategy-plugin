@@ -94,7 +94,7 @@ Behaviour.specify(
 );
 
 addButtonAction = function (e, template, table, tableHighlighter, tableId) {
-  let dataReference = e.target;
+  let dataReference = e.target.closest("[data-prompt]") || e.target;
   let tbody = table.tBodies[0];
 
   dialog.prompt(dataReference.getAttribute('data-prompt')).then((name) => {
@@ -105,18 +105,17 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
     }
 
     let copy = document.importNode(template,true);
-    let child = copy.childNodes[1];
-    child.textContent = escapeHTML(name);
-
-    let children = copy.getElementsByClassName("permissionInput");
-    for (let child of children) {
-      if (child.hasAttribute('data-tooltip-template')) {
-        child.setAttribute("data-tooltip-template", child.getAttribute("data-tooltip-template").replace(/{{TEMPLATE}}/g, doubleEscapeHTML(name)));
-      }
+    // Set the name in the first visible text cell
+    const nameCell = copy.querySelector(".left-most") || copy.childNodes[1];
+    if (nameCell) {
+      nameCell.textContent = escapeHTML(name);
     }
 
-    if (tableId !== "permissionTemplates") {
-      spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
+    let permInputs = copy.getElementsByClassName("permissionInput");
+    for (let cell of permInputs) {
+      if (cell.hasAttribute('data-tooltip-template')) {
+        cell.setAttribute("data-tooltip-template", cell.getAttribute("data-tooltip-template").replace(/\{\{TEMPLATE\}\}/g, doubleEscapeHTML(name)));
+      }
     }
 
     copy.setAttribute("name",'['+name+']');
@@ -125,7 +124,9 @@ addButtonAction = function (e, template, table, tableHighlighter, tableId) {
       tableHighlighter.scan(copy);
     }
     Behaviour.applySubtree(copy.closest("TABLE"), true);
-  })
+  }).catch(() => {
+    // Dialog was cancelled
+  });
 }
 
 function deleteTemplate(button) {

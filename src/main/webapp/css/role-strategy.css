@@ -1,27 +1,731 @@
-/*
- * The MIT License
- *
- * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
- * Thomas Maurel, Romain Seguy
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
+/* Role Strategy Plugin - Card-based UI */
+
+/* Ensure content fits within the one-column layout */
+#main-panel {
+  max-width: 100%;
+}
+
+/* ============================================
+   Container
+   ============================================ */
+
+.rsp-container {
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   App Bar (search + filter + actions)
+   ============================================ */
+
+.rsp-app-bar {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: calc(var(--section-padding) / 2);
+  margin-bottom: calc(var(--section-padding) / 2);
+}
+
+.rsp-search-wrapper {
+  position: relative;
+}
+
+.rsp-search-wrapper .jenkins-search__input {
+  padding-right: 2.25rem;
+}
+
+/* ============================================
+   Permission Filter Dropdown
+   ============================================ */
+
+.rsp-filter {
+  position: absolute;
+  right: 0.375rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.rsp-filter__button {
+  padding: 0.25rem !important;
+  min-width: auto !important;
+  color: var(--text-color-secondary);
+  transition: color var(--standard-transition);
+}
+
+button.rsp-filter__button--active {
+  color: var(--accent-color) !important;
+}
+
+.rsp-filter__dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 9999;
+  min-width: 260px;
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.rsp-filter__dropdown[hidden] {
+  display: none;
+}
+
+.rsp-filter__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: var(--jenkins-border);
+  flex-shrink: 0;
+}
+
+.rsp-filter__header-label {
+  font-weight: var(--font-bold-weight);
+  font-size: 0.875rem;
+}
+
+.rsp-filter__reset-button {
+  font-size: 0.8125rem;
+  color: var(--accent-color);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rsp-filter__reset-button:hover {
+  text-decoration: underline;
+}
+
+.rsp-filter__search {
+  padding: 0.375rem 0.5rem;
+  border-bottom: var(--jenkins-border);
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rsp-filter__search-input {
+  flex: 1;
+  padding: 0.25rem 1.75rem 0.25rem 0.5rem !important;
+  font-size: 0.8125rem !important;
+}
+
+.rsp-filter__search-clear {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.125rem;
+  display: none;
+}
+
+.rsp-filter__search-clear--visible {
+  display: block;
+}
+
+.rsp-filter__list {
+  padding: 0.375rem 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.rsp-filter__group-title {
+  font-weight: var(--font-bold-weight);
+  font-size: 0.6875rem;
+  color: var(--text-color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.rsp-filter__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+  width: 100%;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  transition: background var(--standard-transition);
+}
+
+.rsp-filter__item:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-filter__item--active {
+  background: var(--item-background--active, rgba(0, 0, 0, 0.05));
+}
+
+.rsp-filter__item--filter-hidden {
+  display: none;
+}
+
+.rsp-filter__item-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--text-color-secondary);
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.rsp-filter__item--active .rsp-filter__item-indicator {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.rsp-filter__group-title--filter-hidden {
+  display: none;
+}
+
+.rsp-filter__no-results {
+  padding: 1rem 0.75rem;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+  text-align: center;
+  font-style: italic;
+}
+
+.rsp-filter__no-results[hidden] {
+  display: none;
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+
+.rsp-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsp-card {
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  background: var(--card-background);
+  overflow: hidden;
+}
+
+.rsp-card:not(:first-of-type) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+.rsp-card:not(:last-of-type) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.rsp-card--hidden {
+  display: none;
+}
+
+/* ============================================
+   Card Header
+   ============================================ */
+
+.rsp-card__header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+  transition: background var(--standard-transition);
+}
+
+.rsp-card__header:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-card__header:active {
+  background: var(--item-background--active);
+}
+
+.rsp-card__name {
+  font-weight: var(--font-bold-weight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  color: var(--text-color);
+}
+
+.rsp-card__pattern {
+  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.rsp-card__pattern:hover {
+  color: var(--link-color);
+  text-decoration: var(--link-text-decoration--hover);
+}
+
+.rsp-card__template-badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--item-background--hover);
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rsp-card__summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+.rsp-card__summary--empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.rsp-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+.rsp-card__action {
+  padding: 0 !important;
+  min-height: 2rem;
+  width: 2rem;
+}
+
+.rsp-card__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  transition: transform var(--standard-transition);
+}
+
+.rsp-card[aria-expanded="true"] .rsp-card__toggle {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   Card Body (collapsible)
+   ============================================ */
+
+.rsp-card__body {
+  border-top: var(--jenkins-border);
+}
+
+.rsp-card__body--collapsed {
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  border-top: none;
+  visibility: hidden;
+}
+
+/* ============================================
+   Permissions Section
+   ============================================ */
+
+.rsp-perm__group {
+  display: flex;
+  flex-direction: column;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rsp-perm__group:first-of-type {
+  margin-top: 0.75rem;
+}
+
+.rsp-perm__group-title {
+  color: var(--text-color-secondary);
+  font-weight: var(--font-bold-weight);
+  font-size: 0.8125rem;
+  margin: 0 0.75rem;
+  padding: 0.5rem 0.5rem 0 0.5rem;
+}
+
+.rsp-perm__permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0.75rem 0.75rem 0.75rem;
+}
+
+.rsp-perm__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  min-width: 150px;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.rsp-perm__item input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.rsp-perm__item:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-perm__item:has(input:focus-visible) {
+  box-shadow: 0 0 0 0.2rem var(--text-color);
+}
+
+.rsp-perm__item:has(input:checked) {
+  background: var(--accent-color, #0b6cbd);
+  color: var(--background, #fff);
+}
+
+.rsp-perm__item:has(input:checked):hover {
+  filter: brightness(1.1);
+}
+
+.rsp-perm__item:has(input:checked) .rsp-perm__item-name {
+  color: inherit;
+}
+
+.rsp-perm__item:has(input:checked) .rsp-perm__item-info {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.rsp-perm__item-name {
+  font-size: 0.875rem;
+  color: var(--text-color);
+}
+
+.rsp-perm__item-implied {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+.rsp-perm__item:has(input:checked) .rsp-perm__item-implied {
+  color: inherit;
+}
+
+.rsp-perm__item-info {
+  color: var(--text-color-secondary);
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+}
+
+.rsp-perm__item-info svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rsp-perm__item--implied {
+  background: var(--item-background--hover);
+}
+
+.rsp-perm__item--implied input[type="checkbox"] {
+  pointer-events: none;
+}
+
+/* ============================================
+   Assignments Section
+   ============================================ */
+
+.rsp-assign {
+  border-top: var(--jenkins-border);
+  padding: 0.75rem;
+}
+
+.rsp-assign__title {
+  font-size: 0.8125rem;
+  font-weight: var(--font-bold-weight);
+  color: var(--text-color-secondary);
+  margin: 0 0 0.5rem 0;
+}
+
+.rsp-assign__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.rsp-assign__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--item-background--hover);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.rsp-assign__chip--either {
+  border-left: 3px solid var(--warning);
+}
+
+.rsp-assign__chip-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.rsp-assign__chip-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rsp-assign__chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  border-radius: 50%;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1;
+  transition: background var(--standard-transition);
+}
+
+.rsp-assign__chip-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--error-color);
+}
+
+.rsp-assign__chip-migrate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  border-radius: 50%;
+  padding: 0;
+  transition: background var(--standard-transition);
+}
+
+.rsp-assign__chip-migrate:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-color);
+}
+
+.rsp-assign__chip-migrate svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rsp-assign__show-more {
+  font-size: 0.8125rem;
+  color: var(--accent-color);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.rsp-assign__show-more:hover {
+  text-decoration: underline;
+}
+
+.rsp-assign__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.rsp-assign__loading {
+  color: var(--text-color-secondary);
+  font-size: 0.8125rem;
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+
+.rsp-empty-state {
+  min-height: 100px;
+}
+
+.rsp-empty-state[hidden] {
+  display: none;
+}
+
+/* ============================================
+   Highlight Animation
+   ============================================ */
+
+@keyframes rsp-highlight {
+  from { background: var(--focus-input-glow, #C4C080); }
+  to { background: transparent; }
+}
+
+.rsp-highlight-entry {
+  animation: rsp-highlight 5s;
+}
+
+/* ============================================
+   Read-only Mode
+   ============================================ */
+
+.rsp-card.rsp-card--read-only .rsp-card__header {
+  cursor: default;
+}
+
+.rsp-card.rsp-card--read-only .rsp-card__actions .rsp-card__action {
+  display: none;
+}
+
+.rsp-card.rsp-card--read-only .rsp-perm__item input[type="checkbox"] {
+  pointer-events: none;
+}
+
+.rsp-card.rsp-card--read-only .rsp-assign__chip-remove,
+.rsp-card.rsp-card--read-only .rsp-assign__chip-migrate,
+.rsp-card.rsp-card--read-only .rsp-assign__add,
+.rsp-card.rsp-card--read-only .rsp-assign__actions {
+  display: none;
+}
+
+/* ============================================
+   Dirty indicator
+   ============================================ */
+
+/* ============================================
+   Collapsible Sections
+   ============================================ */
+
+.rsp-section-collapsible .jenkins-section__title {
+  cursor: pointer;
+  user-select: none;
+}
+
+.rsp-section-collapsible .jenkins-section__title::after {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--text-color-secondary);
+  border-bottom: 2px solid var(--text-color-secondary);
+  transform: rotate(45deg);
+  margin-left: 0.5rem;
+  transition: transform 0.2s;
+  vertical-align: middle;
+}
+
+.rsp-section-collapsible.rsp-section--collapsed .jenkins-section__title::after {
+  transform: rotate(-45deg);
+}
+
+.rsp-section-collapsible.rsp-section--collapsed .rsp-container,
+.rsp-section-collapsible.rsp-section--collapsed > .jenkins-form-item {
+  display: none;
+}
+
+/* ============================================
+   Dirty indicator
+   ============================================ */
+
+#rs-dirty-indicator {
+  display: none;
+}
+
+/* ============================================
+   Add Role Dialog
+   ============================================ */
+
+.rsp-dialog-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsp-dialog-content .jenkins-form-label {
+  font-weight: var(--font-bold-weight);
+  font-size: 0.875rem;
+  display: block;
+  margin-bottom: 0.375rem;
+}
+
+.rsp-dialog-content .rsp-perm {
+  max-height: 300px;
+  overflow-y: auto;
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  padding: 0.25rem 0;
+}
+
+.rsp-dialog-content .rsp-perm__group:first-of-type {
+  margin-top: 0.25rem;
+}
+
+.rsp-dialog-content .rsp-perm__permissions {
+  margin: 0.25rem 0.5rem 0.5rem 0.5rem;
+}
+
+.rsp-dialog-content .rsp-perm__group-title {
+  margin: 0 0.5rem;
+  padding: 0.375rem 0.375rem 0 0.375rem;
+}
+
+/* ============================================
+   Ambiguity warning
+   ============================================ */
+
+.rsp-ambiguity-warning {
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   Legacy table styles (Permission Templates page)
+   ============================================ */
 
 .role-strategy-table {
   border-spacing: 2px;
@@ -32,7 +736,7 @@
 }
 
 .role-strategy-table .rsp-table--header-th {
-  text-align: center!important;
+  text-align: center !important;
 }
 
 .role-strategy-table thead .rsp-table--header-th.first {
@@ -52,24 +756,24 @@
 }
 
 .rsp-table__header-column {
-  vertical-align: bottom!important;
-  text-align: left!important;
+  vertical-align: bottom !important;
+  text-align: left !important;
 }
 
 .rsp-table__footer-column {
-  vertical-align: top!important;
-  text-align: left!important;
+  vertical-align: top !important;
+  text-align: left !important;
 }
 
-.role-strategy-table th, .role-strategy-table td
-{
-  padding: 0 0.25rem!important;
+.role-strategy-table th,
+.role-strategy-table td {
+  padding: 0 0.25rem !important;
   vertical-align: middle;
   text-align: center;
 }
 
 .role-strategy-table .caption-row TH {
-  padding: 0.25rem!important;
+  padding: 0.25rem !important;
   width: 1rem;
   text-align: center;
 }
@@ -80,15 +784,13 @@
 }
 
 .role-strategy-table .rsp-table__permission,
-.role-strategy-table .rsp-table--header-th
-{
+.role-strategy-table .rsp-table--header-th {
   background: var(--table-body-background);
 }
 
 .role-strategy-table .caption-row TH span,
 .role-strategy-table .rsp-table--vertical span,
-.role-strategy-table .group-row TD span
-{
+.role-strategy-table .group-row TD span {
   writing-mode: vertical-rl;
   padding: 5px 0;
 }
@@ -105,58 +807,10 @@
   white-space: nowrap;
 }
 
-.role-strategy-table div.pattern-cell {
-  display: flex;
-  justify-content: left;
-  align-items: center;
-}
-
-.role-strategy-table div.pattern-cell svg {
-  margin-right: 3px;
+.rsp-remove {
   cursor: pointer;
-}
-
-.role-strategy-table div.pattern-cell span {
-  white-space: nowrap;
-}
-
-label.attach-previous {
-  margin-left: 0;
-}
-
-.highlighted,
-.highlighted td {
-  background-color: #FFF9C9!important;
-  color: var(--black)!important;
-}
-
-.jenkins-checkbox {
-	vertical-align: middle;
-	margin: 3px 0px;
-}
-
-@keyframes highlightentry {
-  from { background: #C4C080; }
-  to { background: transparent; }
-}
-
-.highlight-entry {
-  -webkit-animation: highlightentry 5s;
-  -moz-animation: highlightentry 5s;
-  animation: highlightentry 5s;
-}
-
-.jenkins-alert {
-	margin-top: 10px;
-}
-
-.rsp-entry-not-found {
-    text-decoration: line-through;
-    color: grey;
-}
-
-.rsp-table__icon-alert {
-  color: orange;
+  height: 16px;
+  display: flex;
 }
 
 .rsp-table__cell {
@@ -165,41 +819,35 @@ label.attach-previous {
   gap: 3px;
 }
 
-.rsp-remove, .migrate {
+.highlighted,
+.highlighted td {
+  background-color: #FFF9C9 !important;
+  color: var(--black) !important;
+}
+
+.jenkins-checkbox {
+  vertical-align: middle;
+  margin: 3px 0px;
+}
+
+@keyframes highlightentry {
+  from { background: #C4C080; }
+  to { background: transparent; }
+}
+
+.highlight-entry {
+  animation: highlightentry 5s;
+}
+
+.rsp-highlight-input {
   cursor: pointer;
-  height: 16px;
-  display: flex;
 }
 
-button.migrate {
-  background: none;
-  border: none;
-  color: inherit;
-  padding: 0;
-}
-
-.patternAnchor {
-  cursor: pointer;
-  color: var(--link-color);
-  font-weight: var(--link-font-weight);
-}
-
-.patternAnchor:hover {
-    text-decoration: var(--link-text-decoration--hover);
-}
-
-.row-filter, .user-filter, .role-filter {
+.row-filter {
   display: none;
   max-width: 500px;
 }
 
-
-.rsp-navigation__entries {
-  display: flex;
-  gap: 1rem;
-  margin-top: -15px;
-}
-
-.rsp-navigation__entries .jenkins-select {
-  max-width: 5rem;
+.rsp-table__icon {
+  cursor: pointer;
 }
