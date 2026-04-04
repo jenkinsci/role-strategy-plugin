@@ -648,21 +648,19 @@ button.rsp-filter__button--active {
   user-select: none;
 }
 
-.rsp-section-collapsible .jenkins-section__title::after {
-  content: "";
+.rsp-section-collapsible .jenkins-section__title .rsp-section-chevron {
   display: inline-block;
-  width: 0.5rem;
-  height: 0.5rem;
-  border-right: 2px solid var(--text-color-secondary);
-  border-bottom: 2px solid var(--text-color-secondary);
-  transform: rotate(45deg);
-  margin-left: 0.5rem;
+  width: 1em;
+  height: 1em;
+  vertical-align: text-top;
+  margin-left: 0.25rem;
   transition: transform 0.2s;
-  vertical-align: middle;
+  color: var(--text-color-secondary);
 }
 
-.rsp-section-collapsible.rsp-section--collapsed .jenkins-section__title::after {
-  transform: rotate(-45deg);
+.rsp-section-collapsible.rsp-section--collapsed .rsp-section-chevron {
+  transform: rotate(-90deg);
+  vertical-align: text-bottom;
 }
 
 .rsp-section-collapsible.rsp-section--collapsed .rsp-container,

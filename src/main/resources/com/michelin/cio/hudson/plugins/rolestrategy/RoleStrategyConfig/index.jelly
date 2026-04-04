@@ -47,6 +47,7 @@
               <j:set var="roleType" value="${attrs.roleType}"/>
               <j:set var="role" value="${attrs.role}"/>
               <j:set var="isTemplated" value="${attrs.isTemplated}"/>
+              <j:set var="permissionTemplate" value="${attrs.permissionTemplate}"/>
 
               <div class="rsp-perm">
                 <j:forEach var="g" items="${permissionGroups}">
@@ -62,7 +63,8 @@
                       <div class="rsp-perm__permissions">
                         <j:forEach var="p" items="${g.permissions}">
                           <j:if test="${it.strategy.descriptor.showPermission(roleType, p)}">
-                            <local:permItem permission="${p}" checked="${role.hasPermission(p)}"
+                            <j:set var="isChecked" value="${role.hasPermission(p) or (permissionTemplate != null and permissionTemplate.hasPermission(p))}"/>
+                            <local:permItem permission="${p}" checked="${isChecked}"
                                             disabled="${isTemplated == 'true'}"/>
                           </j:if>
                         </j:forEach>
@@ -82,6 +84,7 @@
               <j:set var="permissionGroups" value="${attrs.permissionGroups}"/>
               <j:set var="neededPermission" value="${attrs.neededPermission}"/>
               <j:set var="isTemplated" value="${role.templateName != null and role.templateName != ''}"/>
+              <j:set var="permissionTemplate" value="${isTemplated ? it.strategy.getPermissionTemplate(role.templateName) : null}"/>
               <j:set var="sectionId" value="${attrs.sectionId}"/>
 
               <div class="rsp-card ${readOnlyMode ? 'rsp-card--read-only' : ''}"
@@ -120,7 +123,8 @@
                 </div>
                 <div class="rsp-card__body rsp-card__body--collapsed">
                   <local:permGroups permissionGroups="${permissionGroups}" roleType="${roleType}"
-                                    role="${role}" isTemplated="${isTemplated ? 'true' : 'false'}"/>
+                                    role="${role}" isTemplated="${isTemplated ? 'true' : 'false'}"
+                                    permissionTemplate="${permissionTemplate}"/>
                   <!-- Assignments (loaded lazily via JS) -->
                   <div class="rsp-assign" data-role-name="${role.name}" data-loaded="false">
                     <h4 class="rsp-assign__title">${%Assigned Users and Groups}</h4>

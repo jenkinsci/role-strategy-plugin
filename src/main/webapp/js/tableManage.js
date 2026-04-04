@@ -847,6 +847,13 @@ const rspCreateRoleCard = (container, name, pattern, templateName, initialPermis
     header.appendChild(patternSpan);
   }
 
+  if (templateName) {
+    const templateBadge = document.createElement("span");
+    templateBadge.classList.add("rsp-card__template-badge");
+    templateBadge.textContent = templateName;
+    header.appendChild(templateBadge);
+  }
+
   const summarySpan = document.createElement("span");
   summarySpan.classList.add("rsp-card__summary", "rsp-card__summary--empty");
   summarySpan.dataset.emptyText = "No permissions";
@@ -890,11 +897,23 @@ const rspCreateRoleCard = (container, name, pattern, templateName, initialPermis
     const existingPerm = existingCard.querySelector(".rsp-perm");
     if (existingPerm) {
       const permClone = existingPerm.cloneNode(true);
-      // Set initial permissions
+
+      // If template selected, load its permissions from embedded JSON
+      let templatePerms = initialPermissions;
+      if (templateName) {
+        const templateData = container.querySelector(`.rsp-template-data[data-template-name='${CSS.escape(templateName)}']`);
+        if (templateData) {
+          try {
+            const permIds = JSON.parse(templateData.textContent);
+            templatePerms = new Set(permIds);
+          } catch (e) { /* ignore parse errors */ }
+        }
+      }
+
       permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => {
         const permId = cb.getAttribute("data-permission-id");
-        cb.checked = initialPermissions.has(permId);
-        cb.disabled = false;
+        cb.checked = templatePerms.has(permId);
+        cb.disabled = !!templateName; // disable all if template-based
       });
       permClone.querySelectorAll(".rsp-perm__item--implied").forEach((el) => {
         el.classList.remove("rsp-perm__item--implied");
@@ -1293,6 +1312,12 @@ Behaviour.specify(".rsp-container", "RoleStrategyCollapsible", 0, (container) =>
 
   const title = section.querySelector(".jenkins-section__title");
   if (!title) return;
+
+  // Add chevron SVG
+  const chevron = document.createElement("span");
+  chevron.classList.add("rsp-section-chevron");
+  chevron.innerHTML = '<svg viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"><path d="M112 184l144 144 144-144"/></svg>';
+  title.appendChild(chevron);
 
   title.addEventListener("click", () => {
     section.classList.toggle("rsp-section--collapsed");

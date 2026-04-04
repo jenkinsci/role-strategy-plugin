@@ -15,6 +15,13 @@
 
   <div class="rsp-container" id="${sectionId}" data-role-type="projectRoles" data-assign-type="projectRoles"
        data-templates="${templateNames}">
+
+    <!-- Template permission data for JS -->
+    <j:forEach var="tmpl" items="${it.strategy.getPermissionTemplates()}">
+      <script type="application/json" class="rsp-template-data" data-template-name="${tmpl.name}">
+        [<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]
+      </script>
+    </j:forEach>
     <local:appBar permissionGroups="${itemPermissionGroups}" roleType="${it.strategy.PROJECT}"
                   sectionId="${sectionId}" neededPermission="${neededPermission}"/>
 
