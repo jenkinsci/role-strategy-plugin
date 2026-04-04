@@ -19,6 +19,7 @@
           <div id="role-strategy-data"
                data-fetch-url="${rootURL}/role-strategy/strategy/getRoleAssignments"
                data-assign-submit-url="${rootURL}/manage/role-strategy/assignSubmit"
+               data-descriptor-url="${descriptorPath}"
                data-text-anonymous="${%Anonymous}"
                data-text-authenticated="${%Authenticated Users}"/>
 

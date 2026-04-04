@@ -792,6 +792,19 @@ button.rsp-filter__button--active {
    Ambiguity warning
    ============================================ */
 
+/* ============================================
+   Validation states
+   ============================================ */
+
+.rsp-card--not-found .rsp-card__name {
+  text-decoration: line-through;
+  color: var(--error-color);
+}
+
+.rsp-card--warning {
+  border-left: 3px solid var(--warning);
+}
+
 .rsp-ambiguity-warning {
   margin-bottom: 1rem;
 }

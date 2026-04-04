@@ -155,6 +155,12 @@ const rspRenderUserCards = () => {
     card.dataset.userName = user.name;
     card.dataset.userType = user.type;
 
+    // Hidden validation target
+    const validationTarget = document.createElement("div");
+    validationTarget.classList.add("rsp-card__validation-target");
+    validationTarget.style.display = "none";
+    card.appendChild(validationTarget);
+
     // Header
     const header = document.createElement("div");
     header.classList.add("rsp-card__header");
@@ -272,6 +278,90 @@ const rspRenderUserCards = () => {
 
   Behaviour.applySubtree(container, true);
   rspUpdateCardBorders();
+  rspValidateUserCards();
+};
+
+// ============================================
+// User/group validation against security realm
+// ============================================
+
+const rspProcessValidation = (card) => {
+  const target = card.querySelector(".rsp-card__validation-target");
+  if (!target) return;
+
+  const nameEl = card.querySelector(".rsp-card__name");
+
+  // Check for not-found state
+  const notFound = target.querySelector(".rsp-entry-not-found");
+  if (notFound) {
+    card.classList.add("rsp-card--not-found");
+  } else {
+    card.classList.remove("rsp-card--not-found");
+  }
+
+  // Check for warning state
+  const warningCell = target.querySelector(".rsp-table__icon-alert");
+  if (warningCell) {
+    card.classList.add("rsp-card--warning");
+  }
+
+  // Extract display name from the validation response
+  const responseDiv = target.querySelector(".rsp-table__cell");
+  if (responseDiv && nameEl) {
+    // The response contains icon SVGs + text. Get the text content after icons.
+    const textNodes = [];
+    responseDiv.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.trim();
+        if (text) textNodes.push(text);
+      } else if (node.tagName === "SPAN") {
+        const text = node.textContent.trim();
+        if (text) textNodes.push(text);
+      }
+    });
+    const displayName = textNodes.join("").trim();
+    if (displayName && displayName !== card.dataset.userName) {
+      nameEl.textContent = displayName;
+      nameEl.setAttribute("tooltip", card.dataset.userType + ": " + card.dataset.userName);
+    }
+
+    // Copy tooltip from validation response
+    const tooltip = responseDiv.getAttribute("tooltip");
+    if (tooltip) {
+      nameEl.setAttribute("tooltip", tooltip);
+    }
+  }
+};
+
+const rspValidateUserCards = () => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  const descriptorUrl = dataHolder?.dataset.descriptorUrl;
+  if (!descriptorUrl) return;
+
+  document.querySelectorAll("#rsp-user-cards .rsp-card").forEach((card) => {
+    const userName = card.dataset.userName;
+    const userType = card.dataset.userType;
+    if (!userName || !userType) return;
+
+    // Skip built-in entries — they don't need validation
+    if (userName === "anonymous" && userType === "USER") return;
+    if (userName === "authenticated" && userType === "GROUP") return;
+
+    const target = card.querySelector(".rsp-card__validation-target");
+    if (!target) return;
+
+    const checkValue = "[" + userType + ":" + userName + "]";
+    const checkUrl = descriptorUrl + "/checkName?value=" + encodeURIComponent(checkValue);
+
+    // Use MutationObserver to detect when FormChecker fills the target
+    const observer = new MutationObserver(() => {
+      rspProcessValidation(card);
+      observer.disconnect();
+    });
+    observer.observe(target, { childList: true, subtree: true });
+
+    FormChecker.delayedCheck(checkUrl, "POST", target);
+  });
 };
 
 // ============================================
@@ -781,6 +871,7 @@ Behaviour.specify(".rsp-user-delete", "RoleStrategyAssign", 0, (btn) => {
 
       delete rspMergedUsers[`${userType}:${userName}`];
       card.remove();
+      rspUpdateCardBorders();
 
       rspSaveAssignments().then(() => {
         notificationBar.show(`Removed "${userName}"`, notificationBar.SUCCESS);

@@ -573,6 +573,7 @@ Behaviour.specify(".rsp-card__delete", "RoleStrategyRoles", 0, (btn) => {
     const roleName = card.dataset.roleName;
     dialog.confirm("Delete role", { message: `Are you sure you want to delete the role "${roleName}"?`, type: "destructive" }).then(() => {
       card.remove();
+      rspUpdateCardBorders();
       rspSaveRoles().then(() => {
         notificationBar.show(`Role "${roleName}" deleted`, notificationBar.SUCCESS);
       }).catch((err) => { notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR); });

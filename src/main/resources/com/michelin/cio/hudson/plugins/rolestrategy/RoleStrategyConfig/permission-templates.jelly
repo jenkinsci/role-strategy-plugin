@@ -109,11 +109,13 @@
            data-submit-url="${rootURL}/manage/role-strategy/templatesSubmit"/>
 
       <l:app-bar title="${%Permission Templates}">
-        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-          <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
-            ${%Add Template}
-          </button>
-        </l:hasPermission>
+        <j:if test="${!permissionTemplates.isEmpty()}">
+          <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
+            <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
+              ${%Add Template}
+            </button>
+          </l:hasPermission>
+        </j:if>
       </l:app-bar>
 
       <p class="jenkins-!-margin-bottom-2">
@@ -177,6 +179,16 @@
           <local:templateCard template="${template}" permissionGroups="${itemPermissionGroups}"/>
         </j:forEach>
       </div>
+
+      <j:if test="${permissionTemplates.isEmpty()}">
+        <l:notice title="${%No permission templates defined}" icon="symbol-accessibility-sharp plugin-ionicons-api">
+          <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
+            <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
+              ${%Add Template}
+            </button>
+          </l:hasPermission>
+        </l:notice>
+      </j:if>
 
       <div class="jenkins-notice rsp-empty-state" id="rsp-template-empty" hidden="true">
         <l:icon src="symbol-search" />
