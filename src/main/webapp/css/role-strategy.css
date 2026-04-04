@@ -746,6 +746,7 @@ button.rsp-filter__button--active {
   border: var(--jenkins-border);
   border-radius: var(--form-input-border-radius);
   padding: 0.25rem 0;
+  margin-top: 0.5rem;
 }
 
 .rsp-assign-dialog__group-title {
@@ -755,6 +756,22 @@ button.rsp-filter__button--active {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.rsp-assign-dialog__role-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.rsp-assign-dialog__role-item:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-assign-dialog__role-pattern {
+  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
 }
 
 .rsp-assign-dialog__role {

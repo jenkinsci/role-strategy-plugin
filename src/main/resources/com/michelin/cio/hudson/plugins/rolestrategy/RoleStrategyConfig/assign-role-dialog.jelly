@@ -13,62 +13,51 @@
       </f:entry>
 
       <f:entry title="${%Roles}">
-        <div class="rsp-assign-dialog__roles"
-             name="roles"
+        <!-- Filter input -->
+        <l:search-bar placeholder="${%Filter roles...}" clazz="rsp-role-dialog-filter" hasKeyboardShortcut="false" />
+
+        <div class="rsp-assign-dialog__roles" name="roles"
              style="max-height:300px;overflow-y:auto;border:var(--jenkins-border);border-radius:var(--form-input-border-radius);padding:0.25rem 0;">
+
           <j:set var="globalRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
           <j:if test="${!globalRoles.isEmpty()}">
-            <div class="rsp-assign-dialog__group-title"
-                 style="font-weight:var(--font-bold-weight);font-size:0.6875rem;color:var(--text-color-secondary);text-transform:uppercase;letter-spacing:0.03em;padding:0.5rem 0.75rem 0.25rem;">
-              ${%Global roles}
-            </div>
-            <div name="globalRoles">
+            <div class="rsp-assign-dialog__group-title">${%Global roles}</div>
+            <div name="globalRoles" class="rsp-assign-dialog__group">
               <j:forEach var="role" items="${globalRoles}">
-                <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
-                <!--              <label class="rsp-assign-dialog__role" style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;">-->
-                <!--                <input type="checkbox" name="roles" value="globalRoles:${role.key.name}" />-->
-                <!--                <span style="font-size:0.875rem;color:var(&#45;&#45;text-color);"></span>-->
-                <!--              </label>-->
+                <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
+                  <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                </div>
               </j:forEach>
             </div>
           </j:if>
 
           <j:set var="projectRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
           <j:if test="${!projectRoles.isEmpty()}">
-            <div class="rsp-assign-dialog__group-title"
-                 style="font-weight:var(--font-bold-weight);font-size:0.6875rem;color:var(--text-color-secondary);text-transform:uppercase;letter-spacing:0.03em;padding:0.5rem 0.75rem 0.25rem;">
-              ${%Item roles}
-            </div>
-            <div name="projectRoles">
+            <div class="rsp-assign-dialog__group-title">${%Item roles}</div>
+            <div name="projectRoles" class="rsp-assign-dialog__group">
               <j:forEach var="role" items="${projectRoles}">
-                <!--              <label class="rsp-assign-dialog__role" style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;">-->
-                <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
-                <!--                <input type="checkbox" name="projectRoles:${role.key.name}" value="" />-->
-                <!--                <span style="font-size:0.875rem;color:var(&#45;&#45;text-color);">${role.key.name}</span>-->
-                <!--                <span style="font-size:0.8125rem;color:var(&#45;&#45;text-color-secondary);">"${role.key.pattern.toString()}"</span>-->
-                <!--              </label>-->
+                <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
+                  <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                  <span class="rsp-assign-dialog__role-pattern">"${role.key.pattern.toString()}"</span>
+                </div>
               </j:forEach>
             </div>
           </j:if>
 
           <j:set var="agentRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
           <j:if test="${!agentRoles.isEmpty()}">
-            <div class="rsp-assign-dialog__group-title"
-                 style="font-weight:var(--font-bold-weight);font-size:0.6875rem;color:var(--text-color-secondary);text-transform:uppercase;letter-spacing:0.03em;padding:0.5rem 0.75rem 0.25rem;">
-              ${%Agent roles}
-            </div>
-            <div name="agentRoles">
+            <div class="rsp-assign-dialog__group-title">${%Agent roles}</div>
+            <div name="agentRoles" class="rsp-assign-dialog__group">
               <j:forEach var="role" items="${agentRoles}">
-                <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
-                <!--              <label class="rsp-assign-dialog__role" style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;">-->
-                <!--                <input type="checkbox" name="roles" value="slaveRoles:${role.key.name}" />-->
-                <!--                <span style="font-size:0.875rem;color:var(&#45;&#45;text-color);">${role.key.name}</span>-->
-                <!--                <span style="font-size:0.8125rem;color:var(&#45;&#45;text-color-secondary);">"${role.key.pattern.toString()}"</span>-->
-                <!--              </label>-->
+                <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
+                  <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                  <span class="rsp-assign-dialog__role-pattern">"${role.key.pattern.toString()}"</span>
+                </div>
               </j:forEach>
             </div>
           </j:if>
         </div>
+
       </f:entry>
 
       <f:bottomButtonBar>

@@ -903,6 +903,33 @@ Behaviour.specify(".rsp-assign-role-btn", "RoleStrategyAssign", 0, (btn) => {
   btn.addEventListener("click", rspAssignRoleDialog);
 });
 
+// Role dialog filter
+Behaviour.specify(".rsp-role-dialog-filter input", "RoleStrategyAssign", 0, (input) => {
+  if (input.dataset.initialized === "true") return;
+  input.dataset.initialized = "true";
+  input.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    const container = input.closest(".jenkins-form-item")?.querySelector(".rsp-assign-dialog__roles");
+    if (!container) return;
+
+    container.querySelectorAll(".rsp-assign-dialog__role-item").forEach((item) => {
+      const name = (item.dataset.roleName || "").toLowerCase();
+      item.style.display = (q === "" || name.includes(q)) ? "" : "none";
+    });
+
+    container.querySelectorAll(".rsp-assign-dialog__group-title").forEach((title) => {
+      const next = title.nextElementSibling;
+      let hasVisible = false;
+      if (next && next.classList.contains("rsp-assign-dialog__group")) {
+        next.querySelectorAll(".rsp-assign-dialog__role-item").forEach((child) => {
+          if (child.style.display !== "none") hasVisible = true;
+        });
+      }
+      title.style.display = hasVisible ? "" : "none";
+    });
+  });
+});
+
 // Search
 Behaviour.specify(".rsp-assign-search input", "RoleStrategyAssign", 0, (input) => {
   if (input.dataset.initialized === "true") return;
