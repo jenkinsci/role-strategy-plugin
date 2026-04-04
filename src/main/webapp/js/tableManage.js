@@ -271,6 +271,7 @@ const rspRenderUserCards = () => {
   });
 
   Behaviour.applySubtree(container, true);
+  rspUpdateCardBorders();
 };
 
 // ============================================
@@ -324,6 +325,7 @@ const rspApplyUserSearch = () => {
 
   const emptyState = document.getElementById("rsp-user-empty");
   if (emptyState) emptyState.hidden = visibleCount > 0 || query === "";
+  rspUpdateCardBorders();
 };
 
 // ============================================

@@ -8,9 +8,6 @@
   <j:set var="neededPermission" value="${it.strategy.AGENT_ROLES_ADMIN}"/>
 
   <div class="rsp-container" id="${sectionId}" data-role-type="slaveRoles" data-assign-type="slaveRoles">
-    <local:appBar permissionGroups="${agentPermissionGroups}" roleType="${it.strategy.SLAVE}"
-                  sectionId="${sectionId}" neededPermission="${neededPermission}"/>
-
     <div class="rsp-cards">
       <j:forEach var="role" items="${agentGrantedRoles}">
         <local:roleCard role="${role.key}" roleType="${it.strategy.SLAVE}"

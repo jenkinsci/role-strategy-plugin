@@ -22,9 +22,6 @@
         [<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]
       </script>
     </j:forEach>
-    <local:appBar permissionGroups="${itemPermissionGroups}" roleType="${it.strategy.PROJECT}"
-                  sectionId="${sectionId}" neededPermission="${neededPermission}"/>
-
     <div class="rsp-cards">
       <j:forEach var="role" items="${itemGrantedRoles}">
         <local:roleCard role="${role.key}" roleType="${it.strategy.PROJECT}"

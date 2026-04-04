@@ -154,6 +154,7 @@ const rspApplyFilters = (container) => {
   if (filterBtn) filterBtn.classList.toggle("rsp-filter__button--active", hasActiveFilters);
   const resetBtn = container.querySelector(".rsp-filter__reset-button");
   if (resetBtn) resetBtn.hidden = !hasActiveFilters;
+  rspUpdateCardBorders(container);
 };
 
 // ============================================
@@ -559,6 +560,7 @@ Behaviour.specify(".rsp-card", "RoleStrategyRoles", 1, (card) => {
   card.dataset.summaryInitialized = "true";
   rspUpdateImplied(card);
   rspUpdateSummary(card);
+  rspUpdateCardBorders();
 });
 
 Behaviour.specify(".rsp-card__delete", "RoleStrategyRoles", 0, (btn) => {
@@ -851,12 +853,38 @@ Behaviour.specify(".rsp-add-role-global", "RoleStrategyRoles", 0, (btn) => {
   });
 });
 
+// Per-section search (kept for backward compat)
 Behaviour.specify(".rsp-search input", "RoleStrategyRoles", 0, (input) => {
   if (input.dataset.searchInitialized === "true") return;
   input.dataset.searchInitialized = "true";
   input.addEventListener("input", () => {
     const container = input.closest(".rsp-container");
     if (container) rspApplyFilters(container);
+  });
+});
+
+// Global search across all sections
+Behaviour.specify(".rsp-roles-search input", "RoleStrategyRoles", 0, (input) => {
+  if (input.dataset.searchInitialized === "true") return;
+  input.dataset.searchInitialized = "true";
+  input.addEventListener("input", () => {
+    const query = input.value.toLowerCase().trim();
+    document.querySelectorAll(".rsp-container").forEach((container) => {
+      let visibleCount = 0;
+      container.querySelectorAll(".rsp-card").forEach((card) => {
+        const roleName = (card.dataset.roleName || "").toLowerCase();
+        const pattern = (card.dataset.rolePattern || "").toLowerCase();
+        const matches = query === "" || roleName.includes(query) || pattern.includes(query);
+        card.classList.toggle("rsp-card--hidden", !matches);
+        if (matches) visibleCount++;
+      });
+      // Hide entire section if no visible cards
+      const section = container.closest(".jenkins-section");
+      if (section) {
+        section.style.display = (query !== "" && visibleCount === 0) ? "none" : "";
+      }
+    });
+    rspUpdateCardBorders();
   });
 });
 

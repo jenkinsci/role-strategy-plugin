@@ -198,6 +198,13 @@
             </j:if>
           </l:app-bar>
 
+          <!-- Single search bar for all roles -->
+          <div style="margin-bottom:1rem;">
+            <l:search-bar placeholder="${%Search roles...}"
+                          clazz="rsp-roles-search"
+                          hasKeyboardShortcut="false" />
+          </div>
+
           <j:if test="${app.hasPermission(app.SYSTEM_READ)}">
             <f:section title="${%Global roles}">
               <j:set var="readOnlyMode" value="${!app.hasPermission(app.ADMINISTER)}" />

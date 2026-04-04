@@ -8,9 +8,6 @@
   <j:set var="neededPermission" value="${app.ADMINISTER}"/>
 
   <div class="rsp-container" id="${sectionId}" data-role-type="globalRoles" data-assign-type="globalRoles">
-    <local:appBar permissionGroups="${globalPermissionGroups}" roleType="${it.strategy.GLOBAL}"
-                  sectionId="${sectionId}" neededPermission="${neededPermission}"/>
-
     <div class="rsp-cards">
       <j:forEach var="role" items="${globalGrantedRoles}">
         <local:roleCard role="${role.key}" roleType="${it.strategy.GLOBAL}"

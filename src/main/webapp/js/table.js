@@ -22,6 +22,22 @@
  * THE SOFTWARE.
  */
 
+// Update connected card border classes based on visible cards
+var rspUpdateCardBorders = function(container) {
+  if (!container) container = document;
+  container.querySelectorAll(".rsp-cards").forEach((cards) => {
+    const visible = cards.querySelectorAll(".rsp-card:not(.rsp-card--hidden)");
+    // Reset all
+    cards.querySelectorAll(".rsp-card").forEach((c) => {
+      c.classList.remove("rsp-card--connected-top", "rsp-card--connected-bottom");
+    });
+    visible.forEach((card, i) => {
+      if (i > 0) card.classList.add("rsp-card--connected-top");
+      if (i < visible.length - 1) card.classList.add("rsp-card--connected-bottom");
+    });
+  });
+};
+
 function debounce(func, timeout = 300) {
   let timer;
   return (...args) => {

@@ -223,13 +223,14 @@ button.rsp-filter__button--active {
   overflow: hidden;
 }
 
-.rsp-card:not(:first-of-type) {
+/* Connected borders managed via JS classes */
+.rsp-card.rsp-card--connected-top {
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: none;
 }
 
-.rsp-card:not(:last-of-type) {
+.rsp-card.rsp-card--connected-bottom {
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
