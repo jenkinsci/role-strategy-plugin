@@ -226,6 +226,12 @@
           </template>
 
           <l:app-bar title="${%Manage and Assign Roles}">
+            <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
+              <button type="button" class="jenkins-button jenkins-button--primary rsp-assign-role-btn">
+                <l:icon src="symbol-person-add-outline plugin-ionicons-api" class="icon-sm"/>
+                ${%Assign role}
+              </button>
+            </j:if>
             <a href="${rootURL}/manage/role-strategy/permission-templates" class="jenkins-button">
               <l:icon src="symbol-braces plugin-role-strategy" class="icon-sm"/>
               ${%Permission Templates}
@@ -261,12 +267,6 @@
             </f:section>
           </j:if>
 
-          <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
-            <f:bottomButtonBar>
-              <button id="rsp-save" type="button" class="jenkins-button jenkins-button--primary">${%Save}</button>
-              <button id="rsp-apply" type="button" class="jenkins-button" data-message="${%Saved}">${%Apply}</button>
-            </f:bottomButtonBar>
-          </j:if>
 
           <st:adjunct includes="lib.form.confirm" />
         </l:main-panel>
