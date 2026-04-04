@@ -755,7 +755,8 @@ button.rsp-filter__button--active {
 
 .rsp-assign-dialog__role-pattern {
   font-size: 0.8125rem;
-  color: var(--text-color-secondary);
+  color: var(--background);
+  opacity: 0.8;
 }
 
 /* ============================================
