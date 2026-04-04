@@ -1,0 +1,79 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+  <st:setHeader name="X-Dialog-Title" value="${%Assign role}"/>
+  <l:ajax>
+    <f:form method="post" action="${rootURL}/manage/role-strategy/assignRoleSubmit">
+      <f:entry title="${%User or group name}">
+        <f:textbox name="name"/>
+      </f:entry>
+
+      <f:entry title="${%Type}">
+        <f:radio name="type" value="USER" title="${%User}"/>
+        <f:radio name="type" value="GROUP" title="${%Group}"/>
+      </f:entry>
+
+      <f:entry title="${%Roles}">
+        <div class="rsp-assign-dialog__roles"
+             name="roles"
+             style="max-height:300px;overflow-y:auto;border:var(--jenkins-border);border-radius:var(--form-input-border-radius);padding:0.25rem 0;">
+          <j:set var="globalRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
+          <j:if test="${!globalRoles.isEmpty()}">
+            <div class="rsp-assign-dialog__group-title"
+                 style="font-weight:var(--font-bold-weight);font-size:0.6875rem;color:var(--text-color-secondary);text-transform:uppercase;letter-spacing:0.03em;padding:0.5rem 0.75rem 0.25rem;">
+              ${%Global roles}
+            </div>
+            <div name="globalRoles">
+              <j:forEach var="role" items="${globalRoles}">
+                <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                <!--              <label class="rsp-assign-dialog__role" style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;">-->
+                <!--                <input type="checkbox" name="roles" value="globalRoles:${role.key.name}" />-->
+                <!--                <span style="font-size:0.875rem;color:var(&#45;&#45;text-color);"></span>-->
+                <!--              </label>-->
+              </j:forEach>
+            </div>
+          </j:if>
+
+          <j:set var="projectRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
+          <j:if test="${!projectRoles.isEmpty()}">
+            <div class="rsp-assign-dialog__group-title"
+                 style="font-weight:var(--font-bold-weight);font-size:0.6875rem;color:var(--text-color-secondary);text-transform:uppercase;letter-spacing:0.03em;padding:0.5rem 0.75rem 0.25rem;">
+              ${%Item roles}
+            </div>
+            <div name="projectRoles">
+              <j:forEach var="role" items="${projectRoles}">
+                <!--              <label class="rsp-assign-dialog__role" style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;">-->
+                <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                <!--                <input type="checkbox" name="projectRoles:${role.key.name}" value="" />-->
+                <!--                <span style="font-size:0.875rem;color:var(&#45;&#45;text-color);">${role.key.name}</span>-->
+                <!--                <span style="font-size:0.8125rem;color:var(&#45;&#45;text-color-secondary);">"${role.key.pattern.toString()}"</span>-->
+                <!--              </label>-->
+              </j:forEach>
+            </div>
+          </j:if>
+
+          <j:set var="agentRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
+          <j:if test="${!agentRoles.isEmpty()}">
+            <div class="rsp-assign-dialog__group-title"
+                 style="font-weight:var(--font-bold-weight);font-size:0.6875rem;color:var(--text-color-secondary);text-transform:uppercase;letter-spacing:0.03em;padding:0.5rem 0.75rem 0.25rem;">
+              ${%Agent roles}
+            </div>
+            <div name="agentRoles">
+              <j:forEach var="role" items="${agentRoles}">
+                <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                <!--              <label class="rsp-assign-dialog__role" style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;">-->
+                <!--                <input type="checkbox" name="roles" value="slaveRoles:${role.key.name}" />-->
+                <!--                <span style="font-size:0.875rem;color:var(&#45;&#45;text-color);">${role.key.name}</span>-->
+                <!--                <span style="font-size:0.8125rem;color:var(&#45;&#45;text-color-secondary);">"${role.key.pattern.toString()}"</span>-->
+                <!--              </label>-->
+              </j:forEach>
+            </div>
+          </j:if>
+        </div>
+      </f:entry>
+
+      <f:bottomButtonBar>
+        <f:submit value="${%Assign}"/>
+      </f:bottomButtonBar>
+    </f:form>
+  </l:ajax>
+</j:jelly>

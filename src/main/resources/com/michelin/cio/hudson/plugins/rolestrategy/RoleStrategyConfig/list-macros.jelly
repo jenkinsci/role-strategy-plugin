@@ -2,23 +2,20 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-    <l:layout title="${%Role Strategy Macros}" permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" type="one-column">
-        <l:breadcrumb title="${%Macros}"/>
-
-        <l:main-panel>
+    <j:set var="header"><l:view>
+      <l:app-bar title="${%Macros}">
+      </l:app-bar>
+      <p class="jenkins-!-margin-bottom-2">
+        Macros extend access rights analysis and can be used in the pattern field on the
+        <a href="${rootURL}/manage/role-strategy/manage-roles">Manage Roles</a> page.
+      </p>
+      <p class="jenkins-!-margin-bottom-3" style="color:var(--text-color-secondary);font-size:0.875rem;">
+        Format: <code>@macroName[:id][(param1, param2)]</code>
+        — e.g. <code>@BuildableJob</code>, <code>@BuildableJob:1</code>, <code>@Folder(folderName)</code>
+      </p>
+    </l:view></j:set>
+    <l:settings-subpage title="${%Macros}" permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" noDefer="true" includeBreadcrumb="true" header="${header}">
             <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
-
-            <l:app-bar title="${%Macros}">
-            </l:app-bar>
-
-            <p class="jenkins-!-margin-bottom-2">
-              Macros extend access rights analysis and can be used in the pattern field on the
-              <a href="${rootURL}/manage/role-strategy/manage-roles">Manage Roles</a> page.
-            </p>
-            <p class="jenkins-!-margin-bottom-3" style="color:var(--text-color-secondary);font-size:0.875rem;">
-              Format: <code>@macroName[:id][(param1, param2)]</code>
-              — e.g. <code>@BuildableJob</code>, <code>@BuildableJob:1</code>, <code>@Folder(folderName)</code>
-            </p>
 
             <j:invoke var="macros" method="getRoleMacroExtensions" on="${it}"/>
 
@@ -42,6 +39,5 @@
               </j:forEach>
             </div>
 
-        </l:main-panel>
-    </l:layout>
+    </l:settings-subpage>
 </j:jelly>

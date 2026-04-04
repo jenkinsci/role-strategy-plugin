@@ -17,13 +17,6 @@
    App Bar (search + filter + actions)
    ============================================ */
 
-.rsp-app-bar {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: calc(var(--section-padding) / 2);
-  margin-bottom: calc(var(--section-padding) / 2);
-}
-
 .rsp-search-wrapper {
   position: relative;
 }

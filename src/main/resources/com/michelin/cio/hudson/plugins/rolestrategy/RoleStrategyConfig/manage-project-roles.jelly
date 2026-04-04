@@ -31,6 +31,12 @@
       </j:forEach>
     </div>
 
+    <j:if test="${itemGrantedRoles.isEmpty()}">
+      <l:notice icon="symbol-information-circle-outline plugin-ionicons-api" title="${%No item roles defined}">
+        ${%Use Add Role to create an item role.}
+      </l:notice>
+    </j:if>
+
     <div class="jenkins-notice rsp-empty-state" hidden="true">
       <l:icon src="symbol-search" />
       ${%No matching roles}

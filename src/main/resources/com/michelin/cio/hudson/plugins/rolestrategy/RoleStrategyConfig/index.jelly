@@ -1,106 +1,97 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
-    <l:layout permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" type="one-column" title="${%Role Assignments}">
-        <l:main-panel>
-          <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
-          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
-          <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableManage.js" />
+    <j:set var="header"><l:view>
+      <l:app-bar title="${%Role Assignments}">
+        <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
+          <button type="button" class="jenkins-button jenkins-button--primary rsp-assign-role-btn">
+            <l:icon src="symbol-person-add-outline plugin-ionicons-api" class="icon-sm"/>
+            ${%Assign role}
+          </button>
+        </j:if>
+        <a href="${rootURL}/manage/role-strategy/manage-roles" class="jenkins-button">
+          <l:icon src="symbol-finger-print-outline plugin-ionicons-api" class="icon-sm"/>
+          ${%Manage Roles}
+        </a>
+        <a href="${rootURL}/manage/role-strategy/permission-templates" class="jenkins-button">
+          <l:icon src="symbol-braces plugin-role-strategy" class="icon-sm"/>
+          ${%Permission Templates}
+        </a>
+        <a href="${rootURL}/manage/role-strategy/list-macros" class="jenkins-button">
+          <l:icon src="symbol-extension-puzzle-outline plugin-ionicons-api" class="icon-sm"/>
+          ${%Macros}
+        </a>
+      </l:app-bar>
+    </l:view></j:set>
+    <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" title="${%Role Assignments}" noDefer="true" header="${header}">
+      <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
+      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
+      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableManage.js" />
 
-          <j:if test="${empty(descriptorPath)}">
-            <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
-          </j:if>
+      <j:if test="${empty(descriptorPath)}">
+        <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
+      </j:if>
 
-          <!-- Role data for JS to build checkboxes -->
-          <j:forEach var="roleType" items="${it.strategy.descriptor.roleTypes}">
-            <!-- handled in JS via embedded data -->
-          </j:forEach>
+      <div id="role-strategy-data"
+           data-fetch-url="${rootURL}/role-strategy/strategy/getRoleAssignments"
+           data-assign-submit-url="${rootURL}/manage/role-strategy/assignSubmit"
+           data-descriptor-url="${descriptorPath}"
+           data-text-anonymous="${%Anonymous}"
+           data-text-authenticated="${%Authenticated Users}"/>
 
-          <div id="role-strategy-data"
-               data-fetch-url="${rootURL}/role-strategy/strategy/getRoleAssignments"
-               data-assign-submit-url="${rootURL}/manage/role-strategy/assignSubmit"
-               data-descriptor-url="${descriptorPath}"
-               data-text-anonymous="${%Anonymous}"
-               data-text-authenticated="${%Authenticated Users}"/>
+      <script type="application/json" id="rsp-roles-global">
+        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}"}</j:forEach>]
+      </script>
+      <script type="application/json" id="rsp-roles-project">
+        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}","pattern":"${role.key.pattern.toString()}"}</j:forEach>]
+      </script>
+      <script type="application/json" id="rsp-roles-slave">
+        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}","pattern":"${role.key.pattern.toString()}"}</j:forEach>]
+      </script>
 
-          <!-- Embed role names/patterns for each type so JS can build role checkboxes -->
-          <script type="application/json" id="rsp-roles-global">
-            [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}"}</j:forEach>]
-          </script>
-          <script type="application/json" id="rsp-roles-project">
-            [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}","pattern":"${role.key.pattern.toString()}"}</j:forEach>]
-          </script>
-          <script type="application/json" id="rsp-roles-slave">
-            [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}","pattern":"${role.key.pattern.toString()}"}</j:forEach>]
-          </script>
+      <template id="assign-roles-icons">
+        <l:icon src="symbol-people-outline plugin-ionicons-api" class="icon-sm" id="rsp-people-icon"/>
+        <l:icon src="symbol-person-outline plugin-ionicons-api" class="icon-sm" id="rsp-person-icon"/>
+      </template>
 
-          <template id="assign-roles-icons">
-            <l:icon src="symbol-people-outline plugin-ionicons-api" class="icon-sm" id="rsp-people-icon"/>
-            <l:icon src="symbol-person-outline plugin-ionicons-api" class="icon-sm" id="rsp-person-icon"/>
-          </template>
-
-          <l:app-bar title="${%Role Assignments}">
-            <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
-              <button type="button" class="jenkins-button jenkins-button--primary rsp-assign-role-btn">
-                <l:icon src="symbol-person-add-outline plugin-ionicons-api" class="icon-sm"/>
-                ${%Assign role}
-              </button>
-            </j:if>
-            <a href="${rootURL}/manage/role-strategy/manage-roles" class="jenkins-button">
-              <l:icon src="symbol-finger-print-outline plugin-ionicons-api" class="icon-sm"/>
-              ${%Manage Roles}
-            </a>
-            <a href="${rootURL}/manage/role-strategy/permission-templates" class="jenkins-button">
-              <l:icon src="symbol-braces plugin-role-strategy" class="icon-sm"/>
-              ${%Permission Templates}
-            </a>
-            <a href="${rootURL}/manage/role-strategy/list-macros" class="jenkins-button">
-              <l:icon src="symbol-extension-puzzle-outline plugin-ionicons-api" class="icon-sm"/>
-              ${%Macros}
-            </a>
-          </l:app-bar>
-
-          <!-- Search bar with role filter -->
-          <div class="rsp-app-bar" style="margin-bottom:1rem;">
-            <div class="rsp-search-wrapper">
-              <l:search-bar placeholder="${%Search users and groups...}"
-                            clazz="rsp-assign-search"
-                            hasKeyboardShortcut="false" />
-              <div class="rsp-filter">
-                <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-role-filter-btn"
-                        aria-expanded="false" aria-haspopup="true"
-                        tooltip="${%Filter by role}">
-                  <l:icon src="symbol-funnel-outline plugin-ionicons-api" class="icon-sm"/>
-                </button>
-                <div class="rsp-filter__dropdown rsp-role-filter-dropdown" hidden="true">
-                  <div class="rsp-filter__header">
-                    <span class="rsp-filter__header-label">${%Filter by role}</span>
-                    <button type="button" class="rsp-filter__reset-button rsp-role-filter-reset" hidden="true">${%Reset}</button>
-                  </div>
-                  <div class="rsp-filter__search">
-                    <input type="text" class="jenkins-input rsp-filter__search-input rsp-role-filter-search"
-                           placeholder="${%Search roles...}" />
-                    <button type="button" class="rsp-filter__search-clear rsp-role-filter-clear" aria-label="Clear">&#xd7;</button>
-                  </div>
-                  <div class="rsp-filter__list rsp-role-filter-list">
-                    <!-- Populated by JS from embedded role data -->
-                  </div>
-                </div>
+      <!-- Search bar with role filter -->
+      <div style="margin-bottom:1rem;">
+        <div class="rsp-search-wrapper">
+          <l:search-bar placeholder="${%Search users and groups...}"
+                        clazz="rsp-assign-search"
+                        hasKeyboardShortcut="false" />
+          <div class="rsp-filter">
+            <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-role-filter-btn"
+                    aria-expanded="false" aria-haspopup="true"
+                    tooltip="${%Filter by role}">
+              <l:icon src="symbol-funnel-outline plugin-ionicons-api" class="icon-sm"/>
+            </button>
+            <div class="rsp-filter__dropdown rsp-role-filter-dropdown" hidden="true">
+              <div class="rsp-filter__header">
+                <span class="rsp-filter__header-label">${%Filter by role}</span>
+                <button type="button" class="rsp-filter__reset-button rsp-role-filter-reset" hidden="true">${%Reset}</button>
+              </div>
+              <div class="rsp-filter__search">
+                <input type="text" class="jenkins-input rsp-filter__search-input rsp-role-filter-search"
+                       placeholder="${%Search roles...}" />
+                <button type="button" class="rsp-filter__search-clear rsp-role-filter-clear" aria-label="Clear">&#xd7;</button>
+              </div>
+              <div class="rsp-filter__list rsp-role-filter-list">
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- User/group cards rendered by JS -->
-          <div id="rsp-user-cards" class="rsp-cards">
-            <div class="rsp-assign__loading" style="padding:1rem;">${%Loading assignments...}</div>
-          </div>
+      <div id="rsp-user-cards" class="rsp-cards">
+        <div class="rsp-assign__loading" style="padding:1rem;">${%Loading assignments...}</div>
+      </div>
 
-          <div class="jenkins-notice rsp-empty-state" id="rsp-user-empty" hidden="true">
-            <l:icon src="symbol-search" />
-            ${%No matching users or groups}
-          </div>
+      <div class="jenkins-notice rsp-empty-state" id="rsp-user-empty" hidden="true">
+        <l:icon src="symbol-search" />
+        ${%No matching users or groups}
+      </div>
 
-          <st:adjunct includes="lib.form.confirm" />
-        </l:main-panel>
-    </l:layout>
+      <st:adjunct includes="lib.form.confirm" />
+    </l:settings-subpage>
 </j:jelly>

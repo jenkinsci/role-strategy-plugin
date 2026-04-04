@@ -1,9 +1,17 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
-    <l:layout permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" type="one-column" title="${%Manage Roles}">
-        <l:breadcrumb title="${%Roles}"/>
-        <l:main-panel>
+    <j:set var="header"><l:view>
+      <l:app-bar title="${%Roles}">
+        <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
+          <button type="button" class="jenkins-button jenkins-button--primary rsp-add-role-global">
+            <l:icon src="symbol-add plugin-ionicons-api" class="icon-sm"/>
+            ${%Add Role}
+          </button>
+        </j:if>
+      </l:app-bar>
+    </l:view></j:set>
+    <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" title="${%Roles}" noDefer="true" includeBreadcrumb="true" header="${header}">
           <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js" />
           <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableRoles.js" />
@@ -132,7 +140,7 @@
               <j:set var="sectionId" value="${attrs.sectionId}"/>
               <j:set var="neededPermission" value="${attrs.neededPermission}"/>
               <l:hasPermission permission="${neededPermission}">
-                <div class="rsp-app-bar" data-section-id="${sectionId}">
+                <div data-section-id="${sectionId}">
                   <div class="rsp-search-wrapper">
                     <l:search-bar placeholder="${%Search roles...}"
                                   clazz="rsp-search"
@@ -190,14 +198,6 @@
                data-matching-jobs-url="${rootURL}/manage/role-strategy/strategy/getMatchingJobs"
                data-matching-agents-url="${rootURL}/manage/role-strategy/strategy/getMatchingAgents"/>
 
-          <l:app-bar title="${%Roles}">
-            <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
-              <button type="button" class="jenkins-button jenkins-button--primary rsp-add-role-global">
-                ${%Add Role}
-              </button>
-            </j:if>
-          </l:app-bar>
-
           <!-- Single search bar for all roles -->
           <div style="margin-bottom:1rem;">
             <l:search-bar placeholder="${%Search roles...}"
@@ -225,6 +225,5 @@
           </j:if>
 
           <st:adjunct includes="lib.form.confirm" />
-        </l:main-panel>
-    </l:layout>
+    </l:settings-subpage>
 </j:jelly>

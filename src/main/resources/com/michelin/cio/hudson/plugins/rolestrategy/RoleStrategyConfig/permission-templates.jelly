@@ -2,8 +2,22 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <l:layout permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" type="one-column" title="${%Permission Templates}">
-    <l:breadcrumb title="${%Permission Templates}"/>
+  <j:set var="header"><l:view>
+    <l:app-bar title="${%Permission Templates}">
+      <j:if test="${!permissionTemplates.isEmpty()}">
+        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
+          <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
+            <l:icon src="symbol-add plugin-ionicons-api" class="icon-sm"/>
+            ${%Add Template}
+          </button>
+        </l:hasPermission>
+      </j:if>
+    </l:app-bar>
+    <p class="jenkins-!-margin-bottom-2">
+      ${%blurb}
+    </p>
+  </l:view></j:set>
+  <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" title="${%Permission Templates}" noDefer="true" includeBreadcrumb="true" header="${header}">
 
     <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
     <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
@@ -96,7 +110,6 @@
       </d:tag>
     </d:taglib>
 
-    <l:main-panel>
       <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css"/>
       <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js"/>
       <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableTemplates.js"/>
@@ -108,22 +121,8 @@
       <div id="template-data"
            data-submit-url="${rootURL}/manage/role-strategy/templatesSubmit"/>
 
-      <l:app-bar title="${%Permission Templates}">
-        <j:if test="${!permissionTemplates.isEmpty()}">
-          <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-            <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
-              ${%Add Template}
-            </button>
-          </l:hasPermission>
-        </j:if>
-      </l:app-bar>
-
-      <p class="jenkins-!-margin-bottom-2">
-        ${%blurb}
-      </p>
-
       <!-- Search bar with permission filter -->
-      <div class="rsp-app-bar" style="margin-bottom:1rem;">
+      <div style="margin-bottom:1rem;">
         <div class="rsp-search-wrapper">
           <l:search-bar placeholder="${%Search templates...}"
                         clazz="rsp-template-search"
@@ -196,6 +195,5 @@
       </div>
 
       <st:adjunct includes="lib.form.confirm" />
-    </l:main-panel>
-  </l:layout>
+  </l:settings-subpage>
 </j:jelly>

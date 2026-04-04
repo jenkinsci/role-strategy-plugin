@@ -17,6 +17,12 @@
       </j:forEach>
     </div>
 
+    <j:if test="${agentGrantedRoles.isEmpty()}">
+      <l:notice icon="symbol-information-circle-outline plugin-ionicons-api" title="${%No agent roles defined}">
+        ${%Use Add Role to create an agent role.}
+      </l:notice>
+    </j:if>
+
     <div class="jenkins-notice rsp-empty-state" hidden="true">
       <l:icon src="symbol-search" />
       ${%No matching roles}

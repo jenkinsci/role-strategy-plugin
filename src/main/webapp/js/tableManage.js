@@ -588,6 +588,20 @@ const rspInitRoleFilterDropdown = () => {
 // ============================================
 
 const rspAssignRoleDialog = () => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  const rootUrl = document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") || "";
+  const dialogUrl = rootUrl + "/manage/role-strategy/assign-role-dialog";
+
+  dialog.wizard(dialogUrl, {
+    onClose: () => {
+      // Reload page to show updated assignments
+      window.location.reload();
+    }
+  });
+};
+
+// Keep old JS dialog as fallback (unused but kept for reference)
+const rspAssignRoleDialogJS = () => {
   const content = document.createElement("div");
   content.classList.add("rsp-dialog-content");
 

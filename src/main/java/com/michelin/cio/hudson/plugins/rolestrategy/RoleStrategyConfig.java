@@ -37,8 +37,10 @@ import hudson.security.Permission;
 import hudson.util.FormApply;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
+import java.util.List;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -218,6 +220,47 @@ public class RoleStrategyConfig extends ManagementLink {
       rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
     }
     RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
+    FormApply.success(".").generateResponse(req, rsp, this);
+  }
+
+  /**
+   * Called from the assign role dialog form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  @SuppressWarnings("unchecked")
+  public void doAssignRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    req.setCharacterEncoding("UTF-8");
+
+    JSONObject json = req.getSubmittedForm();
+    String name = json.getString("name").trim();
+    String type = json.getString("type");
+
+    if (name.isEmpty()) {
+      rsp.sendError(400, "Name is required");
+      return;
+    }
+
+    // roles is { "globalRoles": { "admin": true, "manager": false }, "projectRoles": { ... }, ... }
+    JSONObject roles = json.getJSONObject("roles");
+
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      for (String assignType : roles.keySet()) {
+        JSONObject roleEntries = roles.getJSONObject(assignType);
+        for (String roleName : roleEntries.keySet()) {
+          if (roleEntries.getBoolean(roleName)) {
+            if ("USER".equals(type)) {
+              rbas.doAssignUserRole(assignType, roleName, name);
+            } else if ("GROUP".equals(type)) {
+              rbas.doAssignGroupRole(assignType, roleName, name);
+            }
+          }
+        }
+      }
+    }
+
     FormApply.success(".").generateResponse(req, rsp, this);
   }
 
