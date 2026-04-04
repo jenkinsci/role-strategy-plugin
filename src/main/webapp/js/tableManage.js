@@ -307,7 +307,10 @@ const rspAutoSave = () => {
 // Search
 // ============================================
 
-const rspApplyUserSearch = () => {
+// Active role filters: [{ assignType, roleName }, ...]
+let rspActiveRoleFilters = [];
+
+const rspApplyUserFilters = () => {
   const input = document.querySelector(".rsp-assign-search input");
   const query = input ? input.value.toLowerCase().trim() : "";
   const cards = document.querySelectorAll("#rsp-user-cards .rsp-card");
@@ -315,7 +318,26 @@ const rspApplyUserSearch = () => {
 
   cards.forEach((card) => {
     const name = (card.dataset.userName || "").toLowerCase();
-    if (query === "" || name.includes(query)) {
+    const userType = card.dataset.userType;
+    const key = `${userType}:${card.dataset.userName}`;
+    const userData = rspMergedUsers[key];
+
+    // Text match
+    const matchesText = query === "" || name.includes(query);
+
+    // Role filter match (OR logic — user has ANY of the selected roles)
+    let matchesRole = rspActiveRoleFilters.length === 0;
+    if (!matchesRole && userData) {
+      for (const filter of rspActiveRoleFilters) {
+        const userRoles = userData.roles[filter.assignType] || [];
+        if (userRoles.includes(filter.roleName)) {
+          matchesRole = true;
+          break;
+        }
+      }
+    }
+
+    if (matchesText && matchesRole) {
       card.classList.remove("rsp-card--hidden");
       visibleCount++;
     } else {
@@ -324,8 +346,151 @@ const rspApplyUserSearch = () => {
   });
 
   const emptyState = document.getElementById("rsp-user-empty");
-  if (emptyState) emptyState.hidden = visibleCount > 0 || query === "";
+  if (emptyState) emptyState.hidden = visibleCount > 0 || (query === "" && rspActiveRoleFilters.length === 0);
+
+  // Update filter button active state
+  const filterBtn = document.querySelector(".rsp-role-filter-btn");
+  if (filterBtn) filterBtn.classList.toggle("rsp-filter__button--active", rspActiveRoleFilters.length > 0);
+  const resetBtn = document.querySelector(".rsp-role-filter-reset");
+  if (resetBtn) resetBtn.hidden = rspActiveRoleFilters.length === 0;
+
   rspUpdateCardBorders();
+};
+
+const rspPopulateRoleFilter = () => {
+  const list = document.querySelector(".rsp-role-filter-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  rspAssignTypes.forEach((type) => {
+    const roles = rspRoleDefinitions[type];
+    if (!roles || roles.length === 0) return;
+
+    const groupTitle = document.createElement("div");
+    groupTitle.classList.add("rsp-filter__group-title");
+    groupTitle.textContent = rspTypeLabels[type] + " roles";
+    list.appendChild(groupTitle);
+
+    roles.forEach((role) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.classList.add("rsp-filter__item");
+      item.dataset.assignType = type;
+      item.dataset.roleName = role.name;
+      item.dataset.filterLabel = (rspTypeLabels[type] + " " + role.name).toLowerCase();
+
+      item.innerHTML = `<span class="rsp-filter__item-indicator"></span>
+        <span class="rsp-filter__item-name">${escapeHTML(role.name)}</span>`;
+
+      if (role.pattern) {
+        const patternSpan = document.createElement("span");
+        patternSpan.style.cssText = "font-size:0.75rem;color:var(--text-color-secondary);margin-left:0.25rem;";
+        patternSpan.textContent = `"${role.pattern}"`;
+        item.appendChild(patternSpan);
+      }
+
+      item.addEventListener("click", () => {
+        item.classList.toggle("rsp-filter__item--active");
+        // Rebuild active filters
+        rspActiveRoleFilters = [];
+        list.querySelectorAll(".rsp-filter__item--active").forEach((active) => {
+          rspActiveRoleFilters.push({
+            assignType: active.dataset.assignType,
+            roleName: active.dataset.roleName,
+          });
+        });
+        rspApplyUserFilters();
+      });
+
+      list.appendChild(item);
+    });
+  });
+};
+
+// Initialize role filter dropdown behaviour
+const rspInitRoleFilterDropdown = () => {
+  const btn = document.querySelector(".rsp-role-filter-btn");
+  const dropdown = document.querySelector(".rsp-role-filter-dropdown");
+  if (!btn || !dropdown) return;
+
+  const searchInput = dropdown.querySelector(".rsp-role-filter-search");
+  const clearBtn = dropdown.querySelector(".rsp-role-filter-clear");
+  const resetBtn = dropdown.querySelector(".rsp-role-filter-reset");
+
+  // Search within dropdown
+  const applyFilterSearch = () => {
+    const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
+      const label = item.dataset.filterLabel || "";
+      item.classList.toggle("rsp-filter__item--filter-hidden", q !== "" && !label.includes(q));
+    });
+    dropdown.querySelectorAll(".rsp-filter__group-title").forEach((title) => {
+      let next = title.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.classList.contains("rsp-filter__group-title")) {
+        if (next.classList.contains("rsp-filter__item") && !next.classList.contains("rsp-filter__item--filter-hidden")) {
+          hasVisible = true;
+        }
+        next = next.nextElementSibling;
+      }
+      title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
+    });
+    if (clearBtn) clearBtn.classList.toggle("rsp-filter__search-clear--visible", q !== "");
+  };
+
+  if (searchInput) {
+    searchInput.addEventListener("input", applyFilterSearch);
+    searchInput.addEventListener("click", (e) => e.stopPropagation());
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      searchInput.value = "";
+      applyFilterSearch();
+      searchInput.focus();
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      dropdown.querySelectorAll(".rsp-filter__item--active").forEach((item) => {
+        item.classList.remove("rsp-filter__item--active");
+      });
+      rspActiveRoleFilters = [];
+      if (searchInput) searchInput.value = "";
+      applyFilterSearch();
+      rspApplyUserFilters();
+    });
+  }
+
+  // Toggle dropdown
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    btn.setAttribute("aria-expanded", String(!isOpen));
+
+    if (!isOpen) {
+      const closeDropdown = () => {
+        dropdown.hidden = true;
+        btn.setAttribute("aria-expanded", "false");
+        document.removeEventListener("click", clickHandler);
+        document.removeEventListener("keydown", escHandler);
+      };
+      const clickHandler = (evt) => {
+        if (!dropdown.contains(evt.target) && evt.target !== btn) closeDropdown();
+      };
+      const escHandler = (evt) => {
+        if (evt.key === "Escape") { closeDropdown(); btn.focus(); }
+      };
+      setTimeout(() => {
+        document.addEventListener("click", clickHandler);
+        document.addEventListener("keydown", escHandler);
+      }, 0);
+    }
+  });
 };
 
 // ============================================
@@ -637,7 +802,7 @@ Behaviour.specify(".rsp-assign-role-btn", "RoleStrategyAssign", 0, (btn) => {
 Behaviour.specify(".rsp-assign-search input", "RoleStrategyAssign", 0, (input) => {
   if (input.dataset.initialized === "true") return;
   input.dataset.initialized = "true";
-  input.addEventListener("input", rspApplyUserSearch);
+  input.addEventListener("input", rspApplyUserFilters);
 });
 
 // ============================================
@@ -646,6 +811,8 @@ Behaviour.specify(".rsp-assign-search input", "RoleStrategyAssign", 0, (input) =
 
 document.addEventListener("DOMContentLoaded", () => {
   rspLoadRoleDefinitions();
+  rspPopulateRoleFilter();
+  rspInitRoleFilterDropdown();
   rspLoadAllAssignments().then(() => {
     rspMergeUsers();
     rspRenderUserCards();
