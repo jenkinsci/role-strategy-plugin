@@ -860,32 +860,26 @@ const rspCreateRoleCard = (container, name, pattern, templateName, initialPermis
   summarySpan.textContent = "No permissions";
   header.appendChild(summarySpan);
 
-  // Actions
-  const actions = document.createElement("div");
-  actions.classList.add("rsp-card__actions");
+  // Actions — clone from existing card to get correct icon paths
+  if (existingCard) {
+    const existingActions = existingCard.querySelector(".rsp-card__actions");
+    if (existingActions) {
+      const actions = existingActions.cloneNode(true);
+      // Remove edit-pattern button if this role has no pattern
+      if (!pattern) {
+        const editBtn = actions.querySelector(".rsp-card__edit-pattern");
+        if (editBtn) editBtn.remove();
+      }
+      // Reset initialized flags so behaviours re-bind
+      actions.querySelectorAll("[data-initialized]").forEach((el) => el.removeAttribute("data-initialized"));
+      header.appendChild(actions);
+    }
 
-  if (pattern) {
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.classList.add("jenkins-button", "jenkins-button--tertiary", "rsp-card__action", "rsp-card__edit-pattern");
-    editBtn.setAttribute("tooltip", "Edit pattern");
-    editBtn.innerHTML = '<svg class="icon-sm"><use href="/jenkins/static/a2e59e3c/images/symbols/icons.svg#pencil"></use></svg>';
-    actions.appendChild(editBtn);
+    const existingToggle = existingCard.querySelector(".rsp-card__toggle");
+    if (existingToggle) {
+      header.appendChild(existingToggle.cloneNode(true));
+    }
   }
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.type = "button";
-  deleteBtn.classList.add("jenkins-button", "jenkins-button--tertiary", "jenkins-!-destructive-color", "rsp-card__action", "rsp-card__delete");
-  deleteBtn.setAttribute("tooltip", "Delete role");
-  deleteBtn.innerHTML = '<svg class="icon-sm"><use href="/jenkins/static/a2e59e3c/images/symbols/icons.svg#trash-outline"></use></svg>';
-  actions.appendChild(deleteBtn);
-  header.appendChild(actions);
-
-  // Toggle chevron
-  const toggle = document.createElement("div");
-  toggle.classList.add("rsp-card__toggle");
-  toggle.innerHTML = '<svg class="icon-sm"><use href="/jenkins/static/a2e59e3c/images/symbols/icons.svg#chevron-down-outline"></use></svg>';
-  header.appendChild(toggle);
 
   card.appendChild(header);
 
