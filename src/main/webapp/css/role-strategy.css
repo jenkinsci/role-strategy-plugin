@@ -235,6 +235,35 @@ button.rsp-filter__button--active {
   border-bottom-right-radius: 0;
 }
 
+/* Connected borders — pure CSS, handles both static and filtered cases.
+   JS classes (rsp-card--connected-top/bottom) provide overrides for
+   cases where hidden cards break adjacency in the DOM. */
+
+/* Any card preceded by a visible card: flat top, no border */
+.rsp-card:not(.rsp-card--hidden) + .rsp-card:not(.rsp-card--hidden) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+/* Any card followed by a visible card: flat bottom */
+.rsp-card:not(.rsp-card--hidden):has(+ .rsp-card:not(.rsp-card--hidden)) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* JS overrides for filtered views where hidden cards break adjacency */
+.rsp-card.rsp-card--connected-top {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top: none !important;
+}
+
+.rsp-card.rsp-card--connected-bottom {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
 .rsp-card--hidden {
   display: none;
 }
