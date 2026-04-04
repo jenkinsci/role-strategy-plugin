@@ -22,151 +22,299 @@
  * THE SOFTWARE.
  */
 
-// Assignment data per section: { globalRoles: [...], projectRoles: [...], slaveRoles: [...] }
+// ============================================
+// Data
+// ============================================
+
+// Assignment data: { globalRoles: [...], projectRoles: [...], slaveRoles: [...] }
 const rspAssignmentData = {};
 
-// ============================================
-// Card expand/collapse
-// ============================================
-
-const rspToggleCard = (card) => {
-  const body = card.querySelector(".rsp-card__body");
-  const header = card.querySelector(".rsp-card__header");
-  if (!body || !header) return;
-
-  const isExpanded = !body.classList.contains("rsp-card__body--collapsed");
-  body.classList.toggle("rsp-card__body--collapsed");
-  header.setAttribute("aria-expanded", String(!isExpanded));
-  card.setAttribute("aria-expanded", String(!isExpanded));
-
-  // Lazy-load assignments on first expand
-  if (!isExpanded) {
-    const assignSection = card.querySelector(".rsp-assign[data-loaded='false']");
-    if (assignSection) {
-      rspLoadAssignmentsForCard(card);
-    }
-  }
+// Role definitions loaded from embedded JSON
+const rspRoleDefinitions = {
+  globalRoles: [],
+  projectRoles: [],
+  slaveRoles: [],
 };
 
+const rspTypeLabels = {
+  globalRoles: "Global",
+  projectRoles: "Item",
+  slaveRoles: "Agent",
+};
+
+const rspAssignTypes = ["globalRoles", "projectRoles", "slaveRoles"];
+
+// Merged user map: { "USER:alice": { name, type, roles: { globalRoles: [...], ... } } }
+let rspMergedUsers = {};
+
 // ============================================
-// Permission summary
+// Load data
 // ============================================
 
-const rspBuildSummary = (card) => {
-  const body = card.querySelector(".rsp-card__body");
-  if (!body) return "";
+const rspLoadRoleDefinitions = () => {
+  rspAssignTypes.forEach((type) => {
+    const el = document.getElementById(`rsp-roles-${type.replace("Roles", "").replace("slave", "slave")}`);
+    // Map: globalRoles -> rsp-roles-global, projectRoles -> rsp-roles-project, slaveRoles -> rsp-roles-slave
+    const idMap = { globalRoles: "rsp-roles-global", projectRoles: "rsp-roles-project", slaveRoles: "rsp-roles-slave" };
+    const scriptEl = document.getElementById(idMap[type]);
+    if (scriptEl) {
+      try { rspRoleDefinitions[type] = JSON.parse(scriptEl.textContent); } catch (e) {}
+    }
+  });
+};
 
-  const groups = body.querySelectorAll(".rsp-perm__group");
-  const parts = [];
-  groups.forEach((group) => {
-    const title = group.querySelector(".rsp-perm__group-title");
-    if (!title) return;
-    const checked = [];
-    group.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-      const label = cb.closest(".rsp-perm__item");
-      const isImplied = label?.classList.contains("rsp-perm__item--implied");
-      if (cb.checked && !isImplied) {
-        const nameEl = label ? label.querySelector(".rsp-perm__item-name") : null;
-        if (nameEl) checked.push(nameEl.textContent.trim());
+const rspLoadAllAssignments = () => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  if (!dataHolder) return Promise.resolve();
+
+  const fetchUrl = dataHolder.dataset.fetchUrl;
+  if (!fetchUrl) return Promise.resolve();
+
+  const promises = rspAssignTypes.map((type) => {
+    const params = new URLSearchParams({ type });
+    return fetch(fetchUrl + "?" + params)
+      .then((rsp) => rsp.json())
+      .then((json) => { rspAssignmentData[type] = json; })
+      .catch(() => { rspAssignmentData[type] = []; });
+  });
+
+  return Promise.all(promises);
+};
+
+const rspMergeUsers = () => {
+  rspMergedUsers = {};
+
+  rspAssignTypes.forEach((type) => {
+    const entries = rspAssignmentData[type] || [];
+    entries.forEach((entry) => {
+      const key = `${entry.type}:${entry.name}`;
+      if (!rspMergedUsers[key]) {
+        rspMergedUsers[key] = { name: entry.name, type: entry.type, roles: {} };
+        rspAssignTypes.forEach((t) => { rspMergedUsers[key].roles[t] = []; });
       }
+      rspMergedUsers[key].roles[type] = entry.roles || [];
     });
-    if (checked.length > 0) {
-      parts.push(title.textContent.trim() + ": " + checked.join(", "));
-    }
   });
-  return parts.join(" \u00B7 ");
-};
 
-const rspUpdateSummary = (card) => {
-  const summaryEl = card.querySelector(".rsp-card__summary");
-  if (!summaryEl) return;
-
-  const summary = rspBuildSummary(card);
-  if (summary) {
-    summaryEl.textContent = summary;
-    summaryEl.classList.remove("rsp-card__summary--empty");
-  } else {
-    summaryEl.textContent = summaryEl.getAttribute("data-empty-text") || "No permissions";
-    summaryEl.classList.add("rsp-card__summary--empty");
+  // Ensure anonymous and authenticated exist
+  if (!rspMergedUsers["USER:anonymous"]) {
+    rspMergedUsers["USER:anonymous"] = { name: "anonymous", type: "USER", roles: { globalRoles: [], projectRoles: [], slaveRoles: [] } };
+  }
+  if (!rspMergedUsers["GROUP:authenticated"]) {
+    rspMergedUsers["GROUP:authenticated"] = { name: "authenticated", type: "GROUP", roles: { globalRoles: [], projectRoles: [], slaveRoles: [] } };
   }
 };
 
 // ============================================
-// Implied permissions
+// Build user summary
 // ============================================
 
-const rspUpdateImplied = (card) => {
-  const labels = card.querySelectorAll(".rsp-perm__item[data-permission-id]");
-  labels.forEach((label) => {
-    const checkbox = label.querySelector("input[type=checkbox]");
-    if (!checkbox) return;
-
-    // Skip template-disabled checkboxes
-    if (label.closest(".rsp-card[data-template-name]")?.dataset.templateName) {
-      return;
-    }
-
-    const impliedByStr = label.getAttribute("data-implied-by-list");
-    if (!impliedByStr || impliedByStr.trim() === "") return;
-
-    const impliedByList = impliedByStr.trim().split(" ");
-    let isImplied = false;
-
-    for (const permId of impliedByList) {
-      const ref = card.querySelector(`.rsp-perm__item[data-permission-id='${permId}'] input[type=checkbox]`);
-      if (ref && ref.checked) {
-        isImplied = true;
-        break;
-      }
-    }
-
-    const impliedLabel = label.querySelector(".rsp-perm__item-implied");
-    if (isImplied) {
-      checkbox.checked = false;
-      checkbox.disabled = true;
-      label.classList.add("rsp-perm__item--implied");
-      if (impliedLabel) impliedLabel.hidden = false;
-    } else {
-      checkbox.disabled = false;
-      label.classList.remove("rsp-perm__item--implied");
-      if (impliedLabel) impliedLabel.hidden = true;
+const rspBuildUserSummary = (userData) => {
+  const parts = [];
+  rspAssignTypes.forEach((type) => {
+    const roles = userData.roles[type];
+    if (roles && roles.length > 0) {
+      parts.push(rspTypeLabels[type] + ": " + roles.join(", "));
     }
   });
+  return parts.length > 0 ? parts.join(" \u00B7 ") : "";
 };
 
 // ============================================
-// Search and filter
+// Render user cards
 // ============================================
 
-const rspApplyFilters = (container) => {
-  const searchInput = container.querySelector(".rsp-search input");
-  const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+const rspGenerateIcon = (type) => {
+  const icons = document.querySelector("#assign-roles-icons");
+  const iconId = type === "GROUP" ? "rsp-people-icon" : "rsp-person-icon";
+  return icons.content.querySelector(`#${iconId}`).cloneNode(true);
+};
 
-  const activePermissions = [];
-  container.querySelectorAll(".rsp-filter__item--active").forEach((item) => {
-    activePermissions.push(item.getAttribute("data-filter-permission"));
+const rspRenderUserCards = () => {
+  const container = document.getElementById("rsp-user-cards");
+  container.innerHTML = "";
+
+  const dataHolder = document.getElementById("role-strategy-data");
+
+  // Sort: anonymous first, authenticated second, then alphabetical
+  const sortedKeys = Object.keys(rspMergedUsers).sort((a, b) => {
+    if (a === "USER:anonymous") return -1;
+    if (b === "USER:anonymous") return 1;
+    if (a === "GROUP:authenticated") return -1;
+    if (b === "GROUP:authenticated") return 1;
+    return a.localeCompare(b);
   });
 
-  const cards = container.querySelectorAll(".rsp-card");
+  sortedKeys.forEach((key) => {
+    const user = rspMergedUsers[key];
+    const isBuiltIn = (user.name === "anonymous" && user.type === "USER") ||
+                      (user.name === "authenticated" && user.type === "GROUP");
+
+    const card = document.createElement("div");
+    card.classList.add("rsp-card");
+    card.dataset.userName = user.name;
+    card.dataset.userType = user.type;
+
+    // Header
+    const header = document.createElement("div");
+    header.classList.add("rsp-card__header");
+    header.setAttribute("role", "button");
+    header.setAttribute("tabindex", "0");
+    header.setAttribute("aria-expanded", "false");
+
+    // Icon
+    const iconSpan = document.createElement("span");
+    iconSpan.classList.add("rsp-assign__chip-icon");
+    iconSpan.appendChild(rspGenerateIcon(user.type));
+    header.appendChild(iconSpan);
+
+    // Name
+    const nameSpan = document.createElement("span");
+    nameSpan.classList.add("rsp-card__name");
+    let displayName = user.name;
+    if (user.name === "anonymous" && user.type === "USER") displayName = dataHolder.dataset.textAnonymous;
+    if (user.name === "authenticated" && user.type === "GROUP") displayName = dataHolder.dataset.textAuthenticated;
+    nameSpan.textContent = displayName;
+    header.appendChild(nameSpan);
+
+    // Summary
+    const summarySpan = document.createElement("span");
+    summarySpan.classList.add("rsp-card__summary");
+    const summary = rspBuildUserSummary(user);
+    if (summary) {
+      summarySpan.textContent = summary;
+    } else {
+      summarySpan.textContent = "No roles assigned";
+      summarySpan.classList.add("rsp-card__summary--empty");
+    }
+    header.appendChild(summarySpan);
+
+    // Actions
+    const actions = document.createElement("div");
+    actions.classList.add("rsp-card__actions");
+    if (!isBuiltIn) {
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.classList.add("jenkins-button", "jenkins-button--tertiary", "jenkins-!-destructive-color", "rsp-card__action", "rsp-user-delete");
+      deleteBtn.setAttribute("tooltip", `Remove ${user.name}`);
+      deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path d="M112 112l20 320c.95 18.49 14.4 32 32 32h184c17.67 0 30.87-13.51 32-32l20-320" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M80 112h352"/><path d="M192 112V72h0a23.93 23.93 0 0124-24h80a23.93 23.93 0 0124 24h0v40M256 176v224M184 176l8 224M328 176l-8 224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>';
+      actions.appendChild(deleteBtn);
+    }
+    header.appendChild(actions);
+
+    // Toggle
+    const toggle = document.createElement("div");
+    toggle.classList.add("rsp-card__toggle");
+    toggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 184l144 144 144-144"/></svg>';
+    header.appendChild(toggle);
+
+    card.appendChild(header);
+
+    // Body — role checkboxes
+    const body = document.createElement("div");
+    body.classList.add("rsp-card__body", "rsp-card__body--collapsed");
+
+    const roleSection = document.createElement("div");
+    roleSection.classList.add("rsp-perm");
+    roleSection.style.padding = "0.75rem";
+
+    rspAssignTypes.forEach((type) => {
+      const roles = rspRoleDefinitions[type];
+      if (!roles || roles.length === 0) return;
+
+      const group = document.createElement("fieldset");
+      group.classList.add("rsp-perm__group");
+
+      const legend = document.createElement("legend");
+      legend.classList.add("rsp-perm__group-title");
+      legend.textContent = rspTypeLabels[type] + " roles";
+      group.appendChild(legend);
+
+      const perms = document.createElement("div");
+      perms.classList.add("rsp-perm__permissions");
+
+      roles.forEach((role) => {
+        const label = document.createElement("label");
+        label.classList.add("rsp-perm__item");
+        label.dataset.roleName = role.name;
+        label.dataset.assignType = type;
+
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.dataset.roleName = role.name;
+        cb.dataset.assignType = type;
+        cb.checked = (user.roles[type] || []).includes(role.name);
+        label.appendChild(cb);
+
+        const nameSpan = document.createElement("span");
+        nameSpan.classList.add("rsp-perm__item-name");
+        nameSpan.textContent = role.name;
+        label.appendChild(nameSpan);
+
+        if (role.pattern) {
+          const patternSpan = document.createElement("span");
+          patternSpan.classList.add("rsp-assign-dialog__role-pattern");
+          patternSpan.textContent = ` "${role.pattern}"`;
+          label.appendChild(patternSpan);
+        }
+
+        perms.appendChild(label);
+      });
+
+      group.appendChild(perms);
+      roleSection.appendChild(group);
+    });
+
+    body.appendChild(roleSection);
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+
+  Behaviour.applySubtree(container, true);
+};
+
+// ============================================
+// Save assignments
+// ============================================
+
+const rspSaveAssignments = () => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  const formData = new FormData();
+  const assignMapping = { rolesMapping: rspAssignmentData };
+  formData.append("json", JSON.stringify(assignMapping));
+
+  return fetch(dataHolder.dataset.assignSubmitUrl, {
+    method: "POST",
+    headers: crumb.wrap({}),
+    body: formData,
+  }).then((rsp) => {
+    if (!rsp.ok) throw new Error("Failed to save assignments");
+  });
+};
+
+let rspAutoSaveTimer = null;
+const rspAutoSave = () => {
+  if (rspAutoSaveTimer) clearTimeout(rspAutoSaveTimer);
+  rspAutoSaveTimer = setTimeout(() => {
+    rspSaveAssignments().catch((err) => {
+      notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR);
+    });
+  }, 500);
+};
+
+// ============================================
+// Search
+// ============================================
+
+const rspApplyUserSearch = () => {
+  const input = document.querySelector(".rsp-assign-search input");
+  const query = input ? input.value.toLowerCase().trim() : "";
+  const cards = document.querySelectorAll("#rsp-user-cards .rsp-card");
   let visibleCount = 0;
 
   cards.forEach((card) => {
-    const roleName = (card.getAttribute("data-role-name") || "").toLowerCase();
-    const pattern = (card.getAttribute("data-role-pattern") || "").toLowerCase();
-    const matchesText = query === "" || roleName.includes(query) || pattern.includes(query);
-
-    let matchesPermission = activePermissions.length === 0;
-    if (!matchesPermission) {
-      for (const permId of activePermissions) {
-        const cb = card.querySelector(`.rsp-perm__item[data-permission-id='${permId}'] input[type=checkbox]`);
-        if (cb && (cb.checked || cb.disabled)) {
-          matchesPermission = true;
-          break;
-        }
-      }
-    }
-
-    if (matchesText && matchesPermission) {
+    const name = (card.dataset.userName || "").toLowerCase();
+    if (query === "" || name.includes(query)) {
       card.classList.remove("rsp-card--hidden");
       visibleCount++;
     } else {
@@ -174,1093 +322,9 @@ const rspApplyFilters = (container) => {
     }
   });
 
-  const emptyState = container.querySelector(".rsp-empty-state");
-  if (emptyState) {
-    emptyState.hidden = visibleCount > 0 || (query === "" && activePermissions.length === 0);
-  }
-
-  const hasActiveFilters = activePermissions.length > 0;
-  const filterBtn = container.querySelector(".rsp-filter__button");
-  if (filterBtn) {
-    filterBtn.classList.toggle("rsp-filter__button--active", hasActiveFilters);
-  }
-  const resetBtn = container.querySelector(".rsp-filter__reset-button");
-  if (resetBtn) {
-    resetBtn.hidden = !hasActiveFilters;
-  }
+  const emptyState = document.getElementById("rsp-user-empty");
+  if (emptyState) emptyState.hidden = visibleCount > 0 || query === "";
 };
-
-// ============================================
-// Assignments
-// ============================================
-
-const rspGenerateSVGIcon = (iconName) => {
-  const icons = document.querySelector("#assign-roles-icons");
-  return icons.content.querySelector(`#${iconName}`).cloneNode(true);
-};
-
-const rspCreateAssignChip = (name, type, container, roleName) => {
-  const chip = document.createElement("span");
-  chip.classList.add("rsp-assign__chip");
-  if (type === "EITHER") chip.classList.add("rsp-assign__chip--either");
-  chip.dataset.name = name;
-  chip.dataset.type = type;
-
-  // Icon
-  const iconSpan = document.createElement("span");
-  iconSpan.classList.add("rsp-assign__chip-icon");
-  const iconName = (type === "GROUP" || (type === "EITHER")) ? "rsp-people-icon" : "rsp-person-icon";
-  iconSpan.appendChild(rspGenerateSVGIcon(iconName));
-  chip.appendChild(iconSpan);
-
-  // Name
-  const dataHolder = document.getElementById("role-strategy-data");
-  let displayName = name;
-  if (name === "anonymous" && type === "USER") {
-    displayName = dataHolder.dataset.textAnonymous;
-  } else if (name === "authenticated" && type === "GROUP") {
-    displayName = dataHolder.dataset.textAuthenticated;
-  }
-  chip.appendChild(document.createTextNode(displayName));
-
-  // Remove button
-  const isReadOnly = container.closest(".rsp-card")?.classList.contains("rsp-card--read-only");
-  if (!isReadOnly) {
-    // Migration buttons for EITHER type
-    if (type === "EITHER") {
-      const migrateUser = document.createElement("button");
-      migrateUser.type = "button";
-      migrateUser.classList.add("rsp-assign__chip-migrate");
-      migrateUser.title = "Migrate to user";
-      migrateUser.dataset.migrateType = "USER";
-      migrateUser.appendChild(rspGenerateSVGIcon("rsp-person-icon"));
-      migrateUser.addEventListener("click", (e) => {
-        e.stopPropagation();
-        rspMigrateAssignment(chip, "USER", roleName, container);
-      });
-      chip.appendChild(migrateUser);
-
-      const migrateGroup = document.createElement("button");
-      migrateGroup.type = "button";
-      migrateGroup.classList.add("rsp-assign__chip-migrate");
-      migrateGroup.title = "Migrate to group";
-      migrateGroup.dataset.migrateType = "GROUP";
-      migrateGroup.appendChild(rspGenerateSVGIcon("rsp-people-icon"));
-      migrateGroup.addEventListener("click", (e) => {
-        e.stopPropagation();
-        rspMigrateAssignment(chip, "GROUP", roleName, container);
-      });
-      chip.appendChild(migrateGroup);
-    }
-
-    const removeBtn = document.createElement("button");
-    removeBtn.type = "button";
-    removeBtn.classList.add("rsp-assign__chip-remove");
-    removeBtn.innerHTML = "&#xd7;";
-    removeBtn.title = `Remove ${name}`;
-    const isBuiltIn = (name === "anonymous" && type === "USER") || (name === "authenticated" && type === "GROUP");
-    if (isBuiltIn) {
-      removeBtn.style.display = "none";
-    }
-    removeBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      rspRemoveAssignment(chip, roleName, container);
-    });
-    chip.appendChild(removeBtn);
-  }
-
-  return chip;
-};
-
-const rspMigrateAssignment = (chip, newType, roleName, assignContainer) => {
-  const sectionId = assignContainer.closest(".rsp-container").id;
-  const assignType = assignContainer.closest(".rsp-container").dataset.assignType;
-  const json = rspAssignmentData[assignType];
-  if (!json) return;
-
-  const oldName = chip.dataset.name;
-  const oldType = chip.dataset.type;
-
-  // Find the entry for this user across all roles
-  for (const entry of json) {
-    if (entry.name === oldName && entry.type === oldType) {
-      entry.type = newType;
-      break;
-    }
-  }
-
-  // Refresh assignments display for all cards in this section
-  const container = assignContainer.closest(".rsp-container");
-  container.querySelectorAll(".rsp-assign[data-loaded='true']").forEach((section) => {
-    rspRenderAssignments(section, section.dataset.roleName, assignType);
-  });
-
-  rspMarkDirty();
-};
-
-const rspRemoveAssignment = (chip, roleName, assignContainer) => {
-  const assignType = assignContainer.closest(".rsp-container").dataset.assignType;
-  const json = rspAssignmentData[assignType];
-  if (!json) return;
-
-  const name = chip.dataset.name;
-  const type = chip.dataset.type;
-
-  // Remove role from the entry's roles array
-  for (const entry of json) {
-    if (entry.name === name && entry.type === type) {
-      const idx = entry.roles.indexOf(roleName);
-      if (idx !== -1) entry.roles.splice(idx, 1);
-      break;
-    }
-  }
-
-  chip.remove();
-  rspMarkDirty();
-};
-
-const rspRenderAssignments = (assignSection, roleName, assignType) => {
-  const json = rspAssignmentData[assignType];
-  if (!json) return;
-
-  const list = assignSection.querySelector(".rsp-assign__list");
-  list.innerHTML = "";
-
-  // Find all entries that have this role
-  const entries = json.filter((entry) => entry.roles.includes(roleName));
-
-  // Sort: anonymous first, authenticated second, then alphabetical
-  entries.sort((a, b) => {
-    if (a.name === "anonymous" && a.type === "USER") return -1;
-    if (b.name === "anonymous" && b.type === "USER") return 1;
-    if (a.name === "authenticated" && a.type === "GROUP") return -1;
-    if (b.name === "authenticated" && b.type === "GROUP") return 1;
-    return a.name.localeCompare(b.name);
-  });
-
-  if (entries.length === 0) {
-    const empty = document.createElement("span");
-    empty.classList.add("rsp-assign__loading");
-    empty.textContent = "No users or groups assigned";
-    list.appendChild(empty);
-    return;
-  }
-
-  const maxVisible = 10;
-  let visibleCount = 0;
-  const hiddenChips = [];
-
-  entries.forEach((entry) => {
-    const chip = rspCreateAssignChip(entry.name, entry.type, assignSection, roleName);
-    if (visibleCount >= maxVisible) {
-      chip.style.display = "none";
-      hiddenChips.push(chip);
-    }
-    list.appendChild(chip);
-    visibleCount++;
-  });
-
-  if (hiddenChips.length > 0) {
-    const showMore = document.createElement("button");
-    showMore.type = "button";
-    showMore.classList.add("rsp-assign__show-more");
-    showMore.textContent = `Show all (${entries.length})`;
-    showMore.addEventListener("click", () => {
-      hiddenChips.forEach((c) => { c.style.display = ""; });
-      showMore.remove();
-    });
-    list.appendChild(showMore);
-  }
-
-  assignSection.dataset.loaded = "true";
-};
-
-const rspLoadAssignmentsForCard = (card) => {
-  const container = card.closest(".rsp-container");
-  const assignType = container.dataset.assignType;
-  const roleName = card.dataset.roleName;
-  const assignSection = card.querySelector(".rsp-assign");
-  if (!assignSection) return;
-
-  if (rspAssignmentData[assignType]) {
-    rspRenderAssignments(assignSection, roleName, assignType);
-    return;
-  }
-
-  // Need to fetch
-  const dataHolder = document.getElementById("role-strategy-data");
-  const fetchUrl = dataHolder.dataset.fetchUrl;
-  const params = new URLSearchParams({ type: assignType });
-
-  fetch(fetchUrl + "?" + params)
-    .then((rsp) => rsp.json())
-    .then((json) => {
-      // Ensure anonymous and authenticated exist
-      rspEnsureFixedEntry(json, "anonymous", "USER");
-      rspEnsureFixedEntry(json, "authenticated", "GROUP");
-      rspAssignmentData[assignType] = json;
-      rspRenderAssignments(assignSection, roleName, assignType);
-    })
-    .catch(() => {
-      const list = assignSection.querySelector(".rsp-assign__list");
-      list.innerHTML = "<span class='rsp-assign__loading'>Failed to load assignments</span>";
-    });
-};
-
-const rspEnsureFixedEntry = (json, name, type) => {
-  const existing = json.find((e) => e.name === name && e.type === type);
-  if (!existing) {
-    json.push({ name, type, roles: [] });
-  }
-};
-
-// ============================================
-// Add assignment
-// ============================================
-
-const rspAddAssignmentToRole = (card, name, type) => {
-  const container = card.closest(".rsp-container");
-  const assignType = container.dataset.assignType;
-  const roleName = card.dataset.roleName;
-  const json = rspAssignmentData[assignType];
-  if (!json) return;
-
-  // Find or create entry
-  let entry = json.find((e) => e.name === name && e.type === type);
-  if (!entry) {
-    entry = { name, type, roles: [] };
-    json.push(entry);
-  }
-
-  if (!entry.roles.includes(roleName)) {
-    entry.roles.push(roleName);
-  }
-
-  // Re-render
-  const assignSection = card.querySelector(".rsp-assign");
-  if (assignSection) {
-    rspRenderAssignments(assignSection, roleName, assignType);
-  }
-  rspMarkDirty();
-};
-
-// ============================================
-// Save
-// ============================================
-
-const rspCollectRolesData = () => {
-  const result = {};
-
-  document.querySelectorAll(".rsp-container").forEach((container) => {
-    const roleType = container.dataset.roleType;
-    if (!roleType) return;
-
-    const roles = {};
-    container.querySelectorAll(".rsp-card").forEach((card) => {
-      const roleName = card.dataset.roleName;
-      const roleData = {};
-
-      // Pattern
-      const pattern = card.dataset.rolePattern;
-      if (pattern !== undefined && pattern !== "") {
-        roleData.pattern = pattern;
-      }
-
-      // Template name
-      const templateName = card.dataset.templateName;
-      if (templateName) {
-        roleData.templateName = templateName;
-      }
-
-      // Permissions
-      card.querySelectorAll(".rsp-perm__item input[type=checkbox]").forEach((cb) => {
-        const permId = cb.getAttribute("data-permission-id");
-        if (permId && (cb.checked || cb.disabled)) {
-          // For implied (disabled but not checked), we don't include them
-          // Only include explicitly checked permissions
-          if (cb.checked) {
-            roleData[permId] = true;
-          }
-        }
-      });
-
-      roles[roleName] = roleData;
-    });
-
-    result[roleType] = { data: roles };
-  });
-
-  return result;
-};
-
-const rspSave = (redirect) => {
-  const dataHolder = document.getElementById("role-strategy-data");
-
-  // Save roles
-  const rolesData = rspCollectRolesData();
-  const rolesFormData = new FormData();
-  rolesFormData.append("json", JSON.stringify(rolesData));
-
-  // Ensure all assignment types have data (use empty arrays for unloaded sections)
-  document.querySelectorAll(".rsp-container").forEach((container) => {
-    const assignType = container.dataset.assignType;
-    if (assignType && !rspAssignmentData[assignType]) {
-      rspAssignmentData[assignType] = [];
-    }
-  });
-
-  // Save assignments
-  const assignFormData = new FormData();
-  const assignMapping = { rolesMapping: rspAssignmentData };
-  assignFormData.append("json", JSON.stringify(assignMapping));
-
-  const headers = crumb.wrap({});
-
-  // Sequential: roles first, then assignments
-  return fetch(dataHolder.dataset.rolesSubmitUrl, {
-    method: "POST",
-    headers,
-    body: rolesFormData,
-  })
-  .then((rsp) => {
-    if (!rsp.ok) throw new Error("Failed to save roles");
-    return fetch(dataHolder.dataset.assignSubmitUrl, {
-      method: "POST",
-      headers,
-      body: assignFormData,
-    });
-  })
-  .then((rsp) => {
-    if (!rsp.ok) throw new Error("Failed to save assignments");
-    return true;
-  });
-};
-
-const rspMarkDirty = () => {
-  const dirtyButton = document.getElementById("rs-dirty-indicator");
-  if (dirtyButton) {
-    dirtyButton.dispatchEvent(new Event("click"));
-  }
-};
-
-// Auto-save after a short debounce to batch rapid changes
-let rspAutoSaveTimer = null;
-const rspAutoSave = () => {
-  if (rspAutoSaveTimer) clearTimeout(rspAutoSaveTimer);
-  rspAutoSaveTimer = setTimeout(() => {
-    rspSave(false).catch((err) => {
-      notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR);
-    });
-  }, 1000);
-};
-
-// ============================================
-// Pattern matching (show matching jobs/agents)
-// ============================================
-
-const rspShowMatchingItems = (pattern, roleType) => {
-  const dataHolder = document.getElementById("role-strategy-data");
-  const isAgent = roleType === "slaveRoles";
-  const url = isAgent ? dataHolder.dataset.matchingAgentsUrl : dataHolder.dataset.matchingJobsUrl;
-  const maxItems = isAgent ? 10 : 15;
-  const paramKey = isAgent ? "maxAgents" : "maxJobs";
-  const params = { pattern, [paramKey]: maxItems };
-
-  fetch(url + toQueryString(params))
-    .then((rsp) => rsp.ok ? rsp.json() : Promise.reject())
-    .then((json) => {
-      const items = isAgent ? json.matchingAgents : json.matchingJobs;
-      const count = json.itemCount;
-      if (items == null) {
-        dialog.alert("Unable to fetch matching items.");
-        return;
-      }
-      let title = "";
-      if (items.length > 0) {
-        title = count > items.length
-          ? `First ${maxItems} items (out of ${count}) matching`
-          : "Items matching";
-      } else {
-        title = "No items found matching";
-      }
-      title += ` "${pattern}"`;
-
-      const el = document.createElement("div");
-      items.forEach((item) => {
-        el.appendChild(document.createTextNode("- " + item));
-        el.appendChild(document.createElement("br"));
-      });
-      dialog.modal(el, { title });
-    })
-    .catch(() => {
-      dialog.alert("Unable to fetch matching items.");
-    });
-};
-
-// ============================================
-// Add new role
-// ============================================
-
-const rspAddNewRole = (container) => {
-  const sectionId = container.id;
-  const isGlobal = sectionId === "globalRoles";
-
-  const isProject = sectionId === "projectRoles";
-
-  // Build dialog content
-  const content = document.createElement("div");
-  content.classList.add("rsp-dialog-content");
-
-  // Role name field
-  const nameGroup = document.createElement("div");
-  nameGroup.classList.add("jenkins-form-item");
-  nameGroup.innerHTML = `
-    <label class="jenkins-form-label">Role name</label>
-    <div class="jenkins-form-item__control">
-      <input type="text" class="jenkins-input" id="rsp-dialog-role-name" autofocus />
-    </div>
-  `;
-  content.appendChild(nameGroup);
-
-  // Pattern field (non-global only)
-  if (!isGlobal) {
-    const patternGroup = document.createElement("div");
-    patternGroup.classList.add("jenkins-form-item");
-    patternGroup.innerHTML = `
-      <label class="jenkins-form-label">Pattern</label>
-      <div class="jenkins-form-item__control">
-        <input type="text" class="jenkins-input" id="rsp-dialog-role-pattern" />
-      </div>
-    `;
-    content.appendChild(patternGroup);
-  }
-
-  // Template selector (item roles only)
-  if (isProject) {
-    const templateStr = container.dataset.templates || "";
-    const templateNames = templateStr ? templateStr.split(",").map((s) => s.trim()).filter(Boolean) : [];
-
-    if (templateNames.length > 0) {
-      const templateGroup = document.createElement("div");
-      templateGroup.classList.add("jenkins-form-item");
-
-      const options = templateNames.map((n) => `<option value="${escapeHTML(n)}">${escapeHTML(n)}</option>`).join("");
-      templateGroup.innerHTML = `
-        <label class="jenkins-form-label">Permission template</label>
-        <div class="jenkins-form-item__control">
-          <div class="jenkins-select">
-            <select class="jenkins-select__input" id="rsp-dialog-role-template">
-              <option value="">None (custom permissions)</option>
-              ${options}
-            </select>
-          </div>
-        </div>
-      `;
-      content.appendChild(templateGroup);
-    }
-  }
-
-  // Permission selection - clone from existing card
-  let permClone = null;
-  const existingCard = container.querySelector(".rsp-card");
-  if (existingCard) {
-    const permSection = existingCard.querySelector(".rsp-perm");
-    if (permSection) {
-      permClone = permSection.cloneNode(true);
-      permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-        cb.checked = false;
-        cb.disabled = false;
-        cb.removeAttribute("data-initialized");
-      });
-      permClone.querySelectorAll(".rsp-perm__item--implied").forEach((el) => {
-        el.classList.remove("rsp-perm__item--implied");
-      });
-      permClone.querySelectorAll(".rsp-perm__item-implied").forEach((el) => {
-        el.hidden = true;
-      });
-
-      const permWrapper = document.createElement("div");
-      permWrapper.classList.add("jenkins-form-item");
-      const permTitle = document.createElement("label");
-      permTitle.classList.add("jenkins-form-label");
-      permTitle.textContent = "Permissions";
-      permWrapper.appendChild(permTitle);
-      permWrapper.appendChild(permClone);
-      content.appendChild(permWrapper);
-
-      // Wire up implied permissions within the dialog
-      const updateDialogImplied = () => {
-        permClone.querySelectorAll(".rsp-perm__item[data-permission-id]").forEach((label) => {
-          const innerCb = label.querySelector("input[type=checkbox]");
-          if (!innerCb) return;
-          const impliedByStr = label.getAttribute("data-implied-by-list");
-          if (!impliedByStr || impliedByStr.trim() === "") return;
-          const impliedByList = impliedByStr.trim().split(" ");
-          let isImplied = false;
-          for (const permId of impliedByList) {
-            const ref = permClone.querySelector(`.rsp-perm__item[data-permission-id='${permId}'] input[type=checkbox]`);
-            if (ref && ref.checked) { isImplied = true; break; }
-          }
-          const impliedLabel = label.querySelector(".rsp-perm__item-implied");
-          if (isImplied) {
-            innerCb.checked = false;
-            innerCb.disabled = true;
-            label.classList.add("rsp-perm__item--implied");
-            if (impliedLabel) impliedLabel.hidden = false;
-          } else {
-            innerCb.disabled = false;
-            label.classList.remove("rsp-perm__item--implied");
-            if (impliedLabel) impliedLabel.hidden = true;
-          }
-        });
-      };
-      permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-        cb.addEventListener("change", updateDialogImplied);
-      });
-    }
-  }
-
-  // Build native dialog
-  const dlg = document.createElement("dialog");
-  dlg.classList.add("jenkins-dialog");
-  dlg.style.cssText = "max-width:550px;min-width:450px;";
-
-  const titleBar = document.createElement("div");
-  titleBar.classList.add("jenkins-dialog__title");
-  titleBar.innerHTML = `<span>Add Role</span>
-    <button class="jenkins-dialog__title__button jenkins-dialog__title__close-button" data-id="cancel">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M368 368L144 144M368 144L144 368"></path></svg>
-    </button>`;
-  dlg.appendChild(titleBar);
-
-  const body = document.createElement("div");
-  body.classList.add("jenkins-dialog__contents");
-  body.appendChild(content);
-  dlg.appendChild(body);
-
-  const footer = document.createElement("div");
-  footer.classList.add("jenkins-dialog__footer", "jenkins-buttons-row", "jenkins-buttons-row--equal-width");
-  footer.innerHTML = `
-    <button class="jenkins-button" data-id="cancel">Cancel</button>
-    <button class="jenkins-button jenkins-button--primary" data-id="ok">Add</button>
-  `;
-  dlg.appendChild(footer);
-
-  // Wire up template selector to disable/enable permissions
-  const templateSelect = dlg.querySelector("#rsp-dialog-role-template");
-  if (templateSelect && permClone) {
-    templateSelect.addEventListener("change", () => {
-      const isTemplate = templateSelect.value !== "";
-      permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-        if (isTemplate) {
-          cb.checked = false;
-          cb.disabled = true;
-        } else {
-          cb.disabled = false;
-        }
-      });
-      permClone.style.opacity = isTemplate ? "0.5" : "1";
-      permClone.style.pointerEvents = isTemplate ? "none" : "";
-    });
-  }
-
-  document.body.appendChild(dlg);
-  dlg.showModal();
-
-  const closeDialog = () => {
-    dlg.close();
-    dlg.remove();
-  };
-
-  dlg.querySelectorAll("[data-id='cancel']").forEach((btn) => {
-    btn.addEventListener("click", closeDialog);
-  });
-
-  dlg.addEventListener("cancel", closeDialog);
-
-  dlg.querySelector("[data-id='ok']").addEventListener("click", () => {
-    const nameInput = dlg.querySelector("#rsp-dialog-role-name");
-    const name = nameInput?.value?.trim();
-    if (!name) {
-      nameInput?.focus();
-      return;
-    }
-
-    // Check duplicate
-    const existing = container.querySelector(`.rsp-card[data-role-name='${CSS.escape(name)}']`);
-    if (existing) {
-      closeDialog();
-      dialog.alert(`A role named "${name}" already exists.`);
-      return;
-    }
-
-    let pattern = "";
-    if (!isGlobal) {
-      const patternInput = dlg.querySelector("#rsp-dialog-role-pattern");
-      pattern = patternInput?.value?.trim();
-      if (!pattern) {
-        patternInput?.focus();
-        return;
-      }
-    }
-
-    // Template selection (item roles)
-    let templateName = "";
-    const templateSelect = dlg.querySelector("#rsp-dialog-role-template");
-    if (templateSelect) {
-      templateName = templateSelect.value;
-    }
-
-    // Collect selected permissions
-    const selectedPermissions = new Set();
-    dlg.querySelectorAll(".rsp-perm__item input[type=checkbox]:checked").forEach((cb) => {
-      const permId = cb.getAttribute("data-permission-id");
-      if (permId) selectedPermissions.add(permId);
-    });
-
-    closeDialog();
-    rspCreateRoleCard(container, name, pattern, templateName, selectedPermissions);
-
-    // Save immediately and reload
-    rspSave(false).then(() => {
-      window.location.reload();
-    }).catch((err) => {
-      notificationBar.show("Failed to save role: " + err.message, notificationBar.ERROR);
-    });
-  });
-};
-
-const rspCreateRoleCard = (container, name, pattern, templateName, initialPermissions = new Set()) => {
-  const cardsContainer = container.querySelector(".rsp-cards");
-  const sectionId = container.id;
-
-  // Find an existing card to clone as template
-  const existingCard = container.querySelector(".rsp-card");
-
-  const card = document.createElement("div");
-  card.classList.add("rsp-card");
-  card.dataset.roleName = name;
-  card.dataset.rolePattern = pattern;
-  card.dataset.templateName = templateName;
-  card.dataset.sectionId = sectionId;
-
-  // Build header
-  const header = document.createElement("div");
-  header.classList.add("rsp-card__header");
-  header.setAttribute("role", "button");
-  header.setAttribute("tabindex", "0");
-  header.setAttribute("aria-expanded", "false");
-
-  const nameSpan = document.createElement("span");
-  nameSpan.classList.add("rsp-card__name");
-  nameSpan.textContent = name;
-  header.appendChild(nameSpan);
-
-  if (pattern) {
-    const patternSpan = document.createElement("span");
-    patternSpan.classList.add("rsp-card__pattern");
-    patternSpan.dataset.pattern = pattern;
-    patternSpan.dataset.roleType = container.dataset.roleType;
-    patternSpan.textContent = `"${pattern}"`;
-    header.appendChild(patternSpan);
-  }
-
-  if (templateName) {
-    const templateBadge = document.createElement("span");
-    templateBadge.classList.add("rsp-card__template-badge");
-    templateBadge.textContent = templateName;
-    header.appendChild(templateBadge);
-  }
-
-  const summarySpan = document.createElement("span");
-  summarySpan.classList.add("rsp-card__summary", "rsp-card__summary--empty");
-  summarySpan.dataset.emptyText = "No permissions";
-  summarySpan.textContent = "No permissions";
-  header.appendChild(summarySpan);
-
-  // Actions — clone from existing card to get correct icon paths
-  if (existingCard) {
-    const existingActions = existingCard.querySelector(".rsp-card__actions");
-    if (existingActions) {
-      const actions = existingActions.cloneNode(true);
-      // Remove edit-pattern button if this role has no pattern
-      if (!pattern) {
-        const editBtn = actions.querySelector(".rsp-card__edit-pattern");
-        if (editBtn) editBtn.remove();
-      }
-      // Reset initialized flags so behaviours re-bind
-      actions.querySelectorAll("[data-initialized]").forEach((el) => el.removeAttribute("data-initialized"));
-      header.appendChild(actions);
-    }
-
-    const existingToggle = existingCard.querySelector(".rsp-card__toggle");
-    if (existingToggle) {
-      header.appendChild(existingToggle.cloneNode(true));
-    }
-  }
-
-  card.appendChild(header);
-
-  // Body - clone permission groups from an existing card
-  const body = document.createElement("div");
-  body.classList.add("rsp-card__body", "rsp-card__body--collapsed");
-
-  if (existingCard) {
-    const existingPerm = existingCard.querySelector(".rsp-perm");
-    if (existingPerm) {
-      const permClone = existingPerm.cloneNode(true);
-
-      // If template selected, load its permissions from embedded JSON
-      let templatePerms = initialPermissions;
-      if (templateName) {
-        const templateData = container.querySelector(`.rsp-template-data[data-template-name='${CSS.escape(templateName)}']`);
-        if (templateData) {
-          try {
-            const permIds = JSON.parse(templateData.textContent);
-            templatePerms = new Set(permIds);
-          } catch (e) { /* ignore parse errors */ }
-        }
-      }
-
-      permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-        const permId = cb.getAttribute("data-permission-id");
-        cb.checked = templatePerms.has(permId);
-        cb.disabled = !!templateName; // disable all if template-based
-      });
-      permClone.querySelectorAll(".rsp-perm__item--implied").forEach((el) => {
-        el.classList.remove("rsp-perm__item--implied");
-      });
-      permClone.querySelectorAll(".rsp-perm__item-implied").forEach((el) => {
-        el.hidden = true;
-      });
-      body.appendChild(permClone);
-    }
-  }
-
-  // Assignment section
-  const assignDiv = document.createElement("div");
-  assignDiv.classList.add("rsp-assign");
-  assignDiv.dataset.roleName = name;
-  assignDiv.dataset.loaded = "false";
-  assignDiv.innerHTML = `
-    <h4 class="rsp-assign__title">Assigned Users and Groups</h4>
-    <div class="rsp-assign__list">
-      <span class="rsp-assign__loading">No users or groups assigned</span>
-    </div>
-    <div class="rsp-assign__actions">
-      <button type="button" class="jenkins-button jenkins-button--tertiary rsp-assign__add" data-type="USER">Add User</button>
-      <button type="button" class="jenkins-button jenkins-button--tertiary rsp-assign__add" data-type="GROUP">Add Group</button>
-    </div>
-  `;
-  body.appendChild(assignDiv);
-
-  card.appendChild(body);
-  cardsContainer.appendChild(card);
-
-  // Apply behaviors
-  Behaviour.applySubtree(card, true);
-
-  // Expand the new card
-  rspToggleCard(card);
-  card.classList.add("rsp-highlight-entry");
-
-  rspMarkDirty();
-};
-
-// ============================================
-// Behaviours
-// ============================================
-
-// Card header click
-Behaviour.specify(".rsp-card__header", "RoleStrategyCards", 0, (header) => {
-  if (header.dataset.initialized === "true") return;
-  header.dataset.initialized = "true";
-
-  const handleToggle = (e) => {
-    if (e.target.closest(".rsp-card__actions") && !e.target.closest(".rsp-card__toggle")) return;
-    const card = header.closest(".rsp-card");
-    if (card && !card.classList.contains("rsp-card--read-only")) {
-      rspToggleCard(card);
-    }
-  };
-
-  header.addEventListener("click", handleToggle);
-  header.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleToggle(e);
-    }
-  });
-});
-
-// Permission checkbox change
-Behaviour.specify(".rsp-perm__item input[type=checkbox]", "RoleStrategyCards", 0, (cb) => {
-  if (cb.dataset.initialized === "true") return;
-  cb.dataset.initialized = "true";
-
-  cb.addEventListener("change", () => {
-    const card = cb.closest(".rsp-card");
-    if (card) {
-      rspUpdateImplied(card);
-      rspUpdateSummary(card);
-      rspAutoSave();
-    }
-  });
-});
-
-// Initialize summaries and implied on page load
-Behaviour.specify(".rsp-card", "RoleStrategyCards", 1, (card) => {
-  if (card.dataset.summaryInitialized === "true") return;
-  card.dataset.summaryInitialized = "true";
-  rspUpdateImplied(card);
-  rspUpdateSummary(card);
-});
-
-// Delete role
-Behaviour.specify(".rsp-card__delete", "RoleStrategyCards", 0, (btn) => {
-  if (btn.dataset.initialized === "true") return;
-  btn.dataset.initialized = "true";
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const card = btn.closest(".rsp-card");
-    if (!card) return;
-    const roleName = card.dataset.roleName;
-
-    dialog.confirm("Delete role", {
-      message: `Are you sure you want to delete the role "${roleName}"?`,
-      type: "destructive",
-    }).then(() => {
-      // Remove assignments for this role
-      const container = card.closest(".rsp-container");
-      const assignType = container.dataset.assignType;
-      const json = rspAssignmentData[assignType];
-      if (json) {
-        json.forEach((entry) => {
-          const idx = entry.roles.indexOf(roleName);
-          if (idx !== -1) entry.roles.splice(idx, 1);
-        });
-      }
-      card.remove();
-      // Save immediately
-      rspSave(false).then(() => {
-        notificationBar.show(`Role "${roleName}" deleted`, notificationBar.SUCCESS);
-      }).catch((err) => {
-        notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR);
-      });
-    }).catch(() => {});
-  });
-});
-
-// Edit pattern
-Behaviour.specify(".rsp-card__edit-pattern", "RoleStrategyCards", 0, (btn) => {
-  if (btn.dataset.initialized === "true") return;
-  btn.dataset.initialized = "true";
-
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    const card = btn.closest(".rsp-card");
-    if (!card) return;
-    const currentPattern = card.dataset.rolePattern || "";
-
-    dialog.prompt("Edit pattern", {
-      message: "Enter the new pattern:",
-      defaultValue: currentPattern,
-    }).then((newPattern) => {
-      if (newPattern === null || newPattern === undefined) return;
-      newPattern = newPattern.trim();
-      if (!newPattern) return;
-
-      card.dataset.rolePattern = newPattern;
-      const patternSpan = card.querySelector(".rsp-card__pattern");
-      if (patternSpan) {
-        patternSpan.textContent = `"${newPattern}"`;
-        patternSpan.dataset.pattern = newPattern;
-      }
-      rspAutoSave();
-    }).catch(() => {});
-  });
-});
-
-// Pattern click - show matching items
-Behaviour.specify(".rsp-card__pattern", "RoleStrategyCards", 0, (span) => {
-  if (span.dataset.initialized === "true") return;
-  span.dataset.initialized = "true";
-
-  span.addEventListener("click", (e) => {
-    // Don't trigger if we're clicking during expand/collapse
-    if (e.target.closest(".rsp-card__actions")) return;
-    e.stopPropagation();
-    const pattern = span.dataset.pattern;
-    const roleType = span.closest(".rsp-container")?.dataset.roleType;
-    if (pattern && roleType) {
-      rspShowMatchingItems(pattern, roleType);
-    }
-  });
-});
-
-// Add role button
-Behaviour.specify(".rsp-add-role", "RoleStrategyCards", 0, (btn) => {
-  if (btn.dataset.initialized === "true") return;
-  btn.dataset.initialized = "true";
-
-  btn.addEventListener("click", () => {
-    const sectionId = btn.dataset.sectionId;
-    const container = document.getElementById(sectionId);
-    if (container) {
-      rspAddNewRole(container);
-    }
-  });
-});
-
-// Add user/group assignment
-Behaviour.specify(".rsp-assign__add", "RoleStrategyCards", 0, (btn) => {
-  if (btn.dataset.initialized === "true") return;
-  btn.dataset.initialized = "true";
-
-  btn.addEventListener("click", () => {
-    const type = btn.dataset.type;
-    const card = btn.closest(".rsp-card");
-    if (!card) return;
-
-    const promptText = type === "USER" ? "Enter the user name:" : "Enter the group name:";
-    dialog.prompt(promptText).then((name) => {
-      if (!name || !name.trim()) return;
-      name = name.trim();
-      rspAddAssignmentToRole(card, name, type);
-    });
-  });
-});
-
-// Search bar
-Behaviour.specify(".rsp-search input", "RoleStrategyCards", 0, (input) => {
-  if (input.dataset.searchInitialized === "true") return;
-  input.dataset.searchInitialized = "true";
-
-  input.addEventListener("input", () => {
-    const container = input.closest(".rsp-container");
-    if (container) rspApplyFilters(container);
-  });
-});
-
-// Filter button
-Behaviour.specify(".rsp-filter__button", "RoleStrategyCards", 0, (btn) => {
-  if (btn.dataset.filterInitialized === "true") return;
-  btn.dataset.filterInitialized = "true";
-
-  const filterEl = btn.parentElement;
-  const dropdown = filterEl.querySelector(".rsp-filter__dropdown");
-  if (!dropdown) return;
-  const container = filterEl.closest(".rsp-container");
-
-  // Filter item click
-  dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
-    item.addEventListener("click", () => {
-      item.classList.toggle("rsp-filter__item--active");
-      if (container) rspApplyFilters(container);
-    });
-  });
-
-  // Search within dropdown
-  const filterSearchInput = dropdown.querySelector(".rsp-filter__search-input");
-  const filterSearchClear = dropdown.querySelector(".rsp-filter__search-clear");
-
-  const applyFilterSearch = () => {
-    const q = filterSearchInput ? filterSearchInput.value.toLowerCase().trim() : "";
-    const groupTitles = dropdown.querySelectorAll(".rsp-filter__group-title");
-
-    dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
-      const label = (item.getAttribute("data-filter-label") || "").toLowerCase();
-      item.classList.toggle("rsp-filter__item--filter-hidden", q !== "" && !label.includes(q));
-    });
-
-    groupTitles.forEach((title) => {
-      let next = title.nextElementSibling;
-      let hasVisible = false;
-      while (next && !next.classList.contains("rsp-filter__group-title")) {
-        if (next.classList.contains("rsp-filter__item") && !next.classList.contains("rsp-filter__item--filter-hidden")) {
-          hasVisible = true;
-        }
-        next = next.nextElementSibling;
-      }
-      title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
-    });
-
-    if (filterSearchClear) {
-      filterSearchClear.classList.toggle("rsp-filter__search-clear--visible", q !== "");
-    }
-    const noResults = dropdown.querySelector(".rsp-filter__no-results");
-    if (noResults) {
-      const hasAnyVisible = dropdown.querySelector(".rsp-filter__item:not(.rsp-filter__item--filter-hidden)");
-      noResults.hidden = !!hasAnyVisible;
-    }
-  };
-
-  if (filterSearchInput) {
-    filterSearchInput.addEventListener("input", applyFilterSearch);
-    filterSearchInput.addEventListener("click", (e) => e.stopPropagation());
-  }
-
-  if (filterSearchClear) {
-    filterSearchClear.addEventListener("click", (e) => {
-      e.stopPropagation();
-      filterSearchInput.value = "";
-      applyFilterSearch();
-      filterSearchInput.focus();
-    });
-  }
-
-  // Reset button
-  const resetBtn = dropdown.querySelector(".rsp-filter__reset-button");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      dropdown.querySelectorAll(".rsp-filter__item--active").forEach((item) => {
-        item.classList.remove("rsp-filter__item--active");
-      });
-      if (filterSearchInput) filterSearchInput.value = "";
-      applyFilterSearch();
-      if (container) rspApplyFilters(container);
-    });
-  }
-
-  // Toggle dropdown
-  btn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    // Close all other open filter dropdowns
-    document.querySelectorAll(".rsp-filter__dropdown").forEach((d) => {
-      if (d !== dropdown) d.hidden = true;
-    });
-    document.querySelectorAll(".rsp-filter__button").forEach((b) => {
-      if (b !== btn) b.setAttribute("aria-expanded", "false");
-    });
-    const isOpen = !dropdown.hidden;
-    dropdown.hidden = isOpen;
-    btn.setAttribute("aria-expanded", String(!isOpen));
-
-    if (!isOpen) {
-      const closeDropdown = () => {
-        dropdown.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-        document.removeEventListener("click", clickHandler);
-        document.removeEventListener("keydown", escHandler);
-      };
-      const clickHandler = (evt) => {
-        if (!dropdown.contains(evt.target) && evt.target !== btn) closeDropdown();
-      };
-      const escHandler = (evt) => {
-        if (evt.key === "Escape") {
-          closeDropdown();
-          btn.focus();
-        }
-      };
-      setTimeout(() => {
-        document.addEventListener("click", clickHandler);
-        document.addEventListener("keydown", escHandler);
-      }, 0);
-    }
-  });
-});
 
 // ============================================
 // Assign role dialog
@@ -1270,7 +334,6 @@ const rspAssignRoleDialog = () => {
   const content = document.createElement("div");
   content.classList.add("rsp-dialog-content");
 
-  // Name field
   const nameGroup = document.createElement("div");
   nameGroup.classList.add("jenkins-form-item");
   nameGroup.innerHTML = `
@@ -1281,7 +344,6 @@ const rspAssignRoleDialog = () => {
   `;
   content.appendChild(nameGroup);
 
-  // Type selection
   const typeGroup = document.createElement("div");
   typeGroup.classList.add("jenkins-form-item");
   typeGroup.innerHTML = `
@@ -1293,10 +355,8 @@ const rspAssignRoleDialog = () => {
   `;
   content.appendChild(typeGroup);
 
-  // Role selection with filter
   const roleGroup = document.createElement("div");
   roleGroup.classList.add("jenkins-form-item");
-
   const roleLabel = document.createElement("label");
   roleLabel.classList.add("jenkins-form-label");
   roleLabel.textContent = "Roles";
@@ -1312,42 +372,36 @@ const rspAssignRoleDialog = () => {
   const roleList = document.createElement("div");
   roleList.classList.add("rsp-assign-dialog__roles");
 
-  // Build role checkboxes from DOM
-  const sectionLabels = { globalRoles: "Global roles", projectRoles: "Item roles", slaveRoles: "Agent roles" };
-
-  document.querySelectorAll(".rsp-container").forEach((container) => {
-    const assignType = container.dataset.assignType;
-    const cards = container.querySelectorAll(".rsp-card");
-    if (cards.length === 0) return;
+  rspAssignTypes.forEach((type) => {
+    const roles = rspRoleDefinitions[type];
+    if (!roles || roles.length === 0) return;
 
     const groupTitle = document.createElement("div");
     groupTitle.classList.add("rsp-assign-dialog__group-title");
-    groupTitle.textContent = sectionLabels[assignType] || assignType;
+    groupTitle.textContent = rspTypeLabels[type] + " roles";
     roleList.appendChild(groupTitle);
 
-    cards.forEach((card) => {
-      const roleName = card.dataset.roleName;
-      const pattern = card.dataset.rolePattern;
+    roles.forEach((role) => {
       const label = document.createElement("label");
       label.classList.add("rsp-assign-dialog__role");
-      label.dataset.roleName = roleName;
-      label.dataset.assignType = assignType;
+      label.dataset.roleName = role.name;
+      label.dataset.assignType = type;
 
       const cb = document.createElement("input");
       cb.type = "checkbox";
-      cb.value = roleName;
-      cb.dataset.assignType = assignType;
+      cb.value = role.name;
+      cb.dataset.assignType = type;
       label.appendChild(cb);
 
       const nameSpan = document.createElement("span");
       nameSpan.classList.add("rsp-assign-dialog__role-name");
-      nameSpan.textContent = roleName;
+      nameSpan.textContent = role.name;
       label.appendChild(nameSpan);
 
-      if (pattern) {
+      if (role.pattern) {
         const patternSpan = document.createElement("span");
         patternSpan.classList.add("rsp-assign-dialog__role-pattern");
-        patternSpan.textContent = `"${pattern}"`;
+        patternSpan.textContent = `"${role.pattern}"`;
         label.appendChild(patternSpan);
       }
 
@@ -1358,12 +412,11 @@ const rspAssignRoleDialog = () => {
   roleGroup.appendChild(roleList);
   content.appendChild(roleGroup);
 
-  // Filter behaviour
+  // Filter
   roleFilter.addEventListener("input", () => {
     const q = roleFilter.value.toLowerCase().trim();
     roleList.querySelectorAll(".rsp-assign-dialog__role").forEach((label) => {
-      const name = label.dataset.roleName.toLowerCase();
-      label.style.display = (q === "" || name.includes(q)) ? "" : "none";
+      label.style.display = (q === "" || label.dataset.roleName.toLowerCase().includes(q)) ? "" : "none";
     });
     roleList.querySelectorAll(".rsp-assign-dialog__group-title").forEach((title) => {
       let next = title.nextElementSibling;
@@ -1376,23 +429,20 @@ const rspAssignRoleDialog = () => {
     });
   });
 
-  // Pre-fill if user already exists: listen for name changes
+  // Prefill
   const prefillRoles = () => {
-    const name = document.getElementById("rsp-assign-name")?.value?.trim();
+    const name = content.querySelector("#rsp-assign-name")?.value?.trim();
     const type = content.querySelector("input[name='rsp-assign-type']:checked")?.value;
     if (!name || !type) return;
-
-    // Check all assignment data for this user
+    const key = `${type}:${name}`;
+    const userData = rspMergedUsers[key];
     roleList.querySelectorAll(".rsp-assign-dialog__role input[type=checkbox]").forEach((cb) => {
-      const assignType = cb.dataset.assignType;
-      const json = rspAssignmentData[assignType];
-      if (!json) { cb.checked = false; return; }
-      const entry = json.find((e) => e.name === name && e.type === type);
-      cb.checked = entry ? entry.roles.includes(cb.value) : false;
+      const at = cb.dataset.assignType;
+      cb.checked = userData ? (userData.roles[at] || []).includes(cb.value) : false;
     });
   };
 
-  // Build dialog
+  // Dialog
   const dlg = document.createElement("dialog");
   dlg.classList.add("jenkins-dialog");
   dlg.style.cssText = "max-width:550px;min-width:450px;";
@@ -1421,68 +471,41 @@ const rspAssignRoleDialog = () => {
   document.body.appendChild(dlg);
   dlg.showModal();
 
-  // Wire up prefill on blur of name field
   const nameInput = dlg.querySelector("#rsp-assign-name");
   nameInput.addEventListener("blur", prefillRoles);
-  dlg.querySelectorAll("input[name='rsp-assign-type']").forEach((r) => {
-    r.addEventListener("change", prefillRoles);
-  });
+  dlg.querySelectorAll("input[name='rsp-assign-type']").forEach((r) => r.addEventListener("change", prefillRoles));
 
   const closeDialog = () => { dlg.close(); dlg.remove(); };
-
-  dlg.querySelectorAll("[data-id='cancel']").forEach((btn) => {
-    btn.addEventListener("click", closeDialog);
-  });
+  dlg.querySelectorAll("[data-id='cancel']").forEach((btn) => btn.addEventListener("click", closeDialog));
   dlg.addEventListener("cancel", closeDialog);
 
   dlg.querySelector("[data-id='ok']").addEventListener("click", () => {
     const name = nameInput.value?.trim();
     if (!name) { nameInput.focus(); return; }
-
     const type = dlg.querySelector("input[name='rsp-assign-type']:checked").value;
 
-    // Collect selected roles grouped by assignType
-    const rolesByType = {};
-    dlg.querySelectorAll(".rsp-assign-dialog__role input[type=checkbox]:checked").forEach((cb) => {
-      const at = cb.dataset.assignType;
-      if (!rolesByType[at]) rolesByType[at] = [];
-      rolesByType[at].push(cb.value);
-    });
-
-    // Update rspAssignmentData for each type
-    for (const [assignType, roles] of Object.entries(rolesByType)) {
+    // Update assignment data
+    rspAssignTypes.forEach((assignType) => {
       if (!rspAssignmentData[assignType]) rspAssignmentData[assignType] = [];
       let entry = rspAssignmentData[assignType].find((e) => e.name === name && e.type === type);
       if (!entry) {
         entry = { name, type, roles: [] };
         rspAssignmentData[assignType].push(entry);
       }
-      // Merge: add roles not already present
-      roles.forEach((r) => { if (!entry.roles.includes(r)) entry.roles.push(r); });
-    }
 
-    // Also handle unchecked roles (remove assignments)
-    dlg.querySelectorAll(".rsp-assign-dialog__role input[type=checkbox]:not(:checked)").forEach((cb) => {
-      const at = cb.dataset.assignType;
-      const json = rspAssignmentData[at];
-      if (!json) return;
-      const entry = json.find((e) => e.name === name && e.type === type);
-      if (entry) {
-        const idx = entry.roles.indexOf(cb.value);
-        if (idx !== -1) entry.roles.splice(idx, 1);
-      }
+      // Set roles from dialog checkboxes for this type
+      const newRoles = [];
+      dlg.querySelectorAll(`.rsp-assign-dialog__role input[type=checkbox][data-assign-type='${assignType}']:checked`).forEach((cb) => {
+        newRoles.push(cb.value);
+      });
+      entry.roles = newRoles;
     });
 
     closeDialog();
 
-    // Save immediately
-    rspSave(false).then(() => {
-      // Refresh assignment chips on all expanded cards
-      document.querySelectorAll(".rsp-assign[data-loaded='true']").forEach((section) => {
-        const roleName = section.dataset.roleName;
-        const assignType = section.closest(".rsp-container")?.dataset.assignType;
-        if (assignType) rspRenderAssignments(section, roleName, assignType);
-      });
+    rspSaveAssignments().then(() => {
+      rspMergeUsers();
+      rspRenderUserCards();
       notificationBar.show("Role assignment saved", notificationBar.SUCCESS);
     }).catch((err) => {
       notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR);
@@ -1490,66 +513,139 @@ const rspAssignRoleDialog = () => {
   });
 };
 
-// Assign role button behaviour
-Behaviour.specify(".rsp-assign-role-btn", "RoleStrategyCards", 0, (btn) => {
+// ============================================
+// Behaviours
+// ============================================
+
+// Card header toggle
+Behaviour.specify("#rsp-user-cards .rsp-card__header", "RoleStrategyAssign", 0, (header) => {
+  if (header.dataset.initialized === "true") return;
+  header.dataset.initialized = "true";
+
+  const handleToggle = (e) => {
+    if (e.target.closest(".rsp-card__actions") && !e.target.closest(".rsp-card__toggle")) return;
+    const card = header.closest(".rsp-card");
+    if (!card) return;
+    const body = card.querySelector(".rsp-card__body");
+    const isExpanded = !body.classList.contains("rsp-card__body--collapsed");
+    body.classList.toggle("rsp-card__body--collapsed");
+    header.setAttribute("aria-expanded", String(!isExpanded));
+    card.setAttribute("aria-expanded", String(!isExpanded));
+  };
+
+  header.addEventListener("click", handleToggle);
+  header.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleToggle(e); }
+  });
+});
+
+// Role checkbox toggle — auto-save
+Behaviour.specify("#rsp-user-cards .rsp-perm__item input[type=checkbox]", "RoleStrategyAssign", 0, (cb) => {
+  if (cb.dataset.initialized === "true") return;
+  cb.dataset.initialized = "true";
+
+  cb.addEventListener("change", () => {
+    const card = cb.closest(".rsp-card");
+    if (!card) return;
+    const userName = card.dataset.userName;
+    const userType = card.dataset.userType;
+    const roleName = cb.dataset.roleName;
+    const assignType = cb.dataset.assignType;
+
+    // Update assignment data
+    if (!rspAssignmentData[assignType]) rspAssignmentData[assignType] = [];
+    let entry = rspAssignmentData[assignType].find((e) => e.name === userName && e.type === userType);
+    if (!entry) {
+      entry = { name: userName, type: userType, roles: [] };
+      rspAssignmentData[assignType].push(entry);
+    }
+
+    if (cb.checked) {
+      if (!entry.roles.includes(roleName)) entry.roles.push(roleName);
+    } else {
+      const idx = entry.roles.indexOf(roleName);
+      if (idx !== -1) entry.roles.splice(idx, 1);
+    }
+
+    // Update merged data and summary
+    const key = `${userType}:${userName}`;
+    if (rspMergedUsers[key]) {
+      rspMergedUsers[key].roles[assignType] = [...entry.roles];
+    }
+    const summaryEl = card.querySelector(".rsp-card__summary");
+    if (summaryEl) {
+      const summary = rspBuildUserSummary(rspMergedUsers[key]);
+      if (summary) {
+        summaryEl.textContent = summary;
+        summaryEl.classList.remove("rsp-card__summary--empty");
+      } else {
+        summaryEl.textContent = "No roles assigned";
+        summaryEl.classList.add("rsp-card__summary--empty");
+      }
+    }
+
+    rspAutoSave();
+  });
+});
+
+// Delete user
+Behaviour.specify(".rsp-user-delete", "RoleStrategyAssign", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const card = btn.closest(".rsp-card");
+    if (!card) return;
+    const userName = card.dataset.userName;
+    const userType = card.dataset.userType;
+
+    dialog.confirm("Remove user/group", {
+      message: `Remove all role assignments for "${userName}"?`,
+      type: "destructive",
+    }).then(() => {
+      // Remove from all assignment data
+      rspAssignTypes.forEach((type) => {
+        const json = rspAssignmentData[type];
+        if (!json) return;
+        const idx = json.findIndex((e) => e.name === userName && e.type === userType);
+        if (idx !== -1) json.splice(idx, 1);
+      });
+
+      delete rspMergedUsers[`${userType}:${userName}`];
+      card.remove();
+
+      rspSaveAssignments().then(() => {
+        notificationBar.show(`Removed "${userName}"`, notificationBar.SUCCESS);
+      }).catch((err) => {
+        notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR);
+      });
+    }).catch(() => {});
+  });
+});
+
+// Assign role button
+Behaviour.specify(".rsp-assign-role-btn", "RoleStrategyAssign", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
   btn.addEventListener("click", rspAssignRoleDialog);
 });
 
+// Search
+Behaviour.specify(".rsp-assign-search input", "RoleStrategyAssign", 0, (input) => {
+  if (input.dataset.initialized === "true") return;
+  input.dataset.initialized = "true";
+  input.addEventListener("input", rspApplyUserSearch);
+});
 
 // ============================================
-// Initialization - eagerly load all assignment data
+// Initialization
 // ============================================
 
-const rspLoadAllAssignments = () => {
-  const dataHolder = document.getElementById("role-strategy-data");
-  if (!dataHolder) return;
-
-  const fetchUrl = dataHolder.dataset.fetchUrl;
-  if (!fetchUrl) return;
-
-  document.querySelectorAll(".rsp-container").forEach((container) => {
-    const assignType = container.dataset.assignType;
-    if (!assignType || rspAssignmentData[assignType]) return;
-
-    const params = new URLSearchParams({ type: assignType });
-    fetch(fetchUrl + "?" + params)
-      .then((rsp) => rsp.json())
-      .then((json) => {
-        rspEnsureFixedEntry(json, "anonymous", "USER");
-        rspEnsureFixedEntry(json, "authenticated", "GROUP");
-        rspAssignmentData[assignType] = json;
-      })
-      .catch(() => {
-        // Initialize with empty array to prevent save failures
-        rspAssignmentData[assignType] = [];
-      });
-  });
-};
-
-document.addEventListener("DOMContentLoaded", rspLoadAllAssignments);
-
-// ============================================
-// Collapsible sections
-// ============================================
-
-Behaviour.specify(".rsp-container", "RoleStrategyCollapsible", 0, (container) => {
-  const section = container.closest(".jenkins-section");
-  if (!section || section.dataset.collapsibleInit === "true") return;
-  section.dataset.collapsibleInit = "true";
-  section.classList.add("rsp-section-collapsible");
-
-  const title = section.querySelector(".jenkins-section__title");
-  if (!title) return;
-
-  // Add chevron SVG
-  const chevron = document.createElement("span");
-  chevron.classList.add("rsp-section-chevron");
-  chevron.innerHTML = '<svg viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"><path d="M112 184l144 144 144-144"/></svg>';
-  title.appendChild(chevron);
-
-  title.addEventListener("click", () => {
-    section.classList.toggle("rsp-section--collapsed");
+document.addEventListener("DOMContentLoaded", () => {
+  rspLoadRoleDefinitions();
+  rspLoadAllAssignments().then(() => {
+    rspMergeUsers();
+    rspRenderUserCards();
   });
 });
