@@ -2,19 +2,17 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
     <j:set var="header"><l:view>
-      <l:app-bar title="${%Role Assignments}">
+      <l:app-bar title="${it.displayName}">
         <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
           <button type="button" class="jenkins-button jenkins-button--primary rsp-assign-role-btn">
-            <l:icon src="symbol-person-add-outline plugin-ionicons-api" class="icon-sm"/>
+            <l:icon src="symbol-person-add-outline plugin-ionicons-api" />
             ${%Assign role}
           </button>
         </j:if>
         <a href="${rootURL}/manage/role-strategy/manage-roles" class="jenkins-button">
-          <l:icon src="symbol-finger-print-outline plugin-ionicons-api" class="icon-sm"/>
           ${%Manage Roles}
         </a>
         <a href="${rootURL}/manage/role-strategy/permission-templates" class="jenkins-button">
-          <l:icon src="symbol-braces plugin-role-strategy" class="icon-sm"/>
           ${%Permission Templates}
         </a>
       </l:app-bar>

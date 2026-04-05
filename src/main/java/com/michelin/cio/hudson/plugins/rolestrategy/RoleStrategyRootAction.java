@@ -59,7 +59,7 @@ public class RoleStrategyRootAction implements RootAction, StaplerProxy {
 
     // Only show if user has role admin permissions but NOT system read
     if (hasRoleAdmin && !hasSystemRead) {
-      return "symbol-lock-closed-outline plugin-ionicons-api";
+      return "symbol-shield-outline plugin-ionicons-api";
     }
 
     return null;
