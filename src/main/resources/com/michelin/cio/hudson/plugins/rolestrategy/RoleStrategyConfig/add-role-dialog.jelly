@@ -13,13 +13,13 @@
         <f:textbox name="roleName"/>
       </f:entry>
 
-      <f:entry title="${%Pattern}" style="display:none">
+      <f:entry title="${%Pattern}" class="jenkins-hidden">
         <f:textbox name="pattern"/>
       </f:entry>
 
       <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
       <j:if test="${!permissionTemplates.isEmpty()}">
-        <f:entry title="${%Permission template}" style="display:none">
+        <f:entry title="${%Permission template}" class="jenkins-hidden">
           <div class="jenkins-select">
             <select name="templateName" class="jenkins-select__input">
               <option value="">${%none}</option>
@@ -44,7 +44,7 @@
           <j:forEach var="roleType" items="globalRoles,projectRoles,slaveRoles">
             <j:set var="roleTypeKey" value="${roleType == 'globalRoles' ? it.strategy.GLOBAL : (roleType == 'projectRoles' ? it.strategy.PROJECT : it.strategy.SLAVE)}"/>
             <j:set var="groups" value="${it.strategy.descriptor.getGroups(roleTypeKey)}"/>
-            <div name="${roleType}" style="${roleType == 'globalRoles' ? '' : 'display:none;'}">
+            <div name="${roleType}" class="${roleType == 'globalRoles' ? '' : 'jenkins-hidden'}">
               <j:forEach var="g" items="${groups}">
                 <j:set var="hasVisible" value="${false}"/>
                 <j:forEach var="p" items="${g.permissions}">
@@ -57,8 +57,9 @@
                   <div class="rsp-assign-dialog__group">
                     <j:forEach var="p" items="${g.permissions}">
                       <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
-                        <div class="rsp-assign-dialog__role-item" data-role-name="${p.name}">
-                          <f:checkbox title="${p.name}" name="${p.id}"/>
+                        <div class="rsp-assign-dialog__role-item jenkins-checkbox" data-role-name="${p.name}">
+                          <input type="checkbox" name="${p.id}" id="perm-${roleType}-${p.id}" />
+                          <label for="perm-${roleType}-${p.id}">${p.name}</label>
                         </div>
                       </j:if>
                     </j:forEach>
@@ -67,6 +68,9 @@
               </j:forEach>
             </div>
           </j:forEach>
+          <div class="rsp-assign-dialog__no-results jenkins-hidden" style="padding:1rem;text-align:center;color:var(--text-color-secondary);font-style:italic;">
+            ${%No matching permissions}
+          </div>
         </div>
       </f:entry>
 
