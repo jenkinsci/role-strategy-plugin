@@ -3,11 +3,9 @@
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
     <j:set var="header"><l:view>
-      <l:app-bar title="${%Macros}">
-      </l:app-bar>
-      <p class="jenkins-!-margin-bottom-2">
-        Macros extend access rights analysis and can be used in the pattern field on the
-        <a href="${rootURL}/manage/role-strategy/manage-roles">Manage Roles</a> page.
+      <l:app-bar title="${%Macros}" />
+      <p class="jenkins-page-description">
+        Macros extend access rights analysis and can be used in the pattern field.
       </p>
       <p class="jenkins-!-margin-bottom-3" style="color:var(--text-color-secondary);font-size:0.875rem;">
         Format: <code>@macroName[:id][(param1, param2)]</code>
