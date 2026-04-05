@@ -63,13 +63,29 @@ const rspLoadRoleDefinitions = () => {
   });
 };
 
+// Server-side paginated fetch
+const rspFetchPage = (start, count, query, roleFilters) => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  if (!dataHolder) return Promise.resolve({ total: 0, items: [] });
+
+  const fetchUrl = dataHolder.dataset.fetchUrl.replace("/getRoleAssignments", "/getPaginatedAssignments");
+  const params = new URLSearchParams({ start, limit: count });
+  if (query) params.set("query", query);
+  if (roleFilters && roleFilters.length > 0) {
+    params.set("filterRole", roleFilters.map((f) => f.assignType + ":" + f.roleName).join(","));
+  }
+
+  return fetch(fetchUrl + "?" + params)
+    .then((rsp) => rsp.json())
+    .catch(() => ({ total: 0, items: [] }));
+};
+
+// Legacy client-side data (kept for assignment saving and dialog)
 const rspLoadAllAssignments = () => {
   const dataHolder = document.getElementById("role-strategy-data");
   if (!dataHolder) return Promise.resolve();
-
   const fetchUrl = dataHolder.dataset.fetchUrl;
   if (!fetchUrl) return Promise.resolve();
-
   const promises = rspAssignTypes.map((type) => {
     const params = new URLSearchParams({ type });
     return fetch(fetchUrl + "?" + params)
@@ -77,33 +93,10 @@ const rspLoadAllAssignments = () => {
       .then((json) => { rspAssignmentData[type] = json; })
       .catch(() => { rspAssignmentData[type] = []; });
   });
-
   return Promise.all(promises);
 };
 
-const rspMergeUsers = () => {
-  rspMergedUsers = {};
-
-  rspAssignTypes.forEach((type) => {
-    const entries = rspAssignmentData[type] || [];
-    entries.forEach((entry) => {
-      const key = `${entry.type}:${entry.name}`;
-      if (!rspMergedUsers[key]) {
-        rspMergedUsers[key] = { name: entry.name, type: entry.type, roles: {} };
-        rspAssignTypes.forEach((t) => { rspMergedUsers[key].roles[t] = []; });
-      }
-      rspMergedUsers[key].roles[type] = entry.roles || [];
-    });
-  });
-
-  // Ensure anonymous and authenticated exist
-  if (!rspMergedUsers["USER:anonymous"]) {
-    rspMergedUsers["USER:anonymous"] = { name: "anonymous", type: "USER", roles: { globalRoles: [], projectRoles: [], slaveRoles: [] } };
-  }
-  if (!rspMergedUsers["GROUP:authenticated"]) {
-    rspMergedUsers["GROUP:authenticated"] = { name: "authenticated", type: "GROUP", roles: { globalRoles: [], projectRoles: [], slaveRoles: [] } };
-  }
-};
+const rspMergeUsers = () => { /* no longer needed for rendering — kept for save compatibility */ };
 
 // ============================================
 // Build user summary
@@ -130,23 +123,106 @@ const rspGenerateIcon = (type) => {
   return icons.content.querySelector(`#${iconId}`).cloneNode(true);
 };
 
-const rspRenderUserCards = () => {
-  const container = document.getElementById("rsp-user-cards");
-  container.innerHTML = "";
+// ============================================
+// Pagination
+// ============================================
 
-  const dataHolder = document.getElementById("role-strategy-data");
+const RSP_PAGE_SIZE = 100;
+let rspCurrentPage = 0;
+let rspFilteredKeys = [];
 
-  // Sort: anonymous first, authenticated second, then alphabetical
-  const sortedKeys = Object.keys(rspMergedUsers).sort((a, b) => {
+const rspSortedKeys = () => {
+  return Object.keys(rspMergedUsers).sort((a, b) => {
     if (a === "USER:anonymous") return -1;
     if (b === "USER:anonymous") return 1;
     if (a === "GROUP:authenticated") return -1;
     if (b === "GROUP:authenticated") return 1;
     return a.localeCompare(b);
   });
+};
 
-  sortedKeys.forEach((key) => {
-    const user = rspMergedUsers[key];
+let rspSearchDebounce = null;
+
+const rspApplyFilterAndPaginate = () => {
+  // Debounce search to avoid hammering the server
+  if (rspSearchDebounce) clearTimeout(rspSearchDebounce);
+  rspSearchDebounce = setTimeout(() => {
+    rspCurrentPage = 0;
+    rspRenderCurrentPage();
+  }, 300);
+};
+
+const rspRenderCurrentPage = () => {
+  const container = document.getElementById("rsp-user-cards");
+  container.innerHTML = '<div class="rsp-assign__loading" style="padding:1rem;">Loading...</div>';
+
+  const input = document.querySelector(".rsp-assign-search input");
+  const query = input ? input.value.trim() : "";
+  const start = rspCurrentPage * RSP_PAGE_SIZE;
+
+  rspFetchPage(start, RSP_PAGE_SIZE, query || null, rspActiveRoleFilters).then((data) => {
+    container.innerHTML = "";
+
+    data.items.forEach((user) => {
+      // Convert server format { roles: { globalRoles: [...], ... } } to flat user object
+      const userData = { name: user.name, type: user.type, roles: user.roles };
+      // Cache in rspMergedUsers for save compatibility
+      const key = `${user.type}:${user.name}`;
+      rspMergedUsers[key] = userData;
+      rspRenderOneCard(container, userData);
+    });
+
+    Behaviour.applySubtree(container, true);
+    rspUpdateCardBorders();
+    rspValidateUserCards();
+
+    const totalFiltered = data.total;
+    const totalPages = Math.max(1, Math.ceil(totalFiltered / RSP_PAGE_SIZE));
+    rspUpdatePaginationUI(totalFiltered, totalPages);
+
+    const emptyState = document.getElementById("rsp-user-empty");
+    if (emptyState) emptyState.hidden = totalFiltered > 0;
+  });
+};
+
+const rspUpdatePaginationUI = (totalFiltered, totalPages) => {
+  let nav = document.getElementById("rsp-pagination");
+  if (!nav) {
+    nav = document.createElement("div");
+    nav.id = "rsp-pagination";
+    nav.style.cssText = "display:flex;align-items:center;justify-content:center;gap:1rem;padding:1rem 0;";
+    const cardsContainer = document.getElementById("rsp-user-cards");
+    cardsContainer.parentNode.insertBefore(nav, cardsContainer.nextSibling);
+  }
+
+  const fmt = (n) => n.toLocaleString();
+
+  if (totalPages <= 1) {
+    nav.innerHTML = totalFiltered > 0
+      ? `<span style="color:var(--text-color-secondary);font-size:0.875rem;">${fmt(totalFiltered)} results</span>`
+      : "";
+    return;
+  }
+
+  const start = rspCurrentPage * RSP_PAGE_SIZE + 1;
+  const end = Math.min((rspCurrentPage + 1) * RSP_PAGE_SIZE, totalFiltered);
+
+  nav.innerHTML = `
+    <button class="jenkins-button jenkins-button--tertiary" ${rspCurrentPage === 0 ? "disabled" : ""} id="rsp-page-prev">Previous</button>
+    <span style="font-size:0.875rem;color:var(--text-color-secondary);">${fmt(start)}–${fmt(end)} of ${fmt(totalFiltered)}</span>
+    <button class="jenkins-button jenkins-button--tertiary" ${rspCurrentPage >= totalPages - 1 ? "disabled" : ""} id="rsp-page-next">Next</button>
+  `;
+
+  document.getElementById("rsp-page-prev")?.addEventListener("click", () => {
+    if (rspCurrentPage > 0) { rspCurrentPage--; rspRenderCurrentPage(); }
+  });
+  document.getElementById("rsp-page-next")?.addEventListener("click", () => {
+    if (rspCurrentPage < totalPages - 1) { rspCurrentPage++; rspRenderCurrentPage(); }
+  });
+};
+
+const rspRenderOneCard = (container, user) => {
+    const dataHolder = document.getElementById("role-strategy-data");
     const isBuiltIn = (user.name === "anonymous" && user.type === "USER") ||
                       (user.name === "authenticated" && user.type === "GROUP");
 
@@ -216,69 +292,85 @@ const rspRenderUserCards = () => {
 
     card.appendChild(header);
 
-    // Body — role checkboxes
+    // Body — lazy loaded on first expand
     const body = document.createElement("div");
     body.classList.add("rsp-card__body", "rsp-card__body--collapsed");
-
-    const roleSection = document.createElement("div");
-    roleSection.classList.add("rsp-perm");
-    roleSection.style.padding = "0.75rem";
-
-    rspAssignTypes.forEach((type) => {
-      const roles = rspRoleDefinitions[type];
-      if (!roles || roles.length === 0) return;
-
-      const group = document.createElement("fieldset");
-      group.classList.add("rsp-perm__group");
-
-      const legend = document.createElement("legend");
-      legend.classList.add("rsp-perm__group-title");
-      legend.textContent = rspTypeLabels[type] + " roles";
-      group.appendChild(legend);
-
-      const perms = document.createElement("div");
-      perms.classList.add("rsp-perm__permissions");
-
-      roles.forEach((role) => {
-        const label = document.createElement("label");
-        label.classList.add("rsp-perm__item");
-        label.dataset.roleName = role.name;
-        label.dataset.assignType = type;
-
-        const cb = document.createElement("input");
-        cb.type = "checkbox";
-        cb.dataset.roleName = role.name;
-        cb.dataset.assignType = type;
-        cb.checked = (user.roles[type] || []).includes(role.name);
-        label.appendChild(cb);
-
-        const nameSpan = document.createElement("span");
-        nameSpan.classList.add("rsp-perm__item-name");
-        nameSpan.textContent = role.name;
-        label.appendChild(nameSpan);
-
-        if (role.pattern) {
-          const patternSpan = document.createElement("span");
-          patternSpan.classList.add("rsp-assign-dialog__role-pattern");
-          patternSpan.textContent = ` "${role.pattern}"`;
-          label.appendChild(patternSpan);
-        }
-
-        perms.appendChild(label);
-      });
-
-      group.appendChild(perms);
-      roleSection.appendChild(group);
-    });
-
-    body.appendChild(roleSection);
+    body.dataset.lazy = "true";
     card.appendChild(body);
     container.appendChild(card);
+};
+
+// Lazy-build role checkboxes for a card body
+const rspPopulateCardBody = (card) => {
+  const body = card.querySelector(".rsp-card__body");
+  if (!body || body.dataset.lazy !== "true") return;
+  body.dataset.lazy = "false";
+
+  const userName = card.dataset.userName;
+  const userType = card.dataset.userType;
+  const key = `${userType}:${userName}`;
+  const user = rspMergedUsers[key];
+  if (!user) return;
+
+  const roleSection = document.createElement("div");
+  roleSection.classList.add("rsp-perm");
+  roleSection.style.padding = "0.75rem";
+
+  rspAssignTypes.forEach((type) => {
+    const roles = rspRoleDefinitions[type];
+    if (!roles || roles.length === 0) return;
+
+    const group = document.createElement("fieldset");
+    group.classList.add("rsp-perm__group");
+
+    const legend = document.createElement("legend");
+    legend.classList.add("rsp-perm__group-title");
+    legend.textContent = rspTypeLabels[type] + " roles";
+    group.appendChild(legend);
+
+    const perms = document.createElement("div");
+    perms.classList.add("rsp-perm__permissions");
+
+    roles.forEach((role) => {
+      const label = document.createElement("label");
+      label.classList.add("rsp-perm__item");
+      label.dataset.roleName = role.name;
+      label.dataset.assignType = type;
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.roleName = role.name;
+      cb.dataset.assignType = type;
+      cb.checked = (user.roles[type] || []).includes(role.name);
+      label.appendChild(cb);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.classList.add("rsp-perm__item-name");
+      nameSpan.textContent = role.name;
+      label.appendChild(nameSpan);
+
+      if (role.pattern) {
+        const patternSpan = document.createElement("span");
+        patternSpan.classList.add("rsp-assign-dialog__role-pattern");
+        patternSpan.textContent = ` "${role.pattern}"`;
+        label.appendChild(patternSpan);
+      }
+
+      perms.appendChild(label);
+    });
+
+    group.appendChild(perms);
+    roleSection.appendChild(group);
   });
 
-  Behaviour.applySubtree(container, true);
-  rspUpdateCardBorders();
-  rspValidateUserCards();
+  body.appendChild(roleSection);
+  Behaviour.applySubtree(body, true);
+};
+
+// Initial render — just fetch first page
+const rspRenderUserCards = () => {
+  rspCurrentPage = 0;
+  rspRenderCurrentPage();
 };
 
 // ============================================
@@ -401,42 +493,7 @@ const rspAutoSave = () => {
 let rspActiveRoleFilters = [];
 
 const rspApplyUserFilters = () => {
-  const input = document.querySelector(".rsp-assign-search input");
-  const query = input ? input.value.toLowerCase().trim() : "";
-  const cards = document.querySelectorAll("#rsp-user-cards .rsp-card");
-  let visibleCount = 0;
-
-  cards.forEach((card) => {
-    const name = (card.dataset.userName || "").toLowerCase();
-    const userType = card.dataset.userType;
-    const key = `${userType}:${card.dataset.userName}`;
-    const userData = rspMergedUsers[key];
-
-    // Text match
-    const matchesText = query === "" || name.includes(query);
-
-    // Role filter match (OR logic — user has ANY of the selected roles)
-    let matchesRole = rspActiveRoleFilters.length === 0;
-    if (!matchesRole && userData) {
-      for (const filter of rspActiveRoleFilters) {
-        const userRoles = userData.roles[filter.assignType] || [];
-        if (userRoles.includes(filter.roleName)) {
-          matchesRole = true;
-          break;
-        }
-      }
-    }
-
-    if (matchesText && matchesRole) {
-      card.classList.remove("rsp-card--hidden");
-      visibleCount++;
-    } else {
-      card.classList.add("rsp-card--hidden");
-    }
-  });
-
-  const emptyState = document.getElementById("rsp-user-empty");
-  if (emptyState) emptyState.hidden = visibleCount > 0 || (query === "" && rspActiveRoleFilters.length === 0);
+  rspApplyFilterAndPaginate();
 
   // Update filter button active state
   const filterBtn = document.querySelector(".rsp-role-filter-btn");
@@ -447,8 +504,6 @@ const rspApplyUserFilters = () => {
   }
   const resetBtn = document.querySelector(".rsp-role-filter-reset");
   if (resetBtn) resetBtn.hidden = rspActiveRoleFilters.length === 0;
-
-  rspUpdateCardBorders();
 };
 
 const rspPopulateRoleFilter = () => {
@@ -803,6 +858,8 @@ Behaviour.specify("#rsp-user-cards .rsp-card__header", "RoleStrategyAssign", 0, 
     if (!card) return;
     const body = card.querySelector(".rsp-card__body");
     const isExpanded = !body.classList.contains("rsp-card__body--collapsed");
+    // Lazy-load role checkboxes on first expand
+    if (!isExpanded) rspPopulateCardBody(card);
     body.classList.toggle("rsp-card__body--collapsed");
     header.setAttribute("aria-expanded", String(!isExpanded));
     card.setAttribute("aria-expanded", String(!isExpanded));
@@ -981,8 +1038,7 @@ document.addEventListener("DOMContentLoaded", () => {
   rspLoadRoleDefinitions();
   rspPopulateRoleFilter();
   rspInitRoleFilterDropdown();
-  rspLoadAllAssignments().then(() => {
-    rspMergeUsers();
-    rspRenderUserCards();
-  });
+  // Load assignments for save compatibility (background), render via paginated endpoint
+  rspLoadAllAssignments();
+  rspRenderUserCards();
 });

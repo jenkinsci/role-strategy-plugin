@@ -1071,6 +1071,149 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    *
    * @since 2.6.0
    */
+  /**
+   * Paginated, merged assignment endpoint for the Role Assignments UI.
+   * Returns users/groups across all role types with their role assignments.
+   *
+   * @param start pagination start index (default 0)
+   * @param limit page size (default 100)
+   * @param query optional search filter on user/group name
+   * @param filterRole optional role filter in format "type:roleName" (can be repeated via comma)
+   */
+  @GET
+  @Restricted(NoExternalUse.class)
+  public void doGetPaginatedAssignments(
+      @QueryParameter(fixEmpty = true) Integer start,
+      @QueryParameter(fixEmpty = true) Integer limit,
+      @QueryParameter(fixEmpty = true) String query,
+      @QueryParameter(fixEmpty = true) String filterRole) throws IOException {
+
+    Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
+    if (start == null) start = 0;
+    if (limit == null) limit = 100;
+
+    // Parse role filters
+    Set<String> roleFilters = new HashSet<>();
+    if (filterRole != null) {
+      for (String f : filterRole.split(",")) {
+        if (!f.trim().isEmpty()) roleFilters.add(f.trim());
+      }
+    }
+
+    // Merge all types into a unified map: key="TYPE:sid" -> { name, type, roles: { globalRoles: [...], ... } }
+    Map<String, JSONObject> merged = new TreeMap<>();
+
+    for (RoleType rt : new RoleType[]{RoleType.Global, RoleType.Project, RoleType.Slave}) {
+      String typeStr = rt.getStringType();
+      try { checkPermByRoleTypeForReading(typeStr); } catch (Exception e) { continue; }
+
+      Set<PermissionEntry> sidEntries = getRoleMap(rt).getSidEntries(true);
+      SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(typeStr);
+
+      for (PermissionEntry entry : sidEntries) {
+        String key = entry.getType().toString() + ":" + entry.getSid();
+        JSONObject userObj = merged.get(key);
+        if (userObj == null) {
+          userObj = new JSONObject();
+          userObj.put("name", entry.getSid());
+          userObj.put("type", entry.getType().toString());
+          JSONObject rolesMap = new JSONObject();
+          rolesMap.put(GLOBAL, new JSONArray());
+          rolesMap.put(PROJECT, new JSONArray());
+          rolesMap.put(SLAVE, new JSONArray());
+          userObj.put("roles", rolesMap);
+          merged.put(key, userObj);
+        }
+        JSONArray typeRoles = userObj.getJSONObject("roles").getJSONArray(typeStr);
+        for (Map.Entry<Role, Set<PermissionEntry>> roleEntry : rolesEntries.entrySet()) {
+          if (roleEntry.getValue().contains(entry)) {
+            typeRoles.add(roleEntry.getKey().getName());
+          }
+        }
+      }
+    }
+
+    // Ensure anonymous and authenticated exist
+    if (!merged.containsKey("USER:anonymous")) {
+      JSONObject anon = new JSONObject();
+      anon.put("name", "anonymous");
+      anon.put("type", "USER");
+      JSONObject r = new JSONObject();
+      r.put(GLOBAL, new JSONArray()); r.put(PROJECT, new JSONArray()); r.put(SLAVE, new JSONArray());
+      anon.put("roles", r);
+      merged.put("USER:anonymous", anon);
+    }
+    if (!merged.containsKey("GROUP:authenticated")) {
+      JSONObject auth = new JSONObject();
+      auth.put("name", "authenticated");
+      auth.put("type", "GROUP");
+      JSONObject r = new JSONObject();
+      r.put(GLOBAL, new JSONArray()); r.put(PROJECT, new JSONArray()); r.put(SLAVE, new JSONArray());
+      auth.put("roles", r);
+      merged.put("GROUP:authenticated", auth);
+    }
+
+    // Sort: anonymous first, authenticated second, then alphabetical
+    List<String> sortedKeys = new ArrayList<>(merged.keySet());
+    sortedKeys.sort((a, b) -> {
+      if (a.equals("USER:anonymous")) return -1;
+      if (b.equals("USER:anonymous")) return 1;
+      if (a.equals("GROUP:authenticated")) return -1;
+      if (b.equals("GROUP:authenticated")) return 1;
+      return a.compareToIgnoreCase(b);
+    });
+
+    // Filter
+    List<JSONObject> filtered = new ArrayList<>();
+    String lowerQuery = query != null ? query.toLowerCase() : "";
+    for (String key : sortedKeys) {
+      JSONObject user = merged.get(key);
+      // Text filter
+      if (!lowerQuery.isEmpty() && !user.getString("name").toLowerCase().contains(lowerQuery)) {
+        continue;
+      }
+      // Role filter
+      if (!roleFilters.isEmpty()) {
+        boolean matchesAny = false;
+        for (String rf : roleFilters) {
+          int colonIdx = rf.indexOf(':');
+          if (colonIdx < 0) continue;
+          String rfType = rf.substring(0, colonIdx);
+          String rfRole = rf.substring(colonIdx + 1);
+          JSONArray userRoles = user.getJSONObject("roles").optJSONArray(rfType);
+          if (userRoles != null) {
+            for (Object r : userRoles) {
+              if (rfRole.equals(r.toString())) { matchesAny = true; break; }
+            }
+          }
+          if (matchesAny) break;
+        }
+        if (!matchesAny) continue;
+      }
+      filtered.add(user);
+    }
+
+    // Paginate
+    int total = filtered.size();
+    int safeStart = Math.min(start, total);
+    int safeEnd = Math.min(safeStart + limit, total);
+    List<JSONObject> page = filtered.subList(safeStart, safeEnd);
+
+    // Response
+    JSONObject response = new JSONObject();
+    response.put("total", total);
+    response.put("start", safeStart);
+    response.put("limit", page.size());
+    JSONArray items = new JSONArray();
+    items.addAll(page);
+    response.put("items", items);
+
+    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse2().getWriter();
+    response.write(writer);
+    writer.close();
+  }
+
   @GET
   @Restricted(NoExternalUse.class)
   public void doGetRoleAssignments(@QueryParameter(fixEmpty = true) String type) throws IOException {
