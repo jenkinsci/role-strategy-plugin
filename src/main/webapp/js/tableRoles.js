@@ -31,6 +31,20 @@ const rspToggleCard = (card) => {
   const header = card.querySelector(".rsp-card__header");
   if (!body || !header) return;
   const isExpanded = !body.classList.contains("rsp-card__body--collapsed");
+
+  // Lazy-load: move content from <template> into body on first expand
+  if (!isExpanded && body.dataset.lazy === "true") {
+    body.dataset.lazy = "false";
+    const tmpl = card.querySelector("template.rsp-card__lazy-content");
+    if (tmpl) {
+      body.appendChild(tmpl.content.cloneNode(true));
+      tmpl.remove();
+      Behaviour.applySubtree(body, true);
+      rspUpdateImplied(card);
+      rspUpdateSummary(card);
+    }
+  }
+
   body.classList.toggle("rsp-card__body--collapsed");
   header.setAttribute("aria-expanded", String(!isExpanded));
   card.setAttribute("aria-expanded", String(!isExpanded));
@@ -561,8 +575,38 @@ Behaviour.specify(".rsp-perm__item input[type=checkbox]", "RoleStrategyRoles", 0
 Behaviour.specify(".rsp-card", "RoleStrategyRoles", 1, (card) => {
   if (card.dataset.summaryInitialized === "true") return;
   card.dataset.summaryInitialized = "true";
-  rspUpdateImplied(card);
-  rspUpdateSummary(card);
+
+  const body = card.querySelector(".rsp-card__body");
+  if (body && body.dataset.lazy === "true") {
+    // Lazy card — compute summary from <template> content without adding to DOM
+    const tmpl = card.querySelector("template.rsp-card__lazy-content");
+    if (tmpl) {
+      const frag = tmpl.content;
+      const groups = frag.querySelectorAll(".rsp-perm__group");
+      const parts = [];
+      groups.forEach((group) => {
+        const title = group.querySelector(".rsp-perm__group-title");
+        if (!title) return;
+        const checked = [];
+        group.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+          if (cb.checked) {
+            const nameEl = cb.closest(".rsp-perm__item")?.querySelector(".rsp-perm__item-name");
+            if (nameEl) checked.push(nameEl.textContent.trim());
+          }
+        });
+        if (checked.length > 0) parts.push(title.textContent.trim() + ": " + checked.join(", "));
+      });
+      const summaryEl = card.querySelector(".rsp-card__summary");
+      if (summaryEl) {
+        const summary = parts.join(" \u00B7 ");
+        if (summary) { summaryEl.textContent = summary; summaryEl.classList.remove("rsp-card__summary--empty"); }
+        else { summaryEl.textContent = summaryEl.dataset.emptyText || "No permissions"; summaryEl.classList.add("rsp-card__summary--empty"); }
+      }
+    }
+  } else {
+    rspUpdateImplied(card);
+    rspUpdateSummary(card);
+  }
   rspUpdateCardBorders();
 });
 

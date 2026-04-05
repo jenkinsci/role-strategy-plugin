@@ -130,11 +130,13 @@
                     <l:icon src="symbol-chevron-down-outline plugin-ionicons-api" class="icon-sm"/>
                   </div>
                 </div>
-                <div class="rsp-card__body rsp-card__body--collapsed">
+                <div class="rsp-card__body rsp-card__body--collapsed" data-lazy="true">
+                </div>
+                <template class="rsp-card__lazy-content">
                   <local:permGroups permissionGroups="${permissionGroups}" roleType="${roleType}"
                                     role="${role}" isTemplated="${isTemplated ? 'true' : 'false'}"
                                     permissionTemplate="${permissionTemplate}"/>
-                </div>
+                </template>
               </div>
             </d:tag>
 
