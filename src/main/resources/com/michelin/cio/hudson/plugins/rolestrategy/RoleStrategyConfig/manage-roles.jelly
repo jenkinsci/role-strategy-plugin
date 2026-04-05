@@ -9,6 +9,10 @@
             ${%Add Role}
           </button>
         </j:if>
+        <a href="${rootURL}/manage/role-strategy/list-macros" class="jenkins-button">
+          <l:icon src="symbol-extension-puzzle-outline plugin-ionicons-api" class="icon-sm"/>
+          ${%Macros}
+        </a>
       </l:app-bar>
     </l:view></j:set>
     <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" title="${%Roles}" noDefer="true" includeBreadcrumb="true" header="${header}">
