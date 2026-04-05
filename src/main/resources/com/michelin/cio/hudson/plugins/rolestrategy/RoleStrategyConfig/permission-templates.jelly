@@ -182,7 +182,7 @@
       </div>
 
       <j:if test="${permissionTemplates.isEmpty()}">
-        <l:notice title="${%No permission templates defined}" icon="symbol-accessibility-sharp plugin-ionicons-api">
+        <l:notice title="${%No permission templates defined}" icon="symbol-braces plugin-role-strategy">
           <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
             <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
               ${%Add Template}
