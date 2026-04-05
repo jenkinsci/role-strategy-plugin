@@ -14,7 +14,7 @@
 
       <f:entry title="${%Roles}">
         <!-- Filter input -->
-        <l:search-bar placeholder="${%Filter roles...}" clazz="rsp-role-dialog-filter" hasKeyboardShortcut="false" />
+        <l:search-bar placeholder="${%Filter roles}" clazz="rsp-role-dialog-filter" hasKeyboardShortcut="false" />
 
         <div class="rsp-assign-dialog__roles" name="roles">
 

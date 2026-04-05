@@ -128,7 +128,7 @@
     <j:if test="${!permissionTemplates.isEmpty()}">
       <div style="margin-bottom: calc(var(--section-padding) / 2);">
         <div class="rsp-search-wrapper">
-          <l:search-bar placeholder="${%Search templates...}"
+          <l:search-bar placeholder="${%Search templates}"
                         clazz="rsp-template-search"
                         hasKeyboardShortcut="false" />
           <div class="rsp-filter">
@@ -144,7 +144,7 @@
               </div>
               <div class="rsp-filter__search">
                 <input type="text" class="jenkins-input rsp-filter__search-input rsp-tpl-filter-search"
-                       placeholder="${%Search permissions...}" />
+                       placeholder="${%Search permissions}" />
                 <button type="button" class="rsp-filter__search-clear rsp-tpl-filter-clear" aria-label="Clear">&#xd7;</button>
               </div>
               <div class="rsp-filter__list">

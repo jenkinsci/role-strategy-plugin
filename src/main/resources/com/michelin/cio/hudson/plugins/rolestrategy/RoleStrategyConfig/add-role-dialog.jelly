@@ -38,7 +38,7 @@
       </j:if>
 
       <f:entry title="${%Permissions}">
-        <l:search-bar placeholder="${%Filter permissions...}" clazz="rsp-perm-dialog-filter" hasKeyboardShortcut="false" />
+        <l:search-bar placeholder="${%Filter permissions}" clazz="rsp-perm-dialog-filter" hasKeyboardShortcut="false" />
 
         <div class="rsp-assign-dialog__roles" name="permissions">
           <j:forEach var="roleType" items="globalRoles,projectRoles,slaveRoles">

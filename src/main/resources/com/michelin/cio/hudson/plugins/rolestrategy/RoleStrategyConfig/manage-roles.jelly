@@ -146,7 +146,7 @@
               <l:hasPermission permission="${neededPermission}">
                 <div data-section-id="${sectionId}">
                   <div class="rsp-search-wrapper">
-                    <l:search-bar placeholder="${%Search roles...}"
+                    <l:search-bar placeholder="${%Search roles}"
                                   clazz="rsp-search"
                                   hasKeyboardShortcut="false" />
                     <div class="rsp-filter">
@@ -161,7 +161,7 @@
                           <button type="button" class="rsp-filter__reset-button" hidden="true">${%Reset}</button>
                         </div>
                         <div class="rsp-filter__search">
-                          <input type="text" class="jenkins-input rsp-filter__search-input" placeholder="${%Search permissions...}" />
+                          <input type="text" class="jenkins-input rsp-filter__search-input" placeholder="${%Search permissions}" />
                           <button type="button" class="rsp-filter__search-clear" aria-label="Clear">&#xd7;</button>
                         </div>
                         <div class="rsp-filter__list">
@@ -204,7 +204,7 @@
 
           <!-- Single search bar for all roles -->
           <div style="margin-bottom:1rem;">
-            <l:search-bar placeholder="${%Search roles...}"
+            <l:search-bar placeholder="${%Search roles}"
                           clazz="rsp-roles-search"
                           hasKeyboardShortcut="false" />
           </div>

@@ -51,7 +51,7 @@
       <!-- Search bar with role filter -->
       <div style="margin-bottom:1rem;">
         <div class="rsp-search-wrapper">
-          <l:search-bar placeholder="${%Search users and groups...}"
+          <l:search-bar placeholder="${%Search users and groups}"
                         clazz="rsp-assign-search"
                         hasKeyboardShortcut="false" />
           <div class="rsp-filter">
@@ -67,7 +67,7 @@
               </div>
               <div class="rsp-filter__search">
                 <input type="text" class="jenkins-input rsp-filter__search-input rsp-role-filter-search"
-                       placeholder="${%Search roles...}" />
+                       placeholder="${%Search roles}" />
                 <button type="button" class="rsp-filter__search-clear rsp-role-filter-clear" aria-label="Clear">&#xd7;</button>
               </div>
               <div class="rsp-filter__list rsp-role-filter-list">
@@ -78,7 +78,7 @@
       </div>
 
       <div id="rsp-user-cards" class="rsp-cards">
-        <div class="rsp-assign__loading" style="padding:1rem;">${%Loading assignments...}</div>
+        <div class="rsp-assign__loading" style="padding:1rem;">${%Loading assignments}</div>
       </div>
 
       <div class="jenkins-notice rsp-empty-state" id="rsp-user-empty" hidden="true">
