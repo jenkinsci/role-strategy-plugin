@@ -2,7 +2,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
   <st:setHeader name="X-Dialog-Title" value="${%Assign role}"/>
   <l:ajax>
-    <f:form method="post" action="${rootURL}/manage/role-strategy/assignRoleSubmit">
+    <f:form name="assignRoles" method="post" action="${rootURL}/manage/role-strategy/assignRoleSubmit">
       <f:entry title="${%User or group name}">
         <f:textbox name="name"/>
       </f:entry>
@@ -16,8 +16,7 @@
         <!-- Filter input -->
         <l:search-bar placeholder="${%Filter roles...}" clazz="rsp-role-dialog-filter" hasKeyboardShortcut="false" />
 
-        <div class="rsp-assign-dialog__roles" name="roles"
-             style="max-height:300px;overflow-y:auto;border:var(--jenkins-border);border-radius:var(--form-input-border-radius);padding:0.25rem 0;">
+        <div class="rsp-assign-dialog__roles" name="roles">
 
           <j:set var="globalRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
           <j:if test="${!globalRoles.isEmpty()}">
@@ -61,7 +60,7 @@
       </f:entry>
 
       <f:bottomButtonBar>
-        <f:submit value="${%Assign}"/>
+        <button id="rsp-assign-role-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Assign}</button>
       </f:bottomButtonBar>
     </f:form>
   </l:ajax>

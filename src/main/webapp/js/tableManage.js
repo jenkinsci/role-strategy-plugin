@@ -903,6 +903,38 @@ Behaviour.specify(".rsp-assign-role-btn", "RoleStrategyAssign", 0, (btn) => {
   btn.addEventListener("click", rspAssignRoleDialog);
 });
 
+// Assign role dialog submit button + enter key
+Behaviour.specify("#rsp-assign-role-submit-btn", "RoleStrategyAssign", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+
+  const form = btn.closest("form");
+  if (!form) return;
+
+  const validateAndSubmit = () => {
+    const nameInput = form.querySelector("input[name='name']");
+    if (!nameInput || !nameInput.value.trim()) {
+      nameInput?.focus();
+      if (nameInput) {
+        nameInput.style.outline = "2px solid var(--error-color)";
+        nameInput.addEventListener("input", () => { nameInput.style.outline = ""; }, { once: true });
+      }
+      return;
+    }
+    form.requestSubmit();
+  };
+
+  btn.addEventListener("click", validateAndSubmit);
+
+  // Enter key anywhere in the form triggers submit
+  form.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      validateAndSubmit();
+    }
+  });
+});
+
 // Role dialog filter
 Behaviour.specify(".rsp-role-dialog-filter input", "RoleStrategyAssign", 0, (input) => {
   if (input.dataset.initialized === "true") return;

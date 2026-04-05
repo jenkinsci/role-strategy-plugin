@@ -233,17 +233,27 @@ public class RoleStrategyConfig extends ManagementLink {
     Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
     req.setCharacterEncoding("UTF-8");
 
-    JSONObject json = req.getSubmittedForm();
-    String name = json.getString("name").trim();
-    String type = json.getString("type");
+    JSONObject json;
+    try {
+      json = req.getSubmittedForm();
+    } catch (Exception e) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+      return;
+    }
+    String name = json.optString("name", "").trim();
+    String type = json.optString("type", "USER");
 
     if (name.isEmpty()) {
-      rsp.sendError(400, "Name is required");
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
       return;
     }
 
     // roles is { "globalRoles": { "admin": true, "manager": false }, "projectRoles": { ... }, ... }
-    JSONObject roles = json.getJSONObject("roles");
+    JSONObject roles = json.optJSONObject("roles");
+    if (roles == null) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+      return;
+    }
 
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
@@ -261,7 +271,7 @@ public class RoleStrategyConfig extends ManagementLink {
       }
     }
 
-    FormApply.success(".").generateResponse(req, rsp, this);
+    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
   }
 
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
