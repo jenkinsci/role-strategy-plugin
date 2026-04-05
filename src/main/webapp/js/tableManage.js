@@ -440,7 +440,11 @@ const rspApplyUserFilters = () => {
 
   // Update filter button active state
   const filterBtn = document.querySelector(".rsp-role-filter-btn");
-  if (filterBtn) filterBtn.classList.toggle("rsp-filter__button--active", rspActiveRoleFilters.length > 0);
+  if (filterBtn) {
+    const active = rspActiveRoleFilters.length > 0;
+    filterBtn.classList.toggle("jenkins-button--tertiary", !active);
+    filterBtn.classList.toggle("jenkins-!-accent-color", active);
+  }
   const resetBtn = document.querySelector(".rsp-role-filter-reset");
   if (resetBtn) resetBtn.hidden = rspActiveRoleFilters.length === 0;
 

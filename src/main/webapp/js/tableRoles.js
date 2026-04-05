@@ -151,7 +151,10 @@ const rspApplyFilters = (container) => {
   }
   const hasActiveFilters = activePermissions.length > 0;
   const filterBtn = container.querySelector(".rsp-filter__button");
-  if (filterBtn) filterBtn.classList.toggle("rsp-filter__button--active", hasActiveFilters);
+  if (filterBtn) {
+    filterBtn.classList.toggle("jenkins-button--tertiary", !hasActiveFilters);
+    filterBtn.classList.toggle("jenkins-!-accent-color", hasActiveFilters);
+  }
   const resetBtn = container.querySelector(".rsp-filter__reset-button");
   if (resetBtn) resetBtn.hidden = !hasActiveFilters;
   rspUpdateCardBorders(container);

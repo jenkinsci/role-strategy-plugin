@@ -147,7 +147,11 @@ const tplApplyFilters = () => {
   if (empty) empty.hidden = visibleCount > 0 || (query === "" && tplActivePermFilters.length === 0);
 
   const filterBtn = document.querySelector(".rsp-tpl-filter-btn");
-  if (filterBtn) filterBtn.classList.toggle("rsp-filter__button--active", tplActivePermFilters.length > 0);
+  if (filterBtn) {
+    const active = tplActivePermFilters.length > 0;
+    filterBtn.classList.toggle("jenkins-button--tertiary", !active);
+    filterBtn.classList.toggle("jenkins-!-accent-color", active);
+  }
   const resetBtn = document.querySelector(".rsp-tpl-filter-reset");
   if (resetBtn) resetBtn.hidden = tplActivePermFilters.length === 0;
 

@@ -135,7 +135,7 @@
             <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-tpl-filter-btn"
                     aria-expanded="false" aria-haspopup="true"
                     tooltip="${%Filter by permission}">
-              <l:icon src="symbol-funnel-outline plugin-ionicons-api" class="icon-sm"/>
+              <l:icon src="symbol-filter-outline plugin-ionicons-api" />
             </button>
             <div class="rsp-filter__dropdown rsp-tpl-filter-dropdown" hidden="true">
               <div class="rsp-filter__header">
