@@ -12,9 +12,6 @@
         <a href="${rootURL}/manage/role-strategy/manage-roles" class="jenkins-button">
           ${%Manage Roles}
         </a>
-        <a href="${rootURL}/manage/role-strategy/permission-templates" class="jenkins-button">
-          ${%Permission Templates}
-        </a>
       </l:app-bar>
     </l:view></j:set>
     <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" title="${%Role Assignments}" noDefer="true" header="${header}">

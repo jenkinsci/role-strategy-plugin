@@ -186,6 +186,18 @@ const rspRenderCurrentPage = () => {
 };
 
 const rspUpdatePaginationUI = (totalFiltered, totalPages) => {
+  // Top count
+  let topCount = document.getElementById("rsp-result-count");
+  if (!topCount) {
+    topCount = document.createElement("div");
+    topCount.id = "rsp-result-count";
+    topCount.style.cssText = "color:var(--text-color-secondary);font-size:0.875rem;margin-bottom:0.5rem;";
+    const cardsContainer = document.getElementById("rsp-user-cards");
+    cardsContainer.parentNode.insertBefore(topCount, cardsContainer);
+  }
+  topCount.textContent = totalFiltered > 0 ? totalFiltered.toLocaleString() + (totalFiltered === 1 ? " result" : " results") : "";
+
+  // Bottom pagination
   let nav = document.getElementById("rsp-pagination");
   if (!nav) {
     nav = document.createElement("div");
@@ -195,15 +207,12 @@ const rspUpdatePaginationUI = (totalFiltered, totalPages) => {
     cardsContainer.parentNode.insertBefore(nav, cardsContainer.nextSibling);
   }
 
-  const fmt = (n) => n.toLocaleString();
-
   if (totalPages <= 1) {
-    nav.innerHTML = totalFiltered > 0
-      ? `<span style="color:var(--text-color-secondary);font-size:0.875rem;">${fmt(totalFiltered)} results</span>`
-      : "";
+    nav.innerHTML = "";
     return;
   }
 
+  const fmt = (n) => n.toLocaleString();
   const start = rspCurrentPage * RSP_PAGE_SIZE + 1;
   const end = Math.min((rspCurrentPage + 1) * RSP_PAGE_SIZE, totalFiltered);
 
@@ -250,13 +259,16 @@ const rspRenderOneCard = (container, user) => {
     iconSpan.appendChild(rspGenerateIcon(user.type));
     header.appendChild(iconSpan);
 
-    // Name
+    // Name — use displayName from server if available
     const nameSpan = document.createElement("span");
     nameSpan.classList.add("rsp-card__name");
-    let displayName = user.name;
+    let displayName = user.displayName || user.name;
     if (user.name === "anonymous" && user.type === "USER") displayName = dataHolder.dataset.textAnonymous;
     if (user.name === "authenticated" && user.type === "GROUP") displayName = dataHolder.dataset.textAuthenticated;
     nameSpan.textContent = displayName;
+    if (user.displayName && user.displayName !== user.name) {
+      nameSpan.setAttribute("tooltip", user.type + ": " + user.name);
+    }
     header.appendChild(nameSpan);
 
     // Summary

@@ -1051,32 +1051,182 @@ Behaviour.specify(".rsp-search input", "RoleStrategyRoles", 0, (input) => {
 });
 
 // Global search across all sections
+// Active permission filters for role management page
+let rspRolesActivePermFilters = [];
+
+// Check if a card has a given permission (in template or live body)
+const rspCardHasPermission = (card, permId) => {
+  // Check live body first
+  const liveCb = card.querySelector(`.rsp-perm__item[data-permission-id='${permId}'] input[type=checkbox]`);
+  if (liveCb) return liveCb.checked || liveCb.disabled;
+  // Check template content
+  const tmpl = card.querySelector("template.rsp-card__lazy-content");
+  if (tmpl) {
+    const cb = tmpl.content.querySelector(`[data-permission-id='${permId}'] input[type=checkbox]`);
+    if (cb) return cb.checked;
+  }
+  return false;
+};
+
+const rspApplyRolesFilter = () => {
+  const input = document.querySelector(".rsp-roles-search input");
+  const query = input ? input.value.toLowerCase().trim() : "";
+  const hasFilters = query !== "" || rspRolesActivePermFilters.length > 0;
+
+  let totalVisible = 0;
+  let totalAll = 0;
+
+  document.querySelectorAll(".rsp-container").forEach((container) => {
+    let visibleCount = 0;
+    let sectionTotal = 0;
+    container.querySelectorAll(".rsp-card").forEach((card) => {
+      sectionTotal++;
+      const roleName = (card.dataset.roleName || "").toLowerCase();
+      const pattern = (card.dataset.rolePattern || "").toLowerCase();
+      const matchesText = query === "" || roleName.includes(query) || pattern.includes(query);
+
+      let matchesPerm = rspRolesActivePermFilters.length === 0;
+      if (!matchesPerm) {
+        for (const permId of rspRolesActivePermFilters) {
+          if (rspCardHasPermission(card, permId)) { matchesPerm = true; break; }
+        }
+      }
+
+      const visible = matchesText && matchesPerm;
+      card.classList.toggle("rsp-card--hidden", !visible);
+      if (visible) visibleCount++;
+    });
+
+    totalVisible += visibleCount;
+    totalAll += sectionTotal;
+
+    const section = container.closest(".jenkins-section");
+    if (section) {
+      section.style.display = (hasFilters && visibleCount === 0) ? "none" : "";
+      // Update section count badge
+      const titleEl = section.querySelector(".jenkins-section__title");
+      if (titleEl) {
+        let badge = titleEl.querySelector(".rsp-section-count");
+        if (!badge) {
+          badge = document.createElement("span");
+          badge.classList.add("rsp-section-count");
+          badge.style.cssText = "font-size:0.8125rem;color:var(--text-color-secondary);font-weight:normal;margin-left:0.375rem;";
+          titleEl.appendChild(badge);
+        }
+        badge.textContent = hasFilters ? visibleCount + " / " + sectionTotal : sectionTotal.toString();
+      }
+    }
+  });
+
+  rspUpdateCardBorders();
+
+  // Update result count
+  let countEl = document.getElementById("rsp-roles-result-count");
+  if (!countEl) {
+    countEl = document.createElement("div");
+    countEl.id = "rsp-roles-result-count";
+    countEl.style.cssText = "color:var(--text-color-secondary);font-size:0.875rem;margin:0.75rem 0 0.5rem 0;";
+    const wrapper = document.querySelector(".rsp-search-wrapper");
+    if (wrapper) wrapper.closest("div").after(countEl);
+  }
+  countEl.textContent = hasFilters
+    ? totalVisible.toLocaleString() + " of " + totalAll.toLocaleString() + " roles"
+    : totalAll.toLocaleString() + " roles";
+
+  // Update filter button state
+  const filterBtn = document.querySelector(".rsp-roles-perm-filter-btn");
+  if (filterBtn) {
+    const active = rspRolesActivePermFilters.length > 0;
+    filterBtn.classList.toggle("jenkins-button--tertiary", !active);
+    filterBtn.classList.toggle("jenkins-!-accent-color", active);
+  }
+  const resetBtn = document.querySelector(".rsp-roles-perm-filter-reset");
+  if (resetBtn) resetBtn.hidden = rspRolesActivePermFilters.length === 0;
+};
+
+// Search input triggers unified filter
 Behaviour.specify(".rsp-roles-search input", "RoleStrategyRoles", 0, (input) => {
   if (input.dataset.searchInitialized === "true") return;
   input.dataset.searchInitialized = "true";
-  input.addEventListener("input", () => {
-    const query = input.value.toLowerCase().trim();
-    document.querySelectorAll(".rsp-container").forEach((container) => {
-      let visibleCount = 0;
-      container.querySelectorAll(".rsp-card").forEach((card) => {
-        const roleName = (card.dataset.roleName || "").toLowerCase();
-        const pattern = (card.dataset.rolePattern || "").toLowerCase();
-        const matches = query === "" || roleName.includes(query) || pattern.includes(query);
-        card.classList.toggle("rsp-card--hidden", !matches);
-        if (matches) visibleCount++;
+  input.addEventListener("input", rspApplyRolesFilter);
+});
+
+// Permission filter dropdown for roles page
+Behaviour.specify(".rsp-roles-perm-filter-btn", "RoleStrategyRoles", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+
+  const dropdown = document.querySelector(".rsp-roles-perm-filter-dropdown");
+  if (!dropdown) return;
+
+  // Item click — toggle filter
+  dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
+    item.addEventListener("click", () => {
+      item.classList.toggle("rsp-filter__item--active");
+      rspRolesActivePermFilters = [];
+      dropdown.querySelectorAll(".rsp-filter__item--active").forEach((a) => {
+        rspRolesActivePermFilters.push(a.dataset.filterPermission);
       });
-      // Hide entire section if no visible cards
-      const section = container.closest(".jenkins-section");
-      if (section) {
-        section.style.display = (query !== "" && visibleCount === 0) ? "none" : "";
-      }
+      rspApplyRolesFilter();
     });
-    rspUpdateCardBorders();
+  });
+
+  // Search within dropdown
+  const searchInput = dropdown.querySelector(".rsp-roles-perm-filter-search");
+  const clearBtn = dropdown.querySelector(".rsp-roles-perm-filter-clear");
+  const applySearch = () => {
+    const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
+      item.classList.toggle("rsp-filter__item--filter-hidden", q !== "" && !(item.dataset.filterLabel || "").toLowerCase().includes(q));
+    });
+    dropdown.querySelectorAll(".rsp-filter__group-title").forEach((title) => {
+      let next = title.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.classList.contains("rsp-filter__group-title")) {
+        if (next.classList.contains("rsp-filter__item") && !next.classList.contains("rsp-filter__item--filter-hidden")) hasVisible = true;
+        next = next.nextElementSibling;
+      }
+      title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
+    });
+    if (clearBtn) clearBtn.classList.toggle("rsp-filter__search-clear--visible", q !== "");
+    const noResults = dropdown.querySelector(".rsp-filter__no-results");
+    if (noResults) noResults.hidden = !!dropdown.querySelector(".rsp-filter__item:not(.rsp-filter__item--filter-hidden)");
+  };
+  if (searchInput) { searchInput.addEventListener("input", applySearch); searchInput.addEventListener("click", (e) => e.stopPropagation()); }
+  if (clearBtn) { clearBtn.addEventListener("click", (e) => { e.stopPropagation(); searchInput.value = ""; applySearch(); searchInput.focus(); }); }
+
+  // Reset
+  const resetBtn = dropdown.querySelector(".rsp-roles-perm-filter-reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      dropdown.querySelectorAll(".rsp-filter__item--active").forEach((item) => item.classList.remove("rsp-filter__item--active"));
+      rspRolesActivePermFilters = [];
+      if (searchInput) searchInput.value = "";
+      applySearch();
+      rspApplyRolesFilter();
+    });
+  }
+
+  // Toggle dropdown
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    btn.setAttribute("aria-expanded", String(!isOpen));
+    if (!isOpen) {
+      const close = () => { dropdown.hidden = true; btn.setAttribute("aria-expanded", "false"); document.removeEventListener("click", ch); document.removeEventListener("keydown", eh); };
+      const ch = (evt) => { if (!dropdown.contains(evt.target) && evt.target !== btn) close(); };
+      const eh = (evt) => { if (evt.key === "Escape") { close(); btn.focus(); } };
+      setTimeout(() => { document.addEventListener("click", ch); document.addEventListener("keydown", eh); }, 0);
+    }
   });
 });
 
 Behaviour.specify(".rsp-filter__button", "RoleStrategyRoles", 0, (btn) => {
   if (btn.dataset.filterInitialized === "true") return;
+  // Skip the global roles-page permission filter — it has its own dedicated behaviour
+  if (btn.classList.contains("rsp-roles-perm-filter-btn")) return;
   btn.dataset.filterInitialized = "true";
   const filterEl = btn.parentElement;
   const dropdown = filterEl.querySelector(".rsp-filter__dropdown");
@@ -1154,4 +1304,10 @@ Behaviour.specify(".rsp-container", "RoleStrategyCollapsible", 0, (container) =>
   chevron.innerHTML = '<svg viewBox="0 0 512 512" fill="none" stroke="currentColor" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"><path d="M112 184l144 144 144-144"/></svg>';
   title.appendChild(chevron);
   title.addEventListener("click", () => { section.classList.toggle("rsp-section--collapsed"); });
+
+  // Trigger initial counts (deferred so all containers are processed)
+  if (!window.rspRolesInitCountDone) {
+    window.rspRolesInitCountDone = true;
+    setTimeout(rspApplyRolesFilter, 0);
+  }
 });

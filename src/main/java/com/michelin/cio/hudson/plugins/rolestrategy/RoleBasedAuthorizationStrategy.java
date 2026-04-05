@@ -1117,6 +1117,24 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           userObj = new JSONObject();
           userObj.put("name", entry.getSid());
           userObj.put("type", entry.getType().toString());
+          // Resolve display name
+          try {
+            if (entry.getType() == AuthorizationType.USER || entry.getType() == AuthorizationType.EITHER) {
+              hudson.model.User u = hudson.model.User.getById(entry.getSid(), false);
+              if (u != null && !u.getFullName().equals(entry.getSid())) {
+                userObj.put("displayName", u.getFullName());
+              }
+            }
+            if (!userObj.has("displayName") && (entry.getType() == AuthorizationType.GROUP || entry.getType() == AuthorizationType.EITHER)) {
+              SecurityRealm sr = Jenkins.get().getSecurityRealm();
+              hudson.security.GroupDetails gd = sr.loadGroupByGroupname2(entry.getSid(), false);
+              if (gd != null && !gd.getDisplayName().equals(entry.getSid())) {
+                userObj.put("displayName", gd.getDisplayName());
+              }
+            }
+          } catch (Exception ignored) {
+            // Realm lookup failed — leave without displayName
+          }
           JSONObject rolesMap = new JSONObject();
           rolesMap.put(GLOBAL, new JSONArray());
           rolesMap.put(PROJECT, new JSONArray());
@@ -1168,9 +1186,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     String lowerQuery = query != null ? query.toLowerCase() : "";
     for (String key : sortedKeys) {
       JSONObject user = merged.get(key);
-      // Text filter
-      if (!lowerQuery.isEmpty() && !user.getString("name").toLowerCase().contains(lowerQuery)) {
-        continue;
+      // Text filter — matches SID or display name
+      if (!lowerQuery.isEmpty()) {
+        boolean textMatch = user.getString("name").toLowerCase().contains(lowerQuery);
+        if (!textMatch && user.has("displayName")) {
+          textMatch = user.getString("displayName").toLowerCase().contains(lowerQuery);
+        }
+        if (!textMatch) continue;
       }
       // Role filter
       if (!roleFilters.isEmpty()) {
