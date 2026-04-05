@@ -57,8 +57,8 @@
                   <div class="rsp-assign-dialog__group">
                     <j:forEach var="p" items="${g.permissions}">
                       <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
-                        <div class="rsp-assign-dialog__role-item jenkins-checkbox" data-role-name="${p.name}">
-                          <input type="checkbox" name="${p.id}" id="perm-${roleType}-${p.id}" />
+                        <div class="rsp-assign-dialog__role-item jenkins-checkbox" data-role-name="${p.name}" data-permission-id="${p.id}">
+                          <input type="checkbox" name="[${p.id}]" id="perm-${roleType}-${p.id}" />
                           <label for="perm-${roleType}-${p.id}">${p.name}</label>
                         </div>
                       </j:if>

@@ -960,7 +960,7 @@ const rspInitAddRoleDialog = (form) => {
       const dataEl = form.querySelector(`.rsp-template-perm-data[data-template-name='${CSS.escape(templateName)}']`);
       let templatePerms = new Set();
       if (dataEl) { try { templatePerms = new Set(JSON.parse(dataEl.textContent)); } catch (e) {} }
-      checkboxes.forEach((cb) => { cb.checked = templatePerms.has(cb.name); cb.disabled = true; });
+      checkboxes.forEach((cb) => { const pid = cb.name.replace(/^\[|\]$/g, ""); cb.checked = templatePerms.has(pid); cb.disabled = true; });
       const permEntry = permContainer.closest(".jenkins-form-item");
       if (permEntry) permEntry.style.opacity = "0.6";
     } else {

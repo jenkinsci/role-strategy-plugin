@@ -316,8 +316,13 @@ public class RoleStrategyConfig extends ManagementLink {
     if (permissionsJson != null) {
       JSONObject scopePerms = permissionsJson.optJSONObject(scope);
       if (scopePerms != null) {
-        for (String permId : (java.util.Set<String>) scopePerms.keySet()) {
-          if (scopePerms.optBoolean(permId, false)) {
+        for (String rawKey : (java.util.Set<String>) scopePerms.keySet()) {
+          if (scopePerms.optBoolean(rawKey, false)) {
+            // Strip brackets if present: "[hudson.model.Hudson.Read]" -> "hudson.model.Hudson.Read"
+            String permId = rawKey;
+            if (permId.startsWith("[") && permId.endsWith("]")) {
+              permId = permId.substring(1, permId.length() - 1);
+            }
             hudson.security.Permission p = hudson.security.Permission.fromId(permId);
             if (p != null) {
               permissions.add(p);
