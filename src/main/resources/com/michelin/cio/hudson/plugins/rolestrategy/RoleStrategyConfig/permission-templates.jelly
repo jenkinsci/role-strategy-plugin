@@ -13,7 +13,7 @@
         </l:hasPermission>
       </j:if>
     </l:app-bar>
-    <p class="jenkins-!-margin-bottom-2">
+    <p class="jenkins-page-description">
       ${%blurb}
     </p>
   </l:view></j:set>
@@ -122,55 +122,57 @@
            data-submit-url="${rootURL}/manage/role-strategy/templatesSubmit"/>
 
       <!-- Search bar with permission filter -->
-      <div style="margin-bottom:1rem;">
-        <div class="rsp-search-wrapper">
-          <l:search-bar placeholder="${%Search templates...}"
-                        clazz="rsp-template-search"
-                        hasKeyboardShortcut="false" />
-          <div class="rsp-filter">
-            <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-tpl-filter-btn"
-                    aria-expanded="false" aria-haspopup="true"
-                    tooltip="${%Filter by permission}">
-              <l:icon src="symbol-funnel-outline plugin-ionicons-api" class="icon-sm"/>
-            </button>
-            <div class="rsp-filter__dropdown rsp-tpl-filter-dropdown" hidden="true">
-              <div class="rsp-filter__header">
-                <span class="rsp-filter__header-label">${%Filter by permission}</span>
-                <button type="button" class="rsp-filter__reset-button rsp-tpl-filter-reset" hidden="true">${%Reset}</button>
-              </div>
-              <div class="rsp-filter__search">
-                <input type="text" class="jenkins-input rsp-filter__search-input rsp-tpl-filter-search"
-                       placeholder="${%Search permissions...}" />
-                <button type="button" class="rsp-filter__search-clear rsp-tpl-filter-clear" aria-label="Clear">&#xd7;</button>
-              </div>
-              <div class="rsp-filter__list">
-                <j:forEach var="g" items="${itemPermissionGroups}">
-                  <j:set var="hasFilterPerms" value="${false}"/>
-                  <j:forEach var="p" items="${g.permissions}">
-                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                      <j:set var="hasFilterPerms" value="${true}"/>
-                    </j:if>
-                  </j:forEach>
-                  <j:if test="${hasFilterPerms}">
-                    <div class="rsp-filter__group-title">${g.title}</div>
+      <j:if test="${!permissionTemplates.isEmpty()}">
+        <div style="margin-bottom: calc(var(--section-padding) / 2);">
+          <div class="rsp-search-wrapper">
+            <l:search-bar placeholder="${%Search templates...}"
+                          clazz="rsp-template-search"
+                          hasKeyboardShortcut="false" />
+            <div class="rsp-filter">
+              <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-tpl-filter-btn"
+                      aria-expanded="false" aria-haspopup="true"
+                      tooltip="${%Filter by permission}">
+                <l:icon src="symbol-funnel-outline plugin-ionicons-api" class="icon-sm"/>
+              </button>
+              <div class="rsp-filter__dropdown rsp-tpl-filter-dropdown" hidden="true">
+                <div class="rsp-filter__header">
+                  <span class="rsp-filter__header-label">${%Filter by permission}</span>
+                  <button type="button" class="rsp-filter__reset-button rsp-tpl-filter-reset" hidden="true">${%Reset}</button>
+                </div>
+                <div class="rsp-filter__search">
+                  <input type="text" class="jenkins-input rsp-filter__search-input rsp-tpl-filter-search"
+                         placeholder="${%Search permissions...}" />
+                  <button type="button" class="rsp-filter__search-clear rsp-tpl-filter-clear" aria-label="Clear">&#xd7;</button>
+                </div>
+                <div class="rsp-filter__list">
+                  <j:forEach var="g" items="${itemPermissionGroups}">
+                    <j:set var="hasFilterPerms" value="${false}"/>
                     <j:forEach var="p" items="${g.permissions}">
                       <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                        <button type="button" class="rsp-filter__item"
-                                data-filter-permission="${p.id}"
-                                data-filter-label="${g.title} ${p.name}">
-                          <span class="rsp-filter__item-indicator"></span>
-                          <span class="rsp-filter__item-name">${p.name}</span>
-                        </button>
+                        <j:set var="hasFilterPerms" value="${true}"/>
                       </j:if>
                     </j:forEach>
-                  </j:if>
-                </j:forEach>
-                <div class="rsp-filter__no-results" hidden="true">${%No matching permissions}</div>
+                    <j:if test="${hasFilterPerms}">
+                      <div class="rsp-filter__group-title">${g.title}</div>
+                      <j:forEach var="p" items="${g.permissions}">
+                        <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                          <button type="button" class="rsp-filter__item"
+                                  data-filter-permission="${p.id}"
+                                  data-filter-label="${g.title} ${p.name}">
+                            <span class="rsp-filter__item-indicator"></span>
+                            <span class="rsp-filter__item-name">${p.name}</span>
+                          </button>
+                        </j:if>
+                      </j:forEach>
+                    </j:if>
+                  </j:forEach>
+                  <div class="rsp-filter__no-results" hidden="true">${%No matching permissions}</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </j:if>
 
       <!-- Template cards -->
       <div id="rsp-template-cards" class="rsp-cards">
