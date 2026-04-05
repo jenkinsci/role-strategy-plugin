@@ -1,0 +1,78 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+  <st:setHeader name="X-Dialog-Title" value="${%Add Role}"/>
+  <l:ajax>
+    <f:form name="add-role" method="post" action="${rootURL}/manage/role-strategy/addRoleSubmit">
+      <f:entry title="${%Scope}">
+        <f:radio name="scope" value="globalRoles" title="${%Global role}" checked="true"/>
+        <f:radio name="scope" value="projectRoles" title="${%Item role}"/>
+        <f:radio name="scope" value="slaveRoles" title="${%Agent role}"/>
+      </f:entry>
+
+      <f:entry title="${%Role name}">
+        <f:textbox name="roleName"/>
+      </f:entry>
+
+      <f:entry title="${%Pattern}" style="display:none">
+        <f:textbox name="pattern"/>
+      </f:entry>
+
+      <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
+      <j:if test="${!permissionTemplates.isEmpty()}">
+        <f:entry title="${%Permission template}" style="display:none">
+          <div class="jenkins-select">
+            <select name="templateName" class="jenkins-select__input">
+              <option value="">${%none}</option>
+              <j:forEach var="tmpl" items="${permissionTemplates}">
+                <option value="${tmpl.name}">${tmpl.name}</option>
+              </j:forEach>
+            </select>
+          </div>
+          <!-- Template permission data for JS -->
+          <j:forEach var="tmpl" items="${permissionTemplates}">
+            <script type="application/json" class="rsp-template-perm-data" data-template-name="${tmpl.name}">
+              [<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]
+            </script>
+          </j:forEach>
+        </f:entry>
+      </j:if>
+
+      <f:entry title="${%Permissions}">
+        <l:search-bar placeholder="${%Filter permissions...}" clazz="rsp-perm-dialog-filter" hasKeyboardShortcut="false" />
+
+        <div class="rsp-assign-dialog__roles" name="permissions">
+          <j:forEach var="roleType" items="globalRoles,projectRoles,slaveRoles">
+            <j:set var="roleTypeKey" value="${roleType == 'globalRoles' ? it.strategy.GLOBAL : (roleType == 'projectRoles' ? it.strategy.PROJECT : it.strategy.SLAVE)}"/>
+            <j:set var="groups" value="${it.strategy.descriptor.getGroups(roleTypeKey)}"/>
+            <div name="${roleType}" style="${roleType == 'globalRoles' ? '' : 'display:none;'}">
+              <j:forEach var="g" items="${groups}">
+                <j:set var="hasVisible" value="${false}"/>
+                <j:forEach var="p" items="${g.permissions}">
+                  <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
+                    <j:set var="hasVisible" value="${true}"/>
+                  </j:if>
+                </j:forEach>
+                <j:if test="${hasVisible}">
+                  <div class="rsp-assign-dialog__group-title">${g.title}</div>
+                  <div class="rsp-assign-dialog__group">
+                    <j:forEach var="p" items="${g.permissions}">
+                      <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
+                        <div class="rsp-assign-dialog__role-item" data-role-name="${p.name}">
+                          <f:checkbox title="${p.name}" name="${p.id}"/>
+                        </div>
+                      </j:if>
+                    </j:forEach>
+                  </div>
+                </j:if>
+              </j:forEach>
+            </div>
+          </j:forEach>
+        </div>
+      </f:entry>
+
+      <f:bottomButtonBar>
+        <button id="rsp-add-role-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Add}</button>
+      </f:bottomButtonBar>
+    </f:form>
+  </l:ajax>
+</j:jelly>

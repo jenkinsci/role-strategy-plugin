@@ -612,12 +612,28 @@ Behaviour.specify(".rsp-card__pattern", "RoleStrategyRoles", 0, (span) => {
   });
 });
 
-// Global Add Role button — shows dialog with scope selector
+// Global Add Role button — opens Jelly-based dialog via wizard
 Behaviour.specify(".rsp-add-role-global", "RoleStrategyRoles", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
   btn.addEventListener("click", () => {
-    // Build scope selection then delegate to rspAddNewRole
+    const rootUrl = document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") || "";
+    dialog.wizard(rootUrl + "/manage/role-strategy/add-role-dialog");
+    // Wait for wizard to load content, then init the form
+    const initDialog = () => {
+      const form = document.querySelector("form[name='add-role']");
+      if (!form) { setTimeout(initDialog, 100); return; }
+      rspInitAddRoleDialog(form);
+    };
+    setTimeout(initDialog, 200);
+  });
+});
+
+// Legacy JS Add Role button (unused — kept for reference)
+Behaviour.specify(".rsp-add-role-global-js-legacy", "RoleStrategyRoles", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+  btn.addEventListener("click", () => {
     const containers = Array.from(document.querySelectorAll(".rsp-container")).filter((c) => c.dataset.roleType);
     if (containers.length === 0) return;
 
@@ -853,6 +869,114 @@ Behaviour.specify(".rsp-add-role-global", "RoleStrategyRoles", 0, (btn) => {
     });
   });
 });
+
+// Add Role dialog — all setup done imperatively after wizard loads
+const rspInitAddRoleDialog = (form) => {
+  if (form.dataset.dialogInit === "true") return;
+  form.dataset.dialogInit = "true";
+
+  let savedManualSelections = null;
+
+  const updateScope = () => {
+    const scope = form.querySelector("input[name='scope']:checked")?.value;
+    const isGlobal = scope === "globalRoles";
+    const patternEntry = form.querySelector("input[name='pattern']")?.closest(".jenkins-form-item");
+    if (patternEntry) patternEntry.style.display = isGlobal ? "none" : "";
+    const templateEntry = form.querySelector("[name='templateName']")?.closest(".jenkins-form-item");
+    if (templateEntry) templateEntry.style.display = scope === "projectRoles" ? "" : "none";
+    const templateSelect = form.querySelector("[name='templateName']");
+    if (templateSelect && scope !== "projectRoles") { templateSelect.value = ""; updateTemplate(); }
+    const permContainer = form.querySelector("[name='permissions']");
+    if (permContainer) {
+      permContainer.querySelectorAll(":scope > div[name]").forEach((div) => {
+        div.style.display = div.getAttribute("name") === scope ? "" : "none";
+      });
+    }
+  };
+
+  const updateTemplate = () => {
+    const templateSelect = form.querySelector("[name='templateName']");
+    if (!templateSelect) return;
+    const permContainer = form.querySelector("[name='permissions']");
+    if (!permContainer) return;
+    const scope = form.querySelector("input[name='scope']:checked")?.value || "projectRoles";
+    const scopeDiv = permContainer.querySelector(`div[name='${scope}']`);
+    if (!scopeDiv) return;
+    const checkboxes = scopeDiv.querySelectorAll("input[type='checkbox']");
+    const templateName = templateSelect.value;
+    if (templateName) {
+      if (!savedManualSelections) {
+        savedManualSelections = {};
+        checkboxes.forEach((cb) => { if (cb.name) savedManualSelections[cb.name] = cb.checked; });
+      }
+      const dataEl = form.querySelector(`.rsp-template-perm-data[data-template-name='${CSS.escape(templateName)}']`);
+      let templatePerms = new Set();
+      if (dataEl) { try { templatePerms = new Set(JSON.parse(dataEl.textContent)); } catch (e) {} }
+      checkboxes.forEach((cb) => { cb.checked = templatePerms.has(cb.name); cb.disabled = true; });
+      const permEntry = permContainer.closest(".jenkins-form-item");
+      if (permEntry) permEntry.style.opacity = "0.6";
+    } else {
+      checkboxes.forEach((cb) => {
+        cb.disabled = false;
+        if (savedManualSelections && savedManualSelections[cb.name] !== undefined) cb.checked = savedManualSelections[cb.name];
+      });
+      savedManualSelections = null;
+      const permEntry = permContainer.closest(".jenkins-form-item");
+      if (permEntry) permEntry.style.opacity = "1";
+    }
+  };
+
+  const validateAndSubmit = () => {
+    const nameInput = form.querySelector("input[name='roleName']");
+    if (!nameInput || !nameInput.value.trim()) {
+      nameInput?.focus();
+      if (nameInput) { nameInput.style.outline = "2px solid var(--error-color)"; nameInput.addEventListener("input", () => { nameInput.style.outline = ""; }, { once: true }); }
+      return;
+    }
+    const scope = form.querySelector("input[name='scope']:checked")?.value;
+    if (scope !== "globalRoles") {
+      const patternInput = form.querySelector("input[name='pattern']");
+      if (!patternInput || !patternInput.value.trim()) {
+        patternInput?.focus();
+        if (patternInput) { patternInput.style.outline = "2px solid var(--error-color)"; patternInput.addEventListener("input", () => { patternInput.style.outline = ""; }, { once: true }); }
+        return;
+      }
+    }
+    form.requestSubmit();
+  };
+
+  const filterInput = form.querySelector(".rsp-perm-dialog-filter input");
+  if (filterInput) {
+    filterInput.addEventListener("input", () => {
+      const q = filterInput.value.toLowerCase().trim();
+      const container = form.querySelector("[name='permissions']");
+      if (!container) return;
+      container.querySelectorAll(".rsp-assign-dialog__role-item").forEach((item) => {
+        item.style.display = (q === "" || (item.dataset.roleName || "").toLowerCase().includes(q)) ? "" : "none";
+      });
+      container.querySelectorAll(".rsp-assign-dialog__group-title").forEach((title) => {
+        let next = title.nextElementSibling;
+        let hasVisible = false;
+        while (next && !next.classList.contains("rsp-assign-dialog__group-title")) {
+          if (next.classList.contains("rsp-assign-dialog__group")) {
+            next.querySelectorAll(".rsp-assign-dialog__role-item").forEach((child) => { if (child.style.display !== "none") hasVisible = true; });
+          }
+          next = next.nextElementSibling;
+        }
+        title.style.display = hasVisible ? "" : "none";
+      });
+    });
+  }
+
+  form.querySelectorAll("input[name='scope']").forEach((r) => r.addEventListener("change", updateScope));
+  const templateSelect = form.querySelector("[name='templateName']");
+  if (templateSelect) templateSelect.addEventListener("change", updateTemplate);
+  const submitBtn = form.querySelector("#rsp-add-role-submit-btn");
+  if (submitBtn) submitBtn.addEventListener("click", validateAndSubmit);
+  form.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); validateAndSubmit(); } });
+
+  updateScope();
+};
 
 // Per-section search (kept for backward compat)
 Behaviour.specify(".rsp-search input", "RoleStrategyRoles", 0, (input) => {
