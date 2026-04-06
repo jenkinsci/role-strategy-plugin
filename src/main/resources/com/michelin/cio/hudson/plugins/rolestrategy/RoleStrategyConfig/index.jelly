@@ -27,6 +27,7 @@
            data-fetch-url="${rootURL}/role-strategy/strategy/getRoleAssignments"
            data-assign-submit-url="${rootURL}/manage/role-strategy/assignSubmit"
            data-descriptor-url="${descriptorPath}"
+           data-can-edit="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}"
            data-text-anonymous="${%Anonymous}"
            data-text-authenticated="${%Authenticated Users}"/>
 

@@ -291,10 +291,11 @@ const rspRenderOneCard = (container, user) => {
     }
     header.appendChild(summarySpan);
 
-    // Actions
+    // Actions — only show if user has edit permissions
+    const canEdit = dataHolder.dataset.canEdit === "true";
     const actions = document.createElement("div");
     actions.classList.add("rsp-card__actions");
-    if (!isBuiltIn) {
+    if (canEdit && !isBuiltIn) {
       const deleteBtn = document.createElement("button");
       deleteBtn.type = "button";
       deleteBtn.classList.add("jenkins-button", "jenkins-button--tertiary", "jenkins-!-destructive-color", "rsp-card__action", "rsp-user-delete");
@@ -302,6 +303,7 @@ const rspRenderOneCard = (container, user) => {
       deleteBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path d="M112 112l20 320c.95 18.49 14.4 32 32 32h184c17.67 0 30.87-13.51 32-32l20-320" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M80 112h352"/><path d="M192 112V72h0a23.93 23.93 0 0124-24h80a23.93 23.93 0 0124 24h0v40M256 176v224M184 176l8 224M328 176l-8 224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>';
       actions.appendChild(deleteBtn);
     }
+    if (!canEdit) card.classList.add("rsp-card--read-only");
     header.appendChild(actions);
 
     // Toggle
@@ -745,6 +747,7 @@ Behaviour.specify("#rsp-user-cards .rsp-perm__item input[type=checkbox]", "RoleS
   cb.addEventListener("change", () => {
     const card = cb.closest(".rsp-card");
     if (!card) return;
+    if (card.classList.contains("rsp-card--read-only")) { cb.checked = !cb.checked; return; }
     const userName = card.dataset.userName;
     const userType = card.dataset.userType;
     const roleName = cb.dataset.roleName;

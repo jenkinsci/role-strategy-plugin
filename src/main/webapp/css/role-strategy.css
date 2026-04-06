@@ -935,6 +935,23 @@
   max-width: 500px;
 }
 
+/* ============================================
+   Read-only Mode
+   ============================================ */
+
+.rsp-card.rsp-card--read-only .rsp-card__actions .rsp-card__action,
+.rsp-card.rsp-card--read-only .rsp-user-delete {
+  display: none;
+}
+
+.rsp-card.rsp-card--read-only .rsp-perm__item input[type="checkbox"] {
+  pointer-events: none;
+}
+
+.rsp-card.rsp-card--read-only .rsp-perm__item {
+  cursor: default;
+}
+
 .rsp-table__icon {
   cursor: pointer;
 }
