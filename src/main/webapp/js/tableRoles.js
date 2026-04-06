@@ -457,94 +457,6 @@ const rspAddRoleAndSave = (container, name, pattern, templateName, permissions) 
   });
 };
 
-const rspCreateRoleCard = (container, name, pattern, templateName, initialPermissions = new Set()) => {
-  const cardsContainer = container.querySelector(".rsp-cards");
-  const existingCard = container.querySelector(".rsp-card");
-
-  const card = document.createElement("div");
-  card.classList.add("rsp-card");
-  card.dataset.roleName = name;
-  card.dataset.rolePattern = pattern;
-  card.dataset.templateName = templateName;
-  card.dataset.sectionId = container.id;
-
-  const header = document.createElement("div");
-  header.classList.add("rsp-card__header");
-  header.setAttribute("role", "button");
-  header.setAttribute("tabindex", "0");
-  header.setAttribute("aria-expanded", "false");
-
-  const nameSpan = document.createElement("span");
-  nameSpan.classList.add("rsp-card__name");
-  nameSpan.textContent = name;
-  header.appendChild(nameSpan);
-
-  if (pattern) {
-    const patternSpan = document.createElement("span");
-    patternSpan.classList.add("rsp-card__pattern");
-    patternSpan.dataset.pattern = pattern;
-    patternSpan.dataset.roleType = container.dataset.roleType;
-    patternSpan.textContent = `"${pattern}"`;
-    header.appendChild(patternSpan);
-  }
-
-  if (templateName) {
-    const badge = document.createElement("span");
-    badge.classList.add("rsp-card__template-badge");
-    badge.textContent = templateName;
-    header.appendChild(badge);
-  }
-
-  const summarySpan = document.createElement("span");
-  summarySpan.classList.add("rsp-card__summary", "rsp-card__summary--empty");
-  summarySpan.dataset.emptyText = "No permissions";
-  summarySpan.textContent = "No permissions";
-  header.appendChild(summarySpan);
-
-  if (existingCard) {
-    const existingActions = existingCard.querySelector(".rsp-card__actions");
-    if (existingActions) {
-      const actions = existingActions.cloneNode(true);
-      if (!pattern) { const editBtn = actions.querySelector(".rsp-card__edit-pattern"); if (editBtn) editBtn.remove(); }
-      actions.querySelectorAll("[data-initialized]").forEach((el) => el.removeAttribute("data-initialized"));
-      header.appendChild(actions);
-    }
-    const existingToggle = existingCard.querySelector(".rsp-card__toggle");
-    if (existingToggle) header.appendChild(existingToggle.cloneNode(true));
-  }
-
-  card.appendChild(header);
-
-  const cardBody = document.createElement("div");
-  cardBody.classList.add("rsp-card__body", "rsp-card__body--collapsed");
-
-  if (existingCard) {
-    const existingPerm = existingCard.querySelector(".rsp-perm");
-    if (existingPerm) {
-      const permClone = existingPerm.cloneNode(true);
-      let templatePerms = initialPermissions;
-      if (templateName) {
-        const templateData = container.querySelector(`.rsp-template-data[data-template-name='${CSS.escape(templateName)}']`);
-        if (templateData) { try { templatePerms = new Set(JSON.parse(templateData.textContent)); } catch (e) {} }
-      }
-      permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-        const permId = cb.getAttribute("data-permission-id");
-        cb.checked = templatePerms.has(permId);
-        cb.disabled = !!templateName;
-      });
-      permClone.querySelectorAll(".rsp-perm__item--implied").forEach((el) => el.classList.remove("rsp-perm__item--implied"));
-      permClone.querySelectorAll(".rsp-perm__item-implied").forEach((el) => { el.hidden = true; });
-      cardBody.appendChild(permClone);
-    }
-  }
-
-  card.appendChild(cardBody);
-  cardsContainer.appendChild(card);
-  Behaviour.applySubtree(card, true);
-  rspToggleCard(card);
-  card.classList.add("rsp-highlight-entry");
-};
-
 // ============================================
 // Behaviours
 // ============================================
@@ -960,7 +872,7 @@ const rspInitAddRoleDialog = (form) => {
       const dataEl = form.querySelector(`.rsp-template-perm-data[data-template-name='${CSS.escape(templateName)}']`);
       let templatePerms = new Set();
       if (dataEl) { try { templatePerms = new Set(JSON.parse(dataEl.textContent)); } catch (e) {} }
-      checkboxes.forEach((cb) => { const pid = cb.name.replace(/^\[|\]$/g, ""); cb.checked = templatePerms.has(pid); cb.disabled = true; });
+      checkboxes.forEach((cb) => { const pid = cb.name.replace(/^\[|]$/g, ""); cb.checked = templatePerms.has(pid); cb.disabled = true; });
       const permEntry = permContainer.closest(".jenkins-form-item");
       if (permEntry) permEntry.style.opacity = "0.6";
     } else {
