@@ -56,7 +56,7 @@ let rspMergedUsers = {};
 
 const rspLoadRoleDefinitions = () => {
   rspAssignTypes.forEach((type) => {
-    const el = document.getElementById(`rsp-roles-${type.replace("Roles", "").replace("slave", "slave")}`);
+    document.getElementById(`rsp-roles-${type.replace("Roles", "")}`);
     // Map: globalRoles -> rsp-roles-global, projectRoles -> rsp-roles-project, slaveRoles -> rsp-roles-slave
     const idMap = { globalRoles: "rsp-roles-global", projectRoles: "rsp-roles-project", slaveRoles: "rsp-roles-slave" };
     const scriptEl = document.getElementById(idMap[type]);
@@ -113,8 +113,6 @@ const rspLoadAllAssignments = () => {
   return Promise.all(promises);
 };
 
-const rspMergeUsers = () => { /* no longer needed for rendering — kept for save compatibility */ };
-
 // ============================================
 // Build user summary
 // ============================================
@@ -146,17 +144,6 @@ const rspGenerateIcon = (type) => {
 
 const RSP_PAGE_SIZE = 100;
 let rspCurrentPage = 0;
-let rspFilteredKeys = [];
-
-const rspSortedKeys = () => {
-  return Object.keys(rspMergedUsers).sort((a, b) => {
-    if (a === "USER:anonymous") return -1;
-    if (b === "USER:anonymous") return 1;
-    if (a === "GROUP:authenticated") return -1;
-    if (b === "GROUP:authenticated") return 1;
-    return a.localeCompare(b);
-  });
-};
 
 let rspSearchDebounce = null;
 
@@ -238,7 +225,7 @@ const rspUpdatePaginationUI = (totalFiltered, totalPages) => {
 
   nav.innerHTML = `
     <button class="jenkins-button jenkins-button--tertiary" ${rspCurrentPage === 0 ? "disabled" : ""} id="rsp-page-prev">Previous</button>
-    <span style="font-size:0.875rem;color:var(--text-color-secondary);">${fmt(start)}–${fmt(end)} of ${fmt(totalFiltered)}</span>
+    <span style="font-size:0.875rem;">${fmt(start)}–${fmt(end)} of ${fmt(totalFiltered)}</span>
     <button class="jenkins-button jenkins-button--tertiary" ${rspCurrentPage >= totalPages - 1 ? "disabled" : ""} id="rsp-page-next">Next</button>
   `;
 
@@ -698,7 +685,6 @@ const rspInitRoleFilterDropdown = () => {
 // ============================================
 
 const rspAssignRoleDialog = () => {
-  const dataHolder = document.getElementById("role-strategy-data");
   const rootUrl = document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") || "";
   const dialogUrl = rootUrl + "/manage/role-strategy/assign-role-dialog";
 
@@ -707,190 +693,6 @@ const rspAssignRoleDialog = () => {
       // Reload page to show updated assignments
       window.location.reload();
     }
-  });
-};
-
-// Keep old JS dialog as fallback (unused but kept for reference)
-const rspAssignRoleDialogJS = () => {
-  const content = document.createElement("div");
-  content.classList.add("rsp-dialog-content");
-
-  const nameGroup = document.createElement("div");
-  nameGroup.classList.add("jenkins-form-item");
-  nameGroup.innerHTML = `
-    <label class="jenkins-form-label">User or group name</label>
-    <div class="jenkins-form-item__control">
-      <input type="text" class="jenkins-input" id="rsp-assign-name" autofocus />
-    </div>
-  `;
-  content.appendChild(nameGroup);
-
-  const typeGroup = document.createElement("div");
-  typeGroup.classList.add("jenkins-form-item");
-  typeGroup.innerHTML = `
-    <label class="jenkins-form-label">Type</label>
-    <div class="jenkins-form-item__control" style="display:flex;gap:1rem;">
-      <label class="jenkins-radio"><input type="radio" name="rsp-assign-type" value="USER" checked /> User</label>
-      <label class="jenkins-radio"><input type="radio" name="rsp-assign-type" value="GROUP" /> Group</label>
-    </div>
-  `;
-  content.appendChild(typeGroup);
-
-  const roleGroup = document.createElement("div");
-  roleGroup.classList.add("jenkins-form-item");
-  const roleLabel = document.createElement("label");
-  roleLabel.classList.add("jenkins-form-label");
-  roleLabel.textContent = "Roles";
-  roleGroup.appendChild(roleLabel);
-
-  const roleFilter = document.createElement("input");
-  roleFilter.type = "text";
-  roleFilter.classList.add("jenkins-input");
-  roleFilter.placeholder = "Filter roles...";
-  roleFilter.style.cssText = "margin-bottom:0.5rem;";
-  roleGroup.appendChild(roleFilter);
-
-  const roleList = document.createElement("div");
-  roleList.classList.add("rsp-assign-dialog__roles");
-
-  rspAssignTypes.forEach((type) => {
-    const roles = rspRoleDefinitions[type];
-    if (!roles || roles.length === 0) return;
-
-    const groupTitle = document.createElement("div");
-    groupTitle.classList.add("rsp-assign-dialog__group-title");
-    groupTitle.textContent = rspTypeLabels[type] + " roles";
-    roleList.appendChild(groupTitle);
-
-    roles.forEach((role) => {
-      const label = document.createElement("label");
-      label.classList.add("rsp-assign-dialog__role");
-      label.dataset.roleName = role.name;
-      label.dataset.assignType = type;
-
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.value = role.name;
-      cb.dataset.assignType = type;
-      label.appendChild(cb);
-
-      const nameSpan = document.createElement("span");
-      nameSpan.classList.add("rsp-assign-dialog__role-name");
-      nameSpan.textContent = role.name;
-      label.appendChild(nameSpan);
-
-      if (role.pattern) {
-        const patternSpan = document.createElement("span");
-        patternSpan.classList.add("rsp-assign-dialog__role-pattern");
-        patternSpan.textContent = `"${role.pattern}"`;
-        label.appendChild(patternSpan);
-      }
-
-      roleList.appendChild(label);
-    });
-  });
-
-  roleGroup.appendChild(roleList);
-  content.appendChild(roleGroup);
-
-  // Filter
-  roleFilter.addEventListener("input", () => {
-    const q = roleFilter.value.toLowerCase().trim();
-    roleList.querySelectorAll(".rsp-assign-dialog__role").forEach((label) => {
-      label.style.display = (q === "" || label.dataset.roleName.toLowerCase().includes(q)) ? "" : "none";
-    });
-    roleList.querySelectorAll(".rsp-assign-dialog__group-title").forEach((title) => {
-      let next = title.nextElementSibling;
-      let hasVisible = false;
-      while (next && !next.classList.contains("rsp-assign-dialog__group-title")) {
-        if (next.style.display !== "none") hasVisible = true;
-        next = next.nextElementSibling;
-      }
-      title.style.display = hasVisible ? "" : "none";
-    });
-  });
-
-  // Prefill
-  const prefillRoles = () => {
-    const name = content.querySelector("#rsp-assign-name")?.value?.trim();
-    const type = content.querySelector("input[name='rsp-assign-type']:checked")?.value;
-    if (!name || !type) return;
-    const key = `${type}:${name}`;
-    const userData = rspMergedUsers[key];
-    roleList.querySelectorAll(".rsp-assign-dialog__role input[type=checkbox]").forEach((cb) => {
-      const at = cb.dataset.assignType;
-      cb.checked = userData ? (userData.roles[at] || []).includes(cb.value) : false;
-    });
-  };
-
-  // Dialog
-  const dlg = document.createElement("dialog");
-  dlg.classList.add("jenkins-dialog");
-  dlg.style.cssText = "max-width:550px;min-width:450px;";
-
-  const titleBar = document.createElement("div");
-  titleBar.classList.add("jenkins-dialog__title");
-  titleBar.innerHTML = `<span>Assign role</span>
-    <button class="jenkins-dialog__title__button jenkins-dialog__title__close-button" data-id="cancel">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M368 368L144 144M368 144L144 368"></path></svg>
-    </button>`;
-  dlg.appendChild(titleBar);
-
-  const body = document.createElement("div");
-  body.classList.add("jenkins-dialog__contents");
-  body.appendChild(content);
-  dlg.appendChild(body);
-
-  const footer = document.createElement("div");
-  footer.classList.add("jenkins-dialog__footer", "jenkins-buttons-row", "jenkins-buttons-row--equal-width");
-  footer.innerHTML = `
-    <button class="jenkins-button" data-id="cancel">Cancel</button>
-    <button class="jenkins-button jenkins-button--primary" data-id="ok">Assign</button>
-  `;
-  dlg.appendChild(footer);
-
-  document.body.appendChild(dlg);
-  dlg.showModal();
-
-  const nameInput = dlg.querySelector("#rsp-assign-name");
-  nameInput.addEventListener("blur", prefillRoles);
-  dlg.querySelectorAll("input[name='rsp-assign-type']").forEach((r) => r.addEventListener("change", prefillRoles));
-
-  const closeDialog = () => { dlg.close(); dlg.remove(); };
-  dlg.querySelectorAll("[data-id='cancel']").forEach((btn) => btn.addEventListener("click", closeDialog));
-  dlg.addEventListener("cancel", closeDialog);
-
-  dlg.querySelector("[data-id='ok']").addEventListener("click", () => {
-    const name = nameInput.value?.trim();
-    if (!name) { nameInput.focus(); return; }
-    const type = dlg.querySelector("input[name='rsp-assign-type']:checked").value;
-
-    // Update assignment data
-    rspAssignTypes.forEach((assignType) => {
-      if (!rspAssignmentData[assignType]) rspAssignmentData[assignType] = [];
-      let entry = rspAssignmentData[assignType].find((e) => e.name === name && e.type === type);
-      if (!entry) {
-        entry = { name, type, roles: [] };
-        rspAssignmentData[assignType].push(entry);
-      }
-
-      // Set roles from dialog checkboxes for this type
-      const newRoles = [];
-      dlg.querySelectorAll(`.rsp-assign-dialog__role input[type=checkbox][data-assign-type='${assignType}']:checked`).forEach((cb) => {
-        newRoles.push(cb.value);
-      });
-      entry.roles = newRoles;
-    });
-
-    closeDialog();
-
-    rspSaveAssignments().then(() => {
-      rspMergeUsers();
-      rspRenderUserCards();
-      notificationBar.show("Role assignment saved", notificationBar.SUCCESS);
-    }).catch((err) => {
-      notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR);
-    });
   });
 };
 
