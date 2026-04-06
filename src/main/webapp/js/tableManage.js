@@ -467,31 +467,44 @@ const rspValidateUserCards = () => {
   rspValidationAbortController = new AbortController();
   const signal = rspValidationAbortController.signal;
 
+  // Collect cards to validate
+  const cards = [];
   document.querySelectorAll("#rsp-user-cards .rsp-card").forEach((card) => {
-    if (signal.aborted) return;
-
     const userName = card.dataset.userName;
     const userType = card.dataset.userType;
     if (!userName || !userType) return;
-
     if (userName === "anonymous" && userType === "USER") return;
     if (userName === "authenticated" && userType === "GROUP") return;
+    if (!card.querySelector(".rsp-card__validation-target")) return;
+    cards.push(card);
+  });
 
+  const maxParallel = isHttp2Enabled() ? 30 : 1;
+
+  const validateCard = (card) => {
+    if (signal.aborted) return Promise.resolve();
     const target = card.querySelector(".rsp-card__validation-target");
-    if (!target) return;
-
-    const checkValue = "[" + userType + ":" + userName + "]";
+    const checkValue = "[" + card.dataset.userType + ":" + card.dataset.userName + "]";
     const checkUrl = descriptorUrl + "/checkName?value=" + encodeURIComponent(checkValue);
-
-    fetch(checkUrl, { method: "POST", headers: crumb.wrap({}), signal })
+    return fetch(checkUrl, { method: "POST", headers: crumb.wrap({}), signal })
       .then((rsp) => rsp.text())
       .then((html) => {
         if (signal.aborted) return;
         target.innerHTML = html;
         rspProcessValidation(card);
       })
-      .catch(() => {}); // aborted or failed — ignore
-  });
+      .catch(() => {});
+  };
+
+  // Process in batches of maxParallel
+  let idx = 0;
+  const processNext = () => {
+    if (signal.aborted || idx >= cards.length) return Promise.resolve();
+    const batch = cards.slice(idx, idx + maxParallel);
+    idx += maxParallel;
+    return Promise.all(batch.map(validateCard)).then(processNext);
+  };
+  processNext();
 };
 
 // ============================================
