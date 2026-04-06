@@ -192,7 +192,9 @@ const rspRenderCurrentPage = () => {
 
     Behaviour.applySubtree(container, true);
     rspUpdateCardBorders();
-    rspValidateUserCards();
+    // Debounce validation — wait for page to stabilize before firing requests
+    if (rspValidationDebounce) clearTimeout(rspValidationDebounce);
+    rspValidationDebounce = setTimeout(rspValidateUserCards, 500);
 
     const totalFiltered = data.total;
     const totalPages = Math.max(1, Math.ceil(totalFiltered / RSP_PAGE_SIZE));
@@ -459,14 +461,13 @@ const rspProcessValidation = (card) => {
   }
 };
 
-// Track active validation observers so we can cancel them on page change
-let rspActiveValidationObservers = [];
-let rspValidationGeneration = 0;
+// Track active validation so we can abort on page change
+let rspValidationAbortController = null;
+let rspValidationDebounce = null;
 
 const rspCancelPendingValidations = () => {
-  rspValidationGeneration++;
-  rspActiveValidationObservers.forEach((obs) => obs.disconnect());
-  rspActiveValidationObservers = [];
+  if (rspValidationAbortController) { rspValidationAbortController.abort(); rspValidationAbortController = null; }
+  if (rspValidationDebounce) { clearTimeout(rspValidationDebounce); rspValidationDebounce = null; }
 };
 
 const rspValidateUserCards = () => {
@@ -474,16 +475,18 @@ const rspValidateUserCards = () => {
   const descriptorUrl = dataHolder?.dataset.descriptorUrl;
   if (!descriptorUrl) return;
 
-  const generation = rspValidationGeneration;
+  // Abort any previous validation batch
+  if (rspValidationAbortController) rspValidationAbortController.abort();
+  rspValidationAbortController = new AbortController();
+  const signal = rspValidationAbortController.signal;
 
   document.querySelectorAll("#rsp-user-cards .rsp-card").forEach((card) => {
-    if (generation !== rspValidationGeneration) return; // page changed, abort
+    if (signal.aborted) return;
 
     const userName = card.dataset.userName;
     const userType = card.dataset.userType;
     if (!userName || !userType) return;
 
-    // Skip built-in entries
     if (userName === "anonymous" && userType === "USER") return;
     if (userName === "authenticated" && userType === "GROUP") return;
 
@@ -493,24 +496,14 @@ const rspValidateUserCards = () => {
     const checkValue = "[" + userType + ":" + userName + "]";
     const checkUrl = descriptorUrl + "/checkName?value=" + encodeURIComponent(checkValue);
 
-    const observer = new MutationObserver(() => {
-      if (generation !== rspValidationGeneration) { observer.disconnect(); return; }
-      rspProcessValidation(card);
-      observer.disconnect();
-      const idx = rspActiveValidationObservers.indexOf(observer);
-      if (idx !== -1) rspActiveValidationObservers.splice(idx, 1);
-    });
-    observer.observe(target, { childList: true, subtree: true });
-    rspActiveValidationObservers.push(observer);
-
-    FormChecker.delayedCheck(checkUrl, "POST", target);
-
-    if (target.innerHTML.trim()) {
-      observer.disconnect();
-      rspProcessValidation(card);
-      const idx = rspActiveValidationObservers.indexOf(observer);
-      if (idx !== -1) rspActiveValidationObservers.splice(idx, 1);
-    }
+    fetch(checkUrl, { method: "POST", headers: crumb.wrap({}), signal })
+      .then((rsp) => rsp.text())
+      .then((html) => {
+        if (signal.aborted) return;
+        target.innerHTML = html;
+        rspProcessValidation(card);
+      })
+      .catch(() => {}); // aborted or failed — ignore
   });
 };
 
