@@ -944,11 +944,8 @@
   display: none;
 }
 
-.rsp-card.rsp-card--read-only .rsp-perm__item input[type="checkbox"] {
-  pointer-events: none;
-}
-
 .rsp-card.rsp-card--read-only .rsp-perm__item {
+  pointer-events: none;
   cursor: default;
 }
 

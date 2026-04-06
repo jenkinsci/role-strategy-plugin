@@ -467,7 +467,7 @@ Behaviour.specify(".rsp-card__header", "RoleStrategyRoles", 0, (header) => {
   const handleToggle = (e) => {
     if (e.target.closest(".rsp-card__actions") && !e.target.closest(".rsp-card__toggle")) return;
     const card = header.closest(".rsp-card");
-    if (card && !card.classList.contains("rsp-card--read-only")) rspToggleCard(card);
+    if (card) rspToggleCard(card);
   };
   header.addEventListener("click", handleToggle);
   header.addEventListener("keydown", (e) => {
