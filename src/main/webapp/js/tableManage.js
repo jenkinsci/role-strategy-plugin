@@ -29,6 +29,9 @@
 // Assignment data: { globalRoles: [...], projectRoles: [...], slaveRoles: [...] }
 const rspAssignmentData = {};
 
+// Display name cache: { "USER:john": "John Doe", "GROUP:security-chapter": "Security Chapter" }
+const rspDisplayNameCache = {};
+
 // Role definitions loaded from embedded JSON
 const rspRoleDefinitions = {
   globalRoles: [],
@@ -73,6 +76,20 @@ const rspFetchPage = (start, count, query, roleFilters) => {
   if (query) params.set("query", query);
   if (roleFilters && roleFilters.length > 0) {
     params.set("filterRole", roleFilters.map((f) => f.assignType + ":" + f.roleName).join(","));
+  }
+
+  // Search display name cache for matches and send as includeSids
+  if (query) {
+    const lowerQuery = query.toLowerCase();
+    const matchingSids = [];
+    for (const [key, displayName] of Object.entries(rspDisplayNameCache)) {
+      if (displayName.toLowerCase().includes(lowerQuery)) {
+        matchingSids.push(key);
+      }
+    }
+    if (matchingSids.length > 0) {
+      params.set("includeSids", matchingSids.join(","));
+    }
   }
 
   return fetch(fetchUrl + "?" + params)
@@ -153,6 +170,7 @@ const rspApplyFilterAndPaginate = () => {
 };
 
 const rspRenderCurrentPage = () => {
+  rspCancelPendingValidations();
   const container = document.getElementById("rsp-user-cards");
   container.innerHTML = '<div class="rsp-assign__loading" style="padding:1rem;">Loading...</div>';
 
@@ -259,14 +277,15 @@ const rspRenderOneCard = (container, user) => {
     iconSpan.appendChild(rspGenerateIcon(user.type));
     header.appendChild(iconSpan);
 
-    // Name — use displayName from server if available
+    // Name — use cached display name if available
     const nameSpan = document.createElement("span");
     nameSpan.classList.add("rsp-card__name");
-    let displayName = user.displayName || user.name;
+    const cacheKey = user.type + ":" + user.name;
+    let displayName = rspDisplayNameCache[cacheKey] || user.name;
     if (user.name === "anonymous" && user.type === "USER") displayName = dataHolder.dataset.textAnonymous;
     if (user.name === "authenticated" && user.type === "GROUP") displayName = dataHolder.dataset.textAuthenticated;
     nameSpan.textContent = displayName;
-    if (user.displayName && user.displayName !== user.name) {
+    if (rspDisplayNameCache[cacheKey]) {
       nameSpan.setAttribute("tooltip", user.type + ": " + user.name);
     }
     header.appendChild(nameSpan);
@@ -427,6 +446,9 @@ const rspProcessValidation = (card) => {
     if (displayName && displayName !== card.dataset.userName) {
       nameEl.textContent = displayName;
       nameEl.setAttribute("tooltip", card.dataset.userType + ": " + card.dataset.userName);
+      // Cache the resolved display name for search
+      const cacheKey = card.dataset.userType + ":" + card.dataset.userName;
+      rspDisplayNameCache[cacheKey] = displayName;
     }
 
     // Copy tooltip from validation response
@@ -437,17 +459,31 @@ const rspProcessValidation = (card) => {
   }
 };
 
+// Track active validation observers so we can cancel them on page change
+let rspActiveValidationObservers = [];
+let rspValidationGeneration = 0;
+
+const rspCancelPendingValidations = () => {
+  rspValidationGeneration++;
+  rspActiveValidationObservers.forEach((obs) => obs.disconnect());
+  rspActiveValidationObservers = [];
+};
+
 const rspValidateUserCards = () => {
   const dataHolder = document.getElementById("role-strategy-data");
   const descriptorUrl = dataHolder?.dataset.descriptorUrl;
   if (!descriptorUrl) return;
 
+  const generation = rspValidationGeneration;
+
   document.querySelectorAll("#rsp-user-cards .rsp-card").forEach((card) => {
+    if (generation !== rspValidationGeneration) return; // page changed, abort
+
     const userName = card.dataset.userName;
     const userType = card.dataset.userType;
     if (!userName || !userType) return;
 
-    // Skip built-in entries — they don't need validation
+    // Skip built-in entries
     if (userName === "anonymous" && userType === "USER") return;
     if (userName === "authenticated" && userType === "GROUP") return;
 
@@ -457,14 +493,24 @@ const rspValidateUserCards = () => {
     const checkValue = "[" + userType + ":" + userName + "]";
     const checkUrl = descriptorUrl + "/checkName?value=" + encodeURIComponent(checkValue);
 
-    // Use MutationObserver to detect when FormChecker fills the target
     const observer = new MutationObserver(() => {
+      if (generation !== rspValidationGeneration) { observer.disconnect(); return; }
       rspProcessValidation(card);
       observer.disconnect();
+      const idx = rspActiveValidationObservers.indexOf(observer);
+      if (idx !== -1) rspActiveValidationObservers.splice(idx, 1);
     });
     observer.observe(target, { childList: true, subtree: true });
+    rspActiveValidationObservers.push(observer);
 
     FormChecker.delayedCheck(checkUrl, "POST", target);
+
+    if (target.innerHTML.trim()) {
+      observer.disconnect();
+      rspProcessValidation(card);
+      const idx = rspActiveValidationObservers.indexOf(observer);
+      if (idx !== -1) rspActiveValidationObservers.splice(idx, 1);
+    }
   });
 };
 

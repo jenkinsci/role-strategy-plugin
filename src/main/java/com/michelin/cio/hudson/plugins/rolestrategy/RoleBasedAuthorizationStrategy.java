@@ -1086,7 +1086,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       @QueryParameter(fixEmpty = true) Integer start,
       @QueryParameter(fixEmpty = true) Integer limit,
       @QueryParameter(fixEmpty = true) String query,
-      @QueryParameter(fixEmpty = true) String filterRole) throws IOException {
+      @QueryParameter(fixEmpty = true) String filterRole,
+      @QueryParameter(fixEmpty = true) String includeSids) throws IOException {
 
     Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
     if (start == null) start = 0;
@@ -1097,6 +1098,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     if (filterRole != null) {
       for (String f : filterRole.split(",")) {
         if (!f.trim().isEmpty()) roleFilters.add(f.trim());
+      }
+    }
+
+    // Parse additional SIDs to include (from client display name cache matches)
+    Set<String> additionalSidSet = new HashSet<>();
+    if (includeSids != null) {
+      for (String s : includeSids.split(",")) {
+        if (!s.trim().isEmpty()) additionalSidSet.add(s.trim());
       }
     }
 
@@ -1117,24 +1126,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           userObj = new JSONObject();
           userObj.put("name", entry.getSid());
           userObj.put("type", entry.getType().toString());
-          // Resolve display name
-          try {
-            if (entry.getType() == AuthorizationType.USER || entry.getType() == AuthorizationType.EITHER) {
-              hudson.model.User u = hudson.model.User.getById(entry.getSid(), false);
-              if (u != null && !u.getFullName().equals(entry.getSid())) {
-                userObj.put("displayName", u.getFullName());
-              }
-            }
-            if (!userObj.has("displayName") && (entry.getType() == AuthorizationType.GROUP || entry.getType() == AuthorizationType.EITHER)) {
-              SecurityRealm sr = Jenkins.get().getSecurityRealm();
-              hudson.security.GroupDetails gd = sr.loadGroupByGroupname2(entry.getSid(), false);
-              if (gd != null && !gd.getDisplayName().equals(entry.getSid())) {
-                userObj.put("displayName", gd.getDisplayName());
-              }
-            }
-          } catch (Exception ignored) {
-            // Realm lookup failed — leave without displayName
-          }
           JSONObject rolesMap = new JSONObject();
           rolesMap.put(GLOBAL, new JSONArray());
           rolesMap.put(PROJECT, new JSONArray());
@@ -1186,11 +1177,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     String lowerQuery = query != null ? query.toLowerCase() : "";
     for (String key : sortedKeys) {
       JSONObject user = merged.get(key);
-      // Text filter — matches SID or display name
+      // Text filter — matches SID, or is in the additionalSids list (display name matches from client cache)
       if (!lowerQuery.isEmpty()) {
         boolean textMatch = user.getString("name").toLowerCase().contains(lowerQuery);
-        if (!textMatch && user.has("displayName")) {
-          textMatch = user.getString("displayName").toLowerCase().contains(lowerQuery);
+        if (!textMatch) {
+          textMatch = additionalSidSet.contains(key);
         }
         if (!textMatch) continue;
       }
