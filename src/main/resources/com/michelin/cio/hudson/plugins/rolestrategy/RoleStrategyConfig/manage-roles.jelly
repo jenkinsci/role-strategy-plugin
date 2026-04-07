@@ -12,9 +12,6 @@
         <a href="${rootURL}/manage/role-strategy/permission-templates" class="jenkins-button">
           ${%Permission Templates}
         </a>
-        <a href="${rootURL}/manage/role-strategy/list-macros" class="jenkins-button">
-          ${%Macros}
-        </a>
       </l:app-bar>
     </l:view></j:set>
     <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" title="${%Roles}" noDefer="true" includeBreadcrumb="true" header="${header}">

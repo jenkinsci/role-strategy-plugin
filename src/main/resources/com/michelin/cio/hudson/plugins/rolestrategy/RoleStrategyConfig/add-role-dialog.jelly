@@ -14,6 +14,7 @@
       </f:entry>
 
       <f:entry title="${%Pattern}" class="jenkins-hidden">
+        <a href="list-macros" target="_blank" class="jenkins-form-description">View available macros</a>
         <f:textbox name="pattern"/>
       </f:entry>
 
