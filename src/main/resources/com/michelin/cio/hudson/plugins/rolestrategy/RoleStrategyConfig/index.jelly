@@ -5,7 +5,7 @@
       <l:app-bar title="${it.displayName}">
         <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
           <button type="button" class="jenkins-button jenkins-button--primary rsp-assign-role-btn">
-            <l:icon src="symbol-person-add-outline plugin-ionicons-api" />
+            <l:icon src="symbol-add" />
             ${%Assign role}
           </button>
         </j:if>
