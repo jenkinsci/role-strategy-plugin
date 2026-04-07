@@ -378,7 +378,7 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
   const dropdown = document.querySelector(".rsp-tpl-filter-dropdown");
   if (!dropdown) return;
 
-  const searchInput = dropdown.querySelector(".rsp-tpl-filter-search");
+  const searchInput = dropdown.querySelector(".rsp-tpl-filter-search input");
   const clearBtn = dropdown.querySelector(".rsp-tpl-filter-clear");
   const resetBtn = dropdown.querySelector(".rsp-tpl-filter-reset");
 
