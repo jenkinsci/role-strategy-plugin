@@ -178,7 +178,7 @@
                               <div class="rsp-filter__group-title">${g.title}</div>
                               <j:forEach var="p" items="${g.permissions}">
                                 <j:if test="${it.strategy.descriptor.showPermission(roleType, p)}">
-                                  <button type="button" class="rsp-filter__item"
+                                  <button type="button" class="jenkins-dropdown__item"
                                           data-filter-permission="${p.id}"
                                           data-filter-label="${g.title} ${p.name}">
                                     <span class="rsp-filter__item-indicator"></span>
@@ -240,7 +240,7 @@
                         <div class="rsp-filter__group-title">${g.title}</div>
                         <j:forEach var="p" items="${g.permissions}">
                           <j:if test="${it.strategy.descriptor.showPermission(it.strategy.GLOBAL, p) or it.strategy.descriptor.showPermission(it.strategy.PROJECT, p) or it.strategy.descriptor.showPermission(it.strategy.SLAVE, p)}">
-                            <button type="button" class="rsp-filter__item"
+                            <button type="button" class="jenkins-dropdown__item"
                                     data-filter-permission="${p.id}"
                                     data-filter-label="${g.title} ${p.name}">
                               <span class="rsp-filter__item-indicator"></span>

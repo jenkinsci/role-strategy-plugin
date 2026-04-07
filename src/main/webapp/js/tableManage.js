@@ -576,7 +576,7 @@ const rspPopulateRoleFilter = () => {
     roles.forEach((role) => {
       const item = document.createElement("button");
       item.type = "button";
-      item.classList.add("rsp-filter__item");
+      item.classList.add("jenkins-dropdown__item");
       item.dataset.assignType = type;
       item.dataset.roleName = role.name;
       item.dataset.filterLabel = (rspTypeLabels[type] + " " + role.name).toLowerCase();
@@ -621,7 +621,7 @@ const rspInitRoleFilterDropdown = () => {
   // Search within dropdown
   const applyFilterSearch = () => {
     const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
-    dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
+    dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
       const label = item.dataset.filterLabel || "";
       item.classList.toggle("rsp-filter__item--filter-hidden", q !== "" && !label.includes(q));
     });
@@ -629,7 +629,7 @@ const rspInitRoleFilterDropdown = () => {
       let next = title.nextElementSibling;
       let hasVisible = false;
       while (next && !next.classList.contains("rsp-filter__group-title")) {
-        if (next.classList.contains("rsp-filter__item") && !next.classList.contains("rsp-filter__item--filter-hidden")) {
+        if (next.classList.contains("jenkins-dropdown__item") && !next.classList.contains("rsp-filter__item--filter-hidden")) {
           hasVisible = true;
         }
         next = next.nextElementSibling;

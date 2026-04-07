@@ -382,7 +382,7 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
   const resetBtn = dropdown.querySelector(".rsp-tpl-filter-reset");
 
   // Filter items click
-  dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
+  dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
     item.addEventListener("click", () => {
       item.classList.toggle("rsp-filter__item--active");
       tplActivePermFilters = [];
@@ -396,7 +396,7 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
   // Search within dropdown
   const applyFilterSearch = () => {
     const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
-    dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
+    dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
       const label = (item.dataset.filterLabel || "").toLowerCase();
       item.classList.toggle("rsp-filter__item--filter-hidden", q !== "" && !label.includes(q));
     });
@@ -404,13 +404,13 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
       let next = title.nextElementSibling;
       let hasVisible = false;
       while (next && !next.classList.contains("rsp-filter__group-title")) {
-        if (next.classList.contains("rsp-filter__item") && !next.classList.contains("rsp-filter__item--filter-hidden")) hasVisible = true;
+        if (next.classList.contains("jenkins-dropdown__item") && !next.classList.contains("rsp-filter__item--filter-hidden")) hasVisible = true;
         next = next.nextElementSibling;
       }
       title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
     });
     const noResults = dropdown.querySelector(".rsp-filter__no-results");
-    if (noResults) noResults.hidden = !!dropdown.querySelector(".rsp-filter__item:not(.rsp-filter__item--filter-hidden)");
+    if (noResults) noResults.hidden = !!dropdown.querySelector(".jenkins-dropdown__item:not(.rsp-filter__item--filter-hidden)");
   };
 
   if (searchInput) { searchInput.addEventListener("input", applyFilterSearch); searchInput.addEventListener("click", (e) => e.stopPropagation()); }
