@@ -801,9 +801,9 @@ Behaviour.specify(".rsp-user-delete", "RoleStrategyAssign", 0, (btn) => {
     const userName = card.dataset.userName;
     const userType = card.dataset.userType;
 
-    dialog.confirm("Remove user/group", {
-      message: `Remove all role assignments for "${userName}"?`,
+    dialog.confirm(`Remove all role assignments for "${userName}"?`, {
       type: "destructive",
+      okText: "Remove",
     }).then(() => {
       // Remove from all assignment data
       rspAssignTypes.forEach((type) => {

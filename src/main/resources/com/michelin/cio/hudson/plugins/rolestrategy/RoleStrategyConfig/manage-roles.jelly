@@ -119,7 +119,7 @@
                       <j:if test="${showPattern == 'true'}">
                         <button type="button" class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-card__edit-pattern"
                                 tooltip="${%Edit pattern}">
-                          <l:icon src="symbol-pencil plugin-ionicons-api" class="icon-sm"/>
+                          <l:icon src="symbol-edit" class="icon-sm"/>
                         </button>
                       </j:if>
                       <button type="button" class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-card__delete"
@@ -216,7 +216,7 @@
                 <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-roles-perm-filter-btn"
                         aria-expanded="false" aria-haspopup="true"
                         tooltip="${%Filter by permission}">
-                  <l:icon src="symbol-funnel-outline plugin-ionicons-api" class="icon-sm"/>
+                  <l:icon src="symbol-filter-outline plugin-ionicons-api" class="icon-sm"/>
                 </button>
                 <div class="rsp-filter__dropdown rsp-roles-perm-filter-dropdown" hidden="true">
                   <div class="rsp-filter__header">
