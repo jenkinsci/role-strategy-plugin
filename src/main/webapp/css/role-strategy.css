@@ -56,10 +56,12 @@
   max-height: 420px;
   display: flex;
   flex-direction: column;
-  background: var(--background);
-  border: var(--jenkins-border);
-  border-radius: var(--form-input-border-radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  /* Copied from core */
+  background: color-mix(in sRGB, var(--card-background) 85%, transparent);
+  backdrop-filter: var(--dropdown-backdrop-filter);
+  box-shadow: var(--dropdown-box-shadow);
+  border-radius: 1rem;
 }
 
 .rsp-filter__dropdown[hidden] {
