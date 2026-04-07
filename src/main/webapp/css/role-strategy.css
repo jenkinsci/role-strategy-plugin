@@ -99,30 +99,12 @@
   padding: 0.375rem 0.5rem;
   border-bottom: var(--jenkins-border);
   flex-shrink: 0;
-  position: relative;
   display: flex;
   align-items: center;
 }
 
-.rsp-filter__search-input {
-  margin: 0.375rem;
-}
-
-.rsp-filter__search-clear {
-  position: absolute;
-  right: 0.75rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-color-secondary);
-  font-size: 1rem;
-  line-height: 1;
-  padding: 0.125rem;
-  display: none;
-}
-
-.rsp-filter__search-clear--visible {
-  display: block;
+.rsp-filter__search .jenkins-search {
+  width: 100%;
 }
 
 .rsp-filter__list {

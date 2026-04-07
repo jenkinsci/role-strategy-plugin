@@ -379,7 +379,6 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
   if (!dropdown) return;
 
   const searchInput = dropdown.querySelector(".rsp-tpl-filter-search input");
-  const clearBtn = dropdown.querySelector(".rsp-tpl-filter-clear");
   const resetBtn = dropdown.querySelector(".rsp-tpl-filter-reset");
 
   // Filter items click
@@ -410,13 +409,11 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
       }
       title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
     });
-    if (clearBtn) clearBtn.classList.toggle("rsp-filter__search-clear--visible", q !== "");
     const noResults = dropdown.querySelector(".rsp-filter__no-results");
     if (noResults) noResults.hidden = !!dropdown.querySelector(".rsp-filter__item:not(.rsp-filter__item--filter-hidden)");
   };
 
   if (searchInput) { searchInput.addEventListener("input", applyFilterSearch); searchInput.addEventListener("click", (e) => e.stopPropagation()); }
-  if (clearBtn) { clearBtn.addEventListener("click", (e) => { e.stopPropagation(); searchInput.value = ""; applyFilterSearch(); searchInput.focus(); }); }
   if (resetBtn) {
     resetBtn.addEventListener("click", (e) => {
       e.preventDefault();

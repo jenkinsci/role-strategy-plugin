@@ -162,8 +162,9 @@
                           <button type="button" class="rsp-filter__reset-button" hidden="true">${%Reset}</button>
                         </div>
                         <div class="rsp-filter__search">
-                          <input type="text" class="jenkins-input rsp-filter__search-input" placeholder="${%Search permissions}" />
-                          <button type="button" class="rsp-filter__search-clear" aria-label="Clear">&#xd7;</button>
+                          <l:search-bar placeholder="${%Search permissions}"
+                                        clazz="rsp-filter__search-bar"
+                                        hasKeyboardShortcut="false" />
                         </div>
                         <div class="rsp-filter__list">
                           <j:forEach var="g" items="${permissionGroups}">
@@ -221,9 +222,9 @@
                     <button type="button" class="rsp-filter__reset-button rsp-roles-perm-filter-reset" hidden="true">${%Reset}</button>
                   </div>
                   <div class="rsp-filter__search">
-                    <input type="text" class="jenkins-input rsp-filter__search-input rsp-roles-perm-filter-search"
-                           placeholder="${%Search permissions}" />
-                    <button type="button" class="rsp-filter__search-clear rsp-roles-perm-filter-clear" aria-label="Clear">&#xd7;</button>
+                    <l:search-bar placeholder="${%Search permissions}"
+                                  clazz="rsp-filter__search-bar rsp-roles-perm-filter-search"
+                                  hasKeyboardShortcut="false" />
                   </div>
                   <div class="rsp-filter__list">
                     <!-- Unified permission list — only show permissions visible in at least one role type -->

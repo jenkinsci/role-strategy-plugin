@@ -615,8 +615,7 @@ const rspInitRoleFilterDropdown = () => {
   const dropdown = document.querySelector(".rsp-role-filter-dropdown");
   if (!btn || !dropdown) return;
 
-  const searchInput = dropdown.querySelector(".rsp-role-filter-search");
-  const clearBtn = dropdown.querySelector(".rsp-role-filter-clear");
+  const searchInput = dropdown.querySelector(".rsp-role-filter-search input");
   const resetBtn = dropdown.querySelector(".rsp-role-filter-reset");
 
   // Search within dropdown
@@ -637,21 +636,11 @@ const rspInitRoleFilterDropdown = () => {
       }
       title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
     });
-    if (clearBtn) clearBtn.classList.toggle("rsp-filter__search-clear--visible", q !== "");
   };
 
   if (searchInput) {
     searchInput.addEventListener("input", applyFilterSearch);
     searchInput.addEventListener("click", (e) => e.stopPropagation());
-  }
-
-  if (clearBtn) {
-    clearBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      searchInput.value = "";
-      applyFilterSearch();
-      searchInput.focus();
-    });
   }
 
   if (resetBtn) {

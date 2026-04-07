@@ -142,9 +142,11 @@
                 <span class="rsp-filter__header-label">${%Filter by permission}</span>
                 <button type="button" class="rsp-filter__reset-button rsp-tpl-filter-reset" hidden="true">${%Reset}</button>
               </div>
-              <l:search-bar placeholder="${%Search permissions}"
-                            clazz="rsp-filter__search-input rsp-tpl-filter-search"
-                            hasKeyboardShortcut="false" />
+              <div class="rsp-filter__search">
+                <l:search-bar placeholder="${%Search permissions}"
+                              clazz="rsp-filter__search-bar rsp-tpl-filter-search"
+                              hasKeyboardShortcut="false" />
+              </div>
               <div class="rsp-filter__list">
                 <j:forEach var="g" items="${itemPermissionGroups}">
                   <j:set var="hasFilterPerms" value="${false}"/>

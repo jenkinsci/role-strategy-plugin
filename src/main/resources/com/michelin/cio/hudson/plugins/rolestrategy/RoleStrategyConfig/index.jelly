@@ -64,9 +64,9 @@
                 <button type="button" class="rsp-filter__reset-button rsp-role-filter-reset" hidden="true">${%Reset}</button>
               </div>
               <div class="rsp-filter__search">
-                <input type="text" class="jenkins-input rsp-filter__search-input rsp-role-filter-search"
-                       placeholder="${%Search roles}" />
-                <button type="button" class="rsp-filter__search-clear rsp-role-filter-clear" aria-label="Clear">&#xd7;</button>
+                <l:search-bar placeholder="${%Search roles}"
+                              clazz="rsp-filter__search-bar rsp-role-filter-search"
+                              hasKeyboardShortcut="false" />
               </div>
               <div class="rsp-filter__list rsp-role-filter-list">
               </div>

@@ -1084,8 +1084,7 @@ Behaviour.specify(".rsp-roles-perm-filter-btn", "RoleStrategyRoles", 0, (btn) =>
   });
 
   // Search within dropdown
-  const searchInput = dropdown.querySelector(".rsp-roles-perm-filter-search");
-  const clearBtn = dropdown.querySelector(".rsp-roles-perm-filter-clear");
+  const searchInput = dropdown.querySelector(".rsp-roles-perm-filter-search input");
   const applySearch = () => {
     const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
     dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
@@ -1100,12 +1099,10 @@ Behaviour.specify(".rsp-roles-perm-filter-btn", "RoleStrategyRoles", 0, (btn) =>
       }
       title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
     });
-    if (clearBtn) clearBtn.classList.toggle("rsp-filter__search-clear--visible", q !== "");
     const noResults = dropdown.querySelector(".rsp-filter__no-results");
     if (noResults) noResults.hidden = !!dropdown.querySelector(".rsp-filter__item:not(.rsp-filter__item--filter-hidden)");
   };
   if (searchInput) { searchInput.addEventListener("input", applySearch); searchInput.addEventListener("click", (e) => e.stopPropagation()); }
-  if (clearBtn) { clearBtn.addEventListener("click", (e) => { e.stopPropagation(); searchInput.value = ""; applySearch(); searchInput.focus(); }); }
 
   // Reset
   const resetBtn = dropdown.querySelector(".rsp-roles-perm-filter-reset");
@@ -1149,8 +1146,7 @@ Behaviour.specify(".rsp-filter__button", "RoleStrategyRoles", 0, (btn) => {
     item.addEventListener("click", () => { item.classList.toggle("rsp-filter__item--active"); if (container) rspApplyFilters(container); });
   });
 
-  const filterSearchInput = dropdown.querySelector(".rsp-filter__search-input");
-  const filterSearchClear = dropdown.querySelector(".rsp-filter__search-clear");
+  const filterSearchInput = dropdown.querySelector(".rsp-filter__search-bar input");
   const applyFilterSearch = () => {
     const q = filterSearchInput ? filterSearchInput.value.toLowerCase().trim() : "";
     dropdown.querySelectorAll(".rsp-filter__item").forEach((item) => {
@@ -1166,12 +1162,10 @@ Behaviour.specify(".rsp-filter__button", "RoleStrategyRoles", 0, (btn) => {
       }
       title.classList.toggle("rsp-filter__group-title--filter-hidden", !hasVisible);
     });
-    if (filterSearchClear) filterSearchClear.classList.toggle("rsp-filter__search-clear--visible", q !== "");
     const noResults = dropdown.querySelector(".rsp-filter__no-results");
     if (noResults) noResults.hidden = !!dropdown.querySelector(".rsp-filter__item:not(.rsp-filter__item--filter-hidden)");
   };
   if (filterSearchInput) { filterSearchInput.addEventListener("input", applyFilterSearch); filterSearchInput.addEventListener("click", (e) => e.stopPropagation()); }
-  if (filterSearchClear) { filterSearchClear.addEventListener("click", (e) => { e.stopPropagation(); filterSearchInput.value = ""; applyFilterSearch(); filterSearchInput.focus(); }); }
 
   const resetBtn = dropdown.querySelector(".rsp-filter__reset-button");
   if (resetBtn) {
