@@ -134,12 +134,11 @@
 }
 
 .rsp-filter__group-title {
+  color: var(--text-color-secondary) !important;
+  margin: 0.375rem 0.65rem;
+  font-size: 0.8125rem;
   font-weight: var(--font-bold-weight);
-  font-size: 0.6875rem;
-  color: var(--text-color-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 0.5rem 0.75rem 0.25rem;
+  opacity: 0.8;
 }
 
 .rsp-filter__item {
