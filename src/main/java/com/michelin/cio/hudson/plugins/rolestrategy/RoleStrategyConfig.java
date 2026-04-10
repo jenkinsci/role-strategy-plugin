@@ -347,6 +347,77 @@ public class RoleStrategyConfig extends ManagementLink {
     rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
   }
 
+  /**
+   * Called from the edit role dialog form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  @SuppressWarnings("unchecked")
+  public void doEditRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    req.setCharacterEncoding("UTF-8");
+
+    JSONObject json;
+    try {
+      json = req.getSubmittedForm();
+    } catch (Exception e) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+      return;
+    }
+
+    String scope = json.optString("scope", "globalRoles");
+    String originalRoleName = json.optString("originalRoleName", "").trim();
+    String pattern = json.optString("pattern", ".*").trim();
+    String templateName = json.optString("templateName", "");
+
+    if (originalRoleName.isEmpty()) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+      return;
+    }
+
+    if ("globalRoles".equals(scope)) {
+      pattern = ".*";
+    } else if (pattern.isEmpty()) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+      return;
+    }
+
+    // Collect permissions from the nested "permissions" object
+    java.util.Set<Permission> permissions = new java.util.HashSet<>();
+    JSONObject permissionsJson = json.optJSONObject("permissions");
+    if (permissionsJson != null) {
+      for (String rawKey : (java.util.Set<String>) permissionsJson.keySet()) {
+        if (permissionsJson.optBoolean(rawKey, false)) {
+          Permission p = Permission.fromId(rawKey);
+          if (p != null) {
+            permissions.add(p);
+          }
+        }
+      }
+    }
+
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      RoleType roleType = RoleType.fromString(scope);
+      RoleMap roleMap = rbas.getRoleMap(roleType);
+      Role existingRole = roleMap.getRole(originalRoleName);
+      if (existingRole != null) {
+        // Preserve existing SID assignments
+        java.util.Set<PermissionEntry> sids = roleMap.getGrantedRolesEntries().get(existingRole);
+        roleMap.removeRole(existingRole);
+        Role updatedRole = new Role(originalRoleName, java.util.regex.Pattern.compile(pattern), permissions, "", templateName.isEmpty() ? null : templateName);
+        roleMap.addRole(updatedRole, sids != null ? sids : new java.util.HashSet<>());
+        try {
+          Jenkins.get().save();
+        } catch (Exception e) {
+          throw new ServletException(e);
+        }
+      }
+    }
+
+    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+  }
+
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
     return RoleMacroExtension.all();
   }
@@ -362,4 +433,5 @@ public class RoleStrategyConfig extends ManagementLink {
   public final RoleType getSlaveRoleType() {
     return RoleType.Slave;
   }
+
 }

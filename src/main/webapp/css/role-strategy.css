@@ -572,6 +572,15 @@
 }
 
 /* ============================================
+   Card body — view-only permissions (editing via dialog)
+   ============================================ */
+
+.rsp-card__body .rsp-perm__item {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ============================================
    Highlight Animation
    ============================================ */
 

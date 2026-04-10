@@ -113,12 +113,10 @@
                   <span class="rsp-card__summary" data-empty-text="${%No permissions}"></span>
                   <div class="rsp-card__actions">
                     <l:hasPermission permission="${neededPermission}">
-                      <j:if test="${showPattern == 'true'}">
-                        <button type="button" class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-card__edit-pattern"
-                                tooltip="${%Edit pattern}">
-                          <l:icon src="symbol-edit" class="icon-sm"/>
-                        </button>
-                      </j:if>
+                      <button type="button" class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-card__edit"
+                              tooltip="${%Edit role}">
+                        <l:icon src="symbol-edit" class="icon-sm"/>
+                      </button>
                       <button type="button" class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-card__delete"
                               tooltip="${%Delete role}">
                         <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm"/>

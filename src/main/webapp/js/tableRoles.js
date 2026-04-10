@@ -480,7 +480,7 @@ Behaviour.specify(".rsp-perm__item input[type=checkbox]", "RoleStrategyRoles", 0
   cb.dataset.initialized = "true";
   cb.addEventListener("change", () => {
     const card = cb.closest(".rsp-card");
-    if (card) { rspUpdateImplied(card); rspUpdateSummary(card); rspAutoSave(); }
+    if (card) { rspUpdateImplied(card); rspUpdateSummary(card); }
   });
 });
 
@@ -540,22 +540,118 @@ Behaviour.specify(".rsp-card__delete", "RoleStrategyRoles", 0, (btn) => {
   });
 });
 
-Behaviour.specify(".rsp-card__edit-pattern", "RoleStrategyRoles", 0, (btn) => {
+// ============================================
+// Edit role dialog (Jelly-based, matching Add Role)
+// ============================================
+
+const rspInitEditRoleDialog = (form) => {
+  if (form.dataset.dialogInit === "true") return;
+  form.dataset.dialogInit = "true";
+
+  let savedManualSelections = null;
+
+  const updateTemplate = () => {
+    const templateSelect = form.querySelector("[name='templateName']");
+    if (!templateSelect) return;
+    const permContainer = form.querySelector("[name='permissions']");
+    if (!permContainer) return;
+    const checkboxes = permContainer.querySelectorAll("input[type='checkbox']");
+    const templateName = templateSelect.value;
+    if (templateName) {
+      if (!savedManualSelections) {
+        savedManualSelections = {};
+        checkboxes.forEach((cb) => { if (cb.name) savedManualSelections[cb.name] = cb.checked; });
+      }
+      const dataEl = form.querySelector(`.rsp-template-perm-data[data-template-name='${CSS.escape(templateName)}']`);
+      let templatePerms = new Set();
+      if (dataEl) { try { templatePerms = new Set(JSON.parse(dataEl.textContent)); } catch (e) {} }
+      checkboxes.forEach((cb) => { const pid = cb.name.replace(/^\[|]$/g, ""); cb.checked = templatePerms.has(pid); cb.disabled = true; });
+      const permEntry = permContainer.closest(".jenkins-form-item");
+      if (permEntry) permEntry.style.opacity = "0.6";
+    } else {
+      checkboxes.forEach((cb) => {
+        cb.disabled = false;
+        if (savedManualSelections && savedManualSelections[cb.name] !== undefined) cb.checked = savedManualSelections[cb.name];
+      });
+      savedManualSelections = null;
+      const permEntry = permContainer.closest(".jenkins-form-item");
+      if (permEntry) permEntry.style.opacity = "1";
+    }
+  };
+
+  const validateAndSubmit = () => {
+    const scope = form.querySelector("input[name='scope']")?.value;
+    if (scope !== "globalRoles") {
+      const patternInput = form.querySelector("input[name='pattern']");
+      if (!patternInput || !patternInput.value.trim()) {
+        patternInput?.focus();
+        if (patternInput) { patternInput.style.outline = "2px solid var(--error-color)"; patternInput.addEventListener("input", () => { patternInput.style.outline = ""; }, { once: true }); }
+        return;
+      }
+    }
+    form.requestSubmit();
+  };
+
+  const applyPermFilter = () => {
+    const filterEl = form.querySelector(".rsp-perm-dialog-filter input");
+    const q = filterEl ? filterEl.value.toLowerCase().trim() : "";
+    const permContainer = form.querySelector("[name='permissions']");
+    if (!permContainer) return;
+
+    let visibleCount = 0;
+    permContainer.querySelectorAll(".rsp-assign-dialog__role-item").forEach((item) => {
+      const match = q === "" || (item.dataset.roleName || "").toLowerCase().includes(q);
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+    permContainer.querySelectorAll(".rsp-assign-dialog__group-title").forEach((title) => {
+      let next = title.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.classList.contains("rsp-assign-dialog__group-title")) {
+        if (next.classList.contains("rsp-assign-dialog__group")) {
+          next.querySelectorAll(".rsp-assign-dialog__role-item").forEach((child) => { if (child.style.display !== "none") hasVisible = true; });
+        }
+        next = next.nextElementSibling;
+      }
+      title.style.display = hasVisible ? "" : "none";
+    });
+
+    const noResults = permContainer.querySelector(".rsp-assign-dialog__no-results");
+    if (noResults) noResults.classList.toggle("jenkins-hidden", visibleCount > 0 || q === "");
+  };
+
+  const filterInput = form.querySelector(".rsp-perm-dialog-filter input");
+  if (filterInput) {
+    filterInput.addEventListener("input", applyPermFilter);
+  }
+
+  const templateSelect = form.querySelector("[name='templateName']");
+  if (templateSelect) templateSelect.addEventListener("change", updateTemplate);
+  const submitBtn = form.querySelector("#rsp-edit-role-submit-btn");
+  if (submitBtn) submitBtn.addEventListener("click", validateAndSubmit);
+  form.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); validateAndSubmit(); } });
+};
+
+Behaviour.specify(".rsp-card__edit", "RoleStrategyRoles", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const card = btn.closest(".rsp-card");
     if (!card) return;
-    dialog.prompt("Edit pattern", { message: "Enter the new pattern:", defaultValue: card.dataset.rolePattern || "" }).then((newPattern) => {
-      if (newPattern === null || newPattern === undefined) return;
-      newPattern = newPattern.trim();
-      if (!newPattern) return;
-      card.dataset.rolePattern = newPattern;
-      const patternSpan = card.querySelector(".rsp-card__pattern");
-      if (patternSpan) { patternSpan.textContent = `"${newPattern}"`; patternSpan.dataset.pattern = newPattern; }
-      rspAutoSave();
-    }).catch(() => {});
+    const container = card.closest(".rsp-container");
+    if (!container) return;
+    const roleName = card.dataset.roleName;
+    const scope = container.dataset.roleType;
+    const rootUrl = document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") || "";
+    const dialogUrl = `${rootUrl}/manage/role-strategy/edit-role-dialog?roleName=${encodeURIComponent(roleName)}&scope=${encodeURIComponent(scope)}`;
+    dialog.wizard(dialogUrl);
+    const initDialog = () => {
+      const form = document.querySelector("form[name='edit-role']");
+      if (!form) { setTimeout(initDialog, 100); return; }
+      rspInitEditRoleDialog(form);
+    };
+    setTimeout(initDialog, 200);
   });
 });
 

@@ -1,0 +1,105 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+  <st:setHeader name="X-Dialog-Title" value="${%Edit Role}"/>
+
+  <j:set var="scope" value="${request.getParameter('scope')}"/>
+  <j:set var="roleName" value="${request.getParameter('roleName')}"/>
+
+  <j:set var="roleTypeKey" value="${scope == 'globalRoles' ? it.strategy.GLOBAL : (scope == 'projectRoles' ? it.strategy.PROJECT : it.strategy.SLAVE)}"/>
+  <j:set var="roleTypeEnum" value="${scope == 'globalRoles' ? it.globalRoleType : (scope == 'projectRoles' ? it.projectRoleType : it.slaveRoleType)}"/>
+  <j:set var="role" value="${it.strategy.getRoleMap(roleTypeEnum).getRole(roleName)}"/>
+
+  <l:ajax>
+    <f:form name="edit-role" method="post" action="${rootURL}/manage/role-strategy/editRoleSubmit">
+      <input type="hidden" name="scope" value="${scope}"/>
+      <input type="hidden" name="originalRoleName" value="${roleName}"/>
+
+      <f:entry title="${%Role name}">
+        <f:textbox name="roleName" value="${roleName}" disabled="true"/>
+      </f:entry>
+
+      <j:if test="${scope != 'globalRoles'}">
+        <f:entry title="${%Pattern}">
+          <a href="list-macros" target="_blank" class="jenkins-form-description">View available macros</a>
+          <f:textbox name="pattern" value="${role.pattern.toString()}"/>
+        </f:entry>
+      </j:if>
+
+      <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
+      <j:if test="${!permissionTemplates.isEmpty() and scope == 'projectRoles'}">
+        <f:entry title="${%Permission template}">
+          <div class="jenkins-select">
+            <select name="templateName" class="jenkins-select__input">
+              <option value="">${%none}</option>
+              <j:forEach var="tmpl" items="${permissionTemplates}">
+                <j:choose>
+                  <j:when test="${role.templateName == tmpl.name}">
+                    <option value="${tmpl.name}" selected="selected">${tmpl.name}</option>
+                  </j:when>
+                  <j:otherwise>
+                    <option value="${tmpl.name}">${tmpl.name}</option>
+                  </j:otherwise>
+                </j:choose>
+              </j:forEach>
+            </select>
+          </div>
+          <!-- Template permission data for JS -->
+          <j:forEach var="tmpl" items="${permissionTemplates}">
+            <script type="application/json" class="rsp-template-perm-data" data-template-name="${tmpl.name}">
+              [<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]
+            </script>
+          </j:forEach>
+        </f:entry>
+      </j:if>
+
+      <j:set var="isTemplated" value="${role.templateName != null and role.templateName != ''}"/>
+      <j:set var="permissionTemplate" value="${isTemplated ? it.strategy.getPermissionTemplate(role.templateName) : null}"/>
+
+      <f:entry title="${%Permissions}">
+        <l:search-bar placeholder="${%Filter permissions}" clazz="rsp-perm-dialog-filter" hasKeyboardShortcut="false" />
+
+        <div class="rsp-assign-dialog__roles" name="permissions">
+          <j:set var="groups" value="${it.strategy.descriptor.getGroups(roleTypeKey)}"/>
+          <j:forEach var="g" items="${groups}">
+            <j:set var="hasVisible" value="${false}"/>
+            <j:forEach var="p" items="${g.permissions}">
+              <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
+                <j:set var="hasVisible" value="${true}"/>
+              </j:if>
+            </j:forEach>
+            <j:if test="${hasVisible}">
+              <div class="rsp-assign-dialog__group-title">${g.title}</div>
+              <div class="rsp-assign-dialog__group">
+                <j:forEach var="p" items="${g.permissions}">
+                  <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
+                    <j:set var="isChecked" value="${role.hasPermission(p) or (permissionTemplate != null and permissionTemplate.hasPermission(p))}"/>
+                    <div class="rsp-assign-dialog__role-item jenkins-checkbox" data-role-name="${p.name}" data-permission-id="${p.id}">
+                      <j:choose>
+                        <j:when test="${isChecked}">
+                          <input type="checkbox" name="[${p.id}]" id="perm-edit-${p.id}" checked="checked"
+                                 disabled="${isTemplated ? 'disabled' : null}"/>
+                        </j:when>
+                        <j:otherwise>
+                          <input type="checkbox" name="[${p.id}]" id="perm-edit-${p.id}"
+                                 disabled="${isTemplated ? 'disabled' : null}"/>
+                        </j:otherwise>
+                      </j:choose>
+                      <label for="perm-edit-${p.id}">${p.name}</label>
+                    </div>
+                  </j:if>
+                </j:forEach>
+              </div>
+            </j:if>
+          </j:forEach>
+          <div class="rsp-assign-dialog__no-results jenkins-hidden" style="padding:1rem;text-align:center;color:var(--text-color-secondary);font-style:italic;">
+            ${%No matching permissions}
+          </div>
+        </div>
+      </f:entry>
+
+      <f:bottomButtonBar>
+        <button id="rsp-edit-role-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Save}</button>
+      </f:bottomButtonBar>
+    </f:form>
+  </l:ajax>
+</j:jelly>
