@@ -198,12 +198,12 @@ class RoleStrategyRootActionTest {
     webClient.login("itemAdminUser", "itemAdminUser");
 
     // Test that subpages work through the root action
-    URL url = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/assign-roles");
+    URL url = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/manage-roles");
     WebRequest request = new WebRequest(url, HttpMethod.GET);
 
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(),
-        "itemAdmin should be able to access /role-strategy/assign-roles through RootAction delegation");
+        "itemAdmin should be able to access /role-strategy/manage-roles through RootAction delegation");
   }
 
   @Test
