@@ -45,3 +45,18 @@ window.rspUpdateCardBorders = function (container) {
 window.toQueryString = function (params) {
   return "?" + new URLSearchParams(params).toString();
 };
+
+var escapeHTML = function(unsafe) {
+  return unsafe.replace(/[&<"']/g, function (m) {
+    switch (m) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '"':
+        return '&quot;';
+      default:
+        return '&#039;';
+    }
+  });
+}
