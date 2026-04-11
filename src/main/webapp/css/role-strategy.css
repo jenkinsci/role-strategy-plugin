@@ -572,6 +572,22 @@
 }
 
 /* ============================================
+   Cards with no permissions — non-expandable
+   ============================================ */
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__header {
+  cursor: default;
+}
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__header:hover {
+  background: none;
+}
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__toggle {
+  visibility: hidden;
+}
+
+/* ============================================
    Card body — view-only permissions (editing via dialog)
    ============================================ */
 

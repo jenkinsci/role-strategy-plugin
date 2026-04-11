@@ -467,7 +467,11 @@ Behaviour.specify(".rsp-card__header", "RoleStrategyRoles", 0, (header) => {
   const handleToggle = (e) => {
     if (e.target.closest(".rsp-card__actions") && !e.target.closest(".rsp-card__toggle")) return;
     const card = header.closest(".rsp-card");
-    if (card) rspToggleCard(card);
+    if (!card) return;
+    // Don't expand cards with no permissions
+    const summary = card.querySelector(".rsp-card__summary");
+    if (summary && summary.classList.contains("rsp-card__summary--empty")) return;
+    rspToggleCard(card);
   };
   header.addEventListener("click", handleToggle);
   header.addEventListener("keydown", (e) => {

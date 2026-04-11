@@ -352,6 +352,9 @@ const rspPopulateCardBody = (card) => {
   rspAssignTypes.forEach((type) => {
     const roles = rspRoleDefinitions[type];
     if (!roles || roles.length === 0) return;
+    const assignedRoleNames = user.roles[type] || [];
+    const assignedRoles = roles.filter((role) => assignedRoleNames.includes(role.name));
+    if (assignedRoles.length === 0) return;
 
     const group = document.createElement("fieldset");
     group.classList.add("rsp-perm__group");
@@ -364,7 +367,7 @@ const rspPopulateCardBody = (card) => {
     const perms = document.createElement("div");
     perms.classList.add("rsp-perm__permissions");
 
-    roles.forEach((role) => {
+    assignedRoles.forEach((role) => {
       const label = document.createElement("label");
       label.classList.add("rsp-perm__item");
       label.dataset.roleName = role.name;
@@ -374,7 +377,7 @@ const rspPopulateCardBody = (card) => {
       cb.type = "checkbox";
       cb.dataset.roleName = role.name;
       cb.dataset.assignType = type;
-      cb.checked = (user.roles[type] || []).includes(role.name);
+      cb.checked = true;
       label.appendChild(cb);
 
       const nameSpan = document.createElement("span");
