@@ -545,6 +545,52 @@ Behaviour.specify(".rsp-card__delete", "RoleStrategyRoles", 0, (btn) => {
 });
 
 // ============================================
+// Implied permissions for role dialogs (add/edit)
+// ============================================
+
+const rspDialogUpdateImplied = (container) => {
+  container.querySelectorAll(".rsp-assign-dialog__role-item[data-implied-by-list]").forEach((item) => {
+    const cb = item.querySelector("input[type=checkbox]");
+    if (!cb) return;
+    const impliedByStr = item.getAttribute("data-implied-by-list");
+    if (!impliedByStr || !impliedByStr.trim()) return;
+    const impliedByList = impliedByStr.trim().split(" ");
+    let isImplied = false;
+    for (const permId of impliedByList) {
+      const ref = container.querySelector(`.rsp-assign-dialog__role-item[data-permission-id='${permId}'] input[type=checkbox]`);
+      if (ref && ref.checked && !ref.disabled) { isImplied = true; break; }
+    }
+    const impliedLabel = item.querySelector(".rsp-implied-label");
+    if (isImplied) {
+      cb.checked = true;
+      cb.disabled = true;
+      item.dataset.implied = "true";
+      if (impliedLabel) impliedLabel.hidden = false;
+    } else {
+      if (item.dataset.implied === "true") {
+        cb.checked = false;
+        cb.disabled = false;
+        item.dataset.implied = "false";
+      }
+      if (impliedLabel) impliedLabel.hidden = true;
+    }
+  });
+};
+
+const rspDialogUncheckImplied = (container) => {
+  container.querySelectorAll(".rsp-assign-dialog__role-item[data-implied='true'] input[type=checkbox]").forEach((cb) => {
+    cb.checked = false;
+  });
+};
+
+const rspDialogAttachImplied = (container) => {
+  container.querySelectorAll(".rsp-assign-dialog__role-item input[type=checkbox]").forEach((cb) => {
+    cb.addEventListener("change", () => rspDialogUpdateImplied(container));
+  });
+  rspDialogUpdateImplied(container);
+};
+
+// ============================================
 // Edit role dialog (Jelly-based, matching Add Role)
 // ============================================
 
@@ -593,6 +639,8 @@ const rspInitEditRoleDialog = (form) => {
         return;
       }
     }
+    const pc = form.querySelector("[name='permissions']");
+    if (pc) rspDialogUncheckImplied(pc);
     form.requestSubmit();
   };
 
@@ -634,6 +682,9 @@ const rspInitEditRoleDialog = (form) => {
   const submitBtn = form.querySelector("#rsp-edit-role-submit-btn");
   if (submitBtn) submitBtn.addEventListener("click", validateAndSubmit);
   form.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); validateAndSubmit(); } });
+
+  const permContainer = form.querySelector("[name='permissions']");
+  if (permContainer) rspDialogAttachImplied(permContainer);
 };
 
 Behaviour.specify(".rsp-card__edit", "RoleStrategyRoles", 0, (btn) => {
@@ -1002,6 +1053,8 @@ const rspInitAddRoleDialog = (form) => {
         return;
       }
     }
+    const pc = form.querySelector("[name='permissions']");
+    if (pc) rspDialogUncheckImplied(pc);
     form.requestSubmit();
   };
 
@@ -1042,7 +1095,11 @@ const rspInitAddRoleDialog = (form) => {
     filterInput.addEventListener("input", applyPermFilter);
   }
 
-  form.querySelectorAll("input[name='scope']").forEach((r) => r.addEventListener("change", updateScope));
+  form.querySelectorAll("input[name='scope']").forEach((r) => r.addEventListener("change", () => {
+    updateScope();
+    const permContainer = form.querySelector("[name='permissions']");
+    if (permContainer) rspDialogAttachImplied(permContainer);
+  }));
   const templateSelect = form.querySelector("[name='templateName']");
   if (templateSelect) templateSelect.addEventListener("change", updateTemplate);
   const submitBtn = form.querySelector("#rsp-add-role-submit-btn");
@@ -1050,6 +1107,8 @@ const rspInitAddRoleDialog = (form) => {
   form.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); validateAndSubmit(); } });
 
   updateScope();
+  const permContainer = form.querySelector("[name='permissions']");
+  if (permContainer) rspDialogAttachImplied(permContainer);
 };
 
 // Per-section search (kept for backward compat)

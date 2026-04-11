@@ -2,19 +2,22 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
   <j:set var="header">
-    <l:app-bar title="${%Permission Templates}">
-      <j:if test="${!permissionTemplates.isEmpty()}">
-        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-          <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
-            <l:icon src="symbol-add plugin-ionicons-api" />
-            ${%Add Template}
-          </button>
-        </l:hasPermission>
-      </j:if>
-    </l:app-bar>
-    <p class="jenkins-page-description">
-      ${%blurb}
-    </p>
+    <l:view>
+      <l:app-bar title="${%Permission Templates}">
+        <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
+        <j:if test="${!permissionTemplates.isEmpty()}">
+          <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
+            <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
+              <l:icon src="symbol-add plugin-ionicons-api"/>
+              ${%Add Template}
+            </button>
+          </l:hasPermission>
+        </j:if>
+      </l:app-bar>
+      <p class="jenkins-page-description">
+        ${%blurb}
+      </p>
+    </l:view>
   </j:set>
 
   <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}"
@@ -27,10 +30,10 @@
 
     <j:choose>
       <j:when test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}">
-        <j:set var="readOnlyMode" value="false" />
+        <j:set var="readOnlyMode" value="false"/>
       </j:when>
       <j:otherwise>
-        <j:set var="readOnlyMode" value="true" />
+        <j:set var="readOnlyMode" value="true"/>
       </j:otherwise>
     </j:choose>
 
@@ -75,7 +78,8 @@
             <span class="rsp-card__summary" data-empty-text="${%No permissions}"></span>
             <div class="rsp-card__actions">
               <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-                <button type="button" class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-template-delete"
+                <button type="button"
+                        class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-template-delete"
                         tooltip="${%Delete template}">
                   <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm"/>
                 </button>
@@ -130,22 +134,23 @@
         <div class="rsp-search-wrapper">
           <l:search-bar placeholder="${%Search templates}"
                         clazz="rsp-template-search"
-                        hasKeyboardShortcut="false" />
+                        hasKeyboardShortcut="false"/>
           <div class="rsp-filter">
             <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-tpl-filter-btn"
                     aria-expanded="false" aria-haspopup="true"
                     tooltip="${%Filter by permission}">
-              <l:icon src="symbol-filter-outline plugin-ionicons-api" />
+              <l:icon src="symbol-filter-outline plugin-ionicons-api"/>
             </button>
             <div class="rsp-filter__dropdown rsp-tpl-filter-dropdown" hidden="true">
               <div class="rsp-filter__header">
                 <span class="rsp-filter__header-label">${%Filter by permission}</span>
-                <button type="button" class="rsp-filter__reset-button rsp-tpl-filter-reset" hidden="true">${%Reset}</button>
+                <button type="button" class="rsp-filter__reset-button rsp-tpl-filter-reset" hidden="true">${%Reset}
+                </button>
               </div>
               <div class="rsp-filter__search">
                 <l:search-bar placeholder="${%Search permissions}"
                               clazz="rsp-filter__search-bar rsp-tpl-filter-search"
-                              hasKeyboardShortcut="false" />
+                              hasKeyboardShortcut="false"/>
               </div>
               <div class="rsp-filter__list">
                 <j:forEach var="g" items="${itemPermissionGroups}">
@@ -188,7 +193,7 @@
       <l:notice title="${%No permission templates defined}" icon="symbol-braces plugin-role-strategy">
         <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
           <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
-            <l:icon src="symbol-add" />
+            <l:icon src="symbol-add"/>
             ${%Add Template}
           </button>
         </l:hasPermission>
@@ -196,10 +201,10 @@
     </j:if>
 
     <div class="jenkins-notice rsp-empty-state" id="rsp-template-empty" hidden="true">
-      <l:icon src="symbol-search" />
+      <l:icon src="symbol-search"/>
       ${%No matching templates}
     </div>
 
-    <st:adjunct includes="lib.form.confirm" />
+    <st:adjunct includes="lib.form.confirm"/>
   </l:settings-subpage>
 </j:jelly>

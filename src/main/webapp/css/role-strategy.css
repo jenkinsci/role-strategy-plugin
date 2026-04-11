@@ -711,6 +711,20 @@
 }
 
 /* ============================================
+   Implied permissions in dialogs
+   ============================================ */
+
+.rsp-implied-label {
+  color: var(--text-color-secondary);
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+.rsp-assign-dialog__role-item[data-implied="true"] {
+  opacity: 0.6;
+}
+
+/* ============================================
    Assign Role Dialog
    ============================================ */
 

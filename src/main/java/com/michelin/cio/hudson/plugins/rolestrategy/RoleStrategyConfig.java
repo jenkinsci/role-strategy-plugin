@@ -406,7 +406,6 @@ public class RoleStrategyConfig extends ManagementLink {
         }
       }
     }
-
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       Role role = new Role(roleName, java.util.regex.Pattern.compile(pattern), permissions, "", templateName.isEmpty() ? null : templateName);
@@ -456,7 +455,7 @@ public class RoleStrategyConfig extends ManagementLink {
       return;
     }
 
-    // Collect permissions from the nested "permissions" object
+    // Collect permissions from the nested "permissions" object, excluding implied ones
     java.util.Set<Permission> permissions = new java.util.HashSet<>();
     JSONObject permissionsJson = json.optJSONObject("permissions");
     if (permissionsJson != null) {
@@ -469,7 +468,6 @@ public class RoleStrategyConfig extends ManagementLink {
         }
       }
     }
-
     String templateName = json.optString("templateName", "");
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
