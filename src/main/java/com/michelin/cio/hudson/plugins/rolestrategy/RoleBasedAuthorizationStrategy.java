@@ -192,7 +192,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
 
   @Restricted(NoExternalUse.class) // called by jelly
-  public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
+  static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
   @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Used by jelly pages")
@@ -466,19 +466,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
 
   private static void checkPermByRoleTypeForUpdates(@NonNull String roleType) {
-    switch (roleType) {
-      case RoleBasedAuthorizationStrategy.GLOBAL:
-        checkAdminPerm();
-        break;
-      case RoleBasedAuthorizationStrategy.PROJECT:
-        checkPerms(ITEM_ROLES_ADMIN);
-        break;
-      case RoleBasedAuthorizationStrategy.SLAVE:
-        checkPerms(AGENT_ROLES_ADMIN);
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown RoleType: " + roleType);
-    }
+      switch (roleType) {
+          case RoleBasedAuthorizationStrategy.GLOBAL -> checkAdminPerm();
+          case RoleBasedAuthorizationStrategy.PROJECT -> checkPerms(ITEM_ROLES_ADMIN);
+          case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT ->
+                  checkPerms(AGENT_ROLES_ADMIN);
+          default -> throw new IllegalArgumentException("Unknown RoleType: " + roleType);
+      }
   }
 
   private static void checkPermByRoleTypeForReading(@NonNull String roleType) {
