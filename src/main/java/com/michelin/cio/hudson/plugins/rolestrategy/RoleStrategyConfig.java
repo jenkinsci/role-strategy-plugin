@@ -557,7 +557,7 @@ public class RoleStrategyConfig extends ManagementLink {
           Jenkins.get().checkPermission(Jenkins.ADMINISTER);
       case RoleBasedAuthorizationStrategy.PROJECT ->
           Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
-      case RoleBasedAuthorizationStrategy.SLAVE ->
+      case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT ->
           Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN);
       default -> throw new IllegalArgumentException("Unknown scope: " + scope);
     }
@@ -572,7 +572,7 @@ public class RoleStrategyConfig extends ManagementLink {
           Jenkins.get().hasPermission(Jenkins.ADMINISTER);
       case RoleBasedAuthorizationStrategy.PROJECT ->
           Jenkins.get().hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
-      case RoleBasedAuthorizationStrategy.SLAVE ->
+      case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT ->
           Jenkins.get().hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN);
       default -> false;
     };

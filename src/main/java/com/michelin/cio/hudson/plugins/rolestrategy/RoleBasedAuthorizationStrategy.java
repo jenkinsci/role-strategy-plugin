@@ -191,6 +191,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final Permission[] SYSTEM_READ_AND_ITEM_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
 
+  @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Used by jelly pages")
   @Restricted(NoExternalUse.class) // called by jelly
   public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
@@ -1056,12 +1057,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       @QueryParameter(fixEmpty = true) String includeSids) throws IOException {
 
     Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
-    if (start == null) {
+    if (start == null || start < 0) {
       start = 0;
     }
-    if (limit == null) {
+    if (limit == null || limit < 1) {
       limit = 100;
     }
+    limit = Math.min(limit, 1000);
 
     // Parse role filters
     Set<String> roleFilters = new HashSet<>();
