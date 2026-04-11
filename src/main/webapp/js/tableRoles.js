@@ -1304,8 +1304,16 @@ const rspInitAddRoleDialog = (form) => {
 
   let savedManualSelections = null;
 
+  const getScope = () => {
+    // Radio buttons (multiple scopes) or hidden input (single scope)
+    return (
+      form.querySelector("input[name='scope']:checked")?.value ||
+      form.querySelector("input[name='scope']")?.value
+    );
+  };
+
   const updateScope = () => {
-    const scope = form.querySelector("input[name='scope']:checked")?.value;
+    const scope = getScope();
     const isGlobal = scope === "globalRoles";
     const patternEntry = form
       .querySelector("input[name='pattern']")
@@ -1341,9 +1349,7 @@ const rspInitAddRoleDialog = (form) => {
     if (!templateSelect) return;
     const permContainer = form.querySelector("[name='permissions']");
     if (!permContainer) return;
-    const scope =
-      form.querySelector("input[name='scope']:checked")?.value ||
-      "projectRoles";
+    const scope = getScope() || "projectRoles";
     const scopeDiv = permContainer.querySelector(`div[name='${scope}']`);
     if (!scopeDiv) return;
     const checkboxes = scopeDiv.querySelectorAll("input[type='checkbox']");
@@ -1407,7 +1413,7 @@ const rspInitAddRoleDialog = (form) => {
       return;
     }
 
-    const scope = form.querySelector("input[name='scope']:checked")?.value;
+    const scope = getScope();
 
     // Check for duplicate role name in the selected scope
     const scopeContainer = document.getElementById(scope);
@@ -1457,7 +1463,7 @@ const rspInitAddRoleDialog = (form) => {
     const permContainer = form.querySelector("[name='permissions']");
     if (!permContainer) return;
 
-    const scope = form.querySelector("input[name='scope']:checked")?.value;
+    const scope = getScope();
     const scopeDiv = permContainer.querySelector(`div[name='${scope}']`);
     if (!scopeDiv) return;
 
