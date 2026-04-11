@@ -1582,100 +1582,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * Called on role management form's submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
-      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
-
-      req.setCharacterEncoding("UTF-8");
-      JSONObject json = req.getSubmittedForm();
-      AuthorizationStrategy strategy = this.newInstance(req, json);
-      instance().setAuthorizationStrategy(strategy);
-      // Persist the data
-      persistChanges();
-    }
-
-    /**
-     * Called on role assignment form's submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(JSONObject json) throws ServletException, IOException {
-      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
-
-      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
-
-      if (oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
-        Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
-
-        for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
-          final String roleTypeAsString = map.getKey().getStringType();
-          // if no permission, take the globalRoles from the oldStrategy
-          if (!hasPermissionByRoleTypeForUpdates(roleTypeAsString)) {
-            LOGGER.fine("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
-            continue;
-          }
-          LOGGER.fine("Saving assignments for " + roleTypeAsString);
-
-          // Get roles and skip non-existent role entries (backward-comp)
-          RoleMap roleMap = map.getValue();
-          JSONArray userEntries = json.getJSONArray(map.getKey().getStringType());
-
-          roleMap.clearSids();
-
-          userEntries.forEach(e -> {
-            JSONObject entry = (JSONObject) e;
-            PermissionEntry pe = new PermissionEntry(AuthorizationType.valueOf(entry.getString("type")), entry.getString("name"));
-            entry.getJSONArray("roles").forEach(r -> {
-              Role role = roleMap.getRole((String) r);
-              if (role != null) {
-                roleMap.assignRole(role, pe);
-              }
-            });
-          });
-        }
-        // Persist the data
-        persistChanges();
-      }
-    }
-
-    /**
-     * Called on role generator form submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
-      checkPermByRoleTypeForUpdates(PROJECT);
-      req.setCharacterEncoding("UTF-8");
-      JSONObject json = req.getSubmittedForm();
-      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
-      if (json.has(PERMISSION_TEMPLATES) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
-        RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
-
-        JSONObject permissionTemplatesJson = json.getJSONObject(PERMISSION_TEMPLATES);
-        Map<String, PermissionTemplate> permissionTemplates = new TreeMap<>();
-        for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>)
-            permissionTemplatesJson.getJSONObject("data").entrySet()) {
-          String templateName = r.getKey();
-          Set<String> permissionStrings = new HashSet<>();
-          for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
-            if (e.getValue()) {
-              permissionStrings.add(e.getKey());
-            }
-          }
-          PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
-          permissionTemplates.put(templateName, permissionTemplate);
-        }
-
-        strategy.permissionTemplates = permissionTemplates;
-        strategy.refreshPermissionsFromTemplate();
-        persistChanges();
-      }
-    }
-
-    /**
      * Method called on Jenkins Manage panel submission, and plugin specific forms to create the
      * {@link AuthorizationStrategy} object.
      */
@@ -1811,19 +1717,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public List<PermissionGroup> getGroups(@NonNull String type) {
       List<PermissionGroup> groups = new ArrayList<>();
       PermissionScope permissionScope;
-      switch (type) {
-        case GLOBAL:
-          permissionScope = PermissionScope.JENKINS;
-          break;
-        case PROJECT:
-          permissionScope = PermissionScope.ITEM_GROUP;
-          break;
-        case SLAVE:
-          permissionScope = PermissionScope.COMPUTER;
-          break;
-        default:
-          return groups;
-      }
+        switch (type) {
+            case GLOBAL -> permissionScope = PermissionScope.JENKINS;
+            case PROJECT -> permissionScope = PermissionScope.ITEM_GROUP;
+            case SLAVE, AGENT -> permissionScope = PermissionScope.COMPUTER;
+            default -> {
+                return groups;
+            }
+        }
       for (PermissionGroup group : PermissionGroup.getAll()) {
         if (group == PermissionGroup.get(Permission.class)) {
           continue;
@@ -1850,25 +1751,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @Restricted(NoExternalUse.class)
     public boolean showPermission(String type, Permission p) {
-      switch (type) {
-        case GLOBAL:
-          if (PermissionHelper.isDangerous(p)) {
-            return false;
-          }
-          return p.getEnabled();
-        case PROJECT:
-          if (!p.isContainedBy(PermissionScope.ITEM_GROUP)) {
-            return false;
-          }
-          return p.getEnabled();
-        case SLAVE:
-          if (!p.isContainedBy(PermissionScope.COMPUTER)) {
-            return false;
-          }
-          return p.getEnabled();
-        default:
-          return false;
-      }
+        return switch (type) {
+            case GLOBAL -> {
+                if (PermissionHelper.isDangerous(p)) {
+                    yield false;
+                }
+                yield p.getEnabled();
+            }
+            case PROJECT -> {
+                if (!p.isContainedBy(PermissionScope.ITEM_GROUP)) {
+                    yield false;
+                }
+                yield p.getEnabled();
+            }
+            case SLAVE -> {
+                if (!p.isContainedBy(PermissionScope.COMPUTER)) {
+                    yield false;
+                }
+                yield p.getEnabled();
+            }
+            default -> false;
+        };
     }
 
     /**

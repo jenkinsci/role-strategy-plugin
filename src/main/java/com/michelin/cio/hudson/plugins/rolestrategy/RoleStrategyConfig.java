@@ -164,73 +164,12 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /**
-   * Called on roles management form submission.
+   * Called from the add or edit template dialog form submission.
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    // Let the strategy descriptor handle the form
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
-    // Redirect to the plugin index page
-    FormApply.success(".").generateResponse(req, rsp, this);
-  }
-
-  /**
-   * Called on roles generator form submission.
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
-    // Let the strategy descriptor handle the form
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doTemplatesSubmit(req, rsp);
-    // Redirect to the plugin index page
-    FormApply.success(".").generateResponse(req, rsp, this);
-  }
-
-  // no configuration on this page for submission
-  // public void doMacrosSubmit(StaplerRequest req, StaplerResponse rsp) throws IOException, UnsupportedEncodingException,
-  // ServletException, FormException {
-  // Hudson.getInstance().checkPermission(Jenkins.ADMINISTER);
-  //
-  // // TODO: Macros Enable/Disable
-  //
-  // // Redirect to the plugin index page
-  // FormApply.success(".").generateResponse(req, rsp, this);
-  // }
-
-  /**
-   * Called from the add template dialog form submission.
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  @SuppressWarnings("unchecked")
   public void doAddTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
-    req.setCharacterEncoding("UTF-8");
-
-    JSONObject json;
-    try {
-      json = req.getSubmittedForm();
-    } catch (Exception e) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
-      return;
-    }
-
-    String templateName = json.optString("templateName", "").trim();
-    if (templateName.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
-      return;
-    }
-
-    String permIds = String.join(",", collectPermissionIds(json));
-    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
-    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      rbas.doAddTemplate(templateName, permIds, false);
-    }
-
-    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+    handleTemplateSubmit(req, rsp, false);
   }
 
   /**
@@ -238,77 +177,34 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  @SuppressWarnings("unchecked")
-  public void doEditTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp)
+  public void doEditTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    handleTemplateSubmit(req, rsp, true);
+  }
+
+  private void handleTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp, boolean overwrite)
       throws IOException, ServletException {
     Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
-    req.setCharacterEncoding("UTF-8");
+    String redirectUrl = req.getContextPath() + "/manage/role-strategy/permission-templates";
 
-    JSONObject json;
-    try {
-      json = req.getSubmittedForm();
-    } catch (Exception e) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+    JSONObject json = getSubmittedFormOrRedirect(req, rsp, redirectUrl);
+    if (json == null) {
       return;
     }
 
-    String originalName = json.optString("originalTemplateName", "").trim();
-    if (originalName.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+    String nameField = overwrite ? "originalTemplateName" : "templateName";
+    String templateName = json.optString(nameField, "").trim();
+    if (templateName.isEmpty()) {
+      rsp.sendRedirect(redirectUrl);
       return;
     }
 
     String permIds = String.join(",", collectPermissionIds(json));
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      rbas.doAddTemplate(originalName, permIds, true);
+      rbas.doAddTemplate(templateName, permIds, overwrite);
     }
 
-    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
-  }
-
-  @SuppressWarnings("unchecked")
-  private static java.util.Set<String> collectPermissionIds(JSONObject json) {
-    java.util.Set<String> permIds = new java.util.HashSet<>();
-    JSONObject permsJson = json.optJSONObject("permissions");
-    if (permsJson != null) {
-      for (String rawKey : (java.util.Set<String>) permsJson.keySet()) {
-        if (permsJson.optBoolean(rawKey, false)) {
-          String permId = rawKey;
-          if (permId.startsWith("[") && permId.endsWith("]")) {
-            permId = permId.substring(1, permId.length() - 1);
-          }
-          if (Permission.fromId(permId) != null) {
-            permIds.add(permId);
-          }
-        }
-      }
-    }
-    return permIds;
-  }
-
-  /**
-   * Called on role's assignment form submission.
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    // Let the strategy descriptor handle the form
-    req.setCharacterEncoding("UTF-8");
-    JSONObject json = req.getSubmittedForm();
-    JSONObject rolesMapping;
-    if (json.has("submit")) {
-      String rm = json.getString("rolesMapping");
-      rolesMapping = JSONObject.fromObject(rm);
-    } else {
-      rolesMapping = json.getJSONObject("rolesMapping");
-    }
-    if (rolesMapping.has("agentRoles")) {
-      rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
-    }
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
-    FormApply.success(".").generateResponse(req, rsp, this);
+    rsp.sendRedirect(redirectUrl);
   }
 
   /**
@@ -318,41 +214,21 @@ public class RoleStrategyConfig extends ManagementLink {
   @Restricted(NoExternalUse.class)
   @SuppressWarnings("unchecked")
   public void doAssignRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    req.setCharacterEncoding("UTF-8");
-
-    JSONObject json;
-    try {
-      json = req.getSubmittedForm();
-    } catch (Exception e) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
-      return;
-    }
-    String name = json.optString("name", "").trim();
-    String type = json.optString("type", "USER");
-
-    if (name.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
-      return;
-    }
-
-    // roles is { "globalRoles": { "admin": true, "manager": false }, "projectRoles": { ... }, ... }
-    JSONObject roles = json.optJSONObject("roles");
-    if (roles == null) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+    AssignFormData data = parseAssignForm(req, rsp);
+    if (data == null) {
       return;
     }
 
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      for (String assignType : roles.keySet()) {
-        JSONObject roleEntries = roles.getJSONObject(assignType);
+      for (String assignType : data.roles.keySet()) {
+        JSONObject roleEntries = data.roles.getJSONObject(assignType);
         for (String roleName : roleEntries.keySet()) {
           if (roleEntries.getBoolean(roleName)) {
-            if ("USER".equals(type)) {
-              rbas.doAssignUserRole(assignType, roleName, name);
-            } else if ("GROUP".equals(type)) {
-              rbas.doAssignGroupRole(assignType, roleName, name);
+            if ("USER".equals(data.type)) {
+              rbas.doAssignUserRole(assignType, roleName, data.name);
+            } else if ("GROUP".equals(data.type)) {
+              rbas.doAssignGroupRole(assignType, roleName, data.name);
             }
           }
         }
@@ -364,61 +240,33 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * Called from the edit assignment dialog form submission.
-   * Replaces all role assignments for a given user/group.
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
   @SuppressWarnings("unchecked")
   public void doEditAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    req.setCharacterEncoding("UTF-8");
-
-    JSONObject json;
-    try {
-      json = req.getSubmittedForm();
-    } catch (Exception e) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
-      return;
-    }
-
-    String name = json.optString("name", "").trim();
-    String type = json.optString("type", "USER");
-
-    if (name.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
-      return;
-    }
-
-    JSONObject roles = json.optJSONObject("roles");
-    if (roles == null) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+    AssignFormData data = parseAssignForm(req, rsp);
+    if (data == null) {
       return;
     }
 
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      PermissionEntry entry;
-      if ("GROUP".equals(type)) {
-        entry = PermissionEntry.group(name);
-      } else {
-        entry = PermissionEntry.user(name);
-      }
+      PermissionEntry entry = "GROUP".equals(data.type)
+          ? PermissionEntry.group(data.name)
+          : PermissionEntry.user(data.name);
 
-      // Process each role type (globalRoles, projectRoles, slaveRoles)
-      for (String assignType : roles.keySet()) {
-        RoleType roleType =
-            RoleType.fromString(assignType);
-        RoleMap roleMap = rbas.getRoleMap(roleType);
-        JSONObject roleEntries = roles.getJSONObject(assignType);
+      for (String assignType : data.roles.keySet()) {
+        RoleMap roleMap = rbas.getRoleMap(RoleType.fromString(assignType));
+        JSONObject roleEntries = data.roles.getJSONObject(assignType);
 
         for (String roleName : roleEntries.keySet()) {
-          boolean shouldBeAssigned = roleEntries.getBoolean(roleName);
           Role role = roleMap.getRole(roleName);
           if (role == null) {
             continue;
           }
-
-          boolean isCurrentlyAssigned = roleMap.isAssigned(role, name, type);
+          boolean shouldBeAssigned = roleEntries.getBoolean(roleName);
+          boolean isCurrentlyAssigned = roleMap.isAssigned(role, data.name, data.type);
           if (shouldBeAssigned && !isCurrentlyAssigned) {
             roleMap.assignRole(role, entry);
           } else if (!shouldBeAssigned && isCurrentlyAssigned) {
@@ -444,68 +292,21 @@ public class RoleStrategyConfig extends ManagementLink {
   @Restricted(NoExternalUse.class)
   @SuppressWarnings("unchecked")
   public void doAddRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    req.setCharacterEncoding("UTF-8");
-
-    JSONObject json;
-    try {
-      json = req.getSubmittedForm();
-    } catch (Exception e) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+    RoleFormData data = parseRoleForm(req, rsp);
+    if (data == null) {
       return;
     }
 
-    String scope = json.optString("scope", "globalRoles");
-    String roleName = json.optString("roleName", "").trim();
-    String pattern = json.optString("pattern", ".*").trim();
-
-    if (roleName.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
-      return;
-    }
-
-    // For global roles, pattern is always .*
-    if ("globalRoles".equals(scope)) {
-      pattern = ".*";
-    } else if (pattern.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
-      return;
-    }
-
-    // Collect permissions
-    Set<hudson.security.Permission> permissions = new java.util.HashSet<>();
-    JSONObject permissionsJson = json.optJSONObject("permissions");
-    if (permissionsJson != null) {
-      JSONObject scopePerms = permissionsJson.optJSONObject(scope);
-      if (scopePerms != null) {
-        for (String rawKey : scopePerms.keySet()) {
-          if (scopePerms.optBoolean(rawKey, false)) {
-            String permId = rawKey;
-            if (permId.startsWith("[") && permId.endsWith("]")) {
-              permId = permId.substring(1, permId.length() - 1);
-            }
-            hudson.security.Permission p = hudson.security.Permission.fromId(permId);
-            if (p != null) {
-              permissions.add(p);
-            }
-          }
-        }
-      }
-    }
-    String templateName = json.optString("templateName", "");
+    Set<Permission> permissions = collectPermissionsFromScoped(data.json, data.scope);
+    String templateName = data.json.optString("templateName", "");
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       String tmplName = templateName.isEmpty() ? null : templateName;
       Role role = new Role(
-          roleName, java.util.regex.Pattern.compile(pattern),
+          data.roleName, java.util.regex.Pattern.compile(data.pattern),
           permissions, "", tmplName);
-      RoleType roleType = RoleType.fromString(scope);
-      rbas.getRoleMap(roleType).addRole(role);
-      try {
-        Jenkins.get().save();
-      } catch (Exception e) {
-        throw new ServletException(e);
-      }
+      rbas.getRoleMap(RoleType.fromString(data.scope)).addRole(role);
+      saveJenkinsConfig();
     }
 
     rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
@@ -518,39 +319,139 @@ public class RoleStrategyConfig extends ManagementLink {
   @Restricted(NoExternalUse.class)
   @SuppressWarnings("unchecked")
   public void doEditRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    req.setCharacterEncoding("UTF-8");
-
-    JSONObject json;
-    try {
-      json = req.getSubmittedForm();
-    } catch (Exception e) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+    RoleFormData data = parseRoleForm(req, rsp);
+    if (data == null) {
       return;
     }
 
+    Set<Permission> permissions = collectPermissionsFromFlat(data.json);
+    String templateName = data.json.optString("templateName", "");
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      RoleType roleType = RoleType.fromString(data.scope);
+      RoleMap roleMap = rbas.getRoleMap(roleType);
+      Role existingRole = roleMap.getRole(data.roleName);
+      if (existingRole != null) {
+        Set<PermissionEntry> sids = roleMap.getGrantedRolesEntries().get(existingRole);
+        roleMap.removeRole(existingRole);
+        String tmplName = templateName.isEmpty() ? null : templateName;
+        Role updatedRole = new Role(
+            data.roleName, java.util.regex.Pattern.compile(data.pattern),
+            permissions, "", tmplName);
+        roleMap.addRole(updatedRole, sids != null ? sids : new java.util.HashSet<>());
+        saveJenkinsConfig();
+      }
+    }
+
+    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+  }
+
+  // ============================================
+  // Shared form-parsing helpers
+  // ============================================
+
+  /**
+   * Parse submitted form JSON, redirecting on failure.
+   *
+   * @return the parsed JSON, or null if redirect was sent
+   */
+  @CheckForNull
+  private static JSONObject getSubmittedFormOrRedirect(
+      StaplerRequest2 req, StaplerResponse2 rsp, String redirectUrl) throws IOException, ServletException {
+    req.setCharacterEncoding("UTF-8");
+    try {
+      return req.getSubmittedForm();
+    } catch (Exception e) {
+      rsp.sendRedirect(redirectUrl);
+      return null;
+    }
+  }
+
+  private static void saveJenkinsConfig() throws ServletException {
+    try {
+      Jenkins.get().save();
+    } catch (Exception e) {
+      throw new ServletException(e);
+    }
+  }
+
+  /** Parsed data from an assign/edit-assign dialog submission. */
+  private record AssignFormData(String name, String type, JSONObject roles) {}
+
+  @CheckForNull
+  private static AssignFormData parseAssignForm(StaplerRequest2 req, StaplerResponse2 rsp)
+      throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    String redirectUrl = req.getContextPath() + "/manage/role-strategy/";
+
+    JSONObject json = getSubmittedFormOrRedirect(req, rsp, redirectUrl);
+    if (json == null) {
+      return null;
+    }
+
+    String name = json.optString("name", "").trim();
+    String type = json.optString("type", "USER");
+    if (name.isEmpty()) {
+      rsp.sendRedirect(redirectUrl);
+      return null;
+    }
+
+    JSONObject roles = json.optJSONObject("roles");
+    if (roles == null) {
+      rsp.sendRedirect(redirectUrl);
+      return null;
+    }
+
+    return new AssignFormData(name, type, roles);
+  }
+
+  /** Parsed data from an add/edit role dialog submission. */
+  private record RoleFormData(JSONObject json, String scope, String roleName, String pattern) {}
+
+  @CheckForNull
+  private static RoleFormData parseRoleForm(StaplerRequest2 req, StaplerResponse2 rsp)
+      throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    String redirectUrl = req.getContextPath() + "/manage/role-strategy/manage-roles";
+
+    JSONObject json = getSubmittedFormOrRedirect(req, rsp, redirectUrl);
+    if (json == null) {
+      return null;
+    }
+
     String scope = json.optString("scope", "globalRoles");
-    String originalRoleName = json.optString("originalRoleName", "").trim();
+    // Edit uses originalRoleName, add uses roleName
+    String roleName = json.optString("originalRoleName", "").trim();
+    if (roleName.isEmpty()) {
+      roleName = json.optString("roleName", "").trim();
+    }
     String pattern = json.optString("pattern", ".*").trim();
 
-    if (originalRoleName.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
-      return;
+    if (roleName.isEmpty()) {
+      rsp.sendRedirect(redirectUrl);
+      return null;
     }
 
     if ("globalRoles".equals(scope)) {
       pattern = ".*";
     } else if (pattern.isEmpty()) {
-      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
-      return;
+      rsp.sendRedirect(redirectUrl);
+      return null;
     }
 
-    // Collect permissions from the nested "permissions" object, excluding implied ones
-    java.util.Set<Permission> permissions = new java.util.HashSet<>();
-    JSONObject permissionsJson = json.optJSONObject("permissions");
-    if (permissionsJson != null) {
-      for (String rawKey : (java.util.Set<String>) permissionsJson.keySet()) {
-        if (permissionsJson.optBoolean(rawKey, false)) {
+    return new RoleFormData(json, scope, roleName, pattern);
+  }
+
+  /**
+   * Collect permissions from a flat "permissions" JSON object (edit role dialog).
+   */
+  @SuppressWarnings("unchecked")
+  private static Set<Permission> collectPermissionsFromFlat(JSONObject json) {
+    Set<Permission> permissions = new java.util.HashSet<>();
+    JSONObject permsJson = json.optJSONObject("permissions");
+    if (permsJson != null) {
+      for (String rawKey : (Set<String>) permsJson.keySet()) {
+        if (permsJson.optBoolean(rawKey, false)) {
           Permission p = Permission.fromId(rawKey);
           if (p != null) {
             permissions.add(p);
@@ -558,29 +459,58 @@ public class RoleStrategyConfig extends ManagementLink {
         }
       }
     }
-    String templateName = json.optString("templateName", "");
-    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
-    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      RoleType roleType = RoleType.fromString(scope);
-      RoleMap roleMap = rbas.getRoleMap(roleType);
-      Role existingRole = roleMap.getRole(originalRoleName);
-      if (existingRole != null) {
-        java.util.Set<PermissionEntry> sids = roleMap.getGrantedRolesEntries().get(existingRole);
-        roleMap.removeRole(existingRole);
-        String tmplName = templateName.isEmpty() ? null : templateName;
-        Role updatedRole = new Role(
-            originalRoleName, java.util.regex.Pattern.compile(pattern),
-            permissions, "", tmplName);
-        roleMap.addRole(updatedRole, sids != null ? sids : new java.util.HashSet<>());
-        try {
-          Jenkins.get().save();
-        } catch (Exception e) {
-          throw new ServletException(e);
+    return permissions;
+  }
+
+  /**
+   * Collect permissions from a scope-nested "permissions" JSON object (add role dialog).
+   */
+  @SuppressWarnings("unchecked")
+  private static Set<Permission> collectPermissionsFromScoped(JSONObject json, String scope) {
+    Set<Permission> permissions = new java.util.HashSet<>();
+    JSONObject permissionsJson = json.optJSONObject("permissions");
+    if (permissionsJson != null) {
+      JSONObject scopePerms = permissionsJson.optJSONObject(scope);
+      if (scopePerms != null) {
+        for (String rawKey : (Set<String>) scopePerms.keySet()) {
+          if (scopePerms.optBoolean(rawKey, false)) {
+            String permId = stripBrackets(rawKey);
+            Permission p = Permission.fromId(permId);
+            if (p != null) {
+              permissions.add(p);
+            }
+          }
         }
       }
     }
+    return permissions;
+  }
 
-    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+  /**
+   * Collect permission ID strings from a flat "permissions" JSON (template dialogs).
+   */
+  @SuppressWarnings("unchecked")
+  private static Set<String> collectPermissionIds(JSONObject json) {
+    Set<String> permIds = new java.util.HashSet<>();
+    JSONObject permsJson = json.optJSONObject("permissions");
+    if (permsJson != null) {
+      for (String rawKey : (Set<String>) permsJson.keySet()) {
+        if (permsJson.optBoolean(rawKey, false)) {
+          String permId = stripBrackets(rawKey);
+          if (Permission.fromId(permId) != null) {
+            permIds.add(permId);
+          }
+        }
+      }
+    }
+    return permIds;
+  }
+
+  private static String stripBrackets(String key) {
+    if (key.startsWith("[") && key.endsWith("]")) {
+      return key.substring(1, key.length() - 1);
+    }
+    return key;
   }
 
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
