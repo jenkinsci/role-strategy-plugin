@@ -36,7 +36,10 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
 import net.sf.json.JSONObject;
@@ -220,10 +223,11 @@ public class RoleStrategyConfig extends ManagementLink {
       };
       for (String scope : scopes) {
         if (hasScopePermission(scope)) {
-          if ("USER".equals(type)) {
-            rbas.doDeleteUser(scope, name);
-          } else if ("GROUP".equals(type)) {
-            rbas.doDeleteGroup(scope, name);
+          switch (type) {
+            case "USER" -> rbas.doDeleteUser(scope, name);
+            case "GROUP" -> rbas.doDeleteGroup(scope, name);
+            case "EITHER" -> rbas.doDeleteSid(scope, name);
+            default -> { }
           }
         }
       }
@@ -322,10 +326,10 @@ public class RoleStrategyConfig extends ManagementLink {
         JSONObject roleEntries = data.roles.getJSONObject(assignType);
         for (String roleName : roleEntries.keySet()) {
           if (roleEntries.getBoolean(roleName)) {
-            if ("USER".equals(data.type)) {
-              rbas.doAssignUserRole(assignType, roleName, data.name);
-            } else if ("GROUP".equals(data.type)) {
-              rbas.doAssignGroupRole(assignType, roleName, data.name);
+            switch (data.type) {
+              case "USER" -> rbas.doAssignUserRole(assignType, roleName, data.name);
+              case "GROUP" -> rbas.doAssignGroupRole(assignType, roleName, data.name);
+              default -> rbas.doAssignRole(assignType, roleName, data.name);
             }
           }
         }
@@ -349,9 +353,11 @@ public class RoleStrategyConfig extends ManagementLink {
 
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      PermissionEntry entry = "GROUP".equals(data.type)
-          ? PermissionEntry.group(data.name)
-          : PermissionEntry.user(data.name);
+      PermissionEntry entry = switch (data.type) {
+        case "GROUP" -> PermissionEntry.group(data.name);
+        case "EITHER" -> new PermissionEntry(AuthorizationType.EITHER, data.name);
+        default -> PermissionEntry.user(data.name);
+      };
 
       for (String assignType : data.roles.keySet()) {
         // Skip scopes the user doesn't have permission for
@@ -398,14 +404,17 @@ public class RoleStrategyConfig extends ManagementLink {
       return;
     }
 
+    Pattern compiledPattern = compilePatternOrError(data.pattern, rsp);
+    if (compiledPattern == null) {
+      return;
+    }
+
     Set<Permission> permissions = collectPermissionsFromScoped(data.json, data.scope);
     String templateName = data.json.optString("templateName", "");
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       String tmplName = templateName.isEmpty() ? null : templateName;
-      Role role = new Role(
-          data.roleName, java.util.regex.Pattern.compile(data.pattern),
-          permissions, "", tmplName);
+      Role role = new Role(data.roleName, compiledPattern, permissions, "", tmplName);
       rbas.getRoleMap(RoleType.fromString(data.scope)).addRole(role);
       saveJenkinsConfig();
     }
@@ -425,6 +434,11 @@ public class RoleStrategyConfig extends ManagementLink {
       return;
     }
 
+    Pattern compiledPattern = compilePatternOrError(data.pattern, rsp);
+    if (compiledPattern == null) {
+      return;
+    }
+
     Set<Permission> permissions = collectPermissionsFromFlat(data.json);
     String templateName = data.json.optString("templateName", "");
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
@@ -436,10 +450,8 @@ public class RoleStrategyConfig extends ManagementLink {
         Set<PermissionEntry> sids = roleMap.getGrantedRolesEntries().get(existingRole);
         roleMap.removeRole(existingRole);
         String tmplName = templateName.isEmpty() ? null : templateName;
-        Role updatedRole = new Role(
-            data.roleName, java.util.regex.Pattern.compile(data.pattern),
-            permissions, "", tmplName);
-        roleMap.addRole(updatedRole, sids != null ? sids : new java.util.HashSet<>());
+        Role updatedRole = new Role(data.roleName, compiledPattern, permissions, "", tmplName);
+        roleMap.addRole(updatedRole, sids != null ? sids : new HashSet<>());
         saveJenkinsConfig();
       }
     }
@@ -450,6 +462,22 @@ public class RoleStrategyConfig extends ManagementLink {
   // ============================================
   // Shared form-parsing helpers
   // ============================================
+
+  /**
+   * Compile a regex pattern, sending a 400 error response if invalid.
+   *
+   * @return the compiled pattern, or null if an error response was sent
+   */
+  @CheckForNull
+  private static Pattern compilePatternOrError(String pattern, StaplerResponse2 rsp)
+      throws IOException {
+    try {
+      return Pattern.compile(pattern);
+    } catch (PatternSyntaxException e) {
+      rsp.sendError(400, "Invalid pattern: " + e.getDescription());
+      return null;
+    }
+  }
 
   /**
    * Parse submitted form JSON, redirecting on failure.
@@ -583,7 +611,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @SuppressWarnings("unchecked")
   private static Set<Permission> collectPermissionsFromFlat(JSONObject json) {
-    Set<Permission> permissions = new java.util.HashSet<>();
+    Set<Permission> permissions = new HashSet<>();
     JSONObject permsJson = json.optJSONObject("permissions");
     if (permsJson != null) {
       for (String rawKey : (Set<String>) permsJson.keySet()) {
@@ -603,7 +631,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @SuppressWarnings("unchecked")
   private static Set<Permission> collectPermissionsFromScoped(JSONObject json, String scope) {
-    Set<Permission> permissions = new java.util.HashSet<>();
+    Set<Permission> permissions = new HashSet<>();
     JSONObject permissionsJson = json.optJSONObject("permissions");
     if (permissionsJson != null) {
       JSONObject scopePerms = permissionsJson.optJSONObject(scope);
@@ -627,7 +655,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @SuppressWarnings("unchecked")
   private static Set<String> collectPermissionIds(JSONObject json) {
-    Set<String> permIds = new java.util.HashSet<>();
+    Set<String> permIds = new HashSet<>();
     JSONObject permsJson = json.optJSONObject("permissions");
     if (permsJson != null) {
       for (String rawKey : (Set<String>) permsJson.keySet()) {

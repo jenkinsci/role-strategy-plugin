@@ -1,5 +1,0 @@
-<?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout">
-    <!-- Assign Roles has been merged into the main Manage and Assign Roles page -->
-    <st:redirect url="."/>
-</j:jelly>
