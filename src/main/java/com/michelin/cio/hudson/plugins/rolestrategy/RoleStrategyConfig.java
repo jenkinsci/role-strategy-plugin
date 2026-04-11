@@ -275,6 +275,81 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /**
+   * Called from the edit assignment dialog form submission.
+   * Replaces all role assignments for a given user/group.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  @SuppressWarnings("unchecked")
+  public void doEditAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    req.setCharacterEncoding("UTF-8");
+
+    JSONObject json;
+    try {
+      json = req.getSubmittedForm();
+    } catch (Exception e) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+      return;
+    }
+
+    String name = json.optString("name", "").trim();
+    String type = json.optString("type", "USER");
+
+    if (name.isEmpty()) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+      return;
+    }
+
+    JSONObject roles = json.optJSONObject("roles");
+    if (roles == null) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+      return;
+    }
+
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      PermissionEntry entry;
+      if ("GROUP".equals(type)) {
+        entry = PermissionEntry.group(name);
+      } else {
+        entry = PermissionEntry.user(name);
+      }
+
+      // Process each role type (globalRoles, projectRoles, slaveRoles)
+      for (String assignType : roles.keySet()) {
+        RoleType roleType =
+            RoleType.fromString(assignType);
+        RoleMap roleMap = rbas.getRoleMap(roleType);
+        JSONObject roleEntries = roles.getJSONObject(assignType);
+
+        for (String roleName : roleEntries.keySet()) {
+          boolean shouldBeAssigned = roleEntries.getBoolean(roleName);
+          Role role = roleMap.getRole(roleName);
+          if (role == null) {
+            continue;
+          }
+
+          boolean isCurrentlyAssigned = roleMap.isAssigned(role, name, type);
+          if (shouldBeAssigned && !isCurrentlyAssigned) {
+            roleMap.assignRole(role, entry);
+          } else if (!shouldBeAssigned && isCurrentlyAssigned) {
+            roleMap.deleteRoleSid(entry, roleName);
+          }
+        }
+      }
+
+      try {
+        Jenkins.get().save();
+      } catch (Exception e) {
+        throw new ServletException(e);
+      }
+    }
+
+    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+  }
+
+  /**
    * Called from the add role dialog form submission.
    */
   @RequirePOST
@@ -368,7 +443,6 @@ public class RoleStrategyConfig extends ManagementLink {
     String scope = json.optString("scope", "globalRoles");
     String originalRoleName = json.optString("originalRoleName", "").trim();
     String pattern = json.optString("pattern", ".*").trim();
-    String templateName = json.optString("templateName", "");
 
     if (originalRoleName.isEmpty()) {
       rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
@@ -396,16 +470,19 @@ public class RoleStrategyConfig extends ManagementLink {
       }
     }
 
+    String templateName = json.optString("templateName", "");
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       RoleType roleType = RoleType.fromString(scope);
       RoleMap roleMap = rbas.getRoleMap(roleType);
       Role existingRole = roleMap.getRole(originalRoleName);
       if (existingRole != null) {
-        // Preserve existing SID assignments
         java.util.Set<PermissionEntry> sids = roleMap.getGrantedRolesEntries().get(existingRole);
         roleMap.removeRole(existingRole);
-        Role updatedRole = new Role(originalRoleName, java.util.regex.Pattern.compile(pattern), permissions, "", templateName.isEmpty() ? null : templateName);
+        String tmplName = templateName.isEmpty() ? null : templateName;
+        Role updatedRole = new Role(
+            originalRoleName, java.util.regex.Pattern.compile(pattern),
+            permissions, "", tmplName);
         roleMap.addRole(updatedRole, sids != null ? sids : new java.util.HashSet<>());
         try {
           Jenkins.get().save();

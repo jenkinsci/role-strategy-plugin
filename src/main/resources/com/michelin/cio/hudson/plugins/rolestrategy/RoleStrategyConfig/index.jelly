@@ -44,6 +44,7 @@
       <template id="assign-roles-icons">
         <l:icon src="symbol-people-outline plugin-ionicons-api" class="icon-sm" id="rsp-people-icon"/>
         <l:icon src="symbol-person-outline plugin-ionicons-api" class="icon-sm" id="rsp-person-icon"/>
+        <l:icon src="symbol-edit" class="icon-sm" id="rsp-edit-icon"/>
       </template>
 
       <!-- Search bar with role filter -->

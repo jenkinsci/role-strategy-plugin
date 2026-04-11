@@ -55,6 +55,9 @@
               </j:forEach>
             </div>
           </j:if>
+          <div class="rsp-assign-dialog__no-results jenkins-hidden" style="padding:1rem;text-align:center;color:var(--text-color-secondary);font-style:italic;">
+            ${%No matching roles}
+          </div>
         </div>
 
       </f:entry>

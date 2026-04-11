@@ -109,6 +109,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final String GLOBAL = "globalRoles";
   public static final String PROJECT = "projectRoles";
   public static final String SLAVE = "slaveRoles";
+  public static final String AGENT = "agentRoles";
   public static final String PERMISSION_TEMPLATES = "permissionTemplates";
 
   public static final String MACRO_ROLE = "roleMacros";

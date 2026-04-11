@@ -58,19 +58,13 @@ public enum RoleType {
    * @since 2.3.0
    */
   public static RoleType fromString(String roleName) {
-    if (roleName.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
-      return Global;
-    }
+      return switch (roleName) {
+          case RoleBasedAuthorizationStrategy.GLOBAL -> Global;
+          case RoleBasedAuthorizationStrategy.PROJECT -> Project;
+          case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT -> Slave;
+          default -> throw new IllegalArgumentException("Unexpected roleName=" + roleName);
+      };
 
-    if (roleName.equals(RoleBasedAuthorizationStrategy.PROJECT)) {
-      return Project;
-    }
-
-    if (roleName.equals(RoleBasedAuthorizationStrategy.SLAVE)) {
-      return Slave;
-    }
-
-    throw new java.lang.IllegalArgumentException("Unexpected roleName=" + roleName);
   }
 
   /**

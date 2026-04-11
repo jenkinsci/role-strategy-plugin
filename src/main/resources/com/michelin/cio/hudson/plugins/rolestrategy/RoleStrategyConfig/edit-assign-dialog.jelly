@@ -1,0 +1,103 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+  <st:setHeader name="X-Dialog-Title" value="${%Edit assignments}"/>
+
+  <j:set var="userName" value="${request.getParameter('name')}"/>
+  <j:set var="userType" value="${request.getParameter('type')}"/>
+
+  <j:set var="globalRoleType" value="${it.globalRoleType}"/>
+  <j:set var="projectRoleType" value="${it.projectRoleType}"/>
+  <j:set var="slaveRoleType" value="${it.slaveRoleType}"/>
+
+  <j:set var="globalRoleMap" value="${it.strategy.getRoleMap(globalRoleType)}"/>
+  <j:set var="projectRoleMap" value="${it.strategy.getRoleMap(projectRoleType)}"/>
+  <j:set var="agentRoleMap" value="${it.strategy.getRoleMap(slaveRoleType)}"/>
+
+  <l:ajax>
+    <f:form name="editAssignRoles" method="post" action="${rootURL}/manage/role-strategy/editAssignSubmit">
+      <input type="hidden" name="name" value="${userName}"/>
+      <input type="hidden" name="type" value="${userType}"/>
+
+      <f:entry title="${%User or group name}">
+        <f:textbox name="displayName" value="${userName}" disabled="true"/>
+      </f:entry>
+
+      <f:entry title="${%Roles}">
+        <l:search-bar placeholder="${%Filter roles}" clazz="rsp-role-dialog-filter" hasKeyboardShortcut="false" />
+
+        <div class="rsp-assign-dialog__roles" name="roles">
+
+          <j:set var="globalRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}"/>
+          <j:if test="${!globalRoles.isEmpty()}">
+            <div class="rsp-assign-dialog__group-title">${%Global roles}</div>
+            <div name="globalRoles" class="rsp-assign-dialog__group">
+              <j:forEach var="role" items="${globalRoles}">
+                <j:set var="isAssigned" value="${globalRoleMap.isAssigned(role.key, userName, userType)}"/>
+                <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
+                  <j:choose>
+                    <j:when test="${isAssigned}">
+                      <f:checkbox title="${role.key.name}" name="${role.key.name}" checked="true"/>
+                    </j:when>
+                    <j:otherwise>
+                      <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                    </j:otherwise>
+                  </j:choose>
+                </div>
+              </j:forEach>
+            </div>
+          </j:if>
+
+          <j:set var="projectRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
+          <j:if test="${!projectRoles.isEmpty()}">
+            <div class="rsp-assign-dialog__group-title">${%Item roles}</div>
+            <div name="projectRoles" class="rsp-assign-dialog__group">
+              <j:forEach var="role" items="${projectRoles}">
+                <j:set var="isAssigned" value="${projectRoleMap.isAssigned(role.key, userName, userType)}"/>
+                <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
+                  <j:choose>
+                    <j:when test="${isAssigned}">
+                      <f:checkbox title="${role.key.name}" name="${role.key.name}" checked="true"/>
+                    </j:when>
+                    <j:otherwise>
+                      <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                    </j:otherwise>
+                  </j:choose>
+                  <span class="rsp-assign-dialog__role-pattern">"${role.key.pattern.toString()}"</span>
+                </div>
+              </j:forEach>
+            </div>
+          </j:if>
+
+          <j:set var="agentRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
+          <j:if test="${!agentRoles.isEmpty()}">
+            <div class="rsp-assign-dialog__group-title">${%Agent roles}</div>
+            <div name="agentRoles" class="rsp-assign-dialog__group">
+              <j:forEach var="role" items="${agentRoles}">
+                <j:set var="isAssigned" value="${agentRoleMap.isAssigned(role.key, userName, userType)}"/>
+                <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
+                  <j:choose>
+                    <j:when test="${isAssigned}">
+                      <f:checkbox title="${role.key.name}" name="${role.key.name}" checked="true"/>
+                    </j:when>
+                    <j:otherwise>
+                      <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
+                    </j:otherwise>
+                  </j:choose>
+                  <span class="rsp-assign-dialog__role-pattern">"${role.key.pattern.toString()}"</span>
+                </div>
+              </j:forEach>
+            </div>
+          </j:if>
+          <div class="rsp-assign-dialog__no-results jenkins-hidden" style="padding:1rem;text-align:center;color:var(--text-color-secondary);font-style:italic;">
+            ${%No matching roles}
+          </div>
+        </div>
+
+      </f:entry>
+
+      <f:bottomButtonBar>
+        <button id="rsp-edit-assign-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Save}</button>
+      </f:bottomButtonBar>
+    </f:form>
+  </l:ajax>
+</j:jelly>
