@@ -8,8 +8,10 @@
       </f:entry>
 
       <f:entry title="${%Type}">
-        <f:radio name="type" value="USER" title="${%User}"/>
-        <f:radio name="type" value="GROUP" title="${%Group}"/>
+        <div style="display:flex;gap:1rem;">
+          <f:radio name="type" value="USER" title="${%User}"/>
+          <f:radio name="type" value="GROUP" title="${%Group}"/>
+        </div>
       </f:entry>
 
       <f:entry title="${%Roles}">
