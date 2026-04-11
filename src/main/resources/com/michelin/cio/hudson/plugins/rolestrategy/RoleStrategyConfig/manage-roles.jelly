@@ -4,7 +4,8 @@
     <j:set var="header"><l:view>
       <l:app-bar title="${%Roles}">
         <j:if test="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}">
-          <button type="button" class="jenkins-button jenkins-button--primary rsp-add-role-global">
+          <button type="button" class="jenkins-button jenkins-button--primary rsp-add-role-global"
+                  data-type="dialog-opener" data-dialog-url="${rootURL}/manage/role-strategy/add-role-dialog">
             <l:icon src="symbol-add plugin-ionicons-api" class="icon-sm"/>
             ${%Add Role}
           </button>
@@ -114,7 +115,9 @@
                   <div class="rsp-card__actions">
                     <l:hasPermission permission="${neededPermission}">
                       <button type="button" class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-card__edit"
-                              tooltip="${%Edit role}">
+                              tooltip="${%Edit role}"
+                              data-type="dialog-opener"
+                              data-dialog-url="${rootURL}/manage/role-strategy/edit-role-dialog?roleName=${h.escape(role.name)}&amp;scope=${roleType}">
                         <l:icon src="symbol-edit" class="icon-sm"/>
                       </button>
                       <button type="button" class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-card__delete"

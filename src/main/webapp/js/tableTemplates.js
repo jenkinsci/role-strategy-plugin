@@ -458,20 +458,12 @@ Behaviour.specify(".rsp-template-delete", "RoleStrategyTemplates", 0, (btn) => {
   });
 });
 
-// Edit template — Jelly dialog
+// Edit template — dialog opened via data-type="dialog-opener"
 Behaviour.specify(".rsp-template-edit", "RoleStrategyTemplates", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
-    const card = btn.closest(".rsp-card");
-    if (!card) return;
-    const templateName = card.dataset.templateName;
-    const rootUrl =
-      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
-      "";
-    const dialogUrl = `${rootUrl}/manage/role-strategy/edit-template-dialog?templateName=${encodeURIComponent(templateName)}`;
-    dialog.wizard(dialogUrl);
     const initDialog = () => {
       const form = document.querySelector("form[name='edit-template']");
       if (!form) {
@@ -484,7 +476,7 @@ Behaviour.specify(".rsp-template-edit", "RoleStrategyTemplates", 0, (btn) => {
   });
 });
 
-// Add template — Jelly dialog
+// Add template — dialog opened via data-type="dialog-opener"
 Behaviour.specify(
   ".rsp-add-template-btn",
   "RoleStrategyTemplates",
@@ -493,11 +485,6 @@ Behaviour.specify(
     if (btn.dataset.initialized === "true") return;
     btn.dataset.initialized = "true";
     btn.addEventListener("click", () => {
-      const rootUrl =
-        document
-          .querySelector("[data-rooturl]")
-          ?.getAttribute("data-rooturl") || "";
-      dialog.wizard(rootUrl + "/manage/role-strategy/add-template-dialog");
       const initDialog = () => {
         const form = document.querySelector("form[name='add-template']");
         if (!form) {
