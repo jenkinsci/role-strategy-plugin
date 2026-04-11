@@ -45,9 +45,7 @@
           </div>
           <!-- Template permission data for JS -->
           <j:forEach var="tmpl" items="${permissionTemplates}">
-            <script type="application/json" class="rsp-template-perm-data" data-template-name="${tmpl.name}">
-              [<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]
-            </script>
+            <div hidden="true" class="rsp-template-perm-data" data-template-name="${tmpl.name}">[<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]</div>
           </j:forEach>
         </f:entry>
       </j:if>

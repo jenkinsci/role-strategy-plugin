@@ -38,6 +38,7 @@ import hudson.util.FormApply;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
 import net.sf.json.JSONArray;
@@ -472,12 +473,12 @@ public class RoleStrategyConfig extends ManagementLink {
     }
 
     // Collect permissions
-    java.util.Set<hudson.security.Permission> permissions = new java.util.HashSet<>();
+    Set<hudson.security.Permission> permissions = new java.util.HashSet<>();
     JSONObject permissionsJson = json.optJSONObject("permissions");
     if (permissionsJson != null) {
       JSONObject scopePerms = permissionsJson.optJSONObject(scope);
       if (scopePerms != null) {
-        for (String rawKey : (java.util.Set<String>) scopePerms.keySet()) {
+        for (String rawKey : scopePerms.keySet()) {
           if (scopePerms.optBoolean(rawKey, false)) {
             String permId = rawKey;
             if (permId.startsWith("[") && permId.endsWith("]")) {
