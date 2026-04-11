@@ -601,8 +601,12 @@
    ============================================ */
 
 @keyframes rsp-highlight {
-  from { background: var(--focus-input-glow, #C4C080); }
-  to { background: transparent; }
+  from {
+    background: var(--focus-input-glow, #c4c080);
+  }
+  to {
+    background: transparent;
+  }
 }
 
 .rsp-highlight-entry {
@@ -807,7 +811,7 @@
   border-spacing: 2px;
 }
 
-.role-strategy-table tbody>tr>td {
+.role-strategy-table tbody > tr > td {
   height: 30px;
 }
 
@@ -855,7 +859,7 @@
 }
 
 .role-strategy-table tfoot th {
-  font-size: .875rem;
+  font-size: 0.875rem;
   font-weight: 500;
 }
 
@@ -897,7 +901,7 @@
 
 .highlighted,
 .highlighted td {
-  background-color: #FFF9C9 !important;
+  background-color: #fff9c9 !important;
   color: var(--black) !important;
 }
 
@@ -907,8 +911,12 @@
 }
 
 @keyframes highlightentry {
-  from { background: #C4C080; }
-  to { background: transparent; }
+  from {
+    background: #c4c080;
+  }
+  to {
+    background: transparent;
+  }
 }
 
 .highlight-entry {
