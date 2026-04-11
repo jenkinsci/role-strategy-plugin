@@ -1037,24 +1037,55 @@ const rspInitAddRoleDialog = (form) => {
     }
   };
 
+  const showFieldError = (input) => {
+    if (!input) return;
+    input.style.outline = "2px solid var(--error-color)";
+    input.addEventListener("input", () => { input.style.outline = ""; }, { once: true });
+  };
+
   const validateAndSubmit = () => {
     const nameInput = form.querySelector("input[name='roleName']");
-    if (!nameInput || !nameInput.value.trim()) {
+    const roleName = nameInput?.value?.trim();
+    if (!roleName) {
       nameInput?.focus();
-      if (nameInput) { nameInput.style.outline = "2px solid var(--error-color)"; nameInput.addEventListener("input", () => { nameInput.style.outline = ""; }, { once: true }); }
+      showFieldError(nameInput);
       return;
     }
+
     const scope = form.querySelector("input[name='scope']:checked")?.value;
+
+    // Check for duplicate role name in the selected scope
+    const scopeContainer = document.getElementById(scope);
+    if (scopeContainer && scopeContainer.querySelector(`.rsp-card[data-role-name='${CSS.escape(roleName)}']`)) {
+      nameInput?.focus();
+      showFieldError(nameInput);
+      dialog.alert(`A role named "${roleName}" already exists.`);
+      return;
+    }
+
     if (scope !== "globalRoles") {
       const patternInput = form.querySelector("input[name='pattern']");
       if (!patternInput || !patternInput.value.trim()) {
         patternInput?.focus();
-        if (patternInput) { patternInput.style.outline = "2px solid var(--error-color)"; patternInput.addEventListener("input", () => { patternInput.style.outline = ""; }, { once: true }); }
+        showFieldError(patternInput);
         return;
       }
     }
-    const pc = form.querySelector("[name='permissions']");
-    if (pc) rspDialogUncheckImplied(pc);
+
+    // Check at least one permission is selected (excluding implied/disabled)
+    const permContainer = form.querySelector("[name='permissions']");
+    const scopeDiv = permContainer?.querySelector(`div[name='${scope}']`);
+    const templateSelect = form.querySelector("[name='templateName']");
+    const hasTemplate = templateSelect && templateSelect.value;
+    if (!hasTemplate && scopeDiv) {
+      const hasChecked = scopeDiv.querySelector("input[type='checkbox']:checked:not(:disabled)");
+      if (!hasChecked) {
+        dialog.alert("Please select at least one permission.");
+        return;
+      }
+    }
+
+    if (permContainer) rspDialogUncheckImplied(permContainer);
     form.requestSubmit();
   };
 

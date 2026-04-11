@@ -79,6 +79,11 @@
             <div class="rsp-card__actions">
               <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
                 <button type="button"
+                        class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-template-edit"
+                        tooltip="${%Edit template}">
+                  <l:icon src="symbol-edit" class="icon-sm"/>
+                </button>
+                <button type="button"
                         class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-template-delete"
                         tooltip="${%Delete template}">
                   <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm"/>

@@ -78,7 +78,7 @@ const tplUpdateImplied = (card) => {
 };
 
 // ============================================
-// Save
+// Save (used only for delete — add/edit use Jelly dialogs)
 // ============================================
 
 const tplCollectData = () => {
@@ -105,14 +105,6 @@ const tplSave = () => {
     headers: crumb.wrap({}),
     body: formData,
   }).then((rsp) => { if (!rsp.ok) throw new Error("Failed to save"); });
-};
-
-let tplAutoSaveTimer = null;
-const tplAutoSave = () => {
-  if (tplAutoSaveTimer) clearTimeout(tplAutoSaveTimer);
-  tplAutoSaveTimer = setTimeout(() => {
-    tplSave().catch((err) => { notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR); });
-  }, 1000);
 };
 
 // ============================================
@@ -159,17 +151,143 @@ const tplApplyFilters = () => {
 };
 
 // ============================================
+// Dialog helpers (shared with tableRoles.js pattern)
+// ============================================
+
+const tplDialogUpdateImplied = (container) => {
+  container.querySelectorAll(".rsp-assign-dialog__role-item[data-implied-by-list]").forEach((item) => {
+    const cb = item.querySelector("input[type=checkbox]");
+    if (!cb) return;
+    const impliedByStr = item.getAttribute("data-implied-by-list");
+    if (!impliedByStr || !impliedByStr.trim()) return;
+    let isImplied = false;
+    for (const permId of impliedByStr.trim().split(" ")) {
+      const ref = container.querySelector(`.rsp-assign-dialog__role-item[data-permission-id='${permId}'] input[type=checkbox]`);
+      if (ref && ref.checked && !ref.disabled) { isImplied = true; break; }
+    }
+    const impliedLabel = item.querySelector(".rsp-implied-label");
+    if (isImplied) {
+      cb.checked = true;
+      cb.disabled = true;
+      item.dataset.implied = "true";
+      if (impliedLabel) impliedLabel.hidden = false;
+    } else {
+      if (item.dataset.implied === "true") {
+        cb.checked = false;
+        cb.disabled = false;
+        item.dataset.implied = "false";
+      }
+      if (impliedLabel) impliedLabel.hidden = true;
+    }
+  });
+};
+
+const tplDialogUncheckImplied = (container) => {
+  container.querySelectorAll(".rsp-assign-dialog__role-item[data-implied='true'] input[type=checkbox]").forEach((cb) => {
+    cb.checked = false;
+  });
+};
+
+const tplDialogAttachImplied = (container) => {
+  container.querySelectorAll(".rsp-assign-dialog__role-item input[type=checkbox]").forEach((cb) => {
+    cb.addEventListener("change", () => tplDialogUpdateImplied(container));
+  });
+  tplDialogUpdateImplied(container);
+};
+
+const tplDialogApplyFilter = (form) => {
+  const filterEl = form.querySelector(".rsp-perm-dialog-filter input");
+  const q = filterEl ? filterEl.value.toLowerCase().trim() : "";
+  const permContainer = form.querySelector("[name='permissions']");
+  if (!permContainer) return;
+
+  let visibleCount = 0;
+  permContainer.querySelectorAll(".rsp-assign-dialog__role-item").forEach((item) => {
+    const match = q === "" || (item.dataset.roleName || "").toLowerCase().includes(q);
+    item.style.display = match ? "" : "none";
+    if (match) visibleCount++;
+  });
+  permContainer.querySelectorAll(".rsp-assign-dialog__group-title").forEach((title) => {
+    let next = title.nextElementSibling;
+    let hasVisible = false;
+    while (next && !next.classList.contains("rsp-assign-dialog__group-title")) {
+      if (next.classList.contains("rsp-assign-dialog__group")) {
+        next.querySelectorAll(".rsp-assign-dialog__role-item").forEach((child) => { if (child.style.display !== "none") hasVisible = true; });
+      }
+      next = next.nextElementSibling;
+    }
+    title.style.display = hasVisible ? "" : "none";
+  });
+  const noResults = permContainer.querySelector(".rsp-assign-dialog__no-results");
+  if (noResults) noResults.classList.toggle("jenkins-hidden", visibleCount > 0 || q === "");
+};
+
+const tplInitDialog = (form, submitBtnId) => {
+  if (form.dataset.dialogInit === "true") return;
+  form.dataset.dialogInit = "true";
+
+  const validateAndSubmit = () => {
+    const nameInput = form.querySelector("input[name='templateName']");
+    if (nameInput && !nameInput.disabled) {
+      const name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        nameInput.style.outline = "2px solid var(--error-color)";
+        nameInput.addEventListener("input", () => { nameInput.style.outline = ""; }, { once: true });
+        return;
+      }
+      // Check for duplicate
+      const existing = document.querySelector(`#rsp-template-cards .rsp-card[data-template-name='${CSS.escape(name)}']`);
+      if (existing) {
+        nameInput.focus();
+        nameInput.style.outline = "2px solid var(--error-color)";
+        nameInput.addEventListener("input", () => { nameInput.style.outline = ""; }, { once: true });
+        dialog.alert(`A template named "${name}" already exists.`);
+        return;
+      }
+    }
+
+    // Check at least one permission selected
+    const permContainer = form.querySelector("[name='permissions']");
+    if (permContainer) {
+      const hasChecked = permContainer.querySelector("input[type='checkbox']:checked:not(:disabled)");
+      if (!hasChecked) {
+        dialog.alert("Please select at least one permission.");
+        return;
+      }
+      tplDialogUncheckImplied(permContainer);
+    }
+
+    form.requestSubmit();
+  };
+
+  const filterInput = form.querySelector(".rsp-perm-dialog-filter input");
+  if (filterInput) {
+    filterInput.addEventListener("input", () => tplDialogApplyFilter(form));
+  }
+
+  const permContainer = form.querySelector("[name='permissions']");
+  if (permContainer) tplDialogAttachImplied(permContainer);
+
+  const submitBtn = form.querySelector(`#${submitBtnId}`);
+  if (submitBtn) submitBtn.addEventListener("click", validateAndSubmit);
+  form.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); validateAndSubmit(); } });
+};
+
+// ============================================
 // Behaviours
 // ============================================
 
-// Card toggle
+// Card toggle — view only, don't expand empty cards
 Behaviour.specify("#rsp-template-cards .rsp-card__header", "RoleStrategyTemplates", 0, (header) => {
   if (header.dataset.initialized === "true") return;
   header.dataset.initialized = "true";
   const handleToggle = (e) => {
     if (e.target.closest(".rsp-card__actions") && !e.target.closest(".rsp-card__toggle")) return;
     const card = header.closest(".rsp-card");
-    if (!card || card.classList.contains("rsp-card--read-only")) return;
+    if (!card) return;
+    const summary = card.querySelector(".rsp-card__summary");
+    if (summary && summary.classList.contains("rsp-card__summary--empty")) return;
     const body = card.querySelector(".rsp-card__body");
     const isExpanded = !body.classList.contains("rsp-card__body--collapsed");
     body.classList.toggle("rsp-card__body--collapsed");
@@ -180,13 +298,13 @@ Behaviour.specify("#rsp-template-cards .rsp-card__header", "RoleStrategyTemplate
   header.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleToggle(e); } });
 });
 
-// Permission checkbox
+// Permission checkboxes in card body — view only
 Behaviour.specify("#rsp-template-cards .rsp-perm__item input[type=checkbox]", "RoleStrategyTemplates", 0, (cb) => {
   if (cb.dataset.initialized === "true") return;
   cb.dataset.initialized = "true";
   cb.addEventListener("change", () => {
     const card = cb.closest(".rsp-card");
-    if (card) { tplUpdateImplied(card); tplUpdateSummary(card); tplAutoSave(); }
+    if (card) { tplUpdateImplied(card); tplUpdateSummary(card); }
   });
 });
 
@@ -218,7 +336,6 @@ Behaviour.specify(".rsp-template-delete", "RoleStrategyTemplates", 0, (btn) => {
       card.remove();
       rspUpdateCardBorders();
       tplSave().then(() => {
-        // Reload if last template was deleted to show empty state
         if (document.querySelectorAll("#rsp-template-cards .rsp-card").length === 0) {
           window.location.reload();
         } else {
@@ -229,137 +346,40 @@ Behaviour.specify(".rsp-template-delete", "RoleStrategyTemplates", 0, (btn) => {
   });
 });
 
-// Add template button
+// Edit template — Jelly dialog
+Behaviour.specify(".rsp-template-edit", "RoleStrategyTemplates", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const card = btn.closest(".rsp-card");
+    if (!card) return;
+    const templateName = card.dataset.templateName;
+    const rootUrl = document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") || "";
+    const dialogUrl = `${rootUrl}/manage/role-strategy/edit-template-dialog?templateName=${encodeURIComponent(templateName)}`;
+    dialog.wizard(dialogUrl);
+    const initDialog = () => {
+      const form = document.querySelector("form[name='edit-template']");
+      if (!form) { setTimeout(initDialog, 100); return; }
+      tplInitDialog(form, "rsp-edit-template-submit-btn");
+    };
+    setTimeout(initDialog, 200);
+  });
+});
+
+// Add template — Jelly dialog
 Behaviour.specify(".rsp-add-template-btn", "RoleStrategyTemplates", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
-
   btn.addEventListener("click", () => {
-    const content = document.createElement("div");
-    content.classList.add("rsp-dialog-content");
-
-    const nameGroup = document.createElement("div");
-    nameGroup.classList.add("jenkins-form-item");
-    nameGroup.innerHTML = `
-      <label class="jenkins-form-label">Template name</label>
-      <div class="jenkins-form-item__control">
-        <input type="text" class="jenkins-input" id="rsp-dialog-template-name" autofocus />
-      </div>
-    `;
-    content.appendChild(nameGroup);
-
-    // Clone permissions from an existing card
-    let permClone = null;
-    const existingCard = document.querySelector("#rsp-template-cards .rsp-card");
-    if (existingCard) {
-      const permSection = existingCard.querySelector(".rsp-perm");
-      if (permSection) {
-        permClone = permSection.cloneNode(true);
-        permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-          cb.checked = false; cb.disabled = false; cb.removeAttribute("data-initialized");
-        });
-        permClone.querySelectorAll(".rsp-perm__item--implied").forEach((el) => el.classList.remove("rsp-perm__item--implied"));
-        permClone.querySelectorAll(".rsp-perm__item-implied").forEach((el) => { el.hidden = true; });
-
-        const permWrapper = document.createElement("div");
-        permWrapper.classList.add("jenkins-form-item");
-        const permTitle = document.createElement("label");
-        permTitle.classList.add("jenkins-form-label");
-        permTitle.textContent = "Permissions";
-        permWrapper.appendChild(permTitle);
-        permWrapper.appendChild(permClone);
-        content.appendChild(permWrapper);
-
-        // Implied logic in dialog
-        const updateImplied = () => {
-          permClone.querySelectorAll(".rsp-perm__item[data-permission-id]").forEach((label) => {
-            const innerCb = label.querySelector("input[type=checkbox]");
-            if (!innerCb) return;
-            const impliedByStr = label.getAttribute("data-implied-by-list");
-            if (!impliedByStr || !impliedByStr.trim()) return;
-            let isImplied = false;
-            for (const pid of impliedByStr.trim().split(" ")) {
-              const ref = permClone.querySelector(`.rsp-perm__item[data-permission-id='${pid}'] input[type=checkbox]`);
-              if (ref && ref.checked) { isImplied = true; break; }
-            }
-            const il = label.querySelector(".rsp-perm__item-implied");
-            if (isImplied) { innerCb.checked = false; innerCb.disabled = true; label.classList.add("rsp-perm__item--implied"); if (il) il.hidden = false; }
-            else { innerCb.disabled = false; label.classList.remove("rsp-perm__item--implied"); if (il) il.hidden = true; }
-          });
-        };
-        permClone.querySelectorAll("input[type=checkbox]").forEach((cb) => cb.addEventListener("change", updateImplied));
-      }
-    }
-
-    const dlg = document.createElement("dialog");
-    dlg.classList.add("jenkins-dialog");
-    dlg.style.cssText = "max-width:550px;min-width:450px;";
-
-    const titleBar = document.createElement("div");
-    titleBar.classList.add("jenkins-dialog__title");
-    titleBar.innerHTML = `<span>Add Template</span>
-      <button class="jenkins-dialog__title__button jenkins-dialog__title__close-button" data-id="cancel">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" d="M368 368L144 144M368 144L144 368"></path></svg>
-      </button>`;
-    dlg.appendChild(titleBar);
-
-    const body = document.createElement("div");
-    body.classList.add("jenkins-dialog__contents");
-    body.appendChild(content);
-    dlg.appendChild(body);
-
-    const footer = document.createElement("div");
-    footer.classList.add("jenkins-dialog__footer", "jenkins-buttons-row", "jenkins-buttons-row--equal-width");
-    footer.innerHTML = `
-      <button class="jenkins-button" data-id="cancel">Cancel</button>
-      <button class="jenkins-button jenkins-button--primary" data-id="ok">Add</button>
-    `;
-    dlg.appendChild(footer);
-
-    document.body.appendChild(dlg);
-    dlg.showModal();
-
-    const closeDialog = () => { dlg.close(); dlg.remove(); };
-    dlg.querySelectorAll("[data-id='cancel']").forEach((b) => b.addEventListener("click", closeDialog));
-    dlg.addEventListener("cancel", closeDialog);
-
-    dlg.querySelector("[data-id='ok']").addEventListener("click", () => {
-      const nameInput = dlg.querySelector("#rsp-dialog-template-name");
-      const name = nameInput?.value?.trim();
-      if (!name) { nameInput?.focus(); return; }
-
-      const existing = document.querySelector(`#rsp-template-cards .rsp-card[data-template-name='${CSS.escape(name)}']`);
-      if (existing) { closeDialog(); dialog.alert(`A template named "${name}" already exists.`); return; }
-
-      // Create hidden card for save
-      const cards = document.getElementById("rsp-template-cards");
-      const card = document.createElement("div");
-      card.classList.add("rsp-card");
-      card.style.display = "none";
-      card.dataset.templateName = name;
-      if (permClone) {
-        dlg.querySelectorAll(".rsp-perm__item input[type=checkbox]:checked").forEach((cb) => {
-          const permId = cb.getAttribute("data-permission-id");
-          if (permId) {
-            const label = document.createElement("label");
-            label.classList.add("rsp-perm__item");
-            const input = document.createElement("input");
-            input.type = "checkbox";
-            input.checked = true;
-            input.setAttribute("data-permission-id", permId);
-            label.appendChild(input);
-            card.appendChild(label);
-          }
-        });
-      }
-      cards.appendChild(card);
-
-      closeDialog();
-      tplSave().then(() => { window.location.reload(); }).catch((err) => {
-        card.remove();
-        notificationBar.show("Failed to save: " + err.message, notificationBar.ERROR);
-      });
-    });
+    const rootUrl = document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") || "";
+    dialog.wizard(rootUrl + "/manage/role-strategy/add-template-dialog");
+    const initDialog = () => {
+      const form = document.querySelector("form[name='add-template']");
+      if (!form) { setTimeout(initDialog, 100); return; }
+      tplInitDialog(form, "rsp-add-template-submit-btn");
+    };
+    setTimeout(initDialog, 200);
   });
 });
 
@@ -381,7 +401,6 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
   const searchInput = dropdown.querySelector(".rsp-tpl-filter-search input");
   const resetBtn = dropdown.querySelector(".rsp-tpl-filter-reset");
 
-  // Filter items click
   dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
     item.addEventListener("click", () => {
       item.classList.toggle("rsp-filter__item--active");
@@ -393,7 +412,6 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
     });
   });
 
-  // Search within dropdown
   const applyFilterSearch = () => {
     const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
     dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
@@ -425,7 +443,6 @@ Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
     });
   }
 
-  // Toggle
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const isOpen = !dropdown.hidden;

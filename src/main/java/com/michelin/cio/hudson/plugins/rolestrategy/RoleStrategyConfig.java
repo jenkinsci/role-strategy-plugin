@@ -200,6 +200,93 @@ public class RoleStrategyConfig extends ManagementLink {
   // }
 
   /**
+   * Called from the add template dialog form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  @SuppressWarnings("unchecked")
+  public void doAddTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
+    req.setCharacterEncoding("UTF-8");
+
+    JSONObject json;
+    try {
+      json = req.getSubmittedForm();
+    } catch (Exception e) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+      return;
+    }
+
+    String templateName = json.optString("templateName", "").trim();
+    if (templateName.isEmpty()) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+      return;
+    }
+
+    String permIds = String.join(",", collectPermissionIds(json));
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      rbas.doAddTemplate(templateName, permIds, false);
+    }
+
+    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+  }
+
+  /**
+   * Called from the edit template dialog form submission.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  @SuppressWarnings("unchecked")
+  public void doEditTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp)
+      throws IOException, ServletException {
+    Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
+    req.setCharacterEncoding("UTF-8");
+
+    JSONObject json;
+    try {
+      json = req.getSubmittedForm();
+    } catch (Exception e) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+      return;
+    }
+
+    String originalName = json.optString("originalTemplateName", "").trim();
+    if (originalName.isEmpty()) {
+      rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+      return;
+    }
+
+    String permIds = String.join(",", collectPermissionIds(json));
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      rbas.doAddTemplate(originalName, permIds, true);
+    }
+
+    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/permission-templates");
+  }
+
+  @SuppressWarnings("unchecked")
+  private static java.util.Set<String> collectPermissionIds(JSONObject json) {
+    java.util.Set<String> permIds = new java.util.HashSet<>();
+    JSONObject permsJson = json.optJSONObject("permissions");
+    if (permsJson != null) {
+      for (String rawKey : (java.util.Set<String>) permsJson.keySet()) {
+        if (permsJson.optBoolean(rawKey, false)) {
+          String permId = rawKey;
+          if (permId.startsWith("[") && permId.endsWith("]")) {
+            permId = permId.substring(1, permId.length() - 1);
+          }
+          if (Permission.fromId(permId) != null) {
+            permIds.add(permId);
+          }
+        }
+      }
+    }
+    return permIds;
+  }
+
+  /**
    * Called on role's assignment form submission.
    */
   @RequirePOST
