@@ -58,13 +58,12 @@ public enum RoleType {
    * @since 2.3.0
    */
   public static RoleType fromString(String roleName) {
-      return switch (roleName) {
-          case RoleBasedAuthorizationStrategy.GLOBAL -> Global;
-          case RoleBasedAuthorizationStrategy.PROJECT -> Project;
-          case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT -> Slave;
-          default -> throw new IllegalArgumentException("Unexpected roleName=" + roleName);
-      };
-
+    return switch (roleName) {
+      case RoleBasedAuthorizationStrategy.GLOBAL -> Global;
+      case RoleBasedAuthorizationStrategy.PROJECT -> Project;
+      case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT -> Slave;
+      default -> throw new IllegalArgumentException("Unexpected roleName=" + roleName);
+    };
   }
 
   /**

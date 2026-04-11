@@ -1044,35 +1044,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to get all SIDs and the assigned roles for a roletype.
-   *
-   * <p>
-   * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getRoleAssignments?type=projectRoles}
-   *
-   * <p>
-   * Returns a json with sids and roles<br>
-   * Example:
-   *
-   * <pre>{@code
-   *   [
-   *     {
-   *       "name": "d032386",
-   *       "type": "USER",
-   *       "roles": ["admin"]
-   *     },
-   *     {
-   *       "name": "tester",
-   *       "type": "USER",
-   *       "roles": ["reader", "tester"]
-   *     }
-   *   ]
-   * }</pre>
-   *
-   * @param type (globalRoles by default, projectRoles, slaveRoles)
-   *
-   * @since 2.6.0
-   */
-  /**
    * Paginated, merged assignment endpoint for the Role Assignments UI.
    * Returns users/groups across all role types with their role assignments.
    *
@@ -1091,14 +1062,20 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       @QueryParameter(fixEmpty = true) String includeSids) throws IOException {
 
     Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
-    if (start == null) start = 0;
-    if (limit == null) limit = 100;
+    if (start == null) {
+      start = 0;
+    }
+    if (limit == null) {
+      limit = 100;
+    }
 
     // Parse role filters
     Set<String> roleFilters = new HashSet<>();
     if (filterRole != null) {
       for (String f : filterRole.split(",")) {
-        if (!f.trim().isEmpty()) roleFilters.add(f.trim());
+        if (!f.trim().isEmpty()) {
+          roleFilters.add(f.trim());
+        }
       }
     }
 
@@ -1106,7 +1083,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     Set<String> additionalSidSet = new HashSet<>();
     if (includeSids != null) {
       for (String s : includeSids.split(",")) {
-        if (!s.trim().isEmpty()) additionalSidSet.add(s.trim());
+        if (!s.trim().isEmpty()) {
+          additionalSidSet.add(s.trim());
+        }
       }
     }
 
@@ -1115,7 +1094,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     for (RoleType rt : new RoleType[]{RoleType.Global, RoleType.Project, RoleType.Slave}) {
       String typeStr = rt.getStringType();
-      try { checkPermByRoleTypeForReading(typeStr); } catch (Exception e) { continue; }
+      try {
+        checkPermByRoleTypeForReading(typeStr);
+      } catch (Exception e) {
+        continue;
+      }
 
       Set<PermissionEntry> sidEntries = getRoleMap(rt).getSidEntries(true);
       SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(typeStr);
@@ -1149,7 +1132,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       anon.put("name", "anonymous");
       anon.put("type", "USER");
       JSONObject r = new JSONObject();
-      r.put(GLOBAL, new JSONArray()); r.put(PROJECT, new JSONArray()); r.put(SLAVE, new JSONArray());
+      r.put(GLOBAL, new JSONArray());
+      r.put(PROJECT, new JSONArray());
+      r.put(SLAVE, new JSONArray());
       anon.put("roles", r);
       merged.put("USER:anonymous", anon);
     }
@@ -1158,7 +1143,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       auth.put("name", "authenticated");
       auth.put("type", "GROUP");
       JSONObject r = new JSONObject();
-      r.put(GLOBAL, new JSONArray()); r.put(PROJECT, new JSONArray()); r.put(SLAVE, new JSONArray());
+      r.put(GLOBAL, new JSONArray());
+      r.put(PROJECT, new JSONArray());
+      r.put(SLAVE, new JSONArray());
       auth.put("roles", r);
       merged.put("GROUP:authenticated", auth);
     }
@@ -1166,10 +1153,18 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     // Sort: anonymous first, authenticated second, then alphabetical
     List<String> sortedKeys = new ArrayList<>(merged.keySet());
     sortedKeys.sort((a, b) -> {
-      if (a.equals("USER:anonymous")) return -1;
-      if (b.equals("USER:anonymous")) return 1;
-      if (a.equals("GROUP:authenticated")) return -1;
-      if (b.equals("GROUP:authenticated")) return 1;
+      if (a.equals("USER:anonymous")) {
+        return -1;
+      }
+      if (b.equals("USER:anonymous")) {
+        return 1;
+      }
+      if (a.equals("GROUP:authenticated")) {
+        return -1;
+      }
+      if (b.equals("GROUP:authenticated")) {
+        return 1;
+      }
       return a.compareToIgnoreCase(b);
     });
 
@@ -1184,25 +1179,36 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         if (!textMatch) {
           textMatch = additionalSidSet.contains(key);
         }
-        if (!textMatch) continue;
+        if (!textMatch) {
+          continue;
+        }
       }
       // Role filter
       if (!roleFilters.isEmpty()) {
         boolean matchesAny = false;
         for (String rf : roleFilters) {
           int colonIdx = rf.indexOf(':');
-          if (colonIdx < 0) continue;
+          if (colonIdx < 0) {
+            continue;
+          }
           String rfType = rf.substring(0, colonIdx);
           String rfRole = rf.substring(colonIdx + 1);
           JSONArray userRoles = user.getJSONObject("roles").optJSONArray(rfType);
           if (userRoles != null) {
             for (Object r : userRoles) {
-              if (rfRole.equals(r.toString())) { matchesAny = true; break; }
+              if (rfRole.equals(r.toString())) {
+                matchesAny = true;
+                break;
+              }
             }
           }
-          if (matchesAny) break;
+          if (matchesAny) {
+            break;
+          }
         }
-        if (!matchesAny) continue;
+        if (!matchesAny) {
+          continue;
+        }
       }
       filtered.add(user);
     }
@@ -1228,6 +1234,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     writer.close();
   }
 
+  /**
+   * API method to get role assignments for a given role type.
+   *
+   * @param type the role type (globalRoles, projectRoles, slaveRoles)
+   * @throws IOException if writing the response fails
+   */
   @GET
   @Restricted(NoExternalUse.class)
   public void doGetRoleAssignments(@QueryParameter(fixEmpty = true) String type) throws IOException {

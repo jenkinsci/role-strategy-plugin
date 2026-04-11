@@ -457,7 +457,6 @@ public class RoleStrategyConfig extends ManagementLink {
     String scope = json.optString("scope", "globalRoles");
     String roleName = json.optString("roleName", "").trim();
     String pattern = json.optString("pattern", ".*").trim();
-    String templateName = json.optString("templateName", "");
 
     if (roleName.isEmpty()) {
       rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
@@ -480,7 +479,6 @@ public class RoleStrategyConfig extends ManagementLink {
       if (scopePerms != null) {
         for (String rawKey : (java.util.Set<String>) scopePerms.keySet()) {
           if (scopePerms.optBoolean(rawKey, false)) {
-            // Strip brackets if present: "[hudson.model.Hudson.Read]" -> "hudson.model.Hudson.Read"
             String permId = rawKey;
             if (permId.startsWith("[") && permId.endsWith("]")) {
               permId = permId.substring(1, permId.length() - 1);
@@ -493,9 +491,13 @@ public class RoleStrategyConfig extends ManagementLink {
         }
       }
     }
+    String templateName = json.optString("templateName", "");
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      Role role = new Role(roleName, java.util.regex.Pattern.compile(pattern), permissions, "", templateName.isEmpty() ? null : templateName);
+      String tmplName = templateName.isEmpty() ? null : templateName;
+      Role role = new Role(
+          roleName, java.util.regex.Pattern.compile(pattern),
+          permissions, "", tmplName);
       RoleType roleType = RoleType.fromString(scope);
       rbas.getRoleMap(roleType).addRole(role);
       try {
