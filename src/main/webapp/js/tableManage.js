@@ -598,18 +598,16 @@ const rspValidateUserCards = () => {
 // Save assignments
 // ============================================
 
-const rspSaveAssignments = () => {
+const rspDeleteAssignment = (userName, userType) => {
   const dataHolder = document.getElementById("role-strategy-data");
   const formData = new FormData();
-  const assignMapping = { rolesMapping: rspAssignmentData };
-  formData.append("json", JSON.stringify(assignMapping));
-
-  return fetch(dataHolder.dataset.assignSubmitUrl, {
+  formData.append("json", JSON.stringify({ name: userName, type: userType }));
+  return fetch(dataHolder.dataset.deleteAssignUrl, {
     method: "POST",
     headers: crumb.wrap({}),
     body: formData,
   }).then((rsp) => {
-    if (!rsp.ok) throw new Error("Failed to save assignments");
+    if (!rsp.ok) throw new Error("Failed to delete assignments");
   });
 };
 
@@ -899,7 +897,7 @@ Behaviour.specify(".rsp-user-delete", "RoleStrategyAssign", 0, (btn) => {
         card.remove();
         rspUpdateCardBorders();
 
-        rspSaveAssignments()
+        rspDeleteAssignment(userName, userType)
           .then(() => {
             notificationBar.show(
               `Removed "${userName}"`,
@@ -908,7 +906,7 @@ Behaviour.specify(".rsp-user-delete", "RoleStrategyAssign", 0, (btn) => {
           })
           .catch((err) => {
             notificationBar.show(
-              "Failed to save: " + err.message,
+              "Failed to delete: " + err.message,
               notificationBar.ERROR,
             );
           });

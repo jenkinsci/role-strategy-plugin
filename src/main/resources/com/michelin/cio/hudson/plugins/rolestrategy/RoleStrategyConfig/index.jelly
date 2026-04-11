@@ -25,7 +25,7 @@
 
       <div id="role-strategy-data"
            data-fetch-url="${rootURL}/role-strategy/strategy/getRoleAssignments"
-           data-assign-submit-url="${rootURL}/manage/role-strategy/assignSubmit"
+           data-delete-assign-url="${rootURL}/manage/role-strategy/deleteAssignSubmit"
            data-descriptor-url="${descriptorPath}"
            data-can-edit="${app.hasAnyPermission(it.strategy.ADMINISTER_AND_SOME_ROLES_ADMIN)}"
            data-text-anonymous="${%Anonymous}"

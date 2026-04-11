@@ -161,8 +161,77 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /**
-   * Called from the add or edit template dialog form submission.
+   * Called when deleting a role via the UI.
    */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    String redirectUrl = req.getContextPath() + "/manage/role-strategy/manage-roles";
+
+    JSONObject json = getSubmittedFormOrRedirect(req, rsp, redirectUrl);
+    if (json == null) {
+      return;
+    }
+
+    String scope = json.optString("scope", "").trim();
+    String roleName = json.optString("roleName", "").trim();
+    if (scope.isEmpty() || roleName.isEmpty()) {
+      rsp.sendRedirect(redirectUrl);
+      return;
+    }
+
+    checkScopePermission(scope);
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      rbas.doRemoveRoles(scope, roleName);
+    }
+
+    rsp.sendRedirect(redirectUrl);
+  }
+
+  /**
+   * Called when removing all role assignments for a user/group.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    String redirectUrl = req.getContextPath() + "/manage/role-strategy/";
+
+    JSONObject json = getSubmittedFormOrRedirect(req, rsp, redirectUrl);
+    if (json == null) {
+      return;
+    }
+
+    String name = json.optString("name", "").trim();
+    String type = json.optString("type", "USER").trim();
+    if (name.isEmpty()) {
+      rsp.sendRedirect(redirectUrl);
+      return;
+    }
+
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      String[] scopes = {
+        RoleBasedAuthorizationStrategy.GLOBAL,
+        RoleBasedAuthorizationStrategy.PROJECT,
+        RoleBasedAuthorizationStrategy.SLAVE
+      };
+      for (String scope : scopes) {
+        if (hasScopePermission(scope)) {
+          if ("USER".equals(type)) {
+            rbas.doDeleteUser(scope, name);
+          } else if ("GROUP".equals(type)) {
+            rbas.doDeleteGroup(scope, name);
+          }
+        }
+      }
+    }
+
+    rsp.sendRedirect(redirectUrl);
+  }
+
   @RequirePOST
   @Restricted(NoExternalUse.class)
   public void doAddTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
@@ -247,6 +316,9 @@ public class RoleStrategyConfig extends ManagementLink {
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       for (String assignType : data.roles.keySet()) {
+        if (!hasScopePermission(assignType)) {
+          continue;
+        }
         JSONObject roleEntries = data.roles.getJSONObject(assignType);
         for (String roleName : roleEntries.keySet()) {
           if (roleEntries.getBoolean(roleName)) {
@@ -282,6 +354,10 @@ public class RoleStrategyConfig extends ManagementLink {
           : PermissionEntry.user(data.name);
 
       for (String assignType : data.roles.keySet()) {
+        // Skip scopes the user doesn't have permission for
+        if (!hasScopePermission(assignType)) {
+          continue;
+        }
         RoleMap roleMap = rbas.getRoleMap(RoleType.fromString(assignType));
         JSONObject roleEntries = data.roles.getJSONObject(assignType);
 
@@ -445,6 +521,10 @@ public class RoleStrategyConfig extends ManagementLink {
     }
 
     String scope = json.optString("scope", "globalRoles");
+
+    // Enforce per-scope permission
+    checkScopePermission(scope);
+
     // Edit uses originalRoleName, add uses roleName
     String roleName = json.optString("originalRoleName", "").trim();
     if (roleName.isEmpty()) {
@@ -465,6 +545,37 @@ public class RoleStrategyConfig extends ManagementLink {
     }
 
     return new RoleFormData(json, scope, roleName, pattern);
+  }
+
+  /**
+   * Check that the current user has permission for the given role scope.
+   * Throws AccessDeniedException if not.
+   */
+  private static void checkScopePermission(String scope) {
+    switch (scope) {
+      case RoleBasedAuthorizationStrategy.GLOBAL ->
+          Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+      case RoleBasedAuthorizationStrategy.PROJECT ->
+          Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
+      case RoleBasedAuthorizationStrategy.SLAVE ->
+          Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN);
+      default -> throw new IllegalArgumentException("Unknown scope: " + scope);
+    }
+  }
+
+  /**
+   * Check if the current user has permission for the given role scope.
+   */
+  private static boolean hasScopePermission(String scope) {
+    return switch (scope) {
+      case RoleBasedAuthorizationStrategy.GLOBAL ->
+          Jenkins.get().hasPermission(Jenkins.ADMINISTER);
+      case RoleBasedAuthorizationStrategy.PROJECT ->
+          Jenkins.get().hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
+      case RoleBasedAuthorizationStrategy.SLAVE ->
+          Jenkins.get().hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN);
+      default -> false;
+    };
   }
 
   /**

@@ -197,7 +197,7 @@
           </d:taglib>
 
           <div id="role-strategy-data"
-               data-roles-submit-url="${rootURL}/manage/role-strategy/rolesSubmit"
+               data-delete-role-url="${rootURL}/manage/role-strategy/deleteRoleSubmit"
                data-check-pattern-url="${descriptorPath}/checkPattern"
                data-matching-jobs-url="${rootURL}/manage/role-strategy/strategy/getMatchingJobs"
                data-matching-agents-url="${rootURL}/manage/role-strategy/strategy/getMatchingAgents"/>

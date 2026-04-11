@@ -193,61 +193,20 @@ const rspApplyFilters = (container) => {
 };
 
 // ============================================
-// Save
+// Delete
 // ============================================
 
-const rspCollectRolesData = () => {
-  const result = {};
-  document.querySelectorAll(".rsp-container").forEach((container) => {
-    const roleType = container.dataset.roleType;
-    if (!roleType) return;
-    const roles = {};
-    container.querySelectorAll(".rsp-card").forEach((card) => {
-      const roleName = card.dataset.roleName;
-      const roleData = {};
-      const pattern = card.dataset.rolePattern;
-      if (pattern !== undefined && pattern !== "") roleData.pattern = pattern;
-      const templateName = card.dataset.templateName;
-      if (templateName) roleData.templateName = templateName;
-
-      card
-        .querySelectorAll(".rsp-perm__item input[type=checkbox]")
-        .forEach((cb) => {
-          const permId = cb.getAttribute("data-permission-id");
-          if (permId && cb.checked) roleData[permId] = true;
-        });
-      roles[roleName] = roleData;
-    });
-    result[roleType] = { data: roles };
-  });
-  return result;
-};
-
-const rspSaveRoles = () => {
+const rspDeleteRole = (roleName, scope) => {
   const dataHolder = document.getElementById("role-strategy-data");
-  const rolesData = rspCollectRolesData();
   const formData = new FormData();
-  formData.append("json", JSON.stringify(rolesData));
-  return fetch(dataHolder.dataset.rolesSubmitUrl, {
+  formData.append("json", JSON.stringify({ roleName, scope }));
+  return fetch(dataHolder.dataset.deleteRoleUrl, {
     method: "POST",
     headers: crumb.wrap({}),
     body: formData,
   }).then((rsp) => {
-    if (!rsp.ok) throw new Error("Failed to save roles");
+    if (!rsp.ok) throw new Error("Failed to delete role");
   });
-};
-
-let rspAutoSaveTimer = null;
-const rspAutoSave = () => {
-  if (rspAutoSaveTimer) clearTimeout(rspAutoSaveTimer);
-  rspAutoSaveTimer = setTimeout(() => {
-    rspSaveRoles().catch((err) => {
-      notificationBar.show(
-        "Failed to save: " + err.message,
-        notificationBar.ERROR,
-      );
-    });
-  }, 1000);
 };
 
 // ============================================
@@ -676,6 +635,8 @@ Behaviour.specify(".rsp-card__delete", "RoleStrategyRoles", 0, (btn) => {
     const card = btn.closest(".rsp-card");
     if (!card) return;
     const roleName = card.dataset.roleName;
+    const container = card.closest(".rsp-container");
+    const scope = container?.dataset.roleType;
     dialog
       .confirm("Delete role", {
         message: `Are you sure you want to delete the role "${roleName}"?`,
@@ -684,7 +645,7 @@ Behaviour.specify(".rsp-card__delete", "RoleStrategyRoles", 0, (btn) => {
       .then(() => {
         card.remove();
         rspUpdateCardBorders();
-        rspSaveRoles()
+        rspDeleteRole(roleName, scope)
           .then(() => {
             notificationBar.show(
               `Role "${roleName}" deleted`,
@@ -693,7 +654,7 @@ Behaviour.specify(".rsp-card__delete", "RoleStrategyRoles", 0, (btn) => {
           })
           .catch((err) => {
             notificationBar.show(
-              "Failed to save: " + err.message,
+              "Failed to delete: " + err.message,
               notificationBar.ERROR,
             );
           });

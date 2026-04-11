@@ -192,7 +192,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
 
   @Restricted(NoExternalUse.class) // called by jelly
-  static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
+  public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
   @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Used by jelly pages")
@@ -466,13 +466,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
 
   private static void checkPermByRoleTypeForUpdates(@NonNull String roleType) {
-      switch (roleType) {
-          case RoleBasedAuthorizationStrategy.GLOBAL -> checkAdminPerm();
-          case RoleBasedAuthorizationStrategy.PROJECT -> checkPerms(ITEM_ROLES_ADMIN);
-          case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT ->
-                  checkPerms(AGENT_ROLES_ADMIN);
-          default -> throw new IllegalArgumentException("Unknown RoleType: " + roleType);
-      }
+    switch (roleType) {
+      case RoleBasedAuthorizationStrategy.GLOBAL -> checkAdminPerm();
+      case RoleBasedAuthorizationStrategy.PROJECT -> checkPerms(ITEM_ROLES_ADMIN);
+      case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT ->
+          checkPerms(AGENT_ROLES_ADMIN);
+      default -> throw new IllegalArgumentException("Unknown RoleType: " + roleType);
+    }
   }
 
   private static void checkPermByRoleTypeForReading(@NonNull String roleType) {
@@ -1711,14 +1711,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     public List<PermissionGroup> getGroups(@NonNull String type) {
       List<PermissionGroup> groups = new ArrayList<>();
       PermissionScope permissionScope;
-        switch (type) {
-            case GLOBAL -> permissionScope = PermissionScope.JENKINS;
-            case PROJECT -> permissionScope = PermissionScope.ITEM_GROUP;
-            case SLAVE, AGENT -> permissionScope = PermissionScope.COMPUTER;
-            default -> {
-                return groups;
-            }
+      switch (type) {
+        case GLOBAL -> permissionScope = PermissionScope.JENKINS;
+        case PROJECT -> permissionScope = PermissionScope.ITEM_GROUP;
+        case SLAVE, AGENT -> permissionScope = PermissionScope.COMPUTER;
+        default -> {
+          return groups;
         }
+      }
       for (PermissionGroup group : PermissionGroup.getAll()) {
         if (group == PermissionGroup.get(Permission.class)) {
           continue;
@@ -1745,27 +1745,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @Restricted(NoExternalUse.class)
     public boolean showPermission(String type, Permission p) {
-        return switch (type) {
-            case GLOBAL -> {
-                if (PermissionHelper.isDangerous(p)) {
-                    yield false;
-                }
-                yield p.getEnabled();
-            }
-            case PROJECT -> {
-                if (!p.isContainedBy(PermissionScope.ITEM_GROUP)) {
-                    yield false;
-                }
-                yield p.getEnabled();
-            }
-            case SLAVE -> {
-                if (!p.isContainedBy(PermissionScope.COMPUTER)) {
-                    yield false;
-                }
-                yield p.getEnabled();
-            }
-            default -> false;
-        };
+      return switch (type) {
+        case GLOBAL -> {
+          if (PermissionHelper.isDangerous(p)) {
+            yield false;
+          }
+          yield p.getEnabled();
+        }
+        case PROJECT -> {
+          if (!p.isContainedBy(PermissionScope.ITEM_GROUP)) {
+            yield false;
+          }
+          yield p.getEnabled();
+        }
+        case SLAVE -> {
+          if (!p.isContainedBy(PermissionScope.COMPUTER)) {
+            yield false;
+          }
+          yield p.getEnabled();
+        }
+        default -> false;
+      };
     }
 
     /**
