@@ -34,14 +34,11 @@ import hudson.ExtensionList;
 import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
-import hudson.util.FormApply;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
-import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -202,6 +199,34 @@ public class RoleStrategyConfig extends ManagementLink {
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       rbas.doAddTemplate(templateName, permIds, overwrite);
+    }
+
+    rsp.sendRedirect(redirectUrl);
+  }
+
+  /**
+   * Called when deleting a permission template.
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doDeleteTemplateSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
+    String redirectUrl = req.getContextPath() + "/manage/role-strategy/permission-templates";
+
+    JSONObject json = getSubmittedFormOrRedirect(req, rsp, redirectUrl);
+    if (json == null) {
+      return;
+    }
+
+    String templateName = json.optString("templateName", "").trim();
+    if (templateName.isEmpty()) {
+      rsp.sendRedirect(redirectUrl);
+      return;
+    }
+
+    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
+    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      rbas.doRemoveTemplates(templateName, true);
     }
 
     rsp.sendRedirect(redirectUrl);

@@ -99,36 +99,19 @@ const tplUpdateImplied = (card) => {
 };
 
 // ============================================
-// Save (used only for delete — add/edit use Jelly dialogs)
+// Delete
 // ============================================
 
-const tplCollectData = () => {
-  const result = {};
-  document.querySelectorAll("#rsp-template-cards .rsp-card").forEach((card) => {
-    const name = card.dataset.templateName;
-    const data = {};
-    card
-      .querySelectorAll(".rsp-perm__item input[type=checkbox]")
-      .forEach((cb) => {
-        const permId = cb.getAttribute("data-permission-id");
-        if (permId && cb.checked) data[permId] = true;
-      });
-    result[name] = data;
-  });
-  return result;
-};
-
-const tplSave = () => {
+const tplDelete = (templateName) => {
   const dataHolder = document.getElementById("template-data");
-  const submitData = { permissionTemplates: { data: tplCollectData() } };
   const formData = new FormData();
-  formData.append("json", JSON.stringify(submitData));
-  return fetch(dataHolder.dataset.submitUrl, {
+  formData.append("json", JSON.stringify({ templateName }));
+  return fetch(dataHolder.dataset.deleteUrl, {
     method: "POST",
     headers: crumb.wrap({}),
     body: formData,
   }).then((rsp) => {
-    if (!rsp.ok) throw new Error("Failed to save");
+    if (!rsp.ok) throw new Error("Failed to delete template");
   });
 };
 
@@ -450,7 +433,7 @@ Behaviour.specify(".rsp-template-delete", "RoleStrategyTemplates", 0, (btn) => {
       .then(() => {
         card.remove();
         rspUpdateCardBorders();
-        tplSave()
+        tplDelete(name)
           .then(() => {
             if (
               document.querySelectorAll("#rsp-template-cards .rsp-card")

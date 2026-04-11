@@ -1,6 +1,6 @@
 #!/bin/bash
-# Seed script 5x: creates ~500 roles, ~150 agent roles, 2500 user assignments, 250 groups
-# Usage: ./seed-data-5x.sh [JENKINS_URL]
+# Seed script: creates ~500 roles, ~150 agent roles, 2500 user assignments, 250 groups
+# Usage: ./seed-data.sh [JENKINS_URL]
 set -euo pipefail
 
 JENKINS="${1:-http://localhost:8080/jenkins}"

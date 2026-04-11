@@ -131,7 +131,7 @@
     </j:if>
 
     <div id="template-data"
-         data-submit-url="${rootURL}/manage/role-strategy/templatesSubmit"/>
+         data-delete-url="${rootURL}/manage/role-strategy/deleteTemplateSubmit"/>
 
     <!-- Search bar with permission filter -->
     <j:if test="${!permissionTemplates.isEmpty()}">
