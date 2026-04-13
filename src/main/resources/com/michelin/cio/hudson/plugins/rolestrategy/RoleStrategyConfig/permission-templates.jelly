@@ -7,8 +7,7 @@
         <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
         <j:if test="${!permissionTemplates.isEmpty()}">
           <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-            <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn"
-                    data-type="dialog-opener" data-dialog-url="${rootURL}/manage/role-strategy/add-template-dialog">
+            <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
               <l:icon src="symbol-add plugin-ionicons-api"/>
               ${%Add Template}
             </button>
@@ -81,9 +80,7 @@
               <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
                 <button type="button"
                         class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-template-edit"
-                        tooltip="${%Edit template}"
-                        data-type="dialog-opener"
-                        data-dialog-url="${rootURL}/manage/role-strategy/edit-template-dialog?templateName=${h.escape(template.name)}">
+                        tooltip="${%Edit template}">
                   <l:icon src="symbol-edit" class="icon-sm"/>
                 </button>
                 <button type="button"

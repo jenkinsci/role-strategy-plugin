@@ -85,7 +85,7 @@ public class PermissionHelper {
     for (String permission : permissionStrings) {
       final Permission p = allowPermissionId ? resolvePermissionFromString(permission) : findPermission(permission);
       if (p == null) {
-        LOGGER.log(Level.WARNING, "Ignoring unresolved permission: "  + permission);
+        LOGGER.log(Level.WARNING, "Ignoring unresolved permission: "  + permissionStrings);
         // throw IllegalArgumentException?
         continue;
       }

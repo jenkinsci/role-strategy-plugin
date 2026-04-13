@@ -867,12 +867,24 @@ const rspInitEditRoleDialog = (form) => {
   if (permContainer) rspDialogAttachImplied(permContainer);
 };
 
-// Edit role button — dialog opened via data-type="dialog-opener", init form after load
+// Edit role button
 Behaviour.specify(".rsp-card__edit", "RoleStrategyRoles", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
+    const card = btn.closest(".rsp-card");
+    if (!card) return;
+    const container = card.closest(".rsp-container");
+    if (!container) return;
+    const roleName = card.dataset.roleName;
+    const scope = container.dataset.roleType;
+    const rootUrl =
+      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
+      "";
+    dialog.wizard(
+      `${rootUrl}/manage/role-strategy/edit-role-dialog?roleName=${encodeURIComponent(roleName)}&scope=${encodeURIComponent(scope)}`,
+    );
     const initDialog = () => {
       const form = document.querySelector("form[name='edit-role']");
       if (!form) {
@@ -897,11 +909,15 @@ Behaviour.specify(".rsp-card__pattern", "RoleStrategyRoles", 0, (span) => {
   });
 });
 
-// Global Add Role button — dialog opened via data-type="dialog-opener", init form after load
+// Global Add Role button
 Behaviour.specify(".rsp-add-role-global", "RoleStrategyRoles", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
   btn.addEventListener("click", () => {
+    const rootUrl =
+      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
+      "";
+    dialog.wizard(rootUrl + "/manage/role-strategy/add-role-dialog");
     const initDialog = () => {
       const form = document.querySelector("form[name='add-role']");
       if (!form) {

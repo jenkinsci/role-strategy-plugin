@@ -343,11 +343,6 @@ const rspRenderOneCard = (container, user) => {
       "rsp-user-edit",
     );
     editBtn.setAttribute("tooltip", `Edit ${user.name}`);
-    const rootUrl =
-      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
-      "";
-    editBtn.dataset.type = "dialog-opener";
-    editBtn.dataset.dialogUrl = `${rootUrl}/manage/role-strategy/edit-assign-dialog?name=${encodeURIComponent(user.name)}&type=${encodeURIComponent(user.type)}`;
     const editIcon = document
       .querySelector("#assign-roles-icons")
       ?.content.querySelector("#rsp-edit-icon");
@@ -902,13 +897,23 @@ Behaviour.specify(".rsp-user-delete", "RoleStrategyAssign", 0, (btn) => {
   });
 });
 
-// Edit user assignments — dialog opened via data-type="dialog-opener"
+// Edit user assignments
 Behaviour.specify(".rsp-user-edit", "RoleStrategyAssign", 0, (btn) => {
   if (btn.dataset.initialized === "true") return;
   btn.dataset.initialized = "true";
 
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
+    const card = btn.closest(".rsp-card");
+    if (!card) return;
+    const userName = card.dataset.userName;
+    const userType = card.dataset.userType;
+    const rootUrl =
+      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
+      "";
+    dialog.wizard(
+      `${rootUrl}/manage/role-strategy/edit-assign-dialog?name=${encodeURIComponent(userName)}&type=${encodeURIComponent(userType)}`,
+    );
     const initDialog = () => {
       const form = document.querySelector("form[name='editAssignRoles']");
       if (!form) {
@@ -934,7 +939,17 @@ Behaviour.specify(".rsp-user-edit", "RoleStrategyAssign", 0, (btn) => {
   });
 });
 
-// Assign role button — dialog opened via data-type="dialog-opener"
+// Assign role button
+Behaviour.specify(".rsp-assign-role-btn", "RoleStrategyAssign", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+  btn.addEventListener("click", () => {
+    const rootUrl =
+      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
+      "";
+    dialog.wizard(rootUrl + "/manage/role-strategy/assign-role-dialog");
+  });
+});
 
 // Assign role dialog submit button + enter key
 Behaviour.specify(
