@@ -183,8 +183,8 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
    */
   public ManageRolesPage dialogSubmit() {
     page.locator("form button.jenkins-button--primary").click();
-    // Wait for the page to navigate after form submission redirect
-    page.waitForTimeout(1000);
+    // Form submits and redirects — wait for the redirect to complete
+    page.waitForLoadState(com.microsoft.playwright.options.LoadState.NETWORKIDLE);
     return this;
   }
 

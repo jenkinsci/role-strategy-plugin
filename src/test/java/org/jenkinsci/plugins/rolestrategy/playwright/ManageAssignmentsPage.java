@@ -146,7 +146,10 @@ public class ManageAssignmentsPage extends RoleStrategyPage<ManageAssignmentsPag
 
   public ManageAssignmentsPage dialogSubmit() {
     page.locator("form button.jenkins-button--primary").click();
-    page.waitForLoadState();
+    // Form submits and redirects — wait for the page to settle
+    page.waitForLoadState(com.microsoft.playwright.options.LoadState.LOAD);
+    page.waitForLoadState(com.microsoft.playwright.options.LoadState.NETWORKIDLE);
+    page.waitForTimeout(500);
     return this;
   }
 
