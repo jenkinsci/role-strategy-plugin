@@ -2,6 +2,9 @@ package org.jenkinsci.plugins.rolestrategy.playwright;
 
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.junit.UsePlaywright;
+import org.jenkinsci.plugins.rolestrategy.playwright.config.PlaywrightConfig;
+import org.jenkinsci.plugins.rolestrategy.playwright.helpers.UITestHelper;
+import org.jenkinsci.plugins.rolestrategy.playwright.pages.ManageRolesPage;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;

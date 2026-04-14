@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.rolestrategy.playwright;
+package org.jenkinsci.plugins.rolestrategy.playwright.helpers;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.microsoft.playwright.Page;
@@ -10,17 +10,17 @@ import org.jvnet.hudson.test.JenkinsRule;
 /**
  * Sets up a standard RBAS configuration for UI tests.
  */
-final class UITestHelper {
+public final class UITestHelper {
 
   private UITestHelper() {}
 
   /** Log in to Jenkins as admin via the Playwright browser. */
-  static void loginAsAdmin(Page page, String baseUrl) {
+  public static void loginAsAdmin(Page page, String baseUrl) {
     login(page, baseUrl, "admin", "admin");
   }
 
   /** Log in to Jenkins via the Playwright browser. */
-  static void login(Page page, String baseUrl, String username, String password) {
+  public static void login(Page page, String baseUrl, String username, String password) {
     navigateWithRetry(page, baseUrl + "login");
     page.locator("input[name='j_username']").fill(username);
     page.locator("input[name='j_password']").fill(password);
@@ -29,7 +29,7 @@ final class UITestHelper {
   }
 
   /** Navigate with retry on ERR_ABORTED (can happen after form submission redirects). */
-  static void navigateWithRetry(Page page, String url) {
+  public static void navigateWithRetry(Page page, String url) {
     for (int attempt = 0; attempt < 3; attempt++) {
       try {
         page.navigate(url);
@@ -52,7 +52,7 @@ final class UITestHelper {
    * - Agent roles: agent-admin (agent-.*, Agent/Build+Connect)
    * - Assignments: admin->admin, testuser1->reader, testuser2->developer (item)
    */
-  static RoleBasedAuthorizationStrategy setupRbas(JenkinsRule j) throws IOException {
+  public static RoleBasedAuthorizationStrategy setupRbas(JenkinsRule j) throws IOException {
     j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
     RoleBasedAuthorizationStrategy rbas = new RoleBasedAuthorizationStrategy();
     j.jenkins.setAuthorizationStrategy(rbas);

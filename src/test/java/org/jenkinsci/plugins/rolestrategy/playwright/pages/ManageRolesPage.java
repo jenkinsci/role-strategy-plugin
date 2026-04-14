@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.rolestrategy.playwright;
+package org.jenkinsci.plugins.rolestrategy.playwright.pages;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 

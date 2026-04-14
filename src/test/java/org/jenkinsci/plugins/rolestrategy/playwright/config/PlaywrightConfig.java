@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.rolestrategy.playwright;
+package org.jenkinsci.plugins.rolestrategy.playwright.config;
 
 import com.microsoft.playwright.junit.Options;
 import com.microsoft.playwright.junit.OptionsFactory;

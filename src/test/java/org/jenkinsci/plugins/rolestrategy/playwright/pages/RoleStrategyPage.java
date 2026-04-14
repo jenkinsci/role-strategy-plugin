@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.rolestrategy.playwright;
+package org.jenkinsci.plugins.rolestrategy.playwright.pages;
 
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
