@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.rolestrategy.playwright;
 
 import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.options.AriaRole;
 import java.io.IOException;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -20,11 +21,27 @@ final class UITestHelper {
 
   /** Log in to Jenkins via the Playwright browser. */
   static void login(Page page, String baseUrl, String username, String password) {
-    page.navigate(baseUrl + "login");
+    navigateWithRetry(page, baseUrl + "login");
     page.locator("input[name='j_username']").fill(username);
     page.locator("input[name='j_password']").fill(password);
     page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Sign in")).click();
     page.waitForURL(baseUrl + "**");
+  }
+
+  /** Navigate with retry on ERR_ABORTED (can happen after form submission redirects). */
+  static void navigateWithRetry(Page page, String url) {
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        page.navigate(url);
+        return;
+      } catch (PlaywrightException e) {
+        if (e.getMessage().contains("ERR_ABORTED")) {
+          page.waitForTimeout(1000);
+        } else {
+          throw e;
+        }
+      }
+    }
   }
 
   /**

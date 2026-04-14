@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.rolestrategy.playwright;
 
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.PlaywrightException;
 import com.microsoft.playwright.TimeoutError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,20 @@ abstract class RoleStrategyPage<T extends RoleStrategyPage<T>> {
 
   public T goTo() {
     log.info("Navigating to {}", pageUrl);
-    page.navigate(pageUrl);
+    // Retry navigation if it's aborted due to a concurrent redirect (e.g. form submission)
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        page.navigate(pageUrl);
+        return waitForLoaded();
+      } catch (PlaywrightException e) {
+        if (e.getMessage().contains("ERR_ABORTED") && attempt < 2) {
+          log.info("Navigation aborted, retrying (attempt {})", attempt + 1);
+          page.waitForTimeout(1000);
+          continue;
+        }
+        throw e;
+      }
+    }
     return waitForLoaded();
   }
 
