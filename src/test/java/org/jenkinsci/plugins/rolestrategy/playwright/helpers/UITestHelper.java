@@ -76,10 +76,19 @@ public final class UITestHelper {
         "hudson.model.Computer.Build,hudson.model.Computer.Connect",
         "false", "agent-.*", "");
 
+    // Permission templates
+    rbas.doAddTemplate("dev-template", "hudson.model.Item.Read,hudson.model.Item.Build", false);
+    rbas.doAddTemplate("empty-template", "", false);
+
+    // Item role using template
+    rbas.doAddRole("projectRoles", "templated-role",
+        "", "false", "tmpl-.*", "dev-template");
+
     // Assignments
     rbas.doAssignUserRole("globalRoles", "admin", "admin");
     rbas.doAssignUserRole("globalRoles", "reader", "testuser1");
     rbas.doAssignUserRole("projectRoles", "developer", "testuser2");
+    rbas.doAssignUserRole("projectRoles", "templated-role", "testuser2");
 
     return rbas;
   }

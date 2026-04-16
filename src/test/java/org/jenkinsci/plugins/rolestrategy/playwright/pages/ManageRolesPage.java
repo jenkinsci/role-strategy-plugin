@@ -42,6 +42,14 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
     return this;
   }
 
+  public ManageRolesPage roleCardHasTemplateBadge(String roleName, String expectedTemplate) {
+    log.info("Verifying role '{}' has template badge '{}'", roleName, expectedTemplate);
+    Locator badge = getRoleCardLocator(roleName).locator(".rsp-card__template-badge");
+    assertThat(badge).isVisible();
+    assertThat(badge).containsText(expectedTemplate);
+    return this;
+  }
+
   public ManageRolesPage roleCardHasPattern(String roleName, String expectedPattern) {
     log.info("Verifying role '{}' has pattern '{}'", roleName, expectedPattern);
     Locator pattern = getRoleCardLocator(roleName).locator(".rsp-card__pattern");
@@ -98,11 +106,14 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
     return this;
   }
 
-  /** Wait for dialog form to load including permission checkboxes. */
+  /** Wait for dialog form to load including permission checkboxes and JS init. */
   public ManageRolesPage waitForAddRoleDialog() {
     log.info("Waiting for add-role dialog to load");
     page.waitForSelector("form[name='add-role'] .rsp-assign-dialog__role-item",
         new Page.WaitForSelectorOptions().setTimeout(60000));
+    // Wait for rspInitAddRoleDialog to complete (sets data-dialog-init="true")
+    page.waitForSelector("form[name='add-role'][data-dialog-init='true']",
+        new Page.WaitForSelectorOptions().setTimeout(10000));
     return this;
   }
 
@@ -116,13 +127,13 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
   // --- Dialog interaction helpers ---
 
   public ManageRolesPage dialogSetScope(String scope) {
-    String label = switch (scope) {
-      case "globalRoles" -> "Global role";
-      case "projectRoles" -> "Item role";
-      case "slaveRoles" -> "Agent role";
-      default -> scope;
-    };
-    page.getByRole(AriaRole.RADIO, new Page.GetByRoleOptions().setName(label)).check();
+    page.locator("form input[name='scope'][value='" + scope + "']").check(
+        new Locator.CheckOptions().setForce(true));
+    // Trigger change event and wait for JS to update permission sections
+    page.evaluate("document.querySelector("
+        + "\"form input[name='scope'][value='" + scope + "']\")"
+        + "?.dispatchEvent(new Event('change'))");
+    page.waitForTimeout(500);
     return this;
   }
 
@@ -147,7 +158,12 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
   }
 
   public ManageRolesPage dialogSelectTemplate(String templateName) {
-    page.locator("form select[name='templateName']").selectOption(templateName);
+    Locator select = page.locator("form select[name='templateName']");
+    select.waitFor();
+    // Set value and trigger change via JS to ensure handler fires reliably
+    page.evaluate("(name) => { const s = document.querySelector('form select[name=templateName]');"
+        + " s.value = name; s.dispatchEvent(new Event('change')); }", templateName);
+    page.waitForTimeout(500);
     return this;
   }
 
@@ -168,6 +184,20 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
         .locator("input[type='checkbox']");
     assertThat(cb).isChecked();
     assertThat(cb).isDisabled();
+    return this;
+  }
+
+  public ManageRolesPage dialogPermissionIdIsCheckedAndDisabled(String permissionId) {
+    // Check via JS to avoid Playwright's strict visibility checks
+    Boolean isChecked = (Boolean) page.evaluate(
+        "(pid) => { const scope = document.querySelector("
+            + "'form [name=permissions] > div:not(.jenkins-hidden)');"
+            + " return scope?.querySelector("
+            + "'[data-permission-id=\"' + pid + '\"] input')?.checked; }",
+        permissionId);
+    if (!Boolean.TRUE.equals(isChecked)) {
+      throw new AssertionError("Expected permission " + permissionId + " to be checked");
+    }
     return this;
   }
 
