@@ -1231,10 +1231,33 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
-   * API method to get role assignments for a given role type.
+   * API method to get all SIDs and the assigned roles for a roletype.
    *
-   * @param type the role type (globalRoles, projectRoles, slaveRoles)
-   * @throws IOException if writing the response fails
+   * <p>
+   * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getRoleAssignments?type=projectRoles}
+   *
+   * <p>
+   * Returns a json with sids and roles<br>
+   * Example:
+   *
+   * <pre>{@code
+   *   [
+   *     {
+   *       "name": "d032386",
+   *       "type": "USER",
+   *       "roles": ["admin"]
+   *     },
+   *     {
+   *       "name": "tester",
+   *       "type": "USER",
+   *       "roles": ["reader", "tester"]
+   *     }
+   *   ]
+   * }</pre>
+   *
+   * @param type (globalRoles by default, projectRoles, slaveRoles)
+   *
+   * @since 2.6.0
    */
   @GET
   @Restricted(NoExternalUse.class)
