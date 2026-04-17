@@ -1099,11 +1099,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       Set<PermissionEntry> sidEntries = getRoleMap(rt).getSidEntries(true);
       SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(typeStr);
 
+      // Ensure a user object exists for every SID in this scope
       for (PermissionEntry entry : sidEntries) {
         String key = entry.getType().toString() + ":" + entry.getSid();
-        JSONObject userObj = merged.get(key);
-        if (userObj == null) {
-          userObj = new JSONObject();
+        if (!merged.containsKey(key)) {
+          JSONObject userObj = new JSONObject();
           userObj.put("name", entry.getSid());
           userObj.put("type", entry.getType().toString());
           JSONObject rolesMap = new JSONObject();
@@ -1113,10 +1113,17 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           userObj.put("roles", rolesMap);
           merged.put(key, userObj);
         }
-        JSONArray typeRoles = userObj.getJSONObject("roles").getJSONArray(typeStr);
-        for (Map.Entry<Role, Set<PermissionEntry>> roleEntry : rolesEntries.entrySet()) {
-          if (roleEntry.getValue().contains(entry)) {
-            typeRoles.add(roleEntry.getKey().getName());
+      }
+
+      // Invert: walk each role once and append its name to every assigned SID's list.
+      // Roles iterate in SortedMap order, preserving per-SID ordering.
+      for (Map.Entry<Role, Set<PermissionEntry>> roleEntry : rolesEntries.entrySet()) {
+        String roleName = roleEntry.getKey().getName();
+        for (PermissionEntry entry : roleEntry.getValue()) {
+          String key = entry.getType().toString() + ":" + entry.getSid();
+          JSONObject userObj = merged.get(key);
+          if (userObj != null) {
+            userObj.getJSONObject("roles").getJSONArray(typeStr).add(roleName);
           }
         }
       }
