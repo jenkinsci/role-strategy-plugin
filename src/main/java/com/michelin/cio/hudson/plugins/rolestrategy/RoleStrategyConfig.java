@@ -454,7 +454,7 @@ public class RoleStrategyConfig extends ManagementLink {
    */
   @CheckForNull
   private static JSONObject getSubmittedFormOrRedirect(
-      StaplerRequest2 req, StaplerResponse2 rsp, String redirectUrl) throws IOException, ServletException {
+      StaplerRequest2 req, StaplerResponse2 rsp, String redirectUrl) throws IOException {
     req.setCharacterEncoding("UTF-8");
     try {
       return req.getSubmittedForm();
@@ -477,7 +477,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   @CheckForNull
   private static AssignFormData parseAssignForm(StaplerRequest2 req, StaplerResponse2 rsp)
-      throws IOException, ServletException {
+      throws IOException {
     Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
     String redirectUrl = req.getContextPath() + "/manage/role-strategy/";
 
@@ -507,7 +507,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   @CheckForNull
   private static RoleFormData parseRoleForm(StaplerRequest2 req, StaplerResponse2 rsp)
-      throws IOException, ServletException {
+      throws IOException {
     Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
     String redirectUrl = req.getContextPath() + "/manage/role-strategy/manage-roles";
 
@@ -577,12 +577,11 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Collect permissions from a flat "permissions" JSON object (edit role dialog).
    */
-  @SuppressWarnings("unchecked")
   private static Set<Permission> collectPermissionsFromFlat(JSONObject json) {
     Set<Permission> permissions = new HashSet<>();
     JSONObject permsJson = json.optJSONObject("permissions");
     if (permsJson != null) {
-      for (String rawKey : (Set<String>) permsJson.keySet()) {
+      for (String rawKey : permsJson.keySet()) {
         if (permsJson.optBoolean(rawKey, false)) {
           Permission p = Permission.fromId(rawKey);
           if (p != null) {
@@ -597,14 +596,13 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Collect permissions from a scope-nested "permissions" JSON object (add role dialog).
    */
-  @SuppressWarnings("unchecked")
   private static Set<Permission> collectPermissionsFromScoped(JSONObject json, String scope) {
     Set<Permission> permissions = new HashSet<>();
     JSONObject permissionsJson = json.optJSONObject("permissions");
     if (permissionsJson != null) {
       JSONObject scopePerms = permissionsJson.optJSONObject(scope);
       if (scopePerms != null) {
-        for (String rawKey : (Set<String>) scopePerms.keySet()) {
+        for (String rawKey : scopePerms.keySet()) {
           if (scopePerms.optBoolean(rawKey, false)) {
             String permId = stripBrackets(rawKey);
             Permission p = Permission.fromId(permId);
@@ -621,12 +619,11 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Collect permission ID strings from a flat "permissions" JSON (template dialogs).
    */
-  @SuppressWarnings("unchecked")
   private static Set<String> collectPermissionIds(JSONObject json) {
     Set<String> permIds = new HashSet<>();
     JSONObject permsJson = json.optJSONObject("permissions");
     if (permsJson != null) {
-      for (String rawKey : (Set<String>) permsJson.keySet()) {
+      for (String rawKey : permsJson.keySet()) {
         if (permsJson.optBoolean(rawKey, false)) {
           String permId = stripBrackets(rawKey);
           if (Permission.fromId(permId) != null) {
