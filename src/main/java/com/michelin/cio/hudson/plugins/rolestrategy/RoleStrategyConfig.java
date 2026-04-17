@@ -370,41 +370,26 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * Called from the add role dialog form submission.
+   * Creates a new role; no-op if a role with the same name already exists.
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  @SuppressWarnings("unchecked")
   public void doAddRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    RoleFormData data = parseRoleForm(req, rsp);
-    if (data == null) {
-      return;
-    }
-
-    Pattern compiledPattern = compilePatternOrError(data.pattern, rsp);
-    if (compiledPattern == null) {
-      return;
-    }
-
-    Set<Permission> permissions = collectPermissionsFromScoped(data.json, data.scope);
-    String templateName = data.json.optString("templateName", "");
-    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
-    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      String tmplName = templateName.isEmpty() ? null : templateName;
-      Role role = new Role(data.roleName, compiledPattern, permissions, "", tmplName);
-      rbas.getRoleMap(RoleType.fromString(data.scope)).addRole(role);
-      saveJenkinsConfig();
-    }
-
-    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/manage-roles");
+    handleRoleSubmit(req, rsp, false);
   }
 
   /**
    * Called from the edit role dialog form submission.
+   * Replaces an existing role's definition while preserving its sid assignments.
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  @SuppressWarnings("unchecked")
   public void doEditRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    handleRoleSubmit(req, rsp, true);
+  }
+
+  private void handleRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp, boolean edit)
+      throws IOException, ServletException {
     RoleFormData data = parseRoleForm(req, rsp);
     if (data == null) {
       return;
@@ -415,19 +400,26 @@ public class RoleStrategyConfig extends ManagementLink {
       return;
     }
 
-    Set<Permission> permissions = collectPermissionsFromFlat(data.json);
+    Set<Permission> permissions = edit
+        ? collectPermissionsFromFlat(data.json)
+        : collectPermissionsFromScoped(data.json, data.scope);
     String templateName = data.json.optString("templateName", "");
+    String tmplName = templateName.isEmpty() ? null : templateName;
+
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      RoleType roleType = RoleType.fromString(data.scope);
-      RoleMap roleMap = rbas.getRoleMap(roleType);
-      Role existingRole = roleMap.getRole(data.roleName);
-      if (existingRole != null) {
-        Set<PermissionEntry> sids = roleMap.getGrantedRolesEntries().get(existingRole);
-        roleMap.removeRole(existingRole);
-        String tmplName = templateName.isEmpty() ? null : templateName;
-        Role updatedRole = new Role(data.roleName, compiledPattern, permissions, "", tmplName);
-        roleMap.addRole(updatedRole, sids != null ? sids : new HashSet<>());
+      RoleMap roleMap = rbas.getRoleMap(RoleType.fromString(data.scope));
+      Role newRole = new Role(data.roleName, compiledPattern, permissions, "", tmplName);
+      if (edit) {
+        Role existingRole = roleMap.getRole(data.roleName);
+        if (existingRole != null) {
+          Set<PermissionEntry> sids = roleMap.getGrantedRolesEntries().get(existingRole);
+          roleMap.removeRole(existingRole);
+          roleMap.addRole(newRole, sids != null ? sids : new HashSet<>());
+          saveJenkinsConfig();
+        }
+      } else {
+        roleMap.addRole(newRole);
         saveJenkinsConfig();
       }
     }
@@ -653,18 +645,22 @@ public class RoleStrategyConfig extends ManagementLink {
     return key;
   }
 
+  @SuppressWarnings("unused") // used by jelly
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
     return RoleMacroExtension.all();
   }
 
+  @SuppressWarnings("unused") // used by jelly
   public final RoleType getGlobalRoleType() {
     return RoleType.Global;
   }
 
+  @SuppressWarnings("unused") // used by jelly
   public final RoleType getProjectRoleType() {
     return RoleType.Project;
   }
 
+  @SuppressWarnings("unused") // used by jelly
   public final RoleType getSlaveRoleType() {
     return RoleType.Slave;
   }
