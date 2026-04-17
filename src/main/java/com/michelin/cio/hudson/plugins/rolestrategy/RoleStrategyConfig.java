@@ -319,20 +319,36 @@ public class RoleStrategyConfig extends ManagementLink {
 
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
+      PermissionEntry entry = switch (data.type) {
+        case "GROUP" -> PermissionEntry.group(data.name);
+        case "EITHER" -> new PermissionEntry(AuthorizationType.EITHER, data.name);
+        default -> PermissionEntry.user(data.name);
+      };
+
       for (String assignType : data.roles.keySet()) {
         if (!hasScopePermission(assignType)) {
           continue;
         }
+        RoleMap roleMap = rbas.getRoleMap(RoleType.fromString(assignType));
         JSONObject roleEntries = data.roles.getJSONObject(assignType);
         for (String roleName : roleEntries.keySet()) {
-          if (roleEntries.getBoolean(roleName)) {
-            switch (data.type) {
-              case "USER" -> rbas.doAssignUserRole(assignType, roleName, data.name);
-              case "GROUP" -> rbas.doAssignGroupRole(assignType, roleName, data.name);
-              default -> rbas.doAssignRole(assignType, roleName, data.name);
-            }
+          if (!roleEntries.getBoolean(roleName)) {
+            continue;
+          }
+          Role role = roleMap.getRole(roleName);
+          if (role == null) {
+            continue;
+          }
+          if (!roleMap.isAssigned(role, data.name, data.type)) {
+            roleMap.assignRole(role, entry);
           }
         }
+      }
+
+      try {
+        Jenkins.get().save();
+      } catch (Exception e) {
+        throw new ServletException(e);
       }
     }
 
