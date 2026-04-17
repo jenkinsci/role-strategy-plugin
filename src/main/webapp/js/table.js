@@ -47,7 +47,7 @@ window.toQueryString = function (params) {
 };
 
 var escapeHTML = function (unsafe) {
-  return unsafe.replace(/[&<"']/g, function (m) {
+  return unsafe.replace(/[&<>"']/g, function(m) {
     switch (m) {
       case "&":
         return "&amp;";
