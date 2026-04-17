@@ -1,6 +1,30 @@
-/* Role Strategy Plugin - Card-based UI */
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
+ * Thomas Maurel, Romain Seguy
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 /* Ensure content fits within the one-column layout */
+/* TODO remove after new settings layout is enabled by default */
 #main-panel {
   max-width: 100%;
 }
@@ -637,10 +661,6 @@
 }
 
 /* ============================================
-   Dirty indicator
-   ============================================ */
-
-/* ============================================
    Collapsible Sections
    ============================================ */
 
@@ -783,10 +803,6 @@
 }
 
 /* ============================================
-   Ambiguity warning
-   ============================================ */
-
-/* ============================================
    Validation states
    ============================================ */
 
@@ -801,135 +817,6 @@
 
 .rsp-ambiguity-warning {
   margin-bottom: 1rem;
-}
-
-/* ============================================
-   Legacy table styles (Permission Templates page)
-   ============================================ */
-
-.role-strategy-table {
-  border-spacing: 2px;
-}
-
-.role-strategy-table tbody > tr > td {
-  height: 30px;
-}
-
-.role-strategy-table .rsp-table--header-th {
-  text-align: center !important;
-}
-
-.role-strategy-table thead .rsp-table--header-th.first {
-  border-top-left-radius: var(--table-border-radius);
-}
-
-.role-strategy-table thead .rsp-table--header-th.last {
-  border-top-right-radius: var(--table-border-radius);
-}
-
-.role-strategy-table tfoot .rsp-table--header-th.first {
-  border-bottom-left-radius: var(--table-border-radius);
-}
-
-.role-strategy-table tfoot .rsp-table--header-th.last {
-  border-bottom-right-radius: var(--table-border-radius);
-}
-
-.rsp-table__header-column {
-  vertical-align: bottom !important;
-  text-align: left !important;
-}
-
-.rsp-table__footer-column {
-  vertical-align: top !important;
-  text-align: left !important;
-}
-
-.role-strategy-table th,
-.role-strategy-table td {
-  padding: 0 0.25rem !important;
-  vertical-align: middle;
-  text-align: center;
-}
-
-.role-strategy-table .caption-row TH {
-  padding: 0.25rem !important;
-  width: 1rem;
-  text-align: center;
-}
-
-.role-strategy-table tfoot th {
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.role-strategy-table .rsp-table__permission,
-.role-strategy-table .rsp-table--header-th {
-  background: var(--table-body-background);
-}
-
-.role-strategy-table .caption-row TH span,
-.role-strategy-table .rsp-table--vertical span,
-.role-strategy-table .group-row TD span {
-  writing-mode: vertical-rl;
-  padding: 5px 0;
-}
-
-.role-strategy-table TD.stop,
-.role-strategy-table TD.start {
-  white-space: nowrap;
-  text-align: left;
-  width: 16px;
-}
-
-.role-strategy-table TD.left-most {
-  text-align: left;
-  white-space: nowrap;
-}
-
-.rsp-remove {
-  cursor: pointer;
-  height: 16px;
-  display: flex;
-}
-
-.rsp-table__cell {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.highlighted,
-.highlighted td {
-  background-color: #fff9c9 !important;
-  color: var(--black) !important;
-}
-
-.jenkins-checkbox {
-  vertical-align: middle;
-  margin: 3px 0px;
-}
-
-@keyframes highlightentry {
-  from {
-    background: #c4c080;
-  }
-  to {
-    background: transparent;
-  }
-}
-
-.highlight-entry {
-  animation: highlightentry 5s;
-}
-
-.rsp-highlight-input {
-  cursor: pointer;
-}
-
-.row-filter {
-  display: none;
-  max-width: 500px;
 }
 
 /* ============================================
