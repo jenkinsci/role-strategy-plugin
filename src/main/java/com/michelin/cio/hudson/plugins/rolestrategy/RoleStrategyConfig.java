@@ -307,61 +307,27 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * Called from the assign role dialog form submission.
+   * Only adds newly checked roles; existing assignments not shown in the form are preserved.
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  @SuppressWarnings("unchecked")
   public void doAssignRoleSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    AssignFormData data = parseAssignForm(req, rsp);
-    if (data == null) {
-      return;
-    }
-
-    AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
-    if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      PermissionEntry entry = switch (data.type) {
-        case "GROUP" -> PermissionEntry.group(data.name);
-        case "EITHER" -> new PermissionEntry(AuthorizationType.EITHER, data.name);
-        default -> PermissionEntry.user(data.name);
-      };
-
-      for (String assignType : data.roles.keySet()) {
-        if (!hasScopePermission(assignType)) {
-          continue;
-        }
-        RoleMap roleMap = rbas.getRoleMap(RoleType.fromString(assignType));
-        JSONObject roleEntries = data.roles.getJSONObject(assignType);
-        for (String roleName : roleEntries.keySet()) {
-          if (!roleEntries.getBoolean(roleName)) {
-            continue;
-          }
-          Role role = roleMap.getRole(roleName);
-          if (role == null) {
-            continue;
-          }
-          if (!roleMap.isAssigned(role, data.name, data.type)) {
-            roleMap.assignRole(role, entry);
-          }
-        }
-      }
-
-      try {
-        Jenkins.get().save();
-      } catch (Exception e) {
-        throw new ServletException(e);
-      }
-    }
-
-    rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
+    handleAssignSubmit(req, rsp, false);
   }
 
   /**
    * Called from the edit assignment dialog form submission.
+   * Syncs assignments to match the form state: adds checked roles and removes unchecked ones.
    */
   @RequirePOST
   @Restricted(NoExternalUse.class)
-  @SuppressWarnings("unchecked")
   public void doEditAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
+    handleAssignSubmit(req, rsp, true);
+  }
+
+  @SuppressWarnings("unchecked")
+  private void handleAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp, boolean removeUnchecked)
+      throws IOException, ServletException {
     AssignFormData data = parseAssignForm(req, rsp);
     if (data == null) {
       return;
@@ -375,15 +341,13 @@ public class RoleStrategyConfig extends ManagementLink {
         default -> PermissionEntry.user(data.name);
       };
 
-      for (String assignType : data.roles.keySet()) {
-        // Skip scopes the user doesn't have permission for
+      for (String assignType : (Set<String>) data.roles.keySet()) {
         if (!hasScopePermission(assignType)) {
           continue;
         }
         RoleMap roleMap = rbas.getRoleMap(RoleType.fromString(assignType));
         JSONObject roleEntries = data.roles.getJSONObject(assignType);
-
-        for (String roleName : roleEntries.keySet()) {
+        for (String roleName : (Set<String>) roleEntries.keySet()) {
           Role role = roleMap.getRole(roleName);
           if (role == null) {
             continue;
@@ -392,17 +356,13 @@ public class RoleStrategyConfig extends ManagementLink {
           boolean isCurrentlyAssigned = roleMap.isAssigned(role, data.name, data.type);
           if (shouldBeAssigned && !isCurrentlyAssigned) {
             roleMap.assignRole(role, entry);
-          } else if (!shouldBeAssigned && isCurrentlyAssigned) {
+          } else if (removeUnchecked && !shouldBeAssigned && isCurrentlyAssigned) {
             roleMap.deleteRoleSid(entry, roleName);
           }
         }
       }
 
-      try {
-        Jenkins.get().save();
-      } catch (Exception e) {
-        throw new ServletException(e);
-      }
+      saveJenkinsConfig();
     }
 
     rsp.sendRedirect(req.getContextPath() + "/manage/role-strategy/");
