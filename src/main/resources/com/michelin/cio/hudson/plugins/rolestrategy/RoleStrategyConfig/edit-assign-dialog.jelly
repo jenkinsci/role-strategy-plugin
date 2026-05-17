@@ -65,7 +65,7 @@
       <j:choose>
         <j:when test="${userType == 'EITHER'}">
           <div class="jenkins-alert jenkins-alert-warning rsp-ambiguity-warning">
-            ${%This SID is ambiguous. Choose whether it should match a user or a group; existing assignments will be converted to the selected type.}
+            ${%This permission assignment is ambiguous. Choose whether it should match a user or a group. Existing assignments will be converted to the selected type.}
           </div>
           <f:entry title="${%Type}">
             <div style="display:flex;gap:1rem;">
