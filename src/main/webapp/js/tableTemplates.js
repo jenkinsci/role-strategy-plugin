@@ -431,10 +431,10 @@ Behaviour.specify(".rsp-template-delete", "RoleStrategyTemplates", 0, (btn) => {
     dialog
       .confirm("Delete template", { message: msg, type: "destructive" })
       .then(() => {
-        card.remove();
-        rspUpdateCardBorders();
         tplDelete(name)
           .then(() => {
+            card.remove();
+            rspUpdateCardBorders();
             if (
               document.querySelectorAll("#rsp-template-cards .rsp-card")
                 .length === 0
@@ -449,7 +449,7 @@ Behaviour.specify(".rsp-template-delete", "RoleStrategyTemplates", 0, (btn) => {
           })
           .catch((err) => {
             notificationBar.show(
-              "Failed to save: " + err.message,
+              "Failed to delete: " + err.message,
               notificationBar.ERROR,
             );
           });

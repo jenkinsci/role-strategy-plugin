@@ -45,7 +45,7 @@
                 <span class="rsp-perm__item-name">${p.name}</span>
                 <span class="rsp-perm__item-implied" hidden="true">(${%implied})</span>
                 <j:set var="permDescription" value="${p.description}"/>
-                <j:if test="${permDescription != null and permDescription.length() gt 0}">
+                <j:if test="${permDescription != null and permDescription.toString().length() gt 0}">
                   <span class="rsp-perm__item-info" data-html-tooltip="${permDescription}">
                     <l:icon src="symbol-help-circle" class="icon-sm"/>
                   </span>
@@ -117,7 +117,7 @@
                       <button type="button" class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-card__edit"
                               tooltip="${%Edit role}"
                               data-type="dialog-opener"
-                              data-dialog-url="${rootURL}/manage/role-strategy/edit-role-dialog?roleName=${h.escape(role.name)}&amp;scope=${roleType}">
+                              data-dialog-url="${rootURL}/manage/role-strategy/edit-role-dialog?roleName=${h.urlEncode(role.name)}&amp;scope=${roleType}">
                         <l:icon src="symbol-edit" class="icon-sm"/>
                       </button>
                       <button type="button" class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-card__delete"

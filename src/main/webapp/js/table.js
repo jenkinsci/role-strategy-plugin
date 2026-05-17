@@ -53,6 +53,8 @@ var escapeHTML = function (unsafe) {
         return "&amp;";
       case "<":
         return "&lt;";
+      case ">":
+        return "&gt;";
       case '"':
         return "&quot;";
       default:
@@ -60,3 +62,32 @@ var escapeHTML = function (unsafe) {
     }
   });
 };
+
+// Reconfigure Tippy tooltips that live inside <dialog> elements so they
+// (a) attach to the dialog (HTML5 top-layer) instead of <body>, and
+// (b) use position:fixed so they're not clipped by the dialog's overflow.
+// Core's tooltip registrar runs at Behaviour priority 1000; we run after.
+(function () {
+  if (typeof Behaviour === "undefined") return;
+  const reconfigure = (element) => {
+    const dialog = element.closest("dialog");
+    if (!dialog || !element._tippy) return false;
+    if (element._tippy.props.appendTo === dialog) return true;
+    element._tippy.setProps({
+      appendTo: dialog,
+      popperOptions: { strategy: "fixed" },
+    });
+    return true;
+  };
+  Behaviour.specify(
+    ".rsp-perm-info[data-html-tooltip]",
+    "rsp-dialog-tooltip-fix",
+    1001,
+    (element) => {
+      if (!reconfigure(element)) {
+        // Tippy may not be initialised on this pass; retry once on next frame.
+        requestAnimationFrame(() => reconfigure(element));
+      }
+    },
+  );
+})();

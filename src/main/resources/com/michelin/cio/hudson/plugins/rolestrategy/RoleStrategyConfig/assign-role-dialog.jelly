@@ -1,15 +1,45 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
+         xmlns:x="jelly:xml" xmlns:l="/lib/layout" xmlns:f="/lib/form" xmlns:local="local">
   <st:setHeader name="X-Dialog-Title" value="${%Assign role}"/>
 
   <j:set var="canGlobal" value="${app.hasPermission(app.ADMINISTER)}"/>
   <j:set var="canItem" value="${app.hasPermission(app.ADMINISTER) or app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}"/>
   <j:set var="canAgent" value="${app.hasPermission(app.ADMINISTER) or app.hasPermission(it.strategy.AGENT_ROLES_ADMIN)}"/>
 
+  <d:taglib uri="local">
+    <d:tag name="roleRow">
+      <j:set var="r" value="${attrs.role}"/>
+      <j:set var="showPattern" value="${attrs.showPattern}"/>
+      <div class="rsp-assign-dialog__role-item" data-role-name="${r.name}">
+        <f:checkbox title="${r.name}" name="${r.name}"/>
+        <j:if test="${showPattern == 'true'}">
+          <span class="rsp-assign-dialog__role-pattern">"${r.pattern.toString()}"</span>
+        </j:if>
+        <j:if test="${!r.permissions.isEmpty()}">
+          <x:element name="span">
+            <x:attribute name="class">rsp-perm-info</x:attribute>
+            <x:attribute name="data-html-tooltip">
+              <strong>${%Permissions}</strong>
+              <ul style="margin:0.25rem 0 0;padding-left:1.25rem;">
+                <j:forEach var="p" items="${r.permissions}">
+                  <li>${p.group.title}/${p.name}</li>
+                </j:forEach>
+              </ul>
+            </x:attribute>
+            <l:icon src="symbol-help-circle" class="icon-sm"/>
+          </x:element>
+        </j:if>
+      </div>
+    </d:tag>
+  </d:taglib>
+
   <l:ajax>
     <f:form name="assignRoles" method="post" action="${rootURL}/manage/role-strategy/assignRoleSubmit">
       <f:entry title="${%User or group name}">
-        <f:textbox name="name"/>
+        <f:textbox name="name" clazz="rsp-assign-name-input"/>
+        <div class="rsp-assign-name-validation" hidden="true"></div>
+        <div class="rsp-assign-name-feedback" hidden="true"></div>
       </f:entry>
 
       <f:entry title="${%Type}">
@@ -31,9 +61,7 @@
               <div class="rsp-assign-dialog__group-title">${%Global roles}</div>
               <div name="globalRoles" class="rsp-assign-dialog__group">
                 <j:forEach var="role" items="${globalRoles}">
-                  <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
-                    <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
-                  </div>
+                  <local:roleRow role="${role.key}" showPattern="false"/>
                 </j:forEach>
               </div>
             </j:if>
@@ -45,10 +73,7 @@
               <div class="rsp-assign-dialog__group-title">${%Item roles}</div>
               <div name="projectRoles" class="rsp-assign-dialog__group">
                 <j:forEach var="role" items="${projectRoles}">
-                  <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
-                    <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
-                    <span class="rsp-assign-dialog__role-pattern">"${role.key.pattern.toString()}"</span>
-                  </div>
+                  <local:roleRow role="${role.key}" showPattern="true"/>
                 </j:forEach>
               </div>
             </j:if>
@@ -60,10 +85,7 @@
               <div class="rsp-assign-dialog__group-title">${%Agent roles}</div>
               <div name="agentRoles" class="rsp-assign-dialog__group">
                 <j:forEach var="role" items="${agentRoles}">
-                  <div class="rsp-assign-dialog__role-item" data-role-name="${role.key.name}">
-                    <f:checkbox title="${role.key.name}" name="${role.key.name}"/>
-                    <span class="rsp-assign-dialog__role-pattern">"${role.key.pattern.toString()}"</span>
-                  </div>
+                  <local:roleRow role="${role.key}" showPattern="true"/>
                 </j:forEach>
               </div>
             </j:if>
@@ -76,7 +98,7 @@
 
       </f:entry>
 
-      <f:bottomButtonBar>
+      <f:bottomButtonBar borderless="true">
         <button id="rsp-assign-role-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Assign}</button>
       </f:bottomButtonBar>
     </f:form>

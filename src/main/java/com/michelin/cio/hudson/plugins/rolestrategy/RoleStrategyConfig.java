@@ -184,7 +184,10 @@ public class RoleStrategyConfig extends ManagementLink {
       return;
     }
 
-    checkScopePermission(scope);
+    if (!checkScopePermission(scope)) {
+      rsp.sendError(400, "Unknown scope: " + scope);
+      return;
+    }
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       rbas.doRemoveRoles(scope, roleName);
@@ -274,7 +277,9 @@ public class RoleStrategyConfig extends ManagementLink {
       rbas.doAddTemplate(templateName, permIds, overwrite);
     }
 
-    rsp.sendRedirect(redirectUrl);
+    if (!rsp.isCommitted()) {
+      rsp.sendRedirect(redirectUrl);
+    }
   }
 
   /**
@@ -410,6 +415,9 @@ public class RoleStrategyConfig extends ManagementLink {
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
       RoleMap roleMap = rbas.getRoleMap(RoleType.fromString(data.scope));
       Role newRole = new Role(data.roleName, compiledPattern, permissions, "", tmplName);
+      if (tmplName != null && RoleBasedAuthorizationStrategy.PROJECT.equals(data.scope)) {
+        newRole.refreshPermissionsFromTemplate(rbas.getPermissionTemplate(tmplName));
+      }
       if (edit) {
         Role existingRole = roleMap.getRole(data.roleName);
         if (existingRole != null) {
@@ -519,7 +527,10 @@ public class RoleStrategyConfig extends ManagementLink {
     String scope = json.optString("scope", "globalRoles");
 
     // Enforce per-scope permission
-    checkScopePermission(scope);
+    if (!checkScopePermission(scope)) {
+      rsp.sendError(400, "Unknown scope: " + scope);
+      return null;
+    }
 
     // Edit uses originalRoleName, add uses roleName
     String roleName = json.optString("originalRoleName", "").trim();
@@ -546,8 +557,9 @@ public class RoleStrategyConfig extends ManagementLink {
   /**
    * Check that the current user has permission for the given role scope.
    * Throws AccessDeniedException if not.
+   * Returns false if the scope is unknown (caller should send a 400 response).
    */
-  private static void checkScopePermission(String scope) {
+  private static boolean checkScopePermission(String scope) {
     switch (scope) {
       case RoleBasedAuthorizationStrategy.GLOBAL ->
           Jenkins.get().checkPermission(Jenkins.ADMINISTER);
@@ -555,8 +567,11 @@ public class RoleStrategyConfig extends ManagementLink {
           Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN);
       case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT ->
           Jenkins.get().checkPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN);
-      default -> throw new IllegalArgumentException("Unknown scope: " + scope);
+      default -> {
+        return false;
+      }
     }
+    return true;
   }
 
   /**
@@ -576,6 +591,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
   /**
    * Collect permissions from a flat "permissions" JSON object (edit role dialog).
+   * Checkbox names use [${p.id}] form so keys are bracket-wrapped.
    */
   private static Set<Permission> collectPermissionsFromFlat(JSONObject json) {
     Set<Permission> permissions = new HashSet<>();
@@ -583,7 +599,8 @@ public class RoleStrategyConfig extends ManagementLink {
     if (permsJson != null) {
       for (String rawKey : permsJson.keySet()) {
         if (permsJson.optBoolean(rawKey, false)) {
-          Permission p = Permission.fromId(rawKey);
+          String permId = stripBrackets(rawKey);
+          Permission p = Permission.fromId(permId);
           if (p != null) {
             permissions.add(p);
           }

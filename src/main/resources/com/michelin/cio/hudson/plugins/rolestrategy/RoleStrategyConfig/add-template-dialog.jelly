@@ -27,7 +27,13 @@
                     <div class="rsp-assign-dialog__role-item jenkins-checkbox" data-role-name="${p.name}" data-permission-id="${p.id}"
                          data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}">
                       <input type="checkbox" name="[${p.id}]" id="perm-tpl-add-${p.id}" />
-                      <label for="perm-tpl-add-${p.id}">${p.name}<span class="rsp-implied-label" hidden="true"> (implied)</span></label>
+                      <label for="perm-tpl-add-${p.id}">${p.name}<span class="rsp-implied-label" hidden="true"> (${%implied})</span></label>
+                      <j:set var="permDescription" value="${p.description}"/>
+                      <j:if test="${permDescription != null and permDescription.toString().length() gt 0}">
+                        <span class="rsp-perm-info" data-html-tooltip="${permDescription}">
+                          <l:icon src="symbol-help-circle" class="icon-sm"/>
+                        </span>
+                      </j:if>
                     </div>
                   </j:if>
                 </j:forEach>
@@ -40,7 +46,7 @@
         </div>
       </f:entry>
 
-      <f:bottomButtonBar>
+      <f:bottomButtonBar borderless="true">
         <button id="rsp-add-template-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Add}</button>
       </f:bottomButtonBar>
     </f:form>

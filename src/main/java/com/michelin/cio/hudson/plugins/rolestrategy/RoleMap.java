@@ -602,7 +602,8 @@ public class RoleMap {
    *
    * @param role The role to check
    * @param sid The user or group name
-   * @param type "USER" or "GROUP"
+   * @param type "USER", "GROUP", or "EITHER" (any value other than "GROUP" is treated as USER).
+   *             Matches against the specific type and against legacy ambiguous (EITHER) entries.
    * @return true if the sid is assigned to the role
    */
   public boolean isAssigned(@NonNull Role role, @NonNull String sid, @NonNull String type) {

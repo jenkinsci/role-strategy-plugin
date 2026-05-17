@@ -41,7 +41,13 @@
                           <input type="checkbox" name="[${p.id}]" id="perm-tpl-edit-${p.id}"/>
                         </j:otherwise>
                       </j:choose>
-                      <label for="perm-tpl-edit-${p.id}">${p.name}<span class="rsp-implied-label" hidden="true"> (implied)</span></label>
+                      <label for="perm-tpl-edit-${p.id}">${p.name}<span class="rsp-implied-label" hidden="true"> (${%implied})</span></label>
+                      <j:set var="permDescription" value="${p.description}"/>
+                      <j:if test="${permDescription != null and permDescription.toString().length() gt 0}">
+                        <span class="rsp-perm-info" data-html-tooltip="${permDescription}">
+                          <l:icon src="symbol-help-circle" class="icon-sm"/>
+                        </span>
+                      </j:if>
                     </div>
                   </j:if>
                 </j:forEach>
@@ -54,7 +60,7 @@
         </div>
       </f:entry>
 
-      <f:bottomButtonBar>
+      <f:bottomButtonBar borderless="true">
         <button id="rsp-edit-template-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Save}</button>
       </f:bottomButtonBar>
     </f:form>

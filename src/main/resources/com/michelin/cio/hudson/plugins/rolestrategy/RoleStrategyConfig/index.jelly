@@ -33,13 +33,13 @@
            data-text-authenticated="${%Authenticated Users}"/>
 
       <script type="application/json" id="rsp-roles-global">
-        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}"}</j:forEach>]
+        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.GLOBAL)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${h.jsStringEscape(role.key.name)}","permissions":[<j:forEach var="p" items="${role.key.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${h.jsStringEscape(p.group.title.toString() + '/' + p.name)}"</j:forEach>]}</j:forEach>]
       </script>
       <script type="application/json" id="rsp-roles-project">
-        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}","pattern":"${role.key.pattern.toString()}"}</j:forEach>]
+        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${h.jsStringEscape(role.key.name)}","pattern":"${h.jsStringEscape(role.key.pattern.toString())}","permissions":[<j:forEach var="p" items="${role.key.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${h.jsStringEscape(p.group.title.toString() + '/' + p.name)}"</j:forEach>]}</j:forEach>]
       </script>
       <script type="application/json" id="rsp-roles-slave">
-        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${role.key.name}","pattern":"${role.key.pattern.toString()}"}</j:forEach>]
+        [<j:forEach var="role" items="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}" varStatus="s"><j:if test="${!s.first}">,</j:if>{"name":"${h.jsStringEscape(role.key.name)}","pattern":"${h.jsStringEscape(role.key.pattern.toString())}","permissions":[<j:forEach var="p" items="${role.key.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${h.jsStringEscape(p.group.title.toString() + '/' + p.name)}"</j:forEach>]}</j:forEach>]
       </script>
 
       <template id="assign-roles-icons">

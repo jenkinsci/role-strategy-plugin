@@ -442,16 +442,24 @@
   color: inherit;
 }
 
-.rsp-perm__item-info {
+.rsp-perm__item-info,
+.rsp-perm-info {
   color: var(--text-color-secondary);
   cursor: help;
   display: inline-flex;
   align-items: center;
+  margin-left: 0.35rem;
+  opacity: 0.65;
 }
 
-.rsp-perm__item-info svg {
+.rsp-perm__item-info svg,
+.rsp-perm-info svg {
   width: 14px;
   height: 14px;
+}
+
+.rsp-perm-info:hover {
+  opacity: 1;
 }
 
 .rsp-perm__item--implied {
@@ -764,6 +772,12 @@
   font-size: var(--font-size-sm);
   color: var(--text-color-secondary);
   padding: 0.75rem 0.75rem 0.25rem;
+}
+
+.rsp-assign-dialog__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .rsp-assign-dialog__role-item {

@@ -312,9 +312,8 @@ const rspRenderOneCard = (container, user) => {
   if (user.name === "authenticated" && user.type === "GROUP")
     displayName = dataHolder.dataset.textAuthenticated;
   nameSpan.textContent = displayName;
-  if (rspDisplayNameCache[cacheKey]) {
-    nameSpan.setAttribute("tooltip", user.type + ": " + user.name);
-  }
+  // Always expose the raw userid/groupid so it's discoverable on hover, even before validation
+  nameSpan.setAttribute("tooltip", user.type + ": " + user.name);
   header.appendChild(nameSpan);
 
   // Summary
@@ -438,6 +437,15 @@ const rspPopulateCardBody = (card) => {
       label.dataset.roleName = role.name;
       label.dataset.assignType = type;
 
+      if (role.permissions && role.permissions.length > 0) {
+        const items = role.permissions
+          .map((p) => `<li>${escapeHTML(p)}</li>`)
+          .join("");
+        label.dataset.htmlTooltip =
+          `<strong>Permissions</strong>` +
+          `<ul style="margin:0.25rem 0 0;padding-left:1.25rem;">${items}</ul>`;
+      }
+
       const cb = document.createElement("input");
       cb.type = "checkbox";
       cb.dataset.roleName = role.name;
@@ -524,10 +532,14 @@ const rspProcessValidation = (card) => {
       rspDisplayNameCache[cacheKey] = displayName;
     }
 
-    // Copy tooltip from validation response
+    // Append any extra info from the validation response (e.g. "User exists in Jenkins")
+    // to the tooltip without losing the raw userid/groupid.
     const tooltip = responseDiv.getAttribute("tooltip");
     if (tooltip) {
-      nameEl.setAttribute("tooltip", tooltip);
+      nameEl.setAttribute(
+        "tooltip",
+        card.dataset.userType + ": " + card.dataset.userName + " — " + tooltip,
+      );
     }
   }
 };
@@ -936,6 +948,101 @@ Behaviour.specify(".rsp-user-edit", "RoleStrategyAssign", 0, (btn) => {
 
 // Assign role button — dialog opened via data-type="dialog-opener"
 
+// Look up existing role assignments for a given name + type.
+// Returns { globalRoles: [...], projectRoles: [...], slaveRoles: [...] } or null if none.
+const rspFindExistingAssignments = (name, type) => {
+  if (!name || !type) return null;
+  const result = {};
+  let found = false;
+  rspAssignTypes.forEach((assignType) => {
+    const list = rspAssignmentData[assignType];
+    if (!list) return;
+    const entry = list.find((e) => e.name === name && e.type === type);
+    if (entry && entry.roles && entry.roles.length > 0) {
+      result[assignType] = entry.roles;
+      found = true;
+    }
+  });
+  return found ? result : null;
+};
+
+// Resolve the typed name against the security realm and show the display name (or "not found").
+// Uses the same descriptor/checkName endpoint as the assignments cards.
+const rspValidateAssignName = (form, getAbort, setAbort) => {
+  const nameInput = form.querySelector("input[name='name']");
+  const target = form.querySelector(".rsp-assign-name-validation");
+  if (!nameInput || !target) return;
+  const name = nameInput.value.trim();
+  const typeInput = form.querySelector("input[name='type']:checked");
+  const type = typeInput ? typeInput.value : null;
+
+  // Cancel any in-flight check
+  const prev = getAbort?.();
+  if (prev) prev.abort();
+
+  if (!name || !type) {
+    target.hidden = true;
+    target.innerHTML = "";
+    return;
+  }
+
+  const dataHolder = document.getElementById("role-strategy-data");
+  const descriptorUrl = dataHolder?.dataset.descriptorUrl;
+  if (!descriptorUrl) return;
+
+  const controller = new AbortController();
+  setAbort?.(controller);
+
+  const value = "[" + type + ":" + name + "]";
+  const url = descriptorUrl + "/checkName?value=" + encodeURIComponent(value);
+  fetch(url, {
+    method: "POST",
+    headers: crumb.wrap({}),
+    signal: controller.signal,
+  })
+    .then((rsp) => rsp.text())
+    .then((html) => {
+      target.innerHTML = html;
+      target.hidden = false;
+    })
+    .catch(() => {
+      target.hidden = true;
+      target.innerHTML = "";
+    });
+};
+
+const rspUpdateAssignNameWarning = (form) => {
+  const nameInput = form.querySelector("input[name='name']");
+  const feedback = form.querySelector(".rsp-assign-name-feedback");
+  if (!nameInput || !feedback) return;
+  const name = nameInput.value.trim();
+  const typeInput = form.querySelector("input[name='type']:checked");
+  const type = typeInput ? typeInput.value : null;
+
+  const existing = rspFindExistingAssignments(name, type);
+  if (!existing) {
+    feedback.hidden = true;
+    feedback.innerHTML = "";
+    return;
+  }
+
+  const parts = [];
+  rspAssignTypes.forEach((assignType) => {
+    const roles = existing[assignType];
+    if (!roles) return;
+    parts.push(
+      `<li><strong>${escapeHTML(rspTypeLabels[assignType])}:</strong> ${roles.map(escapeHTML).join(", ")}</li>`,
+    );
+  });
+  feedback.innerHTML =
+    `<div class="jenkins-alert jenkins-alert-warning" style="margin-top:0.5rem;">` +
+    `<strong>Warning:</strong> This ${type === "GROUP" ? "group" : "user"} already has role assignments. ` +
+    `New roles will be added to the existing ones.` +
+    `<ul style="margin:0.25rem 0 0;padding-left:1.25rem;">${parts.join("")}</ul>` +
+    `</div>`;
+  feedback.hidden = false;
+};
+
 // Assign role dialog submit button + enter key
 Behaviour.specify(
   "#rsp-assign-role-submit-btn",
@@ -947,6 +1054,27 @@ Behaviour.specify(
 
     const form = btn.closest("form");
     if (!form) return;
+
+    // Live warning when the typed name matches an existing user/group with assignments
+    // + display-name resolution against the security realm.
+    const nameInput = form.querySelector("input[name='name']");
+    if (nameInput) {
+      let warnTimer = null;
+      let validationAbort = null;
+      const scheduleWarning = () => {
+        if (warnTimer) clearTimeout(warnTimer);
+        warnTimer = setTimeout(() => {
+          rspUpdateAssignNameWarning(form);
+          rspValidateAssignName(form, () => validationAbort, (c) => {
+            validationAbort = c;
+          });
+        }, 300);
+      };
+      nameInput.addEventListener("input", scheduleWarning);
+      form.querySelectorAll("input[name='type']").forEach((r) => {
+        r.addEventListener("change", scheduleWarning);
+      });
+    }
 
     const validateAndSubmit = () => {
       const nameInput = form.querySelector("input[name='name']");
