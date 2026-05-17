@@ -7,7 +7,7 @@
     </form>
   </j:set>
   <l:adminMonitor controls="${controls}">
-    <div>There are several permissions declared in Role Based Strategy plugin configuration, that are ambiguous. Update
+    <div>There are several permissions declared in Role Based Strategy plugin configuration that are ambiguous. Update
       the permission assignments to user or group.
     </div>
 
