@@ -1035,8 +1035,8 @@ const rspUpdateAssignNameWarning = (form) => {
     );
   });
   feedback.innerHTML =
-    `<div class="jenkins-alert jenkins-alert-warning" style="margin-top:0.5rem;">` +
-    `<strong>Warning:</strong> This ${type === "GROUP" ? "group" : "user"} already has role assignments. ` +
+    `<div class="jenkins-alert jenkins-alert-info jenkins-!-margin-top-2">` +
+    `This ${type === "GROUP" ? "group" : "user"} already has role assignments. ` +
     `New roles will be added to the existing ones.` +
     `<ul style="margin:0.25rem 0 0;padding-left:1.25rem;">${parts.join("")}</ul>` +
     `</div>`;
