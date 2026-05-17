@@ -58,6 +58,11 @@ public class AmbiguousSidsAdminMonitor extends AdministrativeMonitor {
   }
 
   @Override
+  public boolean isSecurity() {
+    return true;
+  }
+
+  @Override
   public String getDisplayName() {
     return Messages.RoleBasedProjectNamingStrategy_Ambiguous();
   }
