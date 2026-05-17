@@ -150,7 +150,9 @@ const rspBuildUserSummary = (userData) => {
 
 const rspGenerateIcon = (type) => {
   const icons = document.querySelector("#assign-roles-icons");
-  const iconId = type === "GROUP" ? "rsp-people-icon" : "rsp-person-icon";
+  let iconId = "rsp-person-icon";
+  if (type === "GROUP") iconId = "rsp-people-icon";
+  else if (type === "EITHER") iconId = "rsp-ambiguous-icon";
   return icons.content.querySelector(`#${iconId}`).cloneNode(true);
 };
 
@@ -282,6 +284,9 @@ const rspRenderOneCard = (container, user) => {
   card.classList.add("rsp-card");
   card.dataset.userName = user.name;
   card.dataset.userType = user.type;
+  if (user.type === "EITHER") {
+    card.classList.add("rsp-card--ambiguous");
+  }
 
   // Hidden validation target
   const validationTarget = document.createElement("div");
@@ -300,6 +305,12 @@ const rspRenderOneCard = (container, user) => {
   const iconSpan = document.createElement("span");
   iconSpan.classList.add("rsp-assign__chip-icon");
   iconSpan.appendChild(rspGenerateIcon(user.type));
+  if (user.type === "EITHER") {
+    iconSpan.setAttribute(
+      "tooltip",
+      "Ambiguous permission assignment - edit to classify as a user or group",
+    );
+  }
   header.appendChild(iconSpan);
 
   // Name — use cached display name if available
@@ -312,8 +323,10 @@ const rspRenderOneCard = (container, user) => {
   if (user.name === "authenticated" && user.type === "GROUP")
     displayName = dataHolder.dataset.textAuthenticated;
   nameSpan.textContent = displayName;
-  // Always expose the raw userid/groupid so it's discoverable on hover, even before validation
-  nameSpan.setAttribute("tooltip", user.type + ": " + user.name);
+  // Only expose the raw id on hover when it differs from what's displayed.
+  if (displayName !== user.name) {
+    nameSpan.setAttribute("tooltip", user.name);
+  }
   header.appendChild(nameSpan);
 
   // Summary
@@ -523,23 +536,20 @@ const rspProcessValidation = (card) => {
     const displayName = textNodes.join("").trim();
     if (displayName && displayName !== card.dataset.userName) {
       nameEl.textContent = displayName;
-      nameEl.setAttribute(
-        "tooltip",
-        card.dataset.userType + ": " + card.dataset.userName,
-      );
+      // Show the raw id on hover only when it's different from the displayed name.
+      nameEl.setAttribute("tooltip", card.dataset.userName);
       // Cache the resolved display name for search
       const cacheKey = card.dataset.userType + ":" + card.dataset.userName;
       rspDisplayNameCache[cacheKey] = displayName;
+    } else if (displayName === card.dataset.userName) {
+      // Display name matches the id — no need for a tooltip.
+      nameEl.removeAttribute("tooltip");
     }
 
-    // Append any extra info from the validation response (e.g. "User exists in Jenkins")
-    // to the tooltip without losing the raw userid/groupid.
+    // If the validation response carries a tooltip (e.g. a warning), prefer it.
     const tooltip = responseDiv.getAttribute("tooltip");
     if (tooltip) {
-      nameEl.setAttribute(
-        "tooltip",
-        card.dataset.userType + ": " + card.dataset.userName + " — " + tooltip,
-      );
+      nameEl.setAttribute("tooltip", tooltip);
     }
   }
 };
@@ -929,16 +939,33 @@ Behaviour.specify(".rsp-user-edit", "RoleStrategyAssign", 0, (btn) => {
       }
       if (form.dataset.dialogInit === "true") return;
       form.dataset.dialogInit = "true";
+
+      const originalTypeInput = form.querySelector("input[name='originalType']");
+      const isAmbiguous =
+        originalTypeInput && originalTypeInput.value === "EITHER";
+
+      const validateAndSubmit = () => {
+        if (isAmbiguous) {
+          const picked = form.querySelector("input[name='type']:checked");
+          if (!picked) {
+            notificationBar.show(
+              "Select User or Group to classify this ambiguous SID.",
+              notificationBar.ERROR,
+            );
+            return;
+          }
+        }
+        form.requestSubmit();
+      };
+
       const submitBtn = form.querySelector("#rsp-edit-assign-submit-btn");
       if (submitBtn) {
-        submitBtn.addEventListener("click", () => {
-          form.requestSubmit();
-        });
+        submitBtn.addEventListener("click", validateAndSubmit);
       }
       form.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") {
           ev.preventDefault();
-          form.requestSubmit();
+          validateAndSubmit();
         }
       });
     };

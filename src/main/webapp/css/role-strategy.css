@@ -825,8 +825,13 @@
   color: var(--error-color);
 }
 
-.rsp-card--warning {
+.rsp-card--warning,
+.rsp-card--ambiguous {
   border-left: 3px solid var(--warning);
+}
+
+.rsp-card--ambiguous .rsp-assign__chip-icon {
+  color: var(--warning);
 }
 
 .rsp-ambiguity-warning {

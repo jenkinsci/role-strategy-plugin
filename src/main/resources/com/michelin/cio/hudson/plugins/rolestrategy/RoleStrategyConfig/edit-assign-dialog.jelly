@@ -56,11 +56,28 @@
   <l:ajax>
     <f:form name="editAssignRoles" method="post" action="${rootURL}/manage/role-strategy/editAssignSubmit">
       <input type="hidden" name="name" value="${userName}"/>
-      <input type="hidden" name="type" value="${userType}"/>
+      <input type="hidden" name="originalType" value="${userType}"/>
 
       <f:entry title="${%User or group name}">
         <f:textbox name="displayName" value="${userName}" disabled="true"/>
       </f:entry>
+
+      <j:choose>
+        <j:when test="${userType == 'EITHER'}">
+          <div class="jenkins-alert jenkins-alert-warning rsp-ambiguity-warning">
+            ${%This SID is ambiguous. Choose whether it should match a user or a group; existing assignments will be converted to the selected type.}
+          </div>
+          <f:entry title="${%Type}">
+            <div style="display:flex;gap:1rem;">
+              <f:radio name="type" value="USER" title="${%User}"/>
+              <f:radio name="type" value="GROUP" title="${%Group}"/>
+            </div>
+          </f:entry>
+        </j:when>
+        <j:otherwise>
+          <input type="hidden" name="type" value="${userType}"/>
+        </j:otherwise>
+      </j:choose>
 
       <f:entry title="${%Roles}">
         <l:search-bar placeholder="${%Filter roles}" clazz="rsp-role-dialog-filter" hasKeyboardShortcut="false" />

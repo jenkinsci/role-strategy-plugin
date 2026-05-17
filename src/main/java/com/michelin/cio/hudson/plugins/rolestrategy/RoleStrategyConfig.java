@@ -340,11 +340,9 @@ public class RoleStrategyConfig extends ManagementLink {
 
     AuthorizationStrategy strategy = Jenkins.get().getAuthorizationStrategy();
     if (strategy instanceof RoleBasedAuthorizationStrategy rbas) {
-      PermissionEntry entry = switch (data.type) {
-        case "GROUP" -> PermissionEntry.group(data.name);
-        case "EITHER" -> new PermissionEntry(AuthorizationType.EITHER, data.name);
-        default -> PermissionEntry.user(data.name);
-      };
+      PermissionEntry entry = entryFor(data.type, data.name);
+      boolean isConversion = !data.originalType.equals(data.type);
+      PermissionEntry originalEntry = isConversion ? entryFor(data.originalType, data.name) : null;
 
       for (String assignType : (Set<String>) data.roles.keySet()) {
         if (!hasScopePermission(assignType)) {
@@ -356,6 +354,9 @@ public class RoleStrategyConfig extends ManagementLink {
           Role role = roleMap.getRole(roleName);
           if (role == null) {
             continue;
+          }
+          if (isConversion) {
+            roleMap.deleteRoleSid(originalEntry, roleName);
           }
           boolean shouldBeAssigned = roleEntries.getBoolean(roleName);
           boolean isCurrentlyAssigned = roleMap.isAssigned(role, data.name, data.type);
@@ -472,6 +473,14 @@ public class RoleStrategyConfig extends ManagementLink {
     }
   }
 
+  private static PermissionEntry entryFor(String type, String name) {
+    return switch (type) {
+      case "GROUP" -> PermissionEntry.group(name);
+      case "EITHER" -> new PermissionEntry(AuthorizationType.EITHER, name);
+      default -> PermissionEntry.user(name);
+    };
+  }
+
   private static void saveJenkinsConfig() throws ServletException {
     try {
       Jenkins.get().save();
@@ -481,7 +490,7 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /** Parsed data from an assign/edit-assign dialog submission. */
-  private record AssignFormData(String name, String type, JSONObject roles) {}
+  private record AssignFormData(String name, String type, String originalType, JSONObject roles) {}
 
   @CheckForNull
   private static AssignFormData parseAssignForm(StaplerRequest2 req, StaplerResponse2 rsp)
@@ -496,6 +505,7 @@ public class RoleStrategyConfig extends ManagementLink {
 
     String name = json.optString("name", "").trim();
     String type = json.optString("type", "USER");
+    String originalType = json.optString("originalType", type);
     if (name.isEmpty()) {
       rsp.sendRedirect(redirectUrl);
       return null;
@@ -507,7 +517,7 @@ public class RoleStrategyConfig extends ManagementLink {
       return null;
     }
 
-    return new AssignFormData(name, type, roles);
+    return new AssignFormData(name, type, originalType, roles);
   }
 
   /** Parsed data from an add/edit role dialog submission. */
