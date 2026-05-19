@@ -27,7 +27,7 @@
     <l:view>
       <l:app-bar title="${%Macros}"/>
       <p class="jenkins-page-description">
-        Macros extend access rights analysis and can be used in the pattern field.
+        Macros extend access rights analysis and are used in the role field.
       </p>
       <p class="jenkins-!-margin-bottom-3" style="color:var(--text-color-secondary);font-size:0.875rem;">
         Format:
