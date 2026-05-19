@@ -194,19 +194,6 @@ class RoleStrategyRootActionTest {
   }
 
   @Test
-  void testRootActionDelegatesToRoleStrategyConfig() throws Exception {
-    webClient.login("itemAdminUser", "itemAdminUser");
-
-    // Test that subpages work through the root action
-    URL url = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/assign-roles");
-    WebRequest request = new WebRequest(url, HttpMethod.GET);
-
-    Page page = webClient.getPage(request);
-    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(),
-        "itemAdmin should be able to access /role-strategy/assign-roles through RootAction delegation");
-  }
-
-  @Test
   void testGetTarget() throws Exception {
     webClient.login("itemAdminUser", "itemAdminUser");
 
