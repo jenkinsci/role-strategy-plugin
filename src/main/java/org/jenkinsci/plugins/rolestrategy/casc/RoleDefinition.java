@@ -71,7 +71,7 @@ public class RoleDefinition implements Comparable<RoleDefinition> {
   @DataBoundSetter
   @Deprecated
   public void setAssignments(Collection<String> assignments) {
-    LOGGER.log(Level.WARNING, "Loading ambiguous role assignments via via configuration-as-code support");
+    LOGGER.log(Level.WARNING, "Loading ambiguous role assignments via configuration-as-code support");
     if (assignments != null) {
       SortedSet<RoleDefinitionEntry> entries = new TreeSet<>();
       for (String assignment : assignments) {
