@@ -82,7 +82,7 @@ public class RoleStrategyRootAction implements RootAction, StaplerProxy {
    * This allows the RootAction to serve at /role-strategy while reusing all the logic.
    */
   public Object getTarget() {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
+    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN);
     return RoleStrategyConfig.get();
   }
 }
