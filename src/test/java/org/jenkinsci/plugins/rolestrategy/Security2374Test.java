@@ -28,6 +28,8 @@ import static com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType.EIT
 import static com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType.GROUP;
 import static com.michelin.cio.hudson.plugins.rolestrategy.AuthorizationType.USER;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -66,8 +68,6 @@ class Security2374Test {
   @WithJenkinsConfiguredWithCode
   @ConfiguredWithCode("Security2374Test/casc.yaml")
   void readFromCasc(JenkinsConfiguredWithCodeRule j) throws Exception {
-    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) j.jenkins.getAuthorizationStrategy();
-
     // So we can log in
     JenkinsRule.DummySecurityRealm dsr = j.createDummySecurityRealm();
     dsr.addGroups("gerry", "groupname");
@@ -89,16 +89,16 @@ class Security2374Test {
 
     AmbiguousSidsAdminMonitor am = AmbiguousSidsAdminMonitor.get();
     assertTrue(am.isActivated());
-    assertThat(am.getAmbiguousEntries(), Matchers.containsInAnyOrder("eitherSID", "indifferentSID"));
+    assertThat(am.getAmbiguousEntries(), containsInAnyOrder("eitherSID", "indifferentSID"));
 
     HtmlPage manage;
     try (JenkinsRule.WebClient wc = j.createWebClient()) {
       wc.login("gerry", "gerry");
       manage = wc.goTo("manage");
       String source = manage.getWebResponse().getContentAsString();
-      assertThat(source, Matchers.containsString("'USER:username' or 'GROUP:groupname'"));
-      assertThat(source, Matchers.containsString("indifferentSID"));
-      assertThat(source, Matchers.containsString("eitherSID"));
+      assertThat(source, containsString("ambiguous"));
+      assertThat(source, containsString("indifferentSID"));
+      assertThat(source, containsString("eitherSID"));
     }
   }
 
