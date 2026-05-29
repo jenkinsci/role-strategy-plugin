@@ -23,183 +23,816 @@
  * THE SOFTWARE.
  */
 
-.role-strategy-table {
-  border-spacing: 2px;
+/* Ensure content fits within the one-column layout */
+/* TODO remove after new settings layout is enabled by default */
+#main-panel {
+  max-width: 100%;
 }
 
-.role-strategy-table tbody>tr>td {
-  height: 30px;
+/* ============================================
+   Container
+   ============================================ */
+
+.rsp-container {
+  margin-bottom: var(--section-padding);
 }
 
-.role-strategy-table .rsp-table--header-th {
-  text-align: center!important;
+/* ============================================
+   App Bar (search + filter + actions)
+   ============================================ */
+
+.rsp-search-wrapper {
+  position: relative;
 }
 
-.role-strategy-table thead .rsp-table--header-th.first {
-  border-top-left-radius: var(--table-border-radius);
+.rsp-search-wrapper .jenkins-search__input {
+  padding-right: 2.25rem;
 }
 
-.role-strategy-table thead .rsp-table--header-th.last {
-  border-top-right-radius: var(--table-border-radius);
+/* ============================================
+   Permission Filter Dropdown
+   ============================================ */
+
+.rsp-filter {
+  position: absolute;
+  right: 0.375rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
 }
 
-.role-strategy-table tfoot .rsp-table--header-th.first {
-  border-bottom-left-radius: var(--table-border-radius);
+.rsp-filter__button {
+  padding: 0.25rem !important;
+  min-width: 1.875rem !important;
+  min-height: 1.875rem;
+  border-radius: 0.4375rem;
+  margin-right: -0.125rem;
+  color: var(--text-color-secondary);
+  transition: color var(--standard-transition);
 }
 
-.role-strategy-table tfoot .rsp-table--header-th.last {
-  border-bottom-right-radius: var(--table-border-radius);
-}
-
-.rsp-table__header-column {
-  vertical-align: bottom!important;
-  text-align: left!important;
-}
-
-.rsp-table__footer-column {
-  vertical-align: top!important;
-  text-align: left!important;
-}
-
-.role-strategy-table th, .role-strategy-table td
-{
-  padding: 0 0.25rem!important;
-  vertical-align: middle;
-  text-align: center;
-}
-
-.role-strategy-table .caption-row TH {
-  padding: 0.25rem!important;
-  width: 1rem;
-  text-align: center;
-}
-
-.role-strategy-table tfoot th {
-  font-size: .875rem;
-  font-weight: 500;
-}
-
-.role-strategy-table .rsp-table__permission,
-.role-strategy-table .rsp-table--header-th
-{
-  background: var(--table-body-background);
-}
-
-.role-strategy-table .caption-row TH span,
-.role-strategy-table .rsp-table--vertical span,
-.role-strategy-table .group-row TD span
-{
-  writing-mode: vertical-rl;
-  padding: 5px 0;
-}
-
-.role-strategy-table TD.stop,
-.role-strategy-table TD.start {
-  white-space: nowrap;
-  text-align: left;
-  width: 16px;
-}
-
-.role-strategy-table TD.left-most {
-  text-align: left;
-  white-space: nowrap;
-}
-
-.role-strategy-table div.pattern-cell {
+.rsp-filter__dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 9999;
+  min-width: 260px;
+  max-height: 420px;
   display: flex;
-  justify-content: left;
+  flex-direction: column;
+
+  /* Copied from core */
+  background: color-mix(in sRGB, var(--card-background) 85%, transparent);
+  backdrop-filter: var(--dropdown-backdrop-filter);
+  box-shadow: var(--dropdown-box-shadow);
+  border-radius: 1rem;
+}
+
+.rsp-filter__dropdown[hidden] {
+  display: none;
+}
+
+.rsp-filter__header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
+  padding: 0.75rem;
+  flex-shrink: 0;
 }
 
-.role-strategy-table div.pattern-cell svg {
-  margin-right: 3px;
-  cursor: pointer;
+.rsp-filter__header-label {
+  font-weight: var(--font-bold-weight);
+  font-size: var(--font-size-sm);
 }
 
-.role-strategy-table div.pattern-cell span {
-  white-space: nowrap;
-}
-
-label.attach-previous {
-  margin-left: 0;
-}
-
-.highlighted,
-.highlighted td {
-  background-color: #FFF9C9!important;
-  color: var(--black)!important;
-}
-
-.jenkins-checkbox {
-	vertical-align: middle;
-	margin: 3px 0px;
-}
-
-@keyframes highlightentry {
-  from { background: #C4C080; }
-  to { background: transparent; }
-}
-
-.highlight-entry {
-  -webkit-animation: highlightentry 5s;
-  -moz-animation: highlightentry 5s;
-  animation: highlightentry 5s;
-}
-
-.jenkins-alert {
-	margin-top: 10px;
-}
-
-.rsp-entry-not-found {
-    text-decoration: line-through;
-    color: grey;
-}
-
-.rsp-table__icon-alert {
-  color: orange;
-}
-
-.rsp-table__cell {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.rsp-remove, .migrate {
-  cursor: pointer;
-  height: 16px;
-  display: flex;
-}
-
-button.migrate {
+.rsp-filter__reset-button {
+  font-size: 0.8125rem;
+  color: var(--accent-color);
   background: none;
   border: none;
-  color: inherit;
+  cursor: pointer;
   padding: 0;
 }
 
-.patternAnchor {
-  cursor: pointer;
-  color: var(--link-color);
-  font-weight: var(--link-font-weight);
+.rsp-filter__search {
+  padding: 0 0.5rem 0.5rem 0.5rem;
+  border-bottom: var(--jenkins-border);
 }
 
-.patternAnchor:hover {
-    text-decoration: var(--link-text-decoration--hover);
+.rsp-filter__search .jenkins-search {
+  width: 100%;
 }
 
-.row-filter, .user-filter, .role-filter {
-  display: none;
-  max-width: 500px;
-}
-
-
-.rsp-navigation__entries {
+.rsp-filter__list {
   display: flex;
-  gap: 1rem;
-  margin-top: -15px;
+  flex-direction: column;
+  padding: 0.375rem;
+  overflow-y: auto;
 }
 
-.rsp-navigation__entries .jenkins-select {
-  max-width: 5rem;
+.rsp-filter__group-title {
+  color: var(--text-color-secondary) !important;
+  margin: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: var(--font-bold-weight);
+  opacity: 0.8;
+}
+
+.rsp-filter__item--filter-hidden {
+  display: none;
+}
+
+.rsp-filter__item-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--text-color-secondary);
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.rsp-filter__item--active .rsp-filter__item-indicator {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.rsp-filter__group-title--filter-hidden {
+  display: none;
+}
+
+.rsp-filter__no-results {
+  padding: 1rem 0.75rem;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+  text-align: center;
+  font-style: italic;
+}
+
+.rsp-filter__no-results[hidden] {
+  display: none;
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+
+.rsp-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsp-card {
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  background: var(--card-background);
+  overflow: hidden;
+}
+
+/* Connected borders managed via JS classes */
+.rsp-card.rsp-card--connected-top {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+.rsp-card.rsp-card--connected-bottom {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Connected borders — pure CSS, handles both static and filtered cases.
+   JS classes (rsp-card--connected-top/bottom) provide overrides for
+   cases where hidden cards break adjacency in the DOM. */
+
+/* Any card preceded by a visible card: flat top, no border */
+.rsp-card:not(.rsp-card--hidden) + .rsp-card:not(.rsp-card--hidden) {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+/* Any card followed by a visible card: flat bottom */
+.rsp-card:not(.rsp-card--hidden):has(+ .rsp-card:not(.rsp-card--hidden)) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* JS overrides for filtered views where hidden cards break adjacency */
+.rsp-card.rsp-card--connected-top {
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border-top: none !important;
+}
+
+.rsp-card.rsp-card--connected-bottom {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.rsp-card--hidden {
+  display: none;
+}
+
+/* ============================================
+   Card Header
+   ============================================ */
+
+.rsp-card__header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+  transition: background var(--standard-transition);
+}
+
+.rsp-card__header:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-card__header:active {
+  background: var(--item-background--active);
+}
+
+.rsp-card__name {
+  font-weight: var(--font-bold-weight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  color: var(--text-color);
+}
+
+.rsp-card__pattern {
+  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.rsp-card__pattern:hover {
+  color: var(--link-color);
+  text-decoration: var(--link-text-decoration--hover);
+}
+
+.rsp-card__template-badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--item-background--hover);
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rsp-card__summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+.rsp-card__summary--empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.rsp-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+.rsp-card__action {
+  padding: 0 !important;
+  min-height: 2rem;
+  width: 2rem;
+}
+
+.rsp-card__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  transition: transform var(--standard-transition);
+}
+
+.rsp-card[aria-expanded="true"] .rsp-card__toggle {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   Card Body (collapsible)
+   ============================================ */
+
+.rsp-card__body {
+  border-top: var(--jenkins-border);
+}
+
+.rsp-card__body--collapsed {
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  border-top: none;
+  visibility: hidden;
+}
+
+/* ============================================
+   Permissions Section
+   ============================================ */
+
+.rsp-perm__group {
+  display: flex;
+  flex-direction: column;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rsp-perm__group:first-of-type {
+  margin-top: 0.75rem;
+}
+
+.rsp-perm__group-title {
+  color: var(--text-color-secondary);
+  font-weight: var(--font-bold-weight);
+  font-size: 0.8125rem;
+  margin: 0 0.75rem;
+  padding: 0.5rem 0.5rem 0 0.5rem;
+}
+
+.rsp-perm__permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.5rem 0.75rem 0.75rem 0.75rem;
+}
+
+.rsp-perm__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  min-width: 150px;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.rsp-perm__item input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.rsp-perm__item:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-perm__item:has(input:focus-visible) {
+  box-shadow: 0 0 0 0.2rem var(--text-color);
+}
+
+.rsp-perm__item:has(input:checked) {
+  background: var(--accent-color, #0b6cbd);
+  color: var(--background, #fff);
+}
+
+.rsp-perm__item:has(input:checked):hover {
+  filter: brightness(1.1);
+}
+
+.rsp-perm__item:has(input:checked) .rsp-perm__item-name {
+  color: inherit;
+}
+
+.rsp-perm__item:has(input:checked) .rsp-perm__item-info {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.rsp-perm__item-name {
+  font-size: 0.875rem;
+  color: var(--text-color);
+}
+
+.rsp-perm__item-implied {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+.rsp-perm__item:has(input:checked) .rsp-perm__item-implied {
+  color: inherit;
+}
+
+.rsp-perm__item-info {
+  color: var(--text-color-secondary);
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+}
+
+.rsp-perm__item-info svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rsp-perm__item--implied {
+  background: var(--item-background--hover);
+}
+
+.rsp-perm__item--implied input[type="checkbox"] {
+  pointer-events: none;
+}
+
+/* ============================================
+   Assignments Section
+   ============================================ */
+
+.rsp-assign {
+  border-top: var(--jenkins-border);
+  padding: 0.75rem;
+}
+
+.rsp-assign__title {
+  font-size: 0.8125rem;
+  font-weight: var(--font-bold-weight);
+  color: var(--text-color-secondary);
+  margin: 0 0 0.5rem 0;
+}
+
+.rsp-assign__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.5rem;
+}
+
+.rsp-assign__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--item-background--hover);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.rsp-assign__chip--either {
+  border-left: 3px solid var(--warning);
+}
+
+.rsp-assign__chip-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.rsp-assign__chip-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rsp-assign__chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  border-radius: 50%;
+  padding: 0;
+  font-size: 0.875rem;
+  line-height: 1;
+  transition: background var(--standard-transition);
+}
+
+.rsp-assign__chip-remove:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--error-color);
+}
+
+.rsp-assign__chip-migrate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-color-secondary);
+  border-radius: 50%;
+  padding: 0;
+  transition: background var(--standard-transition);
+}
+
+.rsp-assign__chip-migrate:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: var(--text-color);
+}
+
+.rsp-assign__chip-migrate svg {
+  width: 14px;
+  height: 14px;
+}
+
+.rsp-assign__show-more {
+  font-size: 0.8125rem;
+  color: var(--accent-color);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.rsp-assign__show-more:hover {
+  text-decoration: underline;
+}
+
+.rsp-assign__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.rsp-assign__loading {
+  color: var(--text-color-secondary);
+  font-size: 0.8125rem;
+  font-style: italic;
+  padding: 0.25rem 0;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+
+.rsp-empty-state {
+  min-height: 100px;
+}
+
+.rsp-empty-state[hidden] {
+  display: none;
+}
+
+/* ============================================
+   Cards with no permissions — non-expandable
+   ============================================ */
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__header {
+  cursor: default;
+}
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__header:hover {
+  background: none;
+}
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__toggle {
+  visibility: hidden;
+}
+
+/* ============================================
+   Card body — view-only permissions (editing via dialog)
+   ============================================ */
+
+.rsp-card__body .rsp-perm__item {
+  pointer-events: none;
+  cursor: default;
+}
+
+/* ============================================
+   Highlight Animation
+   ============================================ */
+
+@keyframes rsp-highlight {
+  from {
+    background: var(--focus-input-glow, #c4c080);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.rsp-highlight-entry {
+  animation: rsp-highlight 5s;
+}
+
+/* ============================================
+   Read-only Mode
+   ============================================ */
+
+.rsp-card.rsp-card--read-only .rsp-card__header {
+  cursor: default;
+}
+
+.rsp-card.rsp-card--read-only .rsp-card__actions .rsp-card__action {
+  display: none;
+}
+
+.rsp-card.rsp-card--read-only .rsp-perm__item input[type="checkbox"] {
+  pointer-events: none;
+}
+
+.rsp-card.rsp-card--read-only .rsp-assign__chip-remove,
+.rsp-card.rsp-card--read-only .rsp-assign__chip-migrate,
+.rsp-card.rsp-card--read-only .rsp-assign__add,
+.rsp-card.rsp-card--read-only .rsp-assign__actions {
+  display: none;
+}
+
+/* ============================================
+   Collapsible Sections
+   ============================================ */
+
+.rsp-section-collapsible .jenkins-section__title {
+  cursor: pointer;
+  user-select: none;
+}
+
+.rsp-section-collapsible .jenkins-section__title .rsp-section-chevron {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: text-top;
+  margin-left: 0.25rem;
+  transition: transform 0.2s;
+  color: var(--text-color-secondary);
+}
+
+.rsp-section-collapsible.rsp-section--collapsed .rsp-section-chevron {
+  transform: rotate(-90deg);
+  vertical-align: text-bottom;
+}
+
+.rsp-section-collapsible.rsp-section--collapsed .rsp-container,
+.rsp-section-collapsible.rsp-section--collapsed > .jenkins-form-item {
+  display: none;
+}
+
+/* ============================================
+   Dirty indicator
+   ============================================ */
+
+#rs-dirty-indicator {
+  display: none;
+}
+
+/* ============================================
+   Add Role Dialog
+   ============================================ */
+
+.rsp-dialog-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsp-dialog-content .jenkins-form-label {
+  font-weight: var(--font-bold-weight);
+  font-size: 0.875rem;
+  display: block;
+  margin-bottom: 0.375rem;
+}
+
+.rsp-dialog-content .rsp-perm {
+  max-height: 300px;
+  overflow-y: auto;
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  padding: 0.25rem 0;
+}
+
+.rsp-dialog-content .rsp-perm__group:first-of-type {
+  margin-top: 0.25rem;
+}
+
+.rsp-dialog-content .rsp-perm__permissions {
+  margin: 0.25rem 0.5rem 0.5rem 0.5rem;
+}
+
+.rsp-dialog-content .rsp-perm__group-title {
+  margin: 0 0.5rem;
+  padding: 0.375rem 0.375rem 0 0.375rem;
+}
+
+/* ============================================
+   Implied permissions in dialogs
+   ============================================ */
+
+.rsp-implied-label {
+  color: var(--text-color-secondary);
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+.rsp-assign-dialog__role-item[data-implied="true"] {
+  opacity: 0.6;
+}
+
+/* ============================================
+   Assign Role Dialog
+   ============================================ */
+
+.rsp-assign-dialog__roles {
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  padding: 0 0 0.5rem 0;
+  margin-top: 0.5rem;
+}
+
+.rsp-assign-dialog__group-title {
+  font-weight: var(--font-bold-weight);
+  font-size: var(--font-size-sm);
+  color: var(--text-color-secondary);
+  padding: 0.75rem 0.75rem 0.25rem;
+}
+
+.rsp-assign-dialog__role-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.75rem;
+}
+
+.rsp-assign-dialog__role-pattern {
+  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
+}
+
+.rsp-assign-dialog__role {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  cursor: pointer;
+  transition: background var(--standard-transition);
+}
+
+.rsp-assign-dialog__role:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-assign-dialog__role-name {
+  font-size: 0.875rem;
+  color: var(--text-color);
+}
+
+.rsp-assign-dialog__role-pattern {
+  font-size: 0.8125rem;
+  color: var(--background);
+  opacity: 0.8;
+}
+
+/* ============================================
+   Validation states
+   ============================================ */
+
+.rsp-card--not-found .rsp-card__name {
+  text-decoration: line-through;
+  color: var(--error-color);
+}
+
+.rsp-card--warning {
+  border-left: 3px solid var(--warning);
+}
+
+.rsp-ambiguity-warning {
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   Read-only Mode
+   ============================================ */
+
+.rsp-card.rsp-card--read-only .rsp-card__actions .rsp-card__action,
+.rsp-card.rsp-card--read-only .rsp-user-delete {
+  display: none;
+}
+
+.rsp-card.rsp-card--read-only .rsp-perm__item {
+  pointer-events: none;
+  cursor: default;
+}
+
+.rsp-table__icon {
+  cursor: pointer;
 }

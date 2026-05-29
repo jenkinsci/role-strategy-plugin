@@ -1,70 +1,31 @@
-<!--
-  - The MIT License
-  -
-  - Copyright (c) 2013, Oleg Nenashev, Synopsys Inc.
-  -
-  - OriginalFile: manage-project-roles.jelly
-  - Thomas Maurel & Romain Seguy, Manufacture Française des Pneumatiques Michelin,
-  - 
-  -
-  - Permission is hereby granted, free of charge, to any person obtaining a copy
-  - of this software and associated documentation files (the "Software"), to deal
-  - in the Software without restriction, including without limitation the rights
-  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  - copies of the Software, and to permit persons to whom the Software is
-  - furnished to do so, subject to the following conditions:
-  -
-  - The above copyright notice and this permission notice shall be included in
-  - all copies or substantial portions of the Software.
-  -
-  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  - THE SOFTWARE.
-  -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
           xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <j:set var="agentGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
-  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRoles(it.strategy.SLAVE)}"/>
-  <j:set var="tableid" value="agentRoles"/>
+  <j:set var="sectionId" value="agentRoles"/>
+  <j:set var="agentPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.SLAVE)}"/>
+  <j:set var="agentGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.SLAVE)}"/>
   <j:set var="neededPermission" value="${it.strategy.AGENT_ROLES_ADMIN}"/>
 
-  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
-
-    <local:thead permissionGroups="${agentGroups}" showRoleName="${true}" showPattern="${true}" strategy="${it.strategy.SLAVE}" neededPermission="${neededPermission}"/>
-    <tbody>
+  <div class="rsp-container" id="${sectionId}" data-role-type="slaveRoles" data-assign-type="slaveRoles">
+    <div class="rsp-cards">
       <j:forEach var="role" items="${agentGrantedRoles}">
-        <tr name="[${role.key.name}]" class="permission-row highlight-row">
-          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}" showRoleName="${true}" showPattern="${true}" type="${it.strategy.SLAVE}"
-                         project="${false}" neededPermission="${neededPermission}"/>
-        </tr>
+        <local:roleCard role="${role.key}" roleType="${it.strategy.SLAVE}"
+                        showPattern="true" showTemplate="false"
+                        permissionGroups="${agentPermissionGroups}"
+                        neededPermission="${neededPermission}" sectionId="${sectionId}"/>
       </j:forEach>
-    </tbody>
-    <local:tfoot permissionGroups="${agentGroups}" strategy="${it.strategy.SLAVE}" roles="${agentGrantedRoles}" showPattern="${true}" neededPermission="${neededPermission}"/>
-  </table>
+    </div>
 
-  <template id="newAgentRoleTemplate">
-    <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" pattern="{{PATTERN}}" global="${false}" type="${it.strategy.SLAVE}" showRoleName="${true}" showPattern="${true}" neededPermission="${neededPermission}"/>
-    </tr>
-  </template>
+    <j:if test="${agentGrantedRoles.isEmpty()}">
+      <l:notice icon="symbol-information-circle-outline plugin-ionicons-api" title="${%No agent roles defined}">
+        ${%Use Add Role to create an agent role.}
+      </l:notice>
+    </j:if>
 
-  <l:hasPermission permission="${neededPermission}">
-    <br/>
-    <f:entry title="${%Role to add}">
-      <f:textbox id="${tableid}text" />
-    </f:entry>
-    <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-      <f:textbox id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
-    </f:entry>
-    <f:entry>
-      <local:addButton id="newAgentRoleTemplate" tableid="${tableid}" highlighter="agentTableHighlighter"/>
-    </f:entry>
-  </l:hasPermission>
-
+    <div class="jenkins-notice rsp-empty-state" hidden="true">
+      <l:icon src="symbol-search" />
+      ${%No matching roles}
+    </div>
+  </div>
 </j:jelly>

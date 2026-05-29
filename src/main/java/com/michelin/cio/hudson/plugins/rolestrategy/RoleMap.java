@@ -598,6 +598,24 @@ public class RoleMap {
   }
 
   /**
+   * Checks if a user or group is assigned to the given role.
+   *
+   * @param role The role to check
+   * @param sid The user or group name
+   * @param type "USER" or "GROUP"
+   * @return true if the sid is assigned to the role
+   */
+  public boolean isAssigned(@NonNull Role role, @NonNull String sid, @NonNull String type) {
+    Set<PermissionEntry> entries = this.grantedRoles.get(role);
+    if (entries == null) {
+      return false;
+    }
+    AuthorizationType authType = "GROUP".equals(type) ? AuthorizationType.GROUP : AuthorizationType.USER;
+    return entries.contains(new PermissionEntry(authType, sid))
+        || entries.contains(new PermissionEntry(AuthorizationType.EITHER, sid));
+  }
+
+  /**
    * Get all the sids assigned to the {@link Role} named after the {@code roleName} param.
    * All types are returned to keep the api as compatible as possible.
    *

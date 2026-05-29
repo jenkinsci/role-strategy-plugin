@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2022, Markus Winter
+ * Copyright (c) 2022-2026, Markus Winter, Tim Jacomb
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,441 +22,1051 @@
  * THE SOFTWARE.
  */
 
-// number of lines required for the role filter to get enabled
-var filterLimit = 10;
-// number of lines required for the footer to get displayed
-var footerLimit = 20;
-var globalTableHighlighter;
-var newGlobalRoleTemplate;
-var projectTableHighlighter;
-var newItemRoleTemplate;
-var agentTableHighlighter;
-var newAgentRoleTemplate;
+// ============================================
+// Data
+// ============================================
 
+// Assignment data: { globalRoles: [...], projectRoles: [...], slaveRoles: [...] }
+const rspAssignmentData = {};
 
-function filterRows(filter, table) {
-  for (let row of table.tBodies[0].rows) {
-    let userCell = row.cells[1].textContent.toUpperCase();
-    if (userCell.indexOf(filter) > -1) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
+// Display name cache: { "USER:john": "John Doe", "GROUP:security-chapter": "Security Chapter" }
+const rspDisplayNameCache = {};
+
+// Role definitions loaded from embedded JSON
+const rspRoleDefinitions = {
+  globalRoles: [],
+  projectRoles: [],
+  slaveRoles: [],
+};
+
+const rspTypeLabels = {
+  globalRoles: "Global",
+  projectRoles: "Item",
+  slaveRoles: "Agent",
+};
+
+const rspAssignTypes = ["globalRoles", "projectRoles", "slaveRoles"];
+
+// Merged user map: { "USER:alice": { name, type, roles: { globalRoles: [...], ... } } }
+let rspMergedUsers = {};
+
+// ============================================
+// Load data
+// ============================================
+
+const rspLoadRoleDefinitions = () => {
+  rspAssignTypes.forEach((type) => {
+    document.getElementById(`rsp-roles-${type.replace("Roles", "")}`);
+    // Map: globalRoles -> rsp-roles-global, projectRoles -> rsp-roles-project, slaveRoles -> rsp-roles-slave
+    const idMap = {
+      globalRoles: "rsp-roles-global",
+      projectRoles: "rsp-roles-project",
+      slaveRoles: "rsp-roles-slave",
+    };
+    const scriptEl = document.getElementById(idMap[type]);
+    if (scriptEl) {
+      try {
+        rspRoleDefinitions[type] = JSON.parse(scriptEl.textContent);
+      } catch (e) {}
     }
-  }
-}
-
-
-getPattern = function(row) {
-  let pattern = "";
-  patternEditInputs = row.getElementsByClassName("patternEdit");
-  if (patternEditInputs.length > 0) {
-    pattern = patternEditInputs[0].value;
-  }
-  return pattern;
-}
-
-
-Behaviour.specify(".row-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
-  e.onkeyup = debounce((event) => {
-    if (ignoreKeys(event.code)) {
-      return;
-    }
-    let filter = e.value.toUpperCase();
-    let table = document.getElementById(e.getAttribute("data-table-id"));
-    filterRows(filter, table);
   });
-});
+};
 
+// Server-side paginated fetch
+const rspFetchPage = (start, count, query, roleFilters) => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  if (!dataHolder) return Promise.resolve({ total: 0, items: [] });
 
-Behaviour.specify("svg.icon-pencil", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  e.onclick = handlePatternEdit;
-});
-
-handlePatternEdit = function() {
-  let span = this.nextSibling;
-  div = span.childNodes[0];
-  input = span.childNodes[1];
-  if (span.getAttribute("data-edit") === "false") {
-    span.setAttribute("data-edit", "true");
-    div.style.display = "none";
-    input.type = "text";
-    input.setAttribute("size", input.value.length);
-    input.onkeydown = handleKey;
-    const end = input.value.length;
-    input.setSelectionRange(end, end);
-    input.focus();
-  } else {
-    endPatternInput(span, false);
-    this.blur();
+  const fetchUrl = dataHolder.dataset.fetchUrl.replace(
+    "/getRoleAssignments",
+    "/getPaginatedAssignments",
+  );
+  const params = new URLSearchParams({ start, limit: count });
+  if (query) params.set("query", query);
+  if (roleFilters && roleFilters.length > 0) {
+    params.set(
+      "filterRole",
+      roleFilters.map((f) => f.assignType + ":" + f.roleName).join(","),
+    );
   }
-  return false;
-}
 
-handleKey = function(e) {
-  let key = e.key || 0;
-  if (key == "Enter" || key === "Escape") {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    let span = e.target.parentNode;
-    endPatternInput(span, key === "Escape");
+  // Search display name cache for matches and send as includeSids
+  if (query) {
+    const lowerQuery = query.toLowerCase();
+    const matchingSids = [];
+    for (const [key, displayName] of Object.entries(rspDisplayNameCache)) {
+      if (displayName.toLowerCase().includes(lowerQuery)) {
+        matchingSids.push(key);
+      }
+    }
+    if (matchingSids.length > 0) {
+      params.set("includeSids", matchingSids.join(","));
+    }
+  }
+
+  return fetch(fetchUrl + "?" + params)
+    .then((rsp) => rsp.json())
+    .catch(() => ({ total: 0, items: [] }));
+};
+
+// Legacy client-side data (kept for assignment saving and dialog)
+const rspLoadAllAssignments = () => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  if (!dataHolder) return Promise.resolve();
+  const fetchUrl = dataHolder.dataset.fetchUrl;
+  if (!fetchUrl) return Promise.resolve();
+  const promises = rspAssignTypes.map((type) => {
+    const params = new URLSearchParams({ type });
+    return fetch(fetchUrl + "?" + params)
+      .then((rsp) => rsp.json())
+      .then((json) => {
+        rspAssignmentData[type] = json;
+      })
+      .catch(() => {
+        rspAssignmentData[type] = [];
+      });
+  });
+  return Promise.all(promises);
+};
+
+// ============================================
+// Build user summary
+// ============================================
+
+const rspBuildUserSummary = (userData) => {
+  const parts = [];
+  rspAssignTypes.forEach((type) => {
+    const roles = userData.roles[type];
+    if (roles && roles.length > 0) {
+      parts.push(rspTypeLabels[type] + ": " + roles.join(", "));
+    }
+  });
+  return parts.length > 0 ? parts.join(" \u00B7 ") : "";
+};
+
+// ============================================
+// Render user cards
+// ============================================
+
+const rspGenerateIcon = (type) => {
+  const icons = document.querySelector("#assign-roles-icons");
+  const iconId = type === "GROUP" ? "rsp-people-icon" : "rsp-person-icon";
+  return icons.content.querySelector(`#${iconId}`).cloneNode(true);
+};
+
+// ============================================
+// Pagination
+// ============================================
+
+const RSP_PAGE_SIZE = 100;
+let rspCurrentPage = 0;
+
+let rspSearchDebounce = null;
+
+const rspApplyFilterAndPaginate = () => {
+  // Debounce search to avoid hammering the server
+  if (rspSearchDebounce) clearTimeout(rspSearchDebounce);
+  rspSearchDebounce = setTimeout(() => {
+    rspCurrentPage = 0;
+    rspRenderCurrentPage();
+  }, 300);
+};
+
+const rspRenderCurrentPage = () => {
+  rspCancelPendingValidations();
+  const container = document.getElementById("rsp-user-cards");
+  container.innerHTML =
+    '<div class="rsp-assign__loading" style="padding:1rem;">Loading...</div>';
+
+  const input = document.querySelector(".rsp-assign-search input");
+  const query = input ? input.value.trim() : "";
+  const start = rspCurrentPage * RSP_PAGE_SIZE;
+
+  rspFetchPage(start, RSP_PAGE_SIZE, query || null, rspActiveRoleFilters).then(
+    (data) => {
+      container.innerHTML = "";
+
+      data.items.forEach((user) => {
+        // Convert server format { roles: { globalRoles: [...], ... } } to flat user object
+        const userData = {
+          name: user.name,
+          type: user.type,
+          roles: user.roles,
+        };
+        // Cache in rspMergedUsers for save compatibility
+        const key = `${user.type}:${user.name}`;
+        rspMergedUsers[key] = userData;
+        rspRenderOneCard(container, userData);
+      });
+
+      Behaviour.applySubtree(container, true);
+      rspUpdateCardBorders();
+      // Debounce validation — wait for page to stabilize before firing requests
+      if (rspValidationDebounce) clearTimeout(rspValidationDebounce);
+      rspValidationDebounce = setTimeout(rspValidateUserCards, 500);
+
+      const totalFiltered = data.total;
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / RSP_PAGE_SIZE));
+      rspUpdatePaginationUI(totalFiltered, totalPages);
+
+      const emptyState = document.getElementById("rsp-user-empty");
+      if (emptyState) emptyState.hidden = totalFiltered > 0;
+    },
+  );
+};
+
+const rspUpdatePaginationUI = (totalFiltered, totalPages) => {
+  // Top count
+  let topCount = document.getElementById("rsp-result-count");
+  if (!topCount) {
+    topCount = document.createElement("div");
+    topCount.id = "rsp-result-count";
+    topCount.style.cssText =
+      "color:var(--text-color-secondary);font-size:0.875rem;margin-bottom:0.5rem;";
+    const cardsContainer = document.getElementById("rsp-user-cards");
+    cardsContainer.parentNode.insertBefore(topCount, cardsContainer);
+  }
+  topCount.textContent =
+    totalFiltered > 0
+      ? totalFiltered.toLocaleString() +
+        (totalFiltered === 1 ? " result" : " results")
+      : "";
+
+  // Bottom pagination
+  let nav = document.getElementById("rsp-pagination");
+  if (!nav) {
+    nav = document.createElement("div");
+    nav.id = "rsp-pagination";
+    nav.style.cssText =
+      "display:flex;align-items:center;justify-content:center;gap:1rem;padding:1rem 0;";
+    const cardsContainer = document.getElementById("rsp-user-cards");
+    cardsContainer.parentNode.insertBefore(nav, cardsContainer.nextSibling);
+  }
+
+  if (totalPages <= 1) {
+    nav.innerHTML = "";
+    return;
+  }
+
+  const fmt = (n) => n.toLocaleString();
+  const start = rspCurrentPage * RSP_PAGE_SIZE + 1;
+  const end = Math.min((rspCurrentPage + 1) * RSP_PAGE_SIZE, totalFiltered);
+
+  nav.innerHTML = `
+    <button class="jenkins-button jenkins-button--tertiary" ${rspCurrentPage === 0 ? "disabled" : ""} id="rsp-page-prev">Previous</button>
+    <span style="font-size:0.875rem;">${fmt(start)}–${fmt(end)} of ${fmt(totalFiltered)}</span>
+    <button class="jenkins-button jenkins-button--tertiary" ${rspCurrentPage >= totalPages - 1 ? "disabled" : ""} id="rsp-page-next">Next</button>
+  `;
+
+  document.getElementById("rsp-page-prev")?.addEventListener("click", () => {
+    if (rspCurrentPage > 0) {
+      rspCurrentPage--;
+      rspRenderCurrentPage();
+    }
+  });
+  document.getElementById("rsp-page-next")?.addEventListener("click", () => {
+    if (rspCurrentPage < totalPages - 1) {
+      rspCurrentPage++;
+      rspRenderCurrentPage();
+    }
+  });
+};
+
+const rspRenderOneCard = (container, user) => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  const isBuiltIn =
+    (user.name === "anonymous" && user.type === "USER") ||
+    (user.name === "authenticated" && user.type === "GROUP");
+
+  const card = document.createElement("div");
+  card.classList.add("rsp-card");
+  card.dataset.userName = user.name;
+  card.dataset.userType = user.type;
+
+  // Hidden validation target
+  const validationTarget = document.createElement("div");
+  validationTarget.classList.add("rsp-card__validation-target");
+  validationTarget.style.display = "none";
+  card.appendChild(validationTarget);
+
+  // Header
+  const header = document.createElement("div");
+  header.classList.add("rsp-card__header");
+  header.setAttribute("role", "button");
+  header.setAttribute("tabindex", "0");
+  header.setAttribute("aria-expanded", "false");
+
+  // Icon
+  const iconSpan = document.createElement("span");
+  iconSpan.classList.add("rsp-assign__chip-icon");
+  iconSpan.appendChild(rspGenerateIcon(user.type));
+  header.appendChild(iconSpan);
+
+  // Name — use cached display name if available
+  const nameSpan = document.createElement("span");
+  nameSpan.classList.add("rsp-card__name");
+  const cacheKey = user.type + ":" + user.name;
+  let displayName = rspDisplayNameCache[cacheKey] || user.name;
+  if (user.name === "anonymous" && user.type === "USER")
+    displayName = dataHolder.dataset.textAnonymous;
+  if (user.name === "authenticated" && user.type === "GROUP")
+    displayName = dataHolder.dataset.textAuthenticated;
+  nameSpan.textContent = displayName;
+  if (rspDisplayNameCache[cacheKey]) {
+    nameSpan.setAttribute("tooltip", user.type + ": " + user.name);
+  }
+  header.appendChild(nameSpan);
+
+  // Summary
+  const summarySpan = document.createElement("span");
+  summarySpan.classList.add("rsp-card__summary");
+  const summary = rspBuildUserSummary(user);
+  if (summary) {
+    summarySpan.textContent = summary;
+  } else {
+    summarySpan.textContent = "No roles assigned";
+    summarySpan.classList.add("rsp-card__summary--empty");
+  }
+  header.appendChild(summarySpan);
+
+  // Actions — only show if user has edit permissions
+  const canEdit = dataHolder.dataset.canEdit === "true";
+  const actions = document.createElement("div");
+  actions.classList.add("rsp-card__actions");
+  if (canEdit) {
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.classList.add(
+      "jenkins-button",
+      "jenkins-button--tertiary",
+      "rsp-card__action",
+      "rsp-user-edit",
+    );
+    editBtn.setAttribute("tooltip", `Edit ${user.name}`);
+    const editIcon = document
+      .querySelector("#assign-roles-icons")
+      ?.content.querySelector("#rsp-edit-icon");
+    if (editIcon) {
+      editBtn.appendChild(editIcon.cloneNode(true));
+    }
+    actions.appendChild(editBtn);
+  }
+  if (canEdit && !isBuiltIn) {
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.classList.add(
+      "jenkins-button",
+      "jenkins-button--tertiary",
+      "jenkins-!-destructive-color",
+      "rsp-card__action",
+      "rsp-user-delete",
+    );
+    deleteBtn.setAttribute("tooltip", `Remove ${user.name}`);
+    deleteBtn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path d="M112 112l20 320c.95 18.49 14.4 32 32 32h184c17.67 0 30.87-13.51 32-32l20-320" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="32" d="M80 112h352"/><path d="M192 112V72h0a23.93 23.93 0 0124-24h80a23.93 23.93 0 0124 24h0v40M256 176v224M184 176l8 224M328 176l-8 224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>';
+    actions.appendChild(deleteBtn);
+  } else if (canEdit && isBuiltIn) {
+    // Spacer to keep edit button aligned with non-built-in users
+    const spacer = document.createElement("div");
+    spacer.classList.add("rsp-card__action");
+    actions.appendChild(spacer);
+  }
+  if (!canEdit) card.classList.add("rsp-card--read-only");
+  header.appendChild(actions);
+
+  // Toggle
+  const toggle = document.createElement("div");
+  toggle.classList.add("rsp-card__toggle");
+  toggle.innerHTML =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" class="icon-sm"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="48" d="M112 184l144 144 144-144"/></svg>';
+  header.appendChild(toggle);
+
+  card.appendChild(header);
+
+  // Body — lazy loaded on first expand
+  const body = document.createElement("div");
+  body.classList.add("rsp-card__body", "rsp-card__body--collapsed");
+  body.dataset.lazy = "true";
+  card.appendChild(body);
+  container.appendChild(card);
+};
+
+// Lazy-build role checkboxes for a card body
+const rspPopulateCardBody = (card) => {
+  const body = card.querySelector(".rsp-card__body");
+  if (!body || body.dataset.lazy !== "true") return;
+  body.dataset.lazy = "false";
+
+  const userName = card.dataset.userName;
+  const userType = card.dataset.userType;
+  const key = `${userType}:${userName}`;
+  const user = rspMergedUsers[key];
+  if (!user) return;
+
+  const roleSection = document.createElement("div");
+  roleSection.classList.add("rsp-perm");
+  roleSection.style.padding = "0.75rem";
+
+  rspAssignTypes.forEach((type) => {
+    const roles = rspRoleDefinitions[type];
+    if (!roles || roles.length === 0) return;
+    const assignedRoleNames = user.roles[type] || [];
+    const assignedRoles = roles.filter((role) =>
+      assignedRoleNames.includes(role.name),
+    );
+    if (assignedRoles.length === 0) return;
+
+    const group = document.createElement("fieldset");
+    group.classList.add("rsp-perm__group");
+
+    const legend = document.createElement("legend");
+    legend.classList.add("rsp-perm__group-title");
+    legend.textContent = rspTypeLabels[type] + " roles";
+    group.appendChild(legend);
+
+    const perms = document.createElement("div");
+    perms.classList.add("rsp-perm__permissions");
+
+    assignedRoles.forEach((role) => {
+      const label = document.createElement("label");
+      label.classList.add("rsp-perm__item");
+      label.dataset.roleName = role.name;
+      label.dataset.assignType = type;
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.dataset.roleName = role.name;
+      cb.dataset.assignType = type;
+      cb.checked = true;
+      label.appendChild(cb);
+
+      const nameSpan = document.createElement("span");
+      nameSpan.classList.add("rsp-perm__item-name");
+      nameSpan.textContent = role.name;
+      label.appendChild(nameSpan);
+
+      if (role.pattern) {
+        const patternSpan = document.createElement("span");
+        patternSpan.classList.add("rsp-assign-dialog__role-pattern");
+        patternSpan.textContent = ` "${role.pattern}"`;
+        label.appendChild(patternSpan);
+      }
+
+      perms.appendChild(label);
+    });
+
+    group.appendChild(perms);
+    roleSection.appendChild(group);
+  });
+
+  body.appendChild(roleSection);
+  Behaviour.applySubtree(body, true);
+};
+
+// Initial render — just fetch first page
+const rspRenderUserCards = () => {
+  rspCurrentPage = 0;
+  rspRenderCurrentPage();
+};
+
+// ============================================
+// User/group validation against security realm
+// ============================================
+
+const rspProcessValidation = (card) => {
+  const target = card.querySelector(".rsp-card__validation-target");
+  if (!target) return;
+
+  const nameEl = card.querySelector(".rsp-card__name");
+
+  // Check for not-found state
+  const notFound = target.querySelector(".rsp-entry-not-found");
+  if (notFound) {
+    card.classList.add("rsp-card--not-found");
+  } else {
+    card.classList.remove("rsp-card--not-found");
+  }
+
+  // Check for warning state
+  const warningCell = target.querySelector(".rsp-table__icon-alert");
+  if (warningCell) {
+    card.classList.add("rsp-card--warning");
+  }
+
+  // Extract display name from the validation response
+  const responseDiv = target.querySelector(".rsp-table__cell");
+  if (responseDiv && nameEl) {
+    // The response contains icon SVGs + text. Get the text content after icons.
+    const textNodes = [];
+    responseDiv.childNodes.forEach((node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent.trim();
+        if (text) textNodes.push(text);
+      } else if (node.tagName === "SPAN") {
+        const text = node.textContent.trim();
+        if (text) textNodes.push(text);
+      }
+    });
+    const displayName = textNodes.join("").trim();
+    if (displayName && displayName !== card.dataset.userName) {
+      nameEl.textContent = displayName;
+      nameEl.setAttribute(
+        "tooltip",
+        card.dataset.userType + ": " + card.dataset.userName,
+      );
+      // Cache the resolved display name for search
+      const cacheKey = card.dataset.userType + ":" + card.dataset.userName;
+      rspDisplayNameCache[cacheKey] = displayName;
+    }
+
+    // Copy tooltip from validation response
+    const tooltip = responseDiv.getAttribute("tooltip");
+    if (tooltip) {
+      nameEl.setAttribute("tooltip", tooltip);
+    }
   }
 };
 
+// Track active validation so we can abort on page change
+let rspValidationAbortController = null;
+let rspValidationDebounce = null;
 
-endPatternInput = function(span, cancel) {
-  let div = span.childNodes[0];
-  let input = span.childNodes[1];
-  let pattern = input.value;
-  let table = span.closest("TABLE");
-  input.type = "hidden";
-  div.style.display = "block";
-  span.setAttribute("data-edit", "false");
-  if (cancel) {
-    input.value = div.getAttribute("data-pattern");
-  } else {
-    div.setAttribute("data-pattern", pattern);
-    div.textContent = '"' + pattern + '"'
-    let row = span.closest("TR");
-    for (td of row.getElementsByClassName('permissionInput')) {
-      updateTooltip(row, td, pattern);
-    }
-    Behaviour.applySubtree(row, true);
+const rspCancelPendingValidations = () => {
+  if (rspValidationAbortController) {
+    rspValidationAbortController.abort();
+    rspValidationAbortController = null;
   }
-}
-
-
-updateTooltip = function(tr, td, pattern) {
-  let tooltipTemplate = td.getAttribute("data-tooltip-template");
-  let impliedByString = td.getAttribute('data-implied-by-list');
-  let impliedByList = impliedByString.split(" ");
-  let input = td.getElementsByTagName('INPUT')[0];
-  input.disabled = false;
-  let disableCheckboxes = td.getAttribute("data-disable-checkboxes");
-  if (disableCheckboxes === 'true') {
-    input.disabled = true;
+  if (rspValidationDebounce) {
+    clearTimeout(rspValidationDebounce);
+    rspValidationDebounce = null;
   }
+};
 
-  let tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", escapeHTML(pattern)).replace("{{GRANTBYOTHER}}", "");
-  input.nextSibling.setAttribute("data-html-tooltip", tooltip);
+const rspValidateUserCards = () => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  const descriptorUrl = dataHolder?.dataset.descriptorUrl;
+  if (!descriptorUrl) return;
 
-  for (let permissionId of impliedByList) {
-    let reference = tr.querySelector("td[data-permission-id='" + permissionId + "'] input");
-    if (reference !== null) {
-      if (reference.checked) {
-        input.disabled = true;
-        tooltip = tooltipTemplate.replace("{{PATTERNTEMPLATE}}", escapeHTML(pattern)).replace("{{GRANTBYOTHER}}", " is granted through another permission");;
-        input.nextSibling.setAttribute("data-html-tooltip", tooltip); // 2.335+
+  // Abort any previous validation batch
+  if (rspValidationAbortController) rspValidationAbortController.abort();
+  rspValidationAbortController = new AbortController();
+  const signal = rspValidationAbortController.signal;
+
+  // Collect cards to validate
+  const cards = [];
+  document.querySelectorAll("#rsp-user-cards .rsp-card").forEach((card) => {
+    const userName = card.dataset.userName;
+    const userType = card.dataset.userType;
+    if (!userName || !userType) return;
+    if (userName === "anonymous" && userType === "USER") return;
+    if (userName === "authenticated" && userType === "GROUP") return;
+    if (!card.querySelector(".rsp-card__validation-target")) return;
+    cards.push(card);
+  });
+
+  const maxParallel = isHttp2Enabled() ? 30 : 1;
+
+  const validateCard = (card) => {
+    if (signal.aborted) return Promise.resolve();
+    const target = card.querySelector(".rsp-card__validation-target");
+    const checkValue =
+      "[" + card.dataset.userType + ":" + card.dataset.userName + "]";
+    const checkUrl =
+      descriptorUrl + "/checkName?value=" + encodeURIComponent(checkValue);
+    return fetch(checkUrl, { method: "POST", headers: crumb.wrap({}), signal })
+      .then((rsp) => rsp.text())
+      .then((html) => {
+        if (signal.aborted) return;
+        target.innerHTML = html;
+        rspProcessValidation(card);
+      })
+      .catch(() => {});
+  };
+
+  // Process in batches of maxParallel
+  let idx = 0;
+  const processNext = () => {
+    if (signal.aborted || idx >= cards.length) return Promise.resolve();
+    const batch = cards.slice(idx, idx + maxParallel);
+    idx += maxParallel;
+    return Promise.all(batch.map(validateCard)).then(processNext);
+  };
+  processNext();
+};
+
+// ============================================
+// Save assignments
+// ============================================
+
+const rspDeleteAssignment = (userName, userType) => {
+  const dataHolder = document.getElementById("role-strategy-data");
+  const formData = new FormData();
+  formData.append("json", JSON.stringify({ name: userName, type: userType }));
+  return fetch(dataHolder.dataset.deleteAssignUrl, {
+    method: "POST",
+    headers: crumb.wrap({}),
+    body: formData,
+  }).then((rsp) => {
+    if (!rsp.ok) throw new Error("Failed to delete assignments");
+  });
+};
+
+let rspAutoSaveTimer = null;
+const rspAutoSave = () => {
+  if (rspAutoSaveTimer) clearTimeout(rspAutoSaveTimer);
+  rspAutoSaveTimer = setTimeout(() => {
+    rspSaveAssignments().catch((err) => {
+      notificationBar.show(
+        "Failed to save: " + err.message,
+        notificationBar.ERROR,
+      );
+    });
+  }, 500);
+};
+
+// ============================================
+// Search
+// ============================================
+
+// Active role filters: [{ assignType, roleName }, ...]
+let rspActiveRoleFilters = [];
+
+const rspApplyUserFilters = () => {
+  rspApplyFilterAndPaginate();
+
+  // Update filter button active state
+  const filterBtn = document.querySelector(".rsp-role-filter-btn");
+  if (filterBtn) {
+    const active = rspActiveRoleFilters.length > 0;
+    filterBtn.classList.toggle("jenkins-button--tertiary", !active);
+    filterBtn.classList.toggle("jenkins-!-accent-color", active);
+  }
+  const resetBtn = document.querySelector(".rsp-role-filter-reset");
+  if (resetBtn) resetBtn.hidden = rspActiveRoleFilters.length === 0;
+};
+
+const rspPopulateRoleFilter = () => {
+  const list = document.querySelector(".rsp-role-filter-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  rspAssignTypes.forEach((type) => {
+    const roles = rspRoleDefinitions[type];
+    if (!roles || roles.length === 0) return;
+
+    const groupTitle = document.createElement("div");
+    groupTitle.classList.add("rsp-filter__group-title");
+    groupTitle.textContent = rspTypeLabels[type] + " roles";
+    list.appendChild(groupTitle);
+
+    roles.forEach((role) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.classList.add("jenkins-dropdown__item");
+      item.dataset.assignType = type;
+      item.dataset.roleName = role.name;
+      item.dataset.filterLabel = (
+        rspTypeLabels[type] +
+        " " +
+        role.name
+      ).toLowerCase();
+
+      item.innerHTML = `<span class="rsp-filter__item-indicator"></span>
+        <span class="rsp-filter__item-name">${escapeHTML(role.name)}</span>`;
+
+      if (role.pattern) {
+        const patternSpan = document.createElement("span");
+        patternSpan.style.cssText =
+          "font-size:0.75rem;color:var(--text-color-secondary);margin-left:0.25rem;";
+        patternSpan.textContent = `"${role.pattern}"`;
+        item.appendChild(patternSpan);
       }
-    }
-  }
 
-  if (window.registerTooltips) {
-    window.registerTooltips(e.nextSibling.parentElement);
-  }
-}
+      item.addEventListener("click", () => {
+        item.classList.toggle("rsp-filter__item--active");
+        // Rebuild active filters
+        rspActiveRoleFilters = [];
+        list.querySelectorAll(".rsp-filter__item--active").forEach((active) => {
+          rspActiveRoleFilters.push({
+            assignType: active.dataset.assignType,
+            roleName: active.dataset.roleName,
+          });
+        });
+        rspApplyUserFilters();
+      });
 
+      list.appendChild(item);
+    });
+  });
+};
 
-Behaviour.specify(
-  ".role-strategy-add-button", "RoleBasedAuthorizationStrategy", 0,
-  function(elem) {
-    elem.onclick = function(e) {
-      let tableId = elem.getAttribute("data-table-id");
-      let table = document.getElementById(tableId);
-      let templateId = elem.getAttribute("data-template-id");
-      let highlighter = window[elem.getAttribute("data-highlighter")];
-      addButtonAction(e, templateId, table, highlighter, tableId);
-      let tbody = table.tBodies[0];
-      if (tbody.children.length >= filterLimit) {
-        let rolefilters = document.querySelectorAll(".row-filter");
-        for (let filter of rolefilters) {
-          if (filter.getAttribute("data-table-id") === tableId) {
-            filter.style.display = "block";
-          }
+// Initialize role filter dropdown behaviour
+const rspInitRoleFilterDropdown = () => {
+  const btn = document.querySelector(".rsp-role-filter-btn");
+  const dropdown = document.querySelector(".rsp-role-filter-dropdown");
+  if (!btn || !dropdown) return;
+
+  const searchInput = dropdown.querySelector(".rsp-role-filter-search input");
+  const resetBtn = dropdown.querySelector(".rsp-role-filter-reset");
+
+  // Search within dropdown
+  const applyFilterSearch = () => {
+    const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
+      const label = item.dataset.filterLabel || "";
+      item.classList.toggle(
+        "rsp-filter__item--filter-hidden",
+        q !== "" && !label.includes(q),
+      );
+    });
+    dropdown.querySelectorAll(".rsp-filter__group-title").forEach((title) => {
+      let next = title.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.classList.contains("rsp-filter__group-title")) {
+        if (
+          next.classList.contains("jenkins-dropdown__item") &&
+          !next.classList.contains("rsp-filter__item--filter-hidden")
+        ) {
+          hasVisible = true;
         }
+        next = next.nextElementSibling;
       }
-      if (tbody.children.length >= footerLimit) {
-        table.tFoot.style.display = "table-footer-group";
-      }
-    }
+      title.classList.toggle(
+        "rsp-filter__group-title--filter-hidden",
+        !hasVisible,
+      );
+    });
+  };
+
+  if (searchInput) {
+    searchInput.addEventListener("input", applyFilterSearch);
+    searchInput.addEventListener("click", (e) => e.stopPropagation());
   }
+
+  if (resetBtn) {
+    resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      dropdown.querySelectorAll(".rsp-filter__item--active").forEach((item) => {
+        item.classList.remove("rsp-filter__item--active");
+      });
+      rspActiveRoleFilters = [];
+      if (searchInput) searchInput.value = "";
+      applyFilterSearch();
+      rspApplyUserFilters();
+    });
+  }
+
+  // Toggle dropdown
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    btn.setAttribute("aria-expanded", String(!isOpen));
+
+    if (!isOpen) {
+      const closeDropdown = () => {
+        dropdown.hidden = true;
+        btn.setAttribute("aria-expanded", "false");
+        document.removeEventListener("click", clickHandler);
+        document.removeEventListener("keydown", escHandler);
+      };
+      const clickHandler = (evt) => {
+        if (!dropdown.contains(evt.target) && evt.target !== btn)
+          closeDropdown();
+      };
+      const escHandler = (evt) => {
+        if (evt.key === "Escape") {
+          closeDropdown();
+          btn.focus();
+        }
+      };
+      setTimeout(() => {
+        document.addEventListener("click", clickHandler);
+        document.addEventListener("keydown", escHandler);
+      }, 0);
+    }
+  });
+};
+
+// ============================================
+// Behaviours
+// ============================================
+
+// Card header toggle
+Behaviour.specify(
+  "#rsp-user-cards .rsp-card__header",
+  "RoleStrategyAssign",
+  0,
+  (header) => {
+    if (header.dataset.initialized === "true") return;
+    header.dataset.initialized = "true";
+
+    const handleToggle = (e) => {
+      if (
+        e.target.closest(".rsp-card__actions") &&
+        !e.target.closest(".rsp-card__toggle")
+      )
+        return;
+      const card = header.closest(".rsp-card");
+      if (!card) return;
+      // Don't expand cards with no roles assigned
+      const summary = card.querySelector(".rsp-card__summary");
+      if (summary && summary.classList.contains("rsp-card__summary--empty"))
+        return;
+      const body = card.querySelector(".rsp-card__body");
+      const isExpanded = !body.classList.contains("rsp-card__body--collapsed");
+      // Lazy-load role checkboxes on first expand
+      if (!isExpanded) rspPopulateCardBody(card);
+      body.classList.toggle("rsp-card__body--collapsed");
+      header.setAttribute("aria-expanded", String(!isExpanded));
+      card.setAttribute("aria-expanded", String(!isExpanded));
+    };
+
+    header.addEventListener("click", handleToggle);
+    header.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleToggle(e);
+      }
+    });
+  },
 );
 
-addButtonAction = function(e, templateId, table, tableHighlighter, tableId) {
-  let tbody = table.tBodies[0];
-  let roleInput = document.getElementById(tableId + 'text')
-  let name = roleInput.value.trim();
-  if (name == "") {
-    alert("Please enter a role name");
-    return;
-  }
-  if (findElementsBySelector(tbody, "TR").find(function(n) {
-      return n.getAttribute("name") == '[' + name + ']';
-    }) != null) {
-    alert("Entry for '" + name + "' already exists");
-    return;
-  }
-  let pattern = "";
-  let template = window[templateId].content.firstElementChild.cloneNode(true);
-  let templateName = "";
+// Role checkbox in card body — view only (editing via dialog)
+Behaviour.specify(
+  "#rsp-user-cards .rsp-perm__item input[type=checkbox]",
+  "RoleStrategyAssign",
+  0,
+  (cb) => {
+    if (cb.dataset.initialized === "true") return;
+    cb.dataset.initialized = "true";
+    // Prevent changes — card body is read-only, editing is done via the edit dialog
+    cb.addEventListener("change", () => {
+      cb.checked = !cb.checked;
+    });
+  },
+);
 
-  if (tableId !== "globalRoles") {
-    let patternInput = document.getElementById(tableId + 'pattern')
-    pattern = patternInput.value;
-    if (pattern == "") {
-      alert("Please enter a pattern");
-      return;
-    }
-    if (tableId === "projectRoles") {
-      let templateSelect = document.getElementById(tableId + 'template');
-      let templateName = templateSelect.value;
-      if (templateName !== '') {
-        template = window[templateId + "-" + templateName].content.firstElementChild.cloneNode(true);
-      }
-    }
-  }
+// Delete user
+Behaviour.specify(".rsp-user-delete", "RoleStrategyAssign", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
 
-  let copy = document.importNode(template, true);
-  let child = copy.childNodes[1];
-  child.textContent = name;
-  if (tableId !== "globalRoles") {
-    let doubleQuote = '"';
-    copy.getElementsByClassName("patternAnchor")[0].textContent = doubleQuote + pattern + doubleQuote;
-    copy.getElementsByClassName("patternEdit")[0].value = pattern;
-  }
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const card = btn.closest(".rsp-card");
+    if (!card) return;
+    const userName = card.dataset.userName;
+    const userType = card.dataset.userType;
 
-  let children = copy.childNodes
-  children.forEach(function(item){
-    item.outerHTML= item.outerHTML.replace(/{{ROLE}}/g, doubleEscapeHTML(name)).replace(/{{PATTERN}}/g, doubleEscapeHTML(pattern));
+    dialog
+      .confirm(`Remove all role assignments for "${userName}"?`, {
+        type: "destructive",
+        okText: "Remove",
+      })
+      .then(() => {
+        // Remove from all assignment data
+        rspAssignTypes.forEach((type) => {
+          const json = rspAssignmentData[type];
+          if (!json) return;
+          const idx = json.findIndex(
+            (e) => e.name === userName && e.type === userType,
+          );
+          if (idx !== -1) json.splice(idx, 1);
+        });
+
+        delete rspMergedUsers[`${userType}:${userName}`];
+        card.remove();
+        rspUpdateCardBorders();
+
+        rspDeleteAssignment(userName, userType)
+          .then(() => {
+            notificationBar.show(
+              `Removed "${userName}"`,
+              notificationBar.SUCCESS,
+            );
+          })
+          .catch((err) => {
+            notificationBar.show(
+              "Failed to delete: " + err.message,
+              notificationBar.ERROR,
+            );
+          });
+      })
+      .catch(() => {});
   });
-
-  if (tableId !== "globalRoles") {
-    spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
-    if (tableId === "projectRoles") {
-      bindListenerToPattern(spanElement.childNodes[0]);
-    } else {
-      bindAgentListenerToPattern(spanElement.childNodes[0]);
-    }
-  }
-
-  copy.setAttribute("name", '[' + name + ']');
-  if (tableId !== "globalRoles") {
-    copy.querySelector("svg.icon-pencil").onclick = handlePatternEdit;
-  }
-  tbody.appendChild(copy);
-  tableHighlighter.scan(copy);
-  Behaviour.applySubtree(copy.closest("TABLE"), true);
-}
-
-
-Behaviour.specify(".role-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  e.onclick = function() {
-    let table = this.closest("TABLE");
-    let tableId = table.getAttribute("id");
-    let tr = this.closest("TR");
-    parent = tr.parentNode;
-    parent.removeChild(tr);
-    if (parent.children.length < filterLimit) {
-      let userfilters = document.querySelectorAll(".row-filter")
-      for (let filter of userfilters) {
-        if (filter.getAttribute("data-table-id") === tableId) {
-          filter.style.display = "none";
-          let inputs = filter.getElementsByTagName("INPUT");
-          inputs[0].value = ""
-          let event = new Event("keyup");
-          inputs[0].dispatchEvent(event);
-        }
-      }
-    }
-    if (parent.children.length < footerLimit) {
-      table.tFoot.style.display = "none";
-    }
-    let dirtyButton = document.getElementById("rs-dirty-indicator");
-    dirtyButton.dispatchEvent(new Event('click'));
-    return false;
-  }
 });
 
-Behaviour.specify(".role-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  let table = e.closest("TABLE");
-  if (table.classList.contains('read-only')) {
-    // if this is a read-only UI (ExtendedRead / SystemRead), do not enable checkboxes
-    return;
-  }
+// Edit user assignments
+Behaviour.specify(".rsp-user-edit", "RoleStrategyAssign", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
 
-  let row = e.closest("TR");
-  let pattern = getPattern(row);
-  let td = e.closest("TD");
-  updateTooltip(row, td, pattern);
-  e.onchange = function() {
-    Behaviour.applySubtree(row.closest("TABLE"), true);
-    return true;
-  };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const card = btn.closest(".rsp-card");
+    if (!card) return;
+    const userName = card.dataset.userName;
+    const userType = card.dataset.userType;
+    const rootUrl =
+      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
+      "";
+    dialog.wizard(
+      `${rootUrl}/manage/role-strategy/edit-assign-dialog?name=${encodeURIComponent(userName)}&type=${encodeURIComponent(userType)}`,
+    );
+    const initDialog = () => {
+      const form = document.querySelector("form[name='editAssignRoles']");
+      if (!form) {
+        setTimeout(initDialog, 100);
+        return;
+      }
+      if (form.dataset.dialogInit === "true") return;
+      form.dataset.dialogInit = "true";
+      const submitBtn = form.querySelector("#rsp-edit-assign-submit-btn");
+      if (submitBtn) {
+        submitBtn.addEventListener("click", () => {
+          form.requestSubmit();
+        });
+      }
+      form.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          form.requestSubmit();
+        }
+      });
+    };
+    setTimeout(initDialog, 200);
+  });
 });
 
-
-// methods for item roles
-showMatchingProjects = function() {
-  let pattern = this.textContent.substring(1, this.textContent.length - 1); // Ignore quotes for the pattern
-  let maxItems = 15; // Maximum items to search for
-  let url = 'strategy/getMatchingJobs';
-  reqParams = {
-    'pattern': pattern,
-    'maxJobs': maxItems
-  }
-
-  fetch(url + toQueryString(reqParams)).then((rsp) => {
-    if (rsp.ok) {
-      rsp.json().then((responseJson) => {
-        let matchingItems = responseJson.matchingJobs;
-        let itemCount = responseJson.itemCount;
-
-        if (matchingItems != null) {
-          showItemsModal(matchingItems, itemCount, maxItems, pattern);
-        } else {
-          showErrorMessageModal();
-        }
-      });
-    } else {
-      showErrorMessageModal();
-    }
+// Assign role button
+Behaviour.specify(".rsp-assign-role-btn", "RoleStrategyAssign", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+  btn.addEventListener("click", () => {
+    const rootUrl =
+      document.querySelector("[data-rooturl]")?.getAttribute("data-rooturl") ||
+      "";
+    dialog.wizard(rootUrl + "/manage/role-strategy/assign-role-dialog");
   });
-}
+});
 
-showItemsModal = function(items, itemCount, maxItems, pattern) {
-  let modalTitle = '';
+// Assign role dialog submit button + enter key
+Behaviour.specify(
+  "#rsp-assign-role-submit-btn",
+  "RoleStrategyAssign",
+  0,
+  (btn) => {
+    if (btn.dataset.initialized === "true") return;
+    btn.dataset.initialized = "true";
 
-  if (items.length > 0) {
-    if (itemCount > items.length) {
-      modalTitle += 'First ' + maxItems + ' items (out of ' + itemCount + ') matching';
-    } else {
-      modalTitle += 'Items matching';
-    }
-  } else {
-    modalTitle = 'No items found matching';
-  }
-  modalTitle += ' "' + pattern + '"';
-  showModal(modalTitle, items)
-}
+    const form = btn.closest("form");
+    if (!form) return;
 
-showErrorMessageModal = function() {
-  dialog.alert('Unable to fetch matching Jobs.');
-}
-
-bindListenerToPattern = function(elem) {
-  elem.addEventListener('click', showMatchingProjects);
-}
-
-
-// methods for agent roles
-showMatchingAgents = function() {
-  let pattern = this.textContent.substring(1, this.textContent.length - 1); // Ignore quotes for the pattern
-  let maxAgents = 10; // Maximum agents to search for
-  let url = 'strategy/getMatchingAgents';
-  reqParams = {
-    'pattern': pattern,
-    'maxAgents': maxAgents
-  }
-
-  fetch(url + toQueryString(reqParams)).then((rsp) => {
-    if (rsp.ok) {
-      rsp.json().then((responseJson) => {
-        let matchingAgents = responseJson.matchingAgents;
-        let agentCount = responseJson.itemCount;
-
-        if (matchingAgents != null) {
-          showAgentsModal(matchingAgents, agentCount, maxAgents, pattern);
-        } else {
-          showAgentErrorMessageModal();
+    const validateAndSubmit = () => {
+      const nameInput = form.querySelector("input[name='name']");
+      if (!nameInput || !nameInput.value.trim()) {
+        nameInput?.focus();
+        if (nameInput) {
+          nameInput.style.outline = "2px solid var(--error-color)";
+          nameInput.addEventListener(
+            "input",
+            () => {
+              nameInput.style.outline = "";
+            },
+            { once: true },
+          );
         }
-      });
-    } else {
-      showAgentErrorMessageModal();
-    }
-  });
-}
+        return;
+      }
+      form.requestSubmit();
+    };
 
-showAgentsModal = function(agents, agentCount, maxAgents, pattern) {
-  let modalTitle = '';
-  if (agents.length > 0) {
-    if (agentCount > agents.length) {
-      modalTitle += 'First ' + maxAgents + ' agents (out of ' + agentCount + ') matching';
-    } else {
-      modalTitle += 'Agents matching';
-    }
-  } else {
-    modalTitle += 'No Agents found matching';
-  }
-  modalTitle += ' "' + pattern + '"';
-  showModal(modalTitle, agents)
-}
+    btn.addEventListener("click", validateAndSubmit);
 
-showModal = function(title, itemlist) {
-  messageElement=document.createElement("div");
-  for (let item of itemlist) {
-    line = document.createTextNode("- " + item);
-    messageElement.appendChild(line);
-    messageElement.appendChild(document.createElement("br"));
-  }
-  dialog.modal(messageElement, {title: title});
-}
+    // Enter key anywhere in the form triggers submit
+    form.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        validateAndSubmit();
+      }
+    });
+  },
+);
 
-showAgentErrorMessageModal = function() {
-  dialogalert('Unable to fetch matching Agents.');
-}
+// Role dialog filter
+Behaviour.specify(
+  ".rsp-role-dialog-filter input",
+  "RoleStrategyAssign",
+  0,
+  (input) => {
+    if (input.dataset.initialized === "true") return;
+    input.dataset.initialized = "true";
+    input.addEventListener("input", () => {
+      const q = input.value.toLowerCase().trim();
+      const container = input
+        .closest(".jenkins-form-item")
+        ?.querySelector(".rsp-assign-dialog__roles");
+      if (!container) return;
 
-bindAgentListenerToPattern = function(elem) {
-  elem.addEventListener('click', showMatchingAgents);
-}
+      let visibleCount = 0;
+      container
+        .querySelectorAll(".rsp-assign-dialog__role-item")
+        .forEach((item) => {
+          const match =
+            q === "" || (item.dataset.roleName || "").toLowerCase().includes(q);
+          item.style.display = match ? "" : "none";
+          if (match) visibleCount++;
+        });
 
-document.addEventListener('DOMContentLoaded', function() {
+      container
+        .querySelectorAll(".rsp-assign-dialog__group-title")
+        .forEach((title) => {
+          const next = title.nextElementSibling;
+          let hasVisible = false;
+          if (next && next.classList.contains("rsp-assign-dialog__group")) {
+            next
+              .querySelectorAll(".rsp-assign-dialog__role-item")
+              .forEach((child) => {
+                if (child.style.display !== "none") hasVisible = true;
+              });
+          }
+          title.style.display = hasVisible ? "" : "none";
+        });
 
-  // global roles initialization
-  const globalTable = document.getElementById("globalRoles");
-  if (globalTable) {
-    const readOnly = globalTable.classList.contains("read-only");
+      const noResults = container.querySelector(
+        ".rsp-assign-dialog__no-results",
+      );
+      if (noResults)
+        noResults.classList.toggle(
+          "jenkins-hidden",
+          visibleCount > 0 || q === "",
+        );
+    });
+  },
+);
 
-    let globalRoleInputFilter = document.getElementById('globalRoleInputFilter');
-    if (globalRoleInputFilter && parseInt(globalRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
-      globalRoleInputFilter.style.display = "block"
-    }
-    newGlobalRoleTemplate = document.getElementById('newGlobalRoleTemplate');
+// Search
+Behaviour.specify(
+  ".rsp-assign-search input",
+  "RoleStrategyAssign",
+  0,
+  (input) => {
+    if (input.dataset.initialized === "true") return;
+    input.dataset.initialized = "true";
+    input.addEventListener("input", rspApplyUserFilters);
+  },
+);
 
-    globalTableHighlighter = new TableHighlighter('globalRoles', readOnly ? 1 : 2);
-  }
+// ============================================
+// Initialization
+// ============================================
 
-  // item roles initialization
-  const projectRolesTable = document.getElementById('projectRoles');
-  if (projectRolesTable) {
-    const readOnly = projectRolesTable.classList.contains("read-only");
-
-    let itemRoleInputFilter = document.getElementById('itemRoleInputFilter');
-    if (itemRoleInputFilter && parseInt(itemRoleInputFilter.getAttribute("data-initial-size")) >= filterLimit ) {
-      itemRoleInputFilter.style.display = "block"
-    }
-
-    newItemRoleTemplate = document.getElementById('newItemRoleTemplate');
-
-    projectTableHighlighter = new TableHighlighter('projectRoles', readOnly ? 3 : 4);
-
-    // Show jobs matching a pattern on click
-    let itemPatterns = projectRolesTable.getElementsByClassName('patternAnchor');
-    for (let pattern of itemPatterns) {
-      bindListenerToPattern(pattern);
-    }
-  }
-
-  // agent roles initialization
-  const agentRolesTable = document.getElementById('agentRoles');
-  if (agentRolesTable) {
-    const readOnly = agentRolesTable.classList.contains("read-only");
-
-    newAgentRoleTemplate = document.getElementById('newAgentRoleTemplate');
-
-    agentTableHighlighter = new TableHighlighter('agentRoles', readOnly ? 2 : 3);
-    // Show agents matching a pattern on click
-    let agentPatterns = agentRolesTable.getElementsByClassName('patternAnchor');
-    for (let pattern of agentPatterns) {
-      bindAgentListenerToPattern(pattern);
-    }
-  }
+document.addEventListener("DOMContentLoaded", () => {
+  rspLoadRoleDefinitions();
+  rspPopulateRoleFilter();
+  rspInitRoleFilterDropdown();
+  // Load assignments for save compatibility (background), render via paginated endpoint
+  rspLoadAllAssignments();
+  rspRenderUserCards();
 });

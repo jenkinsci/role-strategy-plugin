@@ -87,18 +87,18 @@ class FormSubmissionPermissionsTest {
 
   @Test
   void testRolesSubmitAccessControl() throws Exception {
-    // Test that doRolesSubmit entry point correctly checks for ADMINISTER_AND_SOME_ROLES_ADMIN
+    // Test that doAddRoleSubmit entry point correctly checks for ADMINISTER_AND_SOME_ROLES_ADMIN
 
-    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/rolesSubmit");
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/addRoleSubmit");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
 
-    // adminUser has Jenkins.ADMINISTER - should pass entry check (but will fail on empty form)
+    // adminUser has Jenkins.ADMINISTER - should pass permission check (empty form returns 400)
     performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
-    // itemAdminUser has ITEM_ROLES_ADMIN - should pass entry check (but will fail on empty form)
+    // itemAdminUser has ITEM_ROLES_ADMIN - should pass permission check
     performAsAndExpect("itemAdminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
-    // agentAdminUser has AGENT_ROLES_ADMIN - should pass entry check (but will fail on empty form)
+    // agentAdminUser has AGENT_ROLES_ADMIN - should pass permission check
     performAsAndExpect("agentAdminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
     // developerUser has no admin permissions - should get 403 at entry
@@ -107,18 +107,18 @@ class FormSubmissionPermissionsTest {
 
   @Test
   void testAssignSubmitAccessControl() throws Exception {
-    // Test that doAssignSubmit entry point correctly checks for ADMINISTER_AND_SOME_ROLES_ADMIN
+    // Test that doAssignRoleSubmit entry point correctly checks for ADMINISTER_AND_SOME_ROLES_ADMIN
 
-    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/assignSubmit");
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/assignRoleSubmit");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
 
-    // adminUser has Jenkins.ADMINISTER - should pass entry check (but will fail on empty form)
+    // adminUser has Jenkins.ADMINISTER - should pass permission check (empty form returns 400)
     performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
-    // itemAdminUser has ITEM_ROLES_ADMIN - should pass entry check (but will fail on empty form)
+    // itemAdminUser has ITEM_ROLES_ADMIN - should pass permission check
     performAsAndExpect("itemAdminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
-    // agentAdminUser has AGENT_ROLES_ADMIN - should pass entry check (but will fail on empty form)
+    // agentAdminUser has AGENT_ROLES_ADMIN - should pass permission check
     performAsAndExpect("agentAdminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
     // developerUser has no admin permissions - should get 403 at entry
@@ -127,15 +127,15 @@ class FormSubmissionPermissionsTest {
 
   @Test
   void testTemplatesSubmitAccessControl() throws Exception {
-    // Test that doTemplatesSubmit entry point correctly checks for ITEM_ROLES_ADMIN
+    // Test that doAddTemplateSubmit entry point correctly checks for ITEM_ROLES_ADMIN
 
-    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/templatesSubmit");
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/addTemplateSubmit");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
 
-    // adminUser has Jenkins.ADMINISTER (which implies ITEM_ROLES_ADMIN) - should pass (but will fail on empty form)
+    // adminUser has Jenkins.ADMINISTER (which implies ITEM_ROLES_ADMIN) - should pass (empty form returns 400)
     performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
-    // itemAdminUser has ITEM_ROLES_ADMIN - should pass entry check (but will fail on empty form)
+    // itemAdminUser has ITEM_ROLES_ADMIN - should pass permission check
     performAsAndExpect("itemAdminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
 
     // agentAdminUser does NOT have ITEM_ROLES_ADMIN - should get 403
