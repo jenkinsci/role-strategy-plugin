@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2022, Markus Winter
+ * Copyright (c) 2022-2026, Markus Winter, Tim Jacomb
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,176 +22,591 @@
  * THE SOFTWARE.
  */
 
-// number of lines required for the role filter to get enabled
-var filterLimit = 10;
-// number of lines required for the footer to get displayed
-var footerLimit = 20;
+// ============================================
+// Summary
+// ============================================
 
-
-function filterRows(filter, table) {
-  for (let row of table.tBodies[0].rows) {
-    let userCell = row.cells[1].textContent.toUpperCase();
-    if (userCell.indexOf(filter) > -1) {
-      row.style.display = "";
-    } else {
-      row.style.display = "none";
-    }
-  }
-}
-
-updateTooltip = function(tr, td) {
-  let tooltipTemplate = td.getAttribute("data-tooltip-template");
-  let impliedByString = td.getAttribute('data-implied-by-list');
-  let impliedByList = impliedByString.split(" ");
-  let input = td.getElementsByTagName('INPUT')[0];
-  input.disabled = false;
-  let tooltip = tooltipTemplate.replace("{{GRANTBYOTHER}}", "");
-  input.nextSibling.setAttribute("data-html-tooltip", tooltip);
-
-  for (let permissionId of impliedByList) {
-    let reference = tr.querySelector("td[data-permission-id='" + permissionId + "'] input");
-    if (reference !== null) {
-      if (reference.checked) {
-        input.disabled = true;
-        tooltip = tooltipTemplate.replace("{{GRANTBYOTHER}}", " is granted through another permission");;
-        input.nextSibling.setAttribute('data-html-tooltip', tooltip); // 2.335+
+const tplBuildSummary = (card) => {
+  const body = card.querySelector(".rsp-card__body");
+  if (!body) return "";
+  const groups = body.querySelectorAll(".rsp-perm__group");
+  const parts = [];
+  groups.forEach((group) => {
+    const title = group.querySelector(".rsp-perm__group-title");
+    if (!title) return;
+    const checked = [];
+    group.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      const label = cb.closest(".rsp-perm__item");
+      const isImplied = label?.classList.contains("rsp-perm__item--implied");
+      if (cb.checked && !isImplied) {
+        const nameEl = label?.querySelector(".rsp-perm__item-name");
+        if (nameEl) checked.push(nameEl.textContent.trim());
       }
-    }
-  }
-}
+    });
+    if (checked.length > 0)
+      parts.push(title.textContent.trim() + ": " + checked.join(", "));
+  });
+  return parts.join(" \u00B7 ");
+};
 
-Behaviour.specify(".row-input-filter", "RoleBasedAuthorizationStrategy", 0, function(e) {
-  e.onkeyup = function() {
-    let filter = e.value.toUpperCase();
-    let table = document.getElementById(e.getAttribute("data-table-id"));
-    filterRows(filter, table);
+const tplUpdateSummary = (card) => {
+  const el = card.querySelector(".rsp-card__summary");
+  if (!el) return;
+  const summary = tplBuildSummary(card);
+  if (summary) {
+    el.textContent = summary;
+    el.classList.remove("rsp-card__summary--empty");
+  } else {
+    el.textContent = el.dataset.emptyText || "No permissions";
+    el.classList.add("rsp-card__summary--empty");
   }
-});
+};
 
-Behaviour.specify(
-  ".template-add-button", "RoleBasedAuthorizationStrategy", 0, function(elem) {
-    elem.onclick = function(e) {
-      let tableId = elem.getAttribute("data-table-id");
-      let table = document.getElementById(tableId);
-      let templateId = elem.getAttribute("data-template-id");
-      let template = window[templateId].content.firstElementChild.cloneNode(true);
-      let highlighter = window[elem.getAttribute("data-highlighter")];
-      addButtonAction(e, template, table, highlighter, tableId);
-      let tbody = table.tBodies[0];
-      if (tbody.children.length >= filterLimit) {
-        let rolefilters = document.querySelectorAll(".row-filter");
-        for (let filter of rolefilters) {
-          if (filter.getAttribute("data-table-id") === tableId) {
-            filter.style.display = "block";
-          }
+// ============================================
+// Implied
+// ============================================
+
+const tplUpdateImplied = (card) => {
+  card
+    .querySelectorAll(".rsp-perm__item[data-permission-id]")
+    .forEach((label) => {
+      const cb = label.querySelector("input[type=checkbox]");
+      if (!cb) return;
+      const impliedByStr = label.getAttribute("data-implied-by-list");
+      if (!impliedByStr || !impliedByStr.trim()) return;
+      let isImplied = false;
+      for (const permId of impliedByStr.trim().split(" ")) {
+        const ref = card.querySelector(
+          `.rsp-perm__item[data-permission-id='${permId}'] input[type=checkbox]`,
+        );
+        if (ref && ref.checked) {
+          isImplied = true;
+          break;
         }
       }
-      if (tbody.children.length >= footerLimit) {
-        table.tFoot.style.display = "table-footer-group";
+      const il = label.querySelector(".rsp-perm__item-implied");
+      if (isImplied) {
+        cb.checked = false;
+        cb.disabled = true;
+        label.classList.add("rsp-perm__item--implied");
+        if (il) il.hidden = false;
+      } else {
+        cb.disabled = false;
+        label.classList.remove("rsp-perm__item--implied");
+        if (il) il.hidden = true;
+      }
+    });
+};
+
+// ============================================
+// Delete
+// ============================================
+
+const tplDelete = (templateName) => {
+  const dataHolder = document.getElementById("template-data");
+  const formData = new FormData();
+  formData.append("json", JSON.stringify({ templateName }));
+  return fetch(dataHolder.dataset.deleteUrl, {
+    method: "POST",
+    headers: crumb.wrap({}),
+    body: formData,
+  }).then((rsp) => {
+    if (!rsp.ok) throw new Error("Failed to delete template");
+  });
+};
+
+// ============================================
+// Search + Filter
+// ============================================
+
+let tplActivePermFilters = [];
+
+const tplApplyFilters = () => {
+  const searchInput = document.querySelector(".rsp-template-search input");
+  const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+  const cards = document.querySelectorAll("#rsp-template-cards .rsp-card");
+  let visibleCount = 0;
+
+  cards.forEach((card) => {
+    const name = (card.dataset.templateName || "").toLowerCase();
+    const matchesText = query === "" || name.includes(query);
+
+    let matchesPerm = tplActivePermFilters.length === 0;
+    if (!matchesPerm) {
+      for (const permId of tplActivePermFilters) {
+        const cb = card.querySelector(
+          `.rsp-perm__item[data-permission-id='${permId}'] input[type=checkbox]`,
+        );
+        if (cb && (cb.checked || cb.disabled)) {
+          matchesPerm = true;
+          break;
+        }
       }
     }
-  } 
+
+    if (matchesText && matchesPerm) {
+      card.classList.remove("rsp-card--hidden");
+      visibleCount++;
+    } else {
+      card.classList.add("rsp-card--hidden");
+    }
+  });
+
+  const empty = document.getElementById("rsp-template-empty");
+  if (empty)
+    empty.hidden =
+      visibleCount > 0 || (query === "" && tplActivePermFilters.length === 0);
+
+  const filterBtn = document.querySelector(".rsp-tpl-filter-btn");
+  if (filterBtn) {
+    const active = tplActivePermFilters.length > 0;
+    filterBtn.classList.toggle("jenkins-button--tertiary", !active);
+    filterBtn.classList.toggle("jenkins-!-accent-color", active);
+  }
+  const resetBtn = document.querySelector(".rsp-tpl-filter-reset");
+  if (resetBtn) resetBtn.hidden = tplActivePermFilters.length === 0;
+
+  rspUpdateCardBorders();
+};
+
+// ============================================
+// Dialog helpers (shared with tableRoles.js pattern)
+// ============================================
+
+const tplDialogUpdateImplied = (container) => {
+  container
+    .querySelectorAll(".rsp-assign-dialog__role-item[data-implied-by-list]")
+    .forEach((item) => {
+      const cb = item.querySelector("input[type=checkbox]");
+      if (!cb) return;
+      const impliedByStr = item.getAttribute("data-implied-by-list");
+      if (!impliedByStr || !impliedByStr.trim()) return;
+      let isImplied = false;
+      for (const permId of impliedByStr.trim().split(" ")) {
+        const ref = container.querySelector(
+          `.rsp-assign-dialog__role-item[data-permission-id='${permId}'] input[type=checkbox]`,
+        );
+        if (ref && ref.checked && !ref.disabled) {
+          isImplied = true;
+          break;
+        }
+      }
+      const impliedLabel = item.querySelector(".rsp-implied-label");
+      if (isImplied) {
+        cb.checked = true;
+        cb.disabled = true;
+        item.dataset.implied = "true";
+        if (impliedLabel) impliedLabel.hidden = false;
+      } else {
+        if (item.dataset.implied === "true") {
+          cb.checked = false;
+          cb.disabled = false;
+          item.dataset.implied = "false";
+        }
+        if (impliedLabel) impliedLabel.hidden = true;
+      }
+    });
+};
+
+const tplDialogUncheckImplied = (container) => {
+  container
+    .querySelectorAll(
+      ".rsp-assign-dialog__role-item[data-implied='true'] input[type=checkbox]",
+    )
+    .forEach((cb) => {
+      cb.checked = false;
+    });
+};
+
+const tplDialogAttachImplied = (container) => {
+  container
+    .querySelectorAll(".rsp-assign-dialog__role-item input[type=checkbox]")
+    .forEach((cb) => {
+      cb.addEventListener("change", () => tplDialogUpdateImplied(container));
+    });
+  tplDialogUpdateImplied(container);
+};
+
+const tplDialogApplyFilter = (form) => {
+  const filterEl = form.querySelector(".rsp-perm-dialog-filter input");
+  const q = filterEl ? filterEl.value.toLowerCase().trim() : "";
+  const permContainer = form.querySelector("[name='permissions']");
+  if (!permContainer) return;
+
+  let visibleCount = 0;
+  permContainer
+    .querySelectorAll(".rsp-assign-dialog__role-item")
+    .forEach((item) => {
+      const match =
+        q === "" || (item.dataset.roleName || "").toLowerCase().includes(q);
+      item.style.display = match ? "" : "none";
+      if (match) visibleCount++;
+    });
+  permContainer
+    .querySelectorAll(".rsp-assign-dialog__group-title")
+    .forEach((title) => {
+      let next = title.nextElementSibling;
+      let hasVisible = false;
+      while (
+        next &&
+        !next.classList.contains("rsp-assign-dialog__group-title")
+      ) {
+        if (next.classList.contains("rsp-assign-dialog__group")) {
+          next
+            .querySelectorAll(".rsp-assign-dialog__role-item")
+            .forEach((child) => {
+              if (child.style.display !== "none") hasVisible = true;
+            });
+        }
+        next = next.nextElementSibling;
+      }
+      title.style.display = hasVisible ? "" : "none";
+    });
+  const noResults = permContainer.querySelector(
+    ".rsp-assign-dialog__no-results",
+  );
+  if (noResults)
+    noResults.classList.toggle("jenkins-hidden", visibleCount > 0 || q === "");
+};
+
+const tplInitDialog = (form, submitBtnId) => {
+  if (form.dataset.dialogInit === "true") return;
+  form.dataset.dialogInit = "true";
+
+  const validateAndSubmit = () => {
+    const nameInput = form.querySelector("input[name='templateName']");
+    if (nameInput && !nameInput.disabled) {
+      const name = nameInput.value.trim();
+      if (!name) {
+        nameInput.focus();
+        nameInput.style.outline = "2px solid var(--error-color)";
+        nameInput.addEventListener(
+          "input",
+          () => {
+            nameInput.style.outline = "";
+          },
+          { once: true },
+        );
+        return;
+      }
+      // Check for duplicate
+      const existing = document.querySelector(
+        `#rsp-template-cards .rsp-card[data-template-name='${CSS.escape(name)}']`,
+      );
+      if (existing) {
+        nameInput.focus();
+        nameInput.style.outline = "2px solid var(--error-color)";
+        nameInput.addEventListener(
+          "input",
+          () => {
+            nameInput.style.outline = "";
+          },
+          { once: true },
+        );
+        dialog.alert(`A template named "${name}" already exists.`);
+        return;
+      }
+    }
+
+    // Check at least one permission selected
+    const permContainer = form.querySelector("[name='permissions']");
+    if (permContainer) {
+      const hasChecked = permContainer.querySelector(
+        "input[type='checkbox']:checked:not(:disabled)",
+      );
+      if (!hasChecked) {
+        dialog.alert("Please select at least one permission.");
+        return;
+      }
+      tplDialogUncheckImplied(permContainer);
+    }
+
+    form.requestSubmit();
+  };
+
+  const filterInput = form.querySelector(".rsp-perm-dialog-filter input");
+  if (filterInput) {
+    filterInput.addEventListener("input", () => tplDialogApplyFilter(form));
+  }
+
+  const permContainer = form.querySelector("[name='permissions']");
+  if (permContainer) tplDialogAttachImplied(permContainer);
+
+  const submitBtn = form.querySelector(`#${submitBtnId}`);
+  if (submitBtn) submitBtn.addEventListener("click", validateAndSubmit);
+  form.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      validateAndSubmit();
+    }
+  });
+};
+
+// ============================================
+// Behaviours
+// ============================================
+
+// Card toggle — view only, don't expand empty cards
+Behaviour.specify(
+  "#rsp-template-cards .rsp-card__header",
+  "RoleStrategyTemplates",
+  0,
+  (header) => {
+    if (header.dataset.initialized === "true") return;
+    header.dataset.initialized = "true";
+    const handleToggle = (e) => {
+      if (
+        e.target.closest(".rsp-card__actions") &&
+        !e.target.closest(".rsp-card__toggle")
+      )
+        return;
+      const card = header.closest(".rsp-card");
+      if (!card) return;
+      const summary = card.querySelector(".rsp-card__summary");
+      if (summary && summary.classList.contains("rsp-card__summary--empty"))
+        return;
+      const body = card.querySelector(".rsp-card__body");
+      const isExpanded = !body.classList.contains("rsp-card__body--collapsed");
+      body.classList.toggle("rsp-card__body--collapsed");
+      header.setAttribute("aria-expanded", String(!isExpanded));
+      card.setAttribute("aria-expanded", String(!isExpanded));
+    };
+    header.addEventListener("click", handleToggle);
+    header.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleToggle(e);
+      }
+    });
+  },
 );
 
-addButtonAction = function (e, template, table, tableHighlighter, tableId) {
-  let dataReference = e.target;
-  let tbody = table.tBodies[0];
-
-  dialog.prompt(dataReference.getAttribute('data-prompt')).then((name) => {
-    name = name.trim();
-    if (findElementsBySelector(tbody,"TR").find(function(n){return n.getAttribute("name")=='['+name+']';})!=null) {
-      dialog.alert("Entry for '"+name+"' already exists");
-      return;
-    }
-
-    let copy = document.importNode(template,true);
-    let child = copy.childNodes[1];
-    child.textContent = escapeHTML(name);
-
-    let children = copy.getElementsByClassName("permissionInput");
-    for (let child of children) {
-      if (child.hasAttribute('data-tooltip-template')) {
-        child.setAttribute("data-tooltip-template", child.getAttribute("data-tooltip-template").replace(/{{TEMPLATE}}/g, doubleEscapeHTML(name)));
+// Permission checkboxes in card body — view only
+Behaviour.specify(
+  "#rsp-template-cards .rsp-perm__item input[type=checkbox]",
+  "RoleStrategyTemplates",
+  0,
+  (cb) => {
+    if (cb.dataset.initialized === "true") return;
+    cb.dataset.initialized = "true";
+    cb.addEventListener("change", () => {
+      const card = cb.closest(".rsp-card");
+      if (card) {
+        tplUpdateImplied(card);
+        tplUpdateSummary(card);
       }
-    }
+    });
+  },
+);
 
-    if (tableId !== "permissionTemplates") {
-      spanElement = copy.childNodes[2].childNodes[0].childNodes[1];
-    }
+// Init summaries
+Behaviour.specify(
+  "#rsp-template-cards .rsp-card",
+  "RoleStrategyTemplates",
+  1,
+  (card) => {
+    if (card.dataset.summaryInitialized === "true") return;
+    card.dataset.summaryInitialized = "true";
+    tplUpdateImplied(card);
+    tplUpdateSummary(card);
+    rspUpdateCardBorders();
+  },
+);
 
-    copy.setAttribute("name",'['+name+']');
-    tbody.appendChild(copy);
-    if (tableHighlighter != null) {
-      tableHighlighter.scan(copy);
-    }
-    Behaviour.applySubtree(copy.closest("TABLE"), true);
-  })
-}
+// Delete template
+Behaviour.specify(".rsp-template-delete", "RoleStrategyTemplates", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const card = btn.closest(".rsp-card");
+    if (!card) return;
+    const name = card.dataset.templateName;
+    const inUse = card.dataset.inUse === "true";
 
-function deleteTemplate(button) {
-  let table = button.closest("TABLE");
-  let tableId = table.getAttribute("id");
-  let tr = button.closest("TR");
-  parent = tr.parentNode;
-  parent.removeChild(tr);
-  if (parent.children.length < filterLimit) {
-    let userfilters = document.querySelectorAll(".row-filter")
-    for (let filter of userfilters) {
-      if (filter.getAttribute("data-table-id") === tableId) {
-        filter.style.display = "none";
-        let inputs = filter.getElementsByTagName("INPUT");
-        inputs[0].value=""
-        let event = new Event("keyup");
-        inputs[0].dispatchEvent(event);
+    const msg = inUse
+      ? `Template "${name}" is in use by roles. Are you sure you want to delete it?`
+      : `Delete template "${name}"?`;
+
+    dialog
+      .confirm("Delete template", { message: msg, type: "destructive" })
+      .then(() => {
+        tplDelete(name)
+          .then(() => {
+            card.remove();
+            rspUpdateCardBorders();
+            if (
+              document.querySelectorAll("#rsp-template-cards .rsp-card")
+                .length === 0
+            ) {
+              window.location.reload();
+            } else {
+              notificationBar.show(
+                `Template "${name}" deleted`,
+                notificationBar.SUCCESS,
+              );
+            }
+          })
+          .catch((err) => {
+            notificationBar.show(
+              "Failed to delete: " + err.message,
+              notificationBar.ERROR,
+            );
+          });
+      })
+      .catch(() => {});
+  });
+});
+
+// Edit template — dialog opened via data-type="dialog-opener"
+Behaviour.specify(".rsp-template-edit", "RoleStrategyTemplates", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const initDialog = () => {
+      const form = document.querySelector("form[name='edit-template']");
+      if (!form) {
+        setTimeout(initDialog, 100);
+        return;
       }
-    }
-  }
-  if (parent.children.length < footerLimit) {
-    table.tFoot.style.display = "none";
-  }
+      tplInitDialog(form, "rsp-edit-template-submit-btn");
+    };
+    setTimeout(initDialog, 200);
+  });
+});
 
-}
+// Add template — dialog opened via data-type="dialog-opener"
+Behaviour.specify(
+  ".rsp-add-template-btn",
+  "RoleStrategyTemplates",
+  0,
+  (btn) => {
+    if (btn.dataset.initialized === "true") return;
+    btn.dataset.initialized = "true";
+    btn.addEventListener("click", () => {
+      const initDialog = () => {
+        const form = document.querySelector("form[name='add-template']");
+        if (!form) {
+          setTimeout(initDialog, 100);
+          return;
+        }
+        tplInitDialog(form, "rsp-add-template-submit-btn");
+      };
+      setTimeout(initDialog, 200);
+    });
+  },
+);
 
-Behaviour.specify(".role-strategy-table .rsp-remove", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  e.onclick = function() {
-    let inuse = e.getAttribute("data-is-used") === "true";
-    if (inuse) {
-      dialog.confirm("This template is used. Are you sure you want to delete it?").then(() => {
-        deleteTemplate(e);
+// Search
+Behaviour.specify(
+  ".rsp-template-search input",
+  "RoleStrategyTemplates",
+  0,
+  (input) => {
+    if (input.dataset.initialized === "true") return;
+    input.dataset.initialized = "true";
+    input.addEventListener("input", tplApplyFilters);
+  },
+);
+
+// Permission filter dropdown
+Behaviour.specify(".rsp-tpl-filter-btn", "RoleStrategyTemplates", 0, (btn) => {
+  if (btn.dataset.initialized === "true") return;
+  btn.dataset.initialized = "true";
+
+  const dropdown = document.querySelector(".rsp-tpl-filter-dropdown");
+  if (!dropdown) return;
+
+  const searchInput = dropdown.querySelector(".rsp-tpl-filter-search input");
+  const resetBtn = dropdown.querySelector(".rsp-tpl-filter-reset");
+
+  dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
+    item.addEventListener("click", () => {
+      item.classList.toggle("rsp-filter__item--active");
+      tplActivePermFilters = [];
+      dropdown.querySelectorAll(".rsp-filter__item--active").forEach((a) => {
+        tplActivePermFilters.push(a.dataset.filterPermission);
       });
-      return;
-    }
-    deleteTemplate(e);
-    return false;
-  }
-});
+      tplApplyFilters();
+    });
+  });
 
-Behaviour.specify(".role-strategy-table td.permissionInput input", 'RoleBasedAuthorizationStrategy', 0, function(e) {
-  let table = e.closest("TABLE");
-  if (table.classList.contains('read-only')) {
-    // if this is a read-only UI (ExtendedRead / SystemRead), do not enable checkboxes
-    return;
-  }
-  let row = e.closest("TR");
-  let td = e.closest("TD");
-  updateTooltip(row, td);
-  e.onchange = function() {
-    Behaviour.applySubtree(row.closest("TABLE"),true);
-    return true;
+  const applyFilterSearch = () => {
+    const q = searchInput ? searchInput.value.toLowerCase().trim() : "";
+    dropdown.querySelectorAll(".jenkins-dropdown__item").forEach((item) => {
+      const label = (item.dataset.filterLabel || "").toLowerCase();
+      item.classList.toggle(
+        "rsp-filter__item--filter-hidden",
+        q !== "" && !label.includes(q),
+      );
+    });
+    dropdown.querySelectorAll(".rsp-filter__group-title").forEach((title) => {
+      let next = title.nextElementSibling;
+      let hasVisible = false;
+      while (next && !next.classList.contains("rsp-filter__group-title")) {
+        if (
+          next.classList.contains("jenkins-dropdown__item") &&
+          !next.classList.contains("rsp-filter__item--filter-hidden")
+        )
+          hasVisible = true;
+        next = next.nextElementSibling;
+      }
+      title.classList.toggle(
+        "rsp-filter__group-title--filter-hidden",
+        !hasVisible,
+      );
+    });
+    const noResults = dropdown.querySelector(".rsp-filter__no-results");
+    if (noResults)
+      noResults.hidden = !!dropdown.querySelector(
+        ".jenkins-dropdown__item:not(.rsp-filter__item--filter-hidden)",
+      );
   };
-});
 
-
-var templateTableHighlighter;
-var newPermissionTemplate;
-
-document.addEventListener('DOMContentLoaded', function() {
-  let permissionInputFilter = document.getElementById('permissionInputFilter');
-  if (parseInt(permissionInputFilter.getAttribute("data-initial-size")) >= filterLimit) {
-    permissionInputFilter.style.display = "block"
+  if (searchInput) {
+    searchInput.addEventListener("input", applyFilterSearch);
+    searchInput.addEventListener("click", (e) => e.stopPropagation());
   }
-  const table = document.getElementById("permissionTemplates");
-  const readOnly = table.classList.contains("read-only");
-  newPermissionTemplate = document.getElementById('newPermissionTemplate');
-  templateTableHighlighter = new TableHighlighter('permissionTemplates', readOnly ? 2 : 3);
+  if (resetBtn) {
+    resetBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      dropdown
+        .querySelectorAll(".rsp-filter__item--active")
+        .forEach((item) => item.classList.remove("rsp-filter__item--active"));
+      tplActivePermFilters = [];
+      if (searchInput) searchInput.value = "";
+      applyFilterSearch();
+      tplApplyFilters();
+    });
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    btn.setAttribute("aria-expanded", String(!isOpen));
+    if (!isOpen) {
+      const closeDropdown = () => {
+        dropdown.hidden = true;
+        btn.setAttribute("aria-expanded", "false");
+        document.removeEventListener("click", ch);
+        document.removeEventListener("keydown", eh);
+      };
+      const ch = (evt) => {
+        if (!dropdown.contains(evt.target) && evt.target !== btn)
+          closeDropdown();
+      };
+      const eh = (evt) => {
+        if (evt.key === "Escape") {
+          closeDropdown();
+          btn.focus();
+        }
+      };
+      setTimeout(() => {
+        document.addEventListener("click", ch);
+        document.addEventListener("keydown", eh);
+      }, 0);
+    }
+  });
 });

@@ -1,0 +1,117 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+  <st:setHeader name="X-Dialog-Title" value="${%Add Role}"/>
+
+  <j:set var="canGlobal" value="${app.hasPermission(app.ADMINISTER)}"/>
+  <j:set var="canItem" value="${app.hasPermission(app.ADMINISTER) or app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}"/>
+  <j:set var="canAgent" value="${app.hasPermission(app.ADMINISTER) or app.hasPermission(it.strategy.AGENT_ROLES_ADMIN)}"/>
+
+  <!-- Count how many scopes are available -->
+  <j:set var="scopeCount" value="${(canGlobal ? 1 : 0) + (canItem ? 1 : 0) + (canAgent ? 1 : 0)}"/>
+
+  <!-- Determine default scope -->
+  <j:set var="defaultScope" value="${canGlobal ? 'globalRoles' : (canItem ? 'projectRoles' : 'slaveRoles')}"/>
+
+  <l:ajax>
+    <f:form name="add-role" method="post" action="${rootURL}/manage/role-strategy/addRoleSubmit">
+
+      <j:choose>
+        <j:when test="${scopeCount == 1}">
+          <!-- Only one scope available — use hidden input -->
+          <input type="hidden" name="scope" value="${defaultScope}"/>
+        </j:when>
+        <j:otherwise>
+          <f:entry title="${%Scope}">
+            <j:if test="${canGlobal}">
+              <f:radio name="scope" value="globalRoles" title="${%Global role}" checked="${defaultScope == 'globalRoles'}"/>
+            </j:if>
+            <j:if test="${canItem}">
+              <f:radio name="scope" value="projectRoles" title="${%Item role}" checked="${defaultScope == 'projectRoles'}"/>
+            </j:if>
+            <j:if test="${canAgent}">
+              <f:radio name="scope" value="slaveRoles" title="${%Agent role}" checked="${defaultScope == 'slaveRoles'}"/>
+            </j:if>
+          </f:entry>
+        </j:otherwise>
+      </j:choose>
+
+      <f:entry title="${%Role name}">
+        <f:textbox name="roleName"/>
+      </f:entry>
+
+      <f:entry title="${%Pattern}" class="jenkins-hidden">
+        <a href="list-macros" target="_blank" class="jenkins-form-description">View available macros</a>
+        <f:textbox name="pattern"/>
+      </f:entry>
+
+      <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
+      <j:if test="${!permissionTemplates.isEmpty()}">
+        <f:entry title="${%Permission template}" class="jenkins-hidden">
+          <div class="jenkins-select">
+            <select name="templateName" class="jenkins-select__input">
+              <option value="">${%none}</option>
+              <j:forEach var="tmpl" items="${permissionTemplates}">
+                <option value="${tmpl.name}">${tmpl.name}</option>
+              </j:forEach>
+            </select>
+          </div>
+          <!-- Template permission data for JS -->
+          <j:forEach var="tmpl" items="${permissionTemplates}">
+            <div hidden="true" class="rsp-template-perm-data" data-template-name="${tmpl.name}">[<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]</div>
+          </j:forEach>
+        </f:entry>
+      </j:if>
+
+      <f:entry title="${%Permissions}">
+        <l:search-bar placeholder="${%Filter permissions}" clazz="rsp-perm-dialog-filter" hasKeyboardShortcut="false" />
+
+        <div class="rsp-assign-dialog__roles" name="permissions">
+          <j:forEach var="roleType" items="globalRoles,projectRoles,slaveRoles">
+            <j:set var="showThisScope" value="${(roleType == 'globalRoles' and canGlobal) or (roleType == 'projectRoles' and canItem) or (roleType == 'slaveRoles' and canAgent)}"/>
+            <j:if test="${showThisScope}">
+              <j:set var="roleTypeKey" value="${roleType == 'globalRoles' ? it.strategy.GLOBAL : (roleType == 'projectRoles' ? it.strategy.PROJECT : it.strategy.SLAVE)}"/>
+              <j:set var="groups" value="${it.strategy.descriptor.getGroups(roleTypeKey)}"/>
+              <div name="${roleType}" class="${roleType == defaultScope ? '' : 'jenkins-hidden'}">
+                <j:forEach var="g" items="${groups}">
+                  <j:set var="hasVisible" value="${false}"/>
+                  <j:forEach var="p" items="${g.permissions}">
+                    <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
+                      <j:set var="hasVisible" value="${true}"/>
+                    </j:if>
+                  </j:forEach>
+                  <j:if test="${hasVisible}">
+                    <div class="rsp-assign-dialog__group-title">${g.title}</div>
+                    <div class="rsp-assign-dialog__group">
+                      <j:forEach var="p" items="${g.permissions}">
+                        <j:if test="${it.strategy.descriptor.showPermission(roleTypeKey, p)}">
+                          <div class="rsp-assign-dialog__role-item jenkins-checkbox" data-role-name="${p.name}" data-permission-id="${p.id}"
+                               data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}">
+                            <input type="checkbox" name="[${p.id}]" id="perm-${roleType}-${p.id}" />
+                            <label for="perm-${roleType}-${p.id}">${p.name}<span class="rsp-implied-label" hidden="true"> (${%implied})</span></label>
+                            <j:set var="permDescription" value="${p.description}"/>
+                            <j:if test="${permDescription != null and permDescription.toString().length() gt 0}">
+                              <span class="rsp-perm-info" data-html-tooltip="${permDescription}">
+                                <l:icon src="symbol-help-circle" class="icon-sm"/>
+                              </span>
+                            </j:if>
+                          </div>
+                        </j:if>
+                      </j:forEach>
+                    </div>
+                  </j:if>
+                </j:forEach>
+              </div>
+            </j:if>
+          </j:forEach>
+          <div class="rsp-assign-dialog__no-results jenkins-hidden" style="padding:1rem;text-align:center;color:var(--text-color-secondary);font-style:italic;">
+            ${%No matching permissions}
+          </div>
+        </div>
+      </f:entry>
+
+      <f:bottomButtonBar borderless="true">
+        <button id="rsp-add-role-submit-btn" type="button" class="jenkins-button jenkins-button--primary">${%Add}</button>
+      </f:bottomButtonBar>
+    </f:form>
+  </l:ajax>
+</j:jelly>

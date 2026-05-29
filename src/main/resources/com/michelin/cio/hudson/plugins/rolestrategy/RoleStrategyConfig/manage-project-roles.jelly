@@ -1,104 +1,45 @@
-<!--
-  - The MIT License
-  -
-  - Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
-  - Thomas Maurel, Romain Seguy
-  -
-  - Permission is hereby granted, free of charge, to any person obtaining a copy
-  - of this software and associated documentation files (the "Software"), to deal
-  - in the Software without restriction, including without limitation the rights
-  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  - copies of the Software, and to permit persons to whom the Software is
-  - furnished to do so, subject to the following conditions:
-  -
-  - The above copyright notice and this permission notice shall be included in
-  - all copies or substantial portions of the Software.
-  -
-  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  - THE SOFTWARE.
-  -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
-          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local" xmlns:rs="/lib/rolestrategy">
+          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
+  <j:set var="sectionId" value="projectRoles"/>
   <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
   <j:set var="itemGrantedRoles" value="${it.strategy.getGrantedRolesEntries(it.strategy.PROJECT)}"/>
-  <j:set var="tableid" value="projectRoles"/>
   <j:set var="neededPermission" value="${it.strategy.ITEM_ROLES_ADMIN}"/>
 
-  <div id="itemRoleInputFilter" data-table-id="${tableid}" data-initial-size="${itemGrantedRoles.size()}" class="row-filter">
-    <f:entry title="${%Filter by Role}">
-      <input id="itemRoleInput" class="row-input-filter jenkins-input setting-input" data-table-id="${tableid}"/>
-    </f:entry>
-  </div>
-  <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}" name="data">
+  <j:set var="templateNames" value=""/>
+  <j:forEach var="tmpl" items="${it.strategy.getPermissionTemplates()}" varStatus="ts">
+    <j:if test="${!ts.first}"><j:set var="templateNames" value="${templateNames},"/></j:if>
+    <j:set var="templateNames" value="${templateNames}${tmpl.name}"/>
+  </j:forEach>
 
-    <local:thead permissionGroups="${itemPermissionGroups}" showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
-                 strategy="${it.strategy.PROJECT}" neededPermission="${neededPermission}"/>
-    <tbody>
+  <div class="rsp-container" id="${sectionId}" data-role-type="projectRoles" data-assign-type="projectRoles"
+       data-templates="${templateNames}">
+
+    <!-- Template permission data for JS -->
+    <j:forEach var="tmpl" items="${it.strategy.getPermissionTemplates()}">
+      <script type="application/json" class="rsp-template-data" data-template-name="${tmpl.name}">
+        [<j:forEach var="p" items="${tmpl.permissions}" varStatus="ps"><j:if test="${!ps.first}">,</j:if>"${p.id}"</j:forEach>]
+      </script>
+    </j:forEach>
+    <div class="rsp-cards">
       <j:forEach var="role" items="${itemGrantedRoles}">
-        <tr name="[${role.key.name}]" class="permission-row highlight-row">
-          <local:roleRow title="${role.key.name}" pattern="${role.key.pattern}" role="${role.key}"
-                         disable="${role.key.templateName != null and role.key.templateName != ''}"
-                         showRoleName="${true}" showPattern="${true}" showTemplate="${true}"
-                         type="${it.strategy.PROJECT}"
-                         templateName="${role.key.templateName}"
-                         project="${true}" neededPermission="${neededPermission}"/>
-        </tr>
+        <local:roleCard role="${role.key}" roleType="${it.strategy.PROJECT}"
+                        showPattern="true" showTemplate="true"
+                        permissionGroups="${itemPermissionGroups}"
+                        neededPermission="${neededPermission}" sectionId="${sectionId}"/>
       </j:forEach>
-    </tbody>
-    <local:tfoot permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" roles="${itemGrantedRoles}"
-                 showPattern="${true}" showTemplate="${true}" neededPermission="${neededPermission}"/>
+    </div>
 
-  </table>
+    <j:if test="${itemGrantedRoles.isEmpty()}">
+      <l:notice icon="symbol-information-circle-outline plugin-ionicons-api" title="${%No item roles defined}">
+        ${%Use Add Role to create an item role.}
+      </l:notice>
+    </j:if>
 
-  <template id="newItemRoleTemplate">
-    <tr class="permission-row highlight-row">
-      <local:roleRow title="{{ROLE}}" global="${false}" pattern="{{PATTERN}}" type="${it.strategy.PROJECT}" templateName=""
-                     showRoleName="${true}" showPattern="${true}" showTemplate="${true}" neededPermission="${neededPermission}" />
-    </tr>
-  </template>
-
-  <l:hasPermission permission="${neededPermission}">
-    <br />
-    <f:entry title="${%Role to add}">
-      <f:textbox id="${tableid}text" />
-    </f:entry>
-    <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
-      <f:textbox id="${tableid}pattern" checkUrl="${descriptorPath}/checkPattern" checkDependsOn=""/>
-    </f:entry>
-    <f:entry>
-      <rs:dropdownList title="Permission Template" name="template" id="${tableid}template">
-        <f:dropdownListBlock title="None" selected="true" value="">
-        </f:dropdownListBlock>
-        <j:forEach var="permissionTemplate" items="${it.strategy.getPermissionTemplates()}">
-          <f:dropdownListBlock title="${permissionTemplate.getName()}" selected="false" value="${permissionTemplate.getName()}">
-            <table id="${tableid}" class="jenkins-table jenkins-table--small jenkins-table--auto-width center-align role-strategy-table ${readOnlyMode ? 'read-only' : ''}" style="display:none">
-            <local:thead permissionGroups="${itemPermissionGroups}" strategy="${it.strategy.PROJECT}" neededPermission="${neededPermission}"/>
-            <tr>
-              <local:roleRow title="" role="${permissionTemplate}" disable="${true}" showRoleName="${false}" showPattern="${false}" type="${it.strategy.PROJECT}"
-                             project="${true}" neededPermission="${neededPermission}"/>
-            </tr>
-            </table>
-            <template id="newItemRoleTemplate-${permissionTemplate.getName()}">
-              <tr class="permission-row highlight-row">
-                <local:roleRow title="{{ROLE}}" role="${permissionTemplate}" global="${false}" pattern="{{PATTERN}}"
-                               type="${it.strategy.PROJECT}"
-                               showRoleName="${true}" showPattern="${true}" disable="${true}" showTemplate="${true}"
-                               templateName="${permissionTemplate.name}" neededPermission="${neededPermission}"/>
-              </tr>
-            </template>
-          </f:dropdownListBlock>
-        </j:forEach>
-      </rs:dropdownList>
-    </f:entry>
-    <f:entry>
-      <local:addButton id="newItemRoleTemplate" tableid="${tableid}" highlighter="projectTableHighlighter"/>
-    </f:entry>
-  </l:hasPermission>
+    <div class="jenkins-notice rsp-empty-state" hidden="true">
+      <l:icon src="symbol-search" />
+      ${%No matching roles}
+    </div>
+  </div>
 </j:jelly>

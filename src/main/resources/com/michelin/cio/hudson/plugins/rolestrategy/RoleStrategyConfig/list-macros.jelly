@@ -1,108 +1,41 @@
-<!--
-  - The MIT License
-  -
-  - Copyright (c) 2013, Oleg Nenashev, Synopsys Inc.
-  -
-  - Permission is hereby granted, free of charge, to any person obtaining a copy
-  - of this software and associated documentation files (the "Software"), to deal
-  - in the Software without restriction, including without limitation the rights
-  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  - copies of the Software, and to permit persons to whom the Software is
-  - furnished to do so, subject to the following conditions:
-  -
-  - The above copyright notice and this permission notice shall be included in
-  - all copies or substantial portions of the Software.
-  -
-  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  - THE SOFTWARE.
-  -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-    <d:taglib uri="local">
-        <!--
-        -
-        - Parameters:
-        -   tableId - table id
-        -   extensions - List of macro extensions
-        -->
-        <d:tag name="roleMacroTable">           
-            <j:invoke var="items" method="${attrs.getmethod}" on="${it}"/>            
-            <table id="${attrs.tableId}" class="jenkins-table role-strategy-table jenkins-table--auto-width">
-                <thead>
-                    <tr name="Caption">
-                        <th rowspan="2" class="rsp-table__header-column">
-                          ${%Name}
-                        </th>
-                        <th colspan="3" class="rsp-table__header-column rsp-table--header-th first last">
-                          ${%Applicable Role Types}
-                        </th>
-                        <th rowspan="2" class="rsp-table__header-column">
-                          ${%Description}
-                        </th>
-                    </tr>
-                    <!--Second header row-->
-                    <tr name="Caption">
-                        <th class="rsp-table__header-column rsp-table--header-th">GLOBAL</th>
-                        <th class="rsp-table__header-column rsp-table--header-th">ITEM</th>
-                        <th class="rsp-table__header-column rsp-table--header-th">AGENT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <j:forEach var="macroExt" items="${items}">
-                        <tr name="test" class="permission-row">
-                            <td>${macroExt.getName()}</td>
-                            <td>${macroExt.IsApplicable(it.globalRoleType)}</td>
-                            <td>${macroExt.IsApplicable(it.projectRoleType)}</td>
-                            <td>${macroExt.IsApplicable(it.slaveRoleType)}</td>
-                            <td><j:out value="${macroExt.getDescription()}"/></td>
-                        </tr>
-                    </j:forEach>
-                </tbody>
-            </table>
-        </d:tag>
-    </d:taglib>
-    
-    <l:layout title="${%Role-Strategy Macros Info}" permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" norefresh="true">
-        <l:breadcrumb title="Macros"/>
-        <st:include page="sidepanel.jelly"/>
-        
-        <l:main-panel>
-            <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />    
-                       
-            <h1>
-              ${%Role-Strategy Macros Info}
-            </h1>
-            <p>Macros allow to extend the analysis of user access rights (see @RoleMacroExtension).
-               If a user's sid meets criteria in Roles and Assignments, then analysis will be propagated to the extension,
-               which makes decisions according to instance and parameters.
-            </p>
-            <h2>${%Macro usage}</h2>
-            <div>
-                Macro format: @<b>macroName</b>[:<b>id</b>][(parameter1, parameter2, ...)]>
-                <ul>
-                    <li>macroName - name of the macro (see available macros in the table below)</li>
-                    <li>id - identifier of the macro. Technical parameter, which allows to use the same macro for multiple patterns</li>
-                    <li>parameter - additional parameters. At the current state, they don't support variables or TokenMacros</li>
-                </ul>
-                                                                                                                                                                                                                                                                                                                        
-                <p>Macro string examples:</p>
-                <ul>
-                    <li>@BuildableJob - Primitive macro invocation. Such invocation can be used only once in each roles category.</li>
-                    <li>@BuildableJob:1 - Macro with id</li>
-                    <li>@ParameterizedMacro(param1) - Invokes macro with one parameter</li>  
-                    <li>@ParameterizedMacro:2(param1,param2) - Invokes macro with two parameters. Id prevents naming conflicts</li>                               
-                </ul>
+    <j:set var="header"><l:view>
+      <l:app-bar title="${%Macros}" />
+      <p class="jenkins-page-description">
+        Macros extend access rights analysis and can be used in the pattern field.
+      </p>
+      <p class="jenkins-!-margin-bottom-3" style="color:var(--text-color-secondary);font-size:0.875rem;">
+        Format: <code>@macroName[:id][(param1, param2)]</code>
+        — e.g. <code>@BuildableJob</code>, <code>@BuildableJob:1</code>, <code>@Folder(folderName)</code>
+      </p>
+    </l:view></j:set>
+    <l:settings-subpage title="${%Macros}" permissions="${it.strategy.SYSTEM_READ_AND_SOME_ROLES_ADMIN}" noDefer="true" includeBreadcrumb="true" header="${header}">
+            <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css" />
+
+            <j:invoke var="macros" method="getRoleMacroExtensions" on="${it}"/>
+
+            <div class="rsp-cards">
+              <j:forEach var="macroExt" items="${macros}">
+                <div class="rsp-card rsp-card--read-only" data-macro-name="${macroExt.getName()}">
+                  <div class="rsp-card__header" style="cursor:default;">
+                    <span class="rsp-card__name">@${macroExt.getName()}</span>
+                    <j:if test="${macroExt.IsApplicable(it.globalRoleType)}">
+                      <span class="rsp-card__template-badge">Global</span>
+                    </j:if>
+                    <j:if test="${macroExt.IsApplicable(it.projectRoleType)}">
+                      <span class="rsp-card__template-badge">Item</span>
+                    </j:if>
+                    <j:if test="${macroExt.IsApplicable(it.slaveRoleType)}">
+                      <span class="rsp-card__template-badge">Agent</span>
+                    </j:if>
+                    <span class="rsp-card__summary"><j:out value="${macroExt.getDescription()}"/></span>
+                  </div>
+                </div>
+              </j:forEach>
             </div>
-            <h2>${%Available Macros}</h2>  
-            <p>The listed macros can be used in the "Role" field of the "Manage Roles" page.</p>
-            <local:roleMacroTable getmethod="getRoleMacroExtensions"/>
-        </l:main-panel>
-    </l:layout>
+
+    </l:settings-subpage>
 </j:jelly>

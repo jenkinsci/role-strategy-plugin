@@ -109,6 +109,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final String GLOBAL = "globalRoles";
   public static final String PROJECT = "projectRoles";
   public static final String SLAVE = "slaveRoles";
+  public static final String AGENT = "agentRoles";
   public static final String PERMISSION_TEMPLATES = "permissionTemplates";
 
   public static final String MACRO_ROLE = "roleMacros";
@@ -467,17 +468,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
   private static void checkPermByRoleTypeForUpdates(@NonNull String roleType) {
     switch (roleType) {
-      case RoleBasedAuthorizationStrategy.GLOBAL:
-        checkAdminPerm();
-        break;
-      case RoleBasedAuthorizationStrategy.PROJECT:
-        checkPerms(ITEM_ROLES_ADMIN);
-        break;
-      case RoleBasedAuthorizationStrategy.SLAVE:
-        checkPerms(AGENT_ROLES_ADMIN);
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown RoleType: " + roleType);
+      case RoleBasedAuthorizationStrategy.GLOBAL -> checkAdminPerm();
+      case RoleBasedAuthorizationStrategy.PROJECT -> checkPerms(ITEM_ROLES_ADMIN);
+      case RoleBasedAuthorizationStrategy.SLAVE, RoleBasedAuthorizationStrategy.AGENT ->
+          checkPerms(AGENT_ROLES_ADMIN);
+      default -> throw new IllegalArgumentException("Unknown RoleType: " + roleType);
     }
   }
 
@@ -1044,6 +1039,205 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   }
 
   /**
+   * Paginated, merged assignment endpoint for the Role Assignments UI.
+   * Returns users/groups across all role types with their role assignments.
+   *
+   * @param start pagination start index (default 0)
+   * @param limit page size (default 100)
+   * @param query optional search filter on user/group name
+   * @param filterRole optional role filter in format "type:roleName" (can be repeated via comma)
+   */
+  @GET
+  @Restricted(NoExternalUse.class)
+  public void doGetPaginatedAssignments(
+      @QueryParameter(fixEmpty = true) Integer start,
+      @QueryParameter(fixEmpty = true) Integer limit,
+      @QueryParameter(fixEmpty = true) String query,
+      @QueryParameter(fixEmpty = true) String filterRole,
+      @QueryParameter(fixEmpty = true) String includeSids) throws IOException {
+
+    Jenkins.get().checkPermission(Jenkins.SYSTEM_READ);
+    if (start == null || start < 0) {
+      start = 0;
+    }
+    if (limit == null || limit < 1) {
+      limit = 100;
+    }
+    limit = Math.min(limit, 1000);
+
+    // Parse role filters
+    Set<String> roleFilters = new HashSet<>();
+    if (filterRole != null) {
+      for (String f : filterRole.split(",")) {
+        if (!f.trim().isEmpty()) {
+          roleFilters.add(f.trim());
+        }
+      }
+    }
+
+    // Parse additional SIDs to include (from client display name cache matches)
+    Set<String> additionalSidSet = new HashSet<>();
+    if (includeSids != null) {
+      for (String s : includeSids.split(",")) {
+        if (!s.trim().isEmpty()) {
+          additionalSidSet.add(s.trim());
+        }
+      }
+    }
+
+    // Merge all types into a unified map: key="TYPE:sid" -> { name, type, roles: { globalRoles: [...], ... } }
+    Map<String, JSONObject> merged = new TreeMap<>();
+
+    for (RoleType rt : new RoleType[]{RoleType.Global, RoleType.Project, RoleType.Slave}) {
+      String typeStr = rt.getStringType();
+      try {
+        checkPermByRoleTypeForReading(typeStr);
+      } catch (Exception e) {
+        continue;
+      }
+
+      Set<PermissionEntry> sidEntries = getRoleMap(rt).getSidEntries(true);
+      SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(typeStr);
+
+      // Ensure a user object exists for every SID in this scope
+      for (PermissionEntry entry : sidEntries) {
+        String key = entry.getType().toString() + ":" + entry.getSid();
+        if (!merged.containsKey(key)) {
+          JSONObject userObj = new JSONObject();
+          userObj.put("name", entry.getSid());
+          userObj.put("type", entry.getType().toString());
+          JSONObject rolesMap = new JSONObject();
+          rolesMap.put(GLOBAL, new JSONArray());
+          rolesMap.put(PROJECT, new JSONArray());
+          rolesMap.put(SLAVE, new JSONArray());
+          userObj.put("roles", rolesMap);
+          merged.put(key, userObj);
+        }
+      }
+
+      // Invert: walk each role once and append its name to every assigned SID's list.
+      // Roles iterate in SortedMap order, preserving per-SID ordering.
+      for (Map.Entry<Role, Set<PermissionEntry>> roleEntry : rolesEntries.entrySet()) {
+        String roleName = roleEntry.getKey().getName();
+        for (PermissionEntry entry : roleEntry.getValue()) {
+          String key = entry.getType().toString() + ":" + entry.getSid();
+          JSONObject userObj = merged.get(key);
+          if (userObj != null) {
+            userObj.getJSONObject("roles").getJSONArray(typeStr).add(roleName);
+          }
+        }
+      }
+    }
+
+    // Ensure anonymous and authenticated exist
+    if (!merged.containsKey("USER:anonymous")) {
+      JSONObject anon = new JSONObject();
+      anon.put("name", "anonymous");
+      anon.put("type", "USER");
+      JSONObject r = new JSONObject();
+      r.put(GLOBAL, new JSONArray());
+      r.put(PROJECT, new JSONArray());
+      r.put(SLAVE, new JSONArray());
+      anon.put("roles", r);
+      merged.put("USER:anonymous", anon);
+    }
+    if (!merged.containsKey("GROUP:authenticated")) {
+      JSONObject auth = new JSONObject();
+      auth.put("name", "authenticated");
+      auth.put("type", "GROUP");
+      JSONObject r = new JSONObject();
+      r.put(GLOBAL, new JSONArray());
+      r.put(PROJECT, new JSONArray());
+      r.put(SLAVE, new JSONArray());
+      auth.put("roles", r);
+      merged.put("GROUP:authenticated", auth);
+    }
+
+    // Sort: anonymous first, authenticated second, then alphabetical
+    List<String> sortedKeys = new ArrayList<>(merged.keySet());
+    sortedKeys.sort((a, b) -> {
+      if (a.equals("USER:anonymous")) {
+        return -1;
+      }
+      if (b.equals("USER:anonymous")) {
+        return 1;
+      }
+      if (a.equals("GROUP:authenticated")) {
+        return -1;
+      }
+      if (b.equals("GROUP:authenticated")) {
+        return 1;
+      }
+      return a.compareToIgnoreCase(b);
+    });
+
+    // Filter
+    List<JSONObject> filtered = new ArrayList<>();
+    String lowerQuery = query != null ? query.toLowerCase() : "";
+    for (String key : sortedKeys) {
+      JSONObject user = merged.get(key);
+      // Text filter — matches SID, or is in the additionalSids list (display name matches from client cache)
+      if (!lowerQuery.isEmpty()) {
+        boolean textMatch = user.getString("name").toLowerCase().contains(lowerQuery);
+        if (!textMatch) {
+          textMatch = additionalSidSet.contains(key);
+        }
+        if (!textMatch) {
+          continue;
+        }
+      }
+      // Role filter
+      if (!roleFilters.isEmpty()) {
+        boolean matchesAny = false;
+        for (String rf : roleFilters) {
+          int colonIdx = rf.indexOf(':');
+          if (colonIdx < 0) {
+            continue;
+          }
+          String rfType = rf.substring(0, colonIdx);
+          String rfRole = rf.substring(colonIdx + 1);
+          JSONArray userRoles = user.getJSONObject("roles").optJSONArray(rfType);
+          if (userRoles != null) {
+            for (Object r : userRoles) {
+              if (rfRole.equals(r.toString())) {
+                matchesAny = true;
+                break;
+              }
+            }
+          }
+          if (matchesAny) {
+            break;
+          }
+        }
+        if (!matchesAny) {
+          continue;
+        }
+      }
+      filtered.add(user);
+    }
+
+    // Paginate
+    int total = filtered.size();
+    int safeStart = Math.min(start, total);
+    int safeEnd = Math.min(safeStart + limit, total);
+    List<JSONObject> page = filtered.subList(safeStart, safeEnd);
+
+    // Response
+    JSONObject response = new JSONObject();
+    response.put("total", total);
+    response.put("start", safeStart);
+    response.put("limit", page.size());
+    JSONArray items = new JSONArray();
+    items.addAll(page);
+    response.put("items", items);
+
+    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse2().getWriter();
+    response.write(writer);
+    writer.close();
+  }
+
+  /**
    * API method to get all SIDs and the assigned roles for a roletype.
    *
    * <p>
@@ -1414,100 +1608,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * Called on role management form's submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
-      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
-
-      req.setCharacterEncoding("UTF-8");
-      JSONObject json = req.getSubmittedForm();
-      AuthorizationStrategy strategy = this.newInstance(req, json);
-      instance().setAuthorizationStrategy(strategy);
-      // Persist the data
-      persistChanges();
-    }
-
-    /**
-     * Called on role assignment form's submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(JSONObject json) throws ServletException, IOException {
-      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
-
-      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
-
-      if (oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
-        Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
-
-        for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
-          final String roleTypeAsString = map.getKey().getStringType();
-          // if no permission, take the globalRoles from the oldStrategy
-          if (!hasPermissionByRoleTypeForUpdates(roleTypeAsString)) {
-            LOGGER.fine("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
-            continue;
-          }
-          LOGGER.fine("Saving assignments for " + roleTypeAsString);
-
-          // Get roles and skip non-existent role entries (backward-comp)
-          RoleMap roleMap = map.getValue();
-          JSONArray userEntries = json.getJSONArray(map.getKey().getStringType());
-
-          roleMap.clearSids();
-
-          userEntries.forEach(e -> {
-            JSONObject entry = (JSONObject) e;
-            PermissionEntry pe = new PermissionEntry(AuthorizationType.valueOf(entry.getString("type")), entry.getString("name"));
-            entry.getJSONArray("roles").forEach(r -> {
-              Role role = roleMap.getRole((String) r);
-              if (role != null) {
-                roleMap.assignRole(role, pe);
-              }
-            });
-          });
-        }
-        // Persist the data
-        persistChanges();
-      }
-    }
-
-    /**
-     * Called on role generator form submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doTemplatesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
-      checkPermByRoleTypeForUpdates(PROJECT);
-      req.setCharacterEncoding("UTF-8");
-      JSONObject json = req.getSubmittedForm();
-      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
-      if (json.has(PERMISSION_TEMPLATES) && oldStrategy instanceof RoleBasedAuthorizationStrategy) {
-        RoleBasedAuthorizationStrategy strategy = (RoleBasedAuthorizationStrategy) oldStrategy;
-
-        JSONObject permissionTemplatesJson = json.getJSONObject(PERMISSION_TEMPLATES);
-        Map<String, PermissionTemplate> permissionTemplates = new TreeMap<>();
-        for (Map.Entry<String, JSONObject> r : (Set<Map.Entry<String, JSONObject>>)
-            permissionTemplatesJson.getJSONObject("data").entrySet()) {
-          String templateName = r.getKey();
-          Set<String> permissionStrings = new HashSet<>();
-          for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
-            if (e.getValue()) {
-              permissionStrings.add(e.getKey());
-            }
-          }
-          PermissionTemplate permissionTemplate = new PermissionTemplate(templateName, permissionStrings);
-          permissionTemplates.put(templateName, permissionTemplate);
-        }
-
-        strategy.permissionTemplates = permissionTemplates;
-        strategy.refreshPermissionsFromTemplate();
-        persistChanges();
-      }
-    }
-
-    /**
      * Method called on Jenkins Manage panel submission, and plugin specific forms to create the
      * {@link AuthorizationStrategy} object.
      */
@@ -1644,17 +1744,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       List<PermissionGroup> groups = new ArrayList<>();
       PermissionScope permissionScope;
       switch (type) {
-        case GLOBAL:
-          permissionScope = PermissionScope.JENKINS;
-          break;
-        case PROJECT:
-          permissionScope = PermissionScope.ITEM_GROUP;
-          break;
-        case SLAVE:
-          permissionScope = PermissionScope.COMPUTER;
-          break;
-        default:
+        case GLOBAL -> permissionScope = PermissionScope.JENKINS;
+        case PROJECT -> permissionScope = PermissionScope.ITEM_GROUP;
+        case SLAVE, AGENT -> permissionScope = PermissionScope.COMPUTER;
+        default -> {
           return groups;
+        }
       }
       for (PermissionGroup group : PermissionGroup.getAll()) {
         if (group == PermissionGroup.get(Permission.class)) {
@@ -1682,25 +1777,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
      */
     @Restricted(NoExternalUse.class)
     public boolean showPermission(String type, Permission p) {
-      switch (type) {
-        case GLOBAL:
+      return switch (type) {
+        case GLOBAL -> {
           if (PermissionHelper.isDangerous(p)) {
-            return false;
+            yield false;
           }
-          return p.getEnabled();
-        case PROJECT:
+          yield p.getEnabled();
+        }
+        case PROJECT -> {
           if (!p.isContainedBy(PermissionScope.ITEM_GROUP)) {
-            return false;
+            yield false;
           }
-          return p.getEnabled();
-        case SLAVE:
+          yield p.getEnabled();
+        }
+        case SLAVE -> {
           if (!p.isContainedBy(PermissionScope.COMPUTER)) {
-            return false;
+            yield false;
           }
-          return p.getEnabled();
-        default:
-          return false;
-      }
+          yield p.getEnabled();
+        }
+        default -> false;
+      };
     }
 
     /**

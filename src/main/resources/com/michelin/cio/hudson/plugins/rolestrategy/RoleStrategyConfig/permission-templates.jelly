@@ -1,216 +1,218 @@
-<!--
-  - The MIT License
-  -
-  - Copyright (c) 2022 Markus Winter
-  -
-  - Permission is hereby granted, free of charge, to any person obtaining a copy
-  - of this software and associated documentation files (the "Software"), to deal
-  - in the Software without restriction, including without limitation the rights
-  - to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  - copies of the Software, and to permit persons to whom the Software is
-  - furnished to do so, subject to the following conditions:
-  -
-  - The above copyright notice and this permission notice shall be included in
-  - all copies or substantial portions of the Software.
-  -
-  - THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  - IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  - FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  - AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  - LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  - OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  - THE SOFTWARE.
-  -->
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
+  <j:set var="header">
+    <l:view>
+      <l:app-bar title="${%Permission Templates}">
+        <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
+        <j:if test="${!permissionTemplates.isEmpty()}">
+          <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
+            <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn"
+                    data-type="dialog-opener" data-dialog-url="${rootURL}/manage/role-strategy/add-template-dialog">
+              <l:icon src="symbol-add plugin-ionicons-api"/>
+              ${%Add Template}
+            </button>
+          </l:hasPermission>
+        </j:if>
+      </l:app-bar>
+      <p class="jenkins-page-description">
+        ${%blurb}
+      </p>
+    </l:view>
+  </j:set>
 
-  <l:layout permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" norefresh="true" title="${%Permission Templates}">
-    <l:breadcrumb title="Permission Templates"/>
-
-    <st:include page="sidepanel.jelly"/>
-
+  <l:settings-subpage permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}"
+                      title="${%Permission Templates}"
+                      noDefer="true"
+                      includeBreadcrumb="true"
+                      header="${header}">
     <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
     <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
-    <j:set var="tableid" value="permissionTemplates"/>
 
-        <j:choose>
-          <j:when test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}">
-            <j:set var="readOnlyMode" value="false" />
-          </j:when>
-          <j:otherwise>
-            <j:set var="readOnlyMode" value="true" />
-          </j:otherwise>
-        </j:choose>
+    <j:choose>
+      <j:when test="${app.hasPermission(it.strategy.ITEM_ROLES_ADMIN)}">
+        <j:set var="readOnlyMode" value="false"/>
+      </j:when>
+      <j:otherwise>
+        <j:set var="readOnlyMode" value="true"/>
+      </j:otherwise>
+    </j:choose>
 
     <d:taglib uri="local">
-      <d:tag name="permissionRow">
-        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-          <td class="start">
-            <div class="rsp-remove" data-is-used="${template.isUsed()}">
-              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"/>
-            </div>
-          </td>
-        </l:hasPermission>
-        <td class="left-most" style="white-space: nowrap;">${title}</td>
-        <td><j:if test="${template.isUsed()}">
-          <l:icon src="symbol-checkmark-outline plugin-ionicons-api" class="icon-sm"/>
-        </j:if></td>
-        <j:set var="tableItems" value="${it.strategy.descriptor.getGroups(attrs.type)}"/>
-        <j:forEach var="g" items="${tableItems}">
-          <j:forEach var="p" items="${g.permissions}">
-            <j:if test="${it.strategy.descriptor.showPermission(attrs.type, p)}">
-              <td width="*"
-                  class="rsp-highlight-input permissionInput"
-                  data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}"
-                  data-permission-id="${p.id}"
-                  data-tooltip-template="&lt;b&gt;Permission&lt;/b&gt;: ${g.title}/${p.name}{{GRANTBYOTHER}} &lt;br/&gt; &lt;b&gt;Name&lt;/b&gt;: ${h.escape(attrs.title)}">
-                <f:checkbox name="[${p.id}]" checked="${attrs.template.hasPermission(p)}"/>
-              </td>
+      <d:tag name="permItem">
+        <j:set var="p" value="${attrs.permission}"/>
+        <j:set var="isChecked" value="${attrs.checked}"/>
+        <label class="rsp-perm__item"
+               data-permission-id="${p.id}"
+               data-implied-by-list="${it.strategy.descriptor.impliedByList(p)}">
+          <j:choose>
+            <j:when test="${isChecked}">
+              <input type="checkbox" data-permission-id="${p.id}" checked="checked"/>
+            </j:when>
+            <j:otherwise>
+              <input type="checkbox" data-permission-id="${p.id}"/>
+            </j:otherwise>
+          </j:choose>
+          <span class="rsp-perm__item-name">${p.name}</span>
+          <span class="rsp-perm__item-implied" hidden="true">(${%implied})</span>
+          <j:set var="permDescription" value="${p.description}"/>
+          <j:if test="${permDescription != null and permDescription.toString().length() gt 0}">
+            <span class="rsp-perm__item-info" data-html-tooltip="${permDescription}">
+              <l:icon src="symbol-help-circle" class="icon-sm"/>
+            </span>
+          </j:if>
+        </label>
+      </d:tag>
+
+      <d:tag name="templateCard">
+        <j:set var="template" value="${attrs.template}"/>
+        <j:set var="permissionGroups" value="${attrs.permissionGroups}"/>
+
+        <div class="rsp-card ${readOnlyMode ? 'rsp-card--read-only' : ''}"
+             data-template-name="${template.name}"
+             data-in-use="${template.isUsed()}">
+          <div class="rsp-card__header" role="button" tabindex="0" aria-expanded="false">
+            <span class="rsp-card__name">${template.name}</span>
+            <j:if test="${template.isUsed()}">
+              <span class="rsp-card__template-badge">${%In use}</span>
             </j:if>
-          </j:forEach>
-        </j:forEach>
-        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-          <td class="stop">
-            <div class="rsp-remove" data-is-used="${template.isUsed()}">
-              <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm icon-red rsp-table__icon"
-                      htmlTooltip="&lt;b&gt;Role&lt;/b&gt;: ${h.escape(attrs.title)}"/>
+            <span class="rsp-card__summary" data-empty-text="${%No permissions}"></span>
+            <div class="rsp-card__actions">
+              <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
+                <button type="button"
+                        class="jenkins-button jenkins-button--tertiary rsp-card__action rsp-template-edit"
+                        tooltip="${%Edit template}"
+                        data-type="dialog-opener"
+                        data-dialog-url="${rootURL}/manage/role-strategy/edit-template-dialog?templateName=${h.urlEncode(template.name)}">
+                  <l:icon src="symbol-edit" class="icon-sm"/>
+                </button>
+                <button type="button"
+                        class="jenkins-button jenkins-button--tertiary jenkins-!-destructive-color rsp-card__action rsp-template-delete"
+                        tooltip="${%Delete template}">
+                  <l:icon src="symbol-trash-outline plugin-ionicons-api" class="icon-sm"/>
+                </button>
+              </l:hasPermission>
             </div>
-          </td>
-        </l:hasPermission>
+            <div class="rsp-card__toggle">
+              <l:icon src="symbol-chevron-down-outline plugin-ionicons-api" class="icon-sm"/>
+            </div>
+          </div>
+          <div class="rsp-card__body rsp-card__body--collapsed">
+            <div class="rsp-perm">
+              <j:forEach var="g" items="${permissionGroups}">
+                <j:set var="hasVisiblePermissions" value="${false}"/>
+                <j:forEach var="p" items="${g.permissions}">
+                  <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                    <j:set var="hasVisiblePermissions" value="${true}"/>
+                  </j:if>
+                </j:forEach>
+                <j:if test="${hasVisiblePermissions}">
+                  <fieldset class="rsp-perm__group">
+                    <legend class="rsp-perm__group-title">${g.title}</legend>
+                    <div class="rsp-perm__permissions">
+                      <j:forEach var="p" items="${g.permissions}">
+                        <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                          <local:permItem permission="${p}" checked="${template.hasPermission(p)}"/>
+                        </j:if>
+                      </j:forEach>
+                    </div>
+                  </fieldset>
+                </j:if>
+              </j:forEach>
+            </div>
+          </div>
+        </div>
       </d:tag>
     </d:taglib>
 
-    <l:main-panel>
-      <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css"/>
-      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js"/>
-      <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableTemplates.js"/>
-      <j:if test="${empty(descriptorPath)}">
-        <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
-      </j:if>
-      <h1>
-        ${%Permission Templates}
-      </h1>
-      ${%blurb}
-      <f:form method="post" name="config" action="templatesSubmit" class="jenkins-!-margin-top-5">
-        <div id="permissionInputFilter" data-table-id="${tableid}" data-initial-size="${permissionTemplates.size()}"
-             class="row-filter">
-          <f:entry title="${%Filter by Template}">
-            <input id="permissionTemplateInput" class="row-input-filter jenkins-input setting-input"
-                   data-table-id="${tableid}"/>
-          </f:entry>
-        </div>
-        <f:rowSet name="permissionTemplates">
-          <table id="${tableid}"
-                 class="jenkins-table jenkins-table--small jenkins-table--auto-width role-strategy-table ${readOnlyMode ? 'read-only' : ''}"
-                 name="data">
+    <link rel="stylesheet" href="${rootURL}/plugin/role-strategy/css/role-strategy.css" type="text/css"/>
+    <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/table.js"/>
+    <script type="text/javascript" src="${rootURL}/plugin/role-strategy/js/tableTemplates.js"/>
 
-            <!-- The first row will show grouping -->
-            <thead>
-              <tr class="group-row">
-                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
-                <th rowspan="2" class="rsp-table__header-column">
-                  ${%Name}
-                </th>
-                <th rowspan="2" class="rsp-table--vertical rsp-table__header-column"><span>In use</span></th>
-                <j:forEach var="g" items="${itemPermissionGroups}" varStatus="s">
-                  <j:set var="cnt" value="${0}"/>
-                  <j:forEach var="p" items="${g.permissions}">
-                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                      <j:set var="cnt" value="${cnt+1}"/>
-                    </j:if>
-                  </j:forEach>
+    <j:if test="${empty(descriptorPath)}">
+      <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
+    </j:if>
 
-                  <th colspan="${cnt}" class="rsp-table--header-th ${s.first ? 'first' : ''} ${s.last ? 'last' : ''}">
-                    ${g.title}
-                  </th>
-                </j:forEach>
-                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
-              </tr>
-              <!-- The second row for individual permission -->
-              <tr class="caption-row highlight-row">
-                <j:forEach var="g" items="${itemPermissionGroups}">
-                  <j:forEach var="p" items="${g.permissions}">
-                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                      <th tooltip="${p.description}" class="rsp-table__permission">
-                        <span>${p.name}</span>
-                      </th>
-                    </j:if>
-                  </j:forEach>
-                </j:forEach>
-              </tr>
-            </thead>
-            <tbody>
-              <j:forEach var="template" items="${permissionTemplates}">
-                <tr name="[${template.name}]" class="permission-row highlight-row">
-                  <local:permissionRow title="${template.name}" template="${template}" type="${it.strategy.PROJECT}"/>
-                </tr>
-              </j:forEach>
-            </tbody>
-            <j:set var="hidefooter" value=""/>
-            <j:if test="${permissionTemplates.size() lt 20}">
-              <j:set var="hidefooter" value="default-hidden"/>
-            </j:if>
-            <tfoot class="${hidefooter}">
-              <tr class="caption-row highlight-row">
-                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="start"/></l:hasPermission>
-                <td rowspan="2" class="pane-header blank">
-                  ${%Name}
-                </td>
-                <td rowspan="2" class="group-row pane-header"><span>In use</span></td>
-                <j:forEach var="g" items="${itemPermissionGroups}">
-                  <j:forEach var="p" items="${g.permissions}">
-                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                      <th class="pane" tooltip="${p.description}">
-                        <span>${p.name}</span>
-                      </th>
-                    </j:if>
-                  </j:forEach>
-                </j:forEach>
-              </tr>
-              <tr class="group-row">
-                <j:forEach var="g" items="${itemPermissionGroups}">
-                  <j:set var="cnt" value="${0}"/>
-                  <j:forEach var="p" items="${g.permissions}">
-                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
-                      <j:set var="cnt" value="${cnt+1}"/>
-                    </j:if>
-                  </j:forEach>
+    <div id="template-data"
+         data-delete-url="${rootURL}/manage/role-strategy/deleteTemplateSubmit"/>
 
-                  <td class="pane-header" colspan="${cnt}">
-                    ${g.title}
-                  </td>
-                </j:forEach>
-                <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}"><td rowspan="2" class="stop"/></l:hasPermission>
-              </tr>
-            </tfoot>
-          </table>
-        </f:rowSet>
-        <template id="newPermissionTemplate">
-          <tr class="permission-row highlight-row">
-            <local:permissionRow title="{{TEMPLATE}}" type="${it.strategy.PROJECT}"/>
-          </tr>
-        </template>
-        <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-          <br/>
-          <f:entry>
-            <button type="button" class="jenkins-button template-add-button" data-template-id="newPermissionTemplate"
-                    data-table-id="${tableid}" data-highlighter="templateTableHighlighter"
-                    data-prompt="${%Template Name}">${%Add}
+    <!-- Search bar with permission filter -->
+    <j:if test="${!permissionTemplates.isEmpty()}">
+      <div style="margin-bottom: calc(var(--section-padding) / 2);">
+        <div class="rsp-search-wrapper">
+          <l:search-bar placeholder="${%Search templates}"
+                        clazz="rsp-template-search"
+                        hasKeyboardShortcut="false"/>
+          <div class="rsp-filter">
+            <button type="button" class="jenkins-button jenkins-button--tertiary rsp-filter__button rsp-tpl-filter-btn"
+                    aria-expanded="false" aria-haspopup="true"
+                    tooltip="${%Filter by permission}">
+              <l:icon src="symbol-filter-outline plugin-ionicons-api"/>
             </button>
-          </f:entry>
-        </l:hasPermission>
+            <div class="rsp-filter__dropdown rsp-tpl-filter-dropdown" hidden="true">
+              <div class="rsp-filter__header">
+                <span class="rsp-filter__header-label">${%Filter by permission}</span>
+                <button type="button" class="rsp-filter__reset-button rsp-tpl-filter-reset" hidden="true">${%Reset}
+                </button>
+              </div>
+              <div class="rsp-filter__search">
+                <l:search-bar placeholder="${%Search permissions}"
+                              clazz="rsp-filter__search-bar rsp-tpl-filter-search"
+                              hasKeyboardShortcut="false"/>
+              </div>
+              <div class="rsp-filter__list">
+                <j:forEach var="g" items="${itemPermissionGroups}">
+                  <j:set var="hasFilterPerms" value="${false}"/>
+                  <j:forEach var="p" items="${g.permissions}">
+                    <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                      <j:set var="hasFilterPerms" value="${true}"/>
+                    </j:if>
+                  </j:forEach>
+                  <j:if test="${hasFilterPerms}">
+                    <div class="rsp-filter__group-title">${g.title}</div>
+                    <j:forEach var="p" items="${g.permissions}">
+                      <j:if test="${it.strategy.descriptor.showPermission(it.strategy.PROJECT, p)}">
+                        <button type="button" class="jenkins-dropdown__item"
+                                data-filter-permission="${p.id}"
+                                data-filter-label="${g.title} ${p.name}">
+                          <span class="rsp-filter__item-indicator"></span>
+                          <span class="rsp-filter__item-name">${p.name}</span>
+                        </button>
+                      </j:if>
+                    </j:forEach>
+                  </j:if>
+                </j:forEach>
+                <div class="rsp-filter__no-results" hidden="true">${%No matching permissions}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </j:if>
 
+    <!-- Template cards -->
+    <div id="rsp-template-cards" class="rsp-cards">
+      <j:forEach var="template" items="${permissionTemplates}">
+        <local:templateCard template="${template}" permissionGroups="${itemPermissionGroups}"/>
+      </j:forEach>
+    </div>
+
+    <j:if test="${permissionTemplates.isEmpty()}">
+      <l:notice title="${%No permission templates defined}" icon="symbol-braces plugin-role-strategy">
         <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
-          <f:bottomButtonBar>
-            <f:submit value="${%Save}"/>
-            <f:apply/>
-          </f:bottomButtonBar>
+          <button type="button" class="jenkins-button jenkins-button--primary rsp-add-template-btn">
+            <l:icon src="symbol-add"/>
+            ${%Add Template}
+          </button>
         </l:hasPermission>
-        <script>
-        </script>
-      </f:form>
-      <st:adjunct includes="lib.form.confirm" />
-    </l:main-panel>
-  </l:layout>
+      </l:notice>
+    </j:if>
+
+    <div class="jenkins-notice rsp-empty-state" id="rsp-template-empty" hidden="true">
+      <l:icon src="symbol-search"/>
+      ${%No matching templates}
+    </div>
+
+    <st:adjunct includes="lib.form.confirm"/>
+  </l:settings-subpage>
 </j:jelly>
