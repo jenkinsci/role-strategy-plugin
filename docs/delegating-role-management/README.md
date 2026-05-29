@@ -21,14 +21,14 @@ The `Jenkins.SYSTEM_READ` permission can be enabled either via a system property
 
 Users who have `ITEM_ROLES_ADMIN` or `AGENT_ROLES_ADMIN` **and** `SYSTEM_READ` (or `ADMINISTER`) can access role management through the standard "Manage Jenkins" menu. They will see:
 
-- **Manage Jenkins -> Manage and Assign Roles**: Standard access path
+- **Manage Jenkins -> Role Management**: Standard access path
 - They can view all role sections in read-only mode, but can only edit the sections they have permission for
 
 ### Without SYSTEM_READ Permission
 
 Users who have `ITEM_ROLES_ADMIN` or `AGENT_ROLES_ADMIN` **without** `SYSTEM_READ` cannot access "Manage Jenkins". For these users, a special root-level link is provided:
 
-- **Root Dashboard -> Manage and Assign Roles**: Direct link at the Jenkins root level
+- **Root Dashboard -> Role Management**: Direct link at the Jenkins root level
 - This link is only visible to users with role admin permissions but without `SYSTEM_READ`
 - It provides the same functionality as the management link, but accessible without needing to access "Manage Jenkins"
 
@@ -86,37 +86,37 @@ mvn hpi:run
 ### Test Each User
 
 1. **admin / admin**
-   - Go to "Manage Jenkins" � "Manage and Assign Roles"
+   - Go to "Manage Jenkins" � "Role Management"
    - Can edit all three sections (Global, Item, Agent)
    - Has full control
 
 2. **item-admin / item-admin**
-   - **Note the root-level link** "Manage and Assign Roles" (not under "Manage Jenkins")
+   - **Note the root-level link** "Role Management" (not under "Manage Jenkins")
    - Click it to go to role management
    - Can edit Item roles (editable checkboxes, add/delete buttons visible)
    - Can **view** Global and Agent roles in read-only mode (checkboxes disabled, no add/delete buttons)
 
 3. **item-admin-sysread / item-admin-sysread**
-   - Go to "Manage Jenkins" � "Manage and Assign Roles"
+   - Go to "Manage Jenkins" � "Role Management"
    - Same editing capabilities as `item-admin`, but accessed via Manage Jenkins
    - No root-level link visible
 
 4. **agent-admin / agent-admin**
-   - **Note the root-level link** "Manage and Assign Roles"
+   - **Note the root-level link** "Role Management"
    - Can edit Agent roles
    - Can **view** Global and Item roles in read-only mode
 
 5. **agent-admin-sysread / agent-admin-sysread**
-   - Go to "Manage Jenkins" � "Manage and Assign Roles"
+   - Go to "Manage Jenkins" � "Role Management"
    - Same editing capabilities as `agent-admin`, but accessed via Manage Jenkins
 
 6. **both-admin / both-admin**
-   - **Note the root-level link** "Manage and Assign Roles"
+   - **Note the root-level link** "Role Management"
    - Can edit both Item and Agent roles
    - Can **view** Global roles in read-only mode
 
 7. **both-admin-sysread / both-admin-sysread**
-   - Go to "Manage Jenkins" � "Manage and Assign Roles"
+   - Go to "Manage Jenkins" � "Role Management"
    - Same editing capabilities as `both-admin`, but accessed via Manage Jenkins
 
 ## Expected Behavior

@@ -26,7 +26,7 @@ Activate the Role-Based Strategy by using the standard _Manage Jenkins > Configu
 
 ![Configure Security](/docs/images/configureSecurity.png)
 
-After the installation, the plugin can be configured using the _Manage and Assign Roles_ screen accessible from _Manage Jenkins_ .
+After the installation, the plugin can be configured using the _Role Management_ screen accessible from _Manage Jenkins_ .
 
 ### Configuring roles
 

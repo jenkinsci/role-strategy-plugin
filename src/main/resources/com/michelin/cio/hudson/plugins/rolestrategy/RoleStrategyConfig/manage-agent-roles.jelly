@@ -57,6 +57,7 @@
   <l:hasPermission permission="${neededPermission}">
     <br/>
     <f:entry title="${%Role to add}">
+      <a href="list-macros">${%View available macros}</a>
       <f:textbox id="${tableid}text" />
     </f:entry>
     <f:entry help="${rootURL}/plugin/role-strategy/help/help-pattern.html" title="${%Pattern}">
