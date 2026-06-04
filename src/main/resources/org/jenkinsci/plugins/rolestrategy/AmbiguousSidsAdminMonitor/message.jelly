@@ -1,18 +1,14 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
-         xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-  <div class="jenkins-alert jenkins-alert-warning">
-    <div class="jenkins-!-margin-left-1">
-      <form method="post" action="${rootURL}/${it.url}/disable" class="jenkins-!-padding-left-1">
-        <f:submit value="${%Dismiss}"/>
-      </form>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
+  <j:set var="controls">
+    <a href="${rootURL}/manage/role-strategy/" class="jenkins-button jenkins-button--primary">
+      ${%Examine}
+    </a>
+  </j:set>
+  <l:adminMonitor controls="${controls}">
+    <div>There are permissions declared in Role Based Strategy plugin configuration that are ambiguous. Update
+      the permission assignments to user or group.
     </div>
-    <div/>
-    <form method="get" action="${rootURL}/manage/role-strategy/">
-      <f:submit value="${%Examine}"/>
-    </form>
-    <div>There are several permissions declared in Role Based Strategy plugin configuration, that are ambiguous. Classify them correctly with 'USER:username' or 'GROUP:groupname'.</div>
-
     <ul>
       <j:forEach var="entry" items="${it.ambiguousEntries}">
         <li>
@@ -20,6 +16,5 @@
         </li>
       </j:forEach>
     </ul>
-
-  </div>
+  </l:adminMonitor>
 </j:jelly>

@@ -24,4 +24,9 @@ public class NamingStrategyAdministrativeMonitor extends AdministrativeMonitor {
         && !(jenkins.getProjectNamingStrategy() instanceof RoleBasedProjectNamingStrategy));
 
   }
+
+  @Override
+  public boolean isSecurity() {
+    return true;
+  }
 }

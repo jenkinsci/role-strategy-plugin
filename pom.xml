@@ -33,7 +33,8 @@
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
     <jenkins.baseline>2.555</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <!-- TODO revert back to using jenkins.baseline when back on the LTS line -->
+    <jenkins.version>2.559</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <checkstyle.version>12.3.1</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
