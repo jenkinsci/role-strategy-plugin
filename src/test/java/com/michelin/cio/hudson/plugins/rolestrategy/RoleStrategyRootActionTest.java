@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import hudson.security.GlobalMatrixAuthorizationStrategy;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import jenkins.model.Jenkins;
 import org.htmlunit.HttpMethod;
 import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
@@ -72,6 +73,12 @@ class RoleStrategyRootActionTest {
         "hudson.model.Hudson.Administer," + RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN.getId(),
         "false", "", "");
     rbas.doAssignUserRole("globalRoles", "itemAdminWithReadRole", "itemAdminWithReadUser");
+
+    // Setting up systemReadUser with SYSTEM_READ but no admin permissions
+    Jenkins.SYSTEM_READ.enabled = true;
+    rbas.doAddRole("globalRoles", "systemReadRole",
+        "hudson.model.Hudson.Read,hudson.model.Hudson.SystemRead", "false", "", "");
+    rbas.doAssignUserRole("globalRoles", "systemReadRole", "systemReadUser");
 
     // Setting up developer user with no admin permissions
     rbas.doAddRole("projectRoles", "developers",
@@ -194,16 +201,15 @@ class RoleStrategyRootActionTest {
   }
 
   @Test
-  void testRootActionDelegatesToRoleStrategyConfig() throws Exception {
-    webClient.login("itemAdminUser", "itemAdminUser");
+  void testManageRoleStrategyPageAccessibleForSystemReadUser() throws Exception {
+    webClient.login("systemReadUser", "systemReadUser");
 
-    // Test that subpages work through the root action
-    URL url = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/assign-roles");
+    URL url = new URL(jenkinsRule.jenkins.getRootUrl() + "manage/role-strategy/");
     WebRequest request = new WebRequest(url, HttpMethod.GET);
 
     Page page = webClient.getPage(request);
     assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(),
-        "itemAdmin should be able to access /role-strategy/assign-roles through RootAction delegation");
+        "A user with SystemRead should be able to access /manage/role-strategy/");
   }
 
   @Test

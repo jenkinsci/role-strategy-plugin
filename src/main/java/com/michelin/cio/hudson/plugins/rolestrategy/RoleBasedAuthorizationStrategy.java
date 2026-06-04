@@ -190,6 +190,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final Permission[] SYSTEM_READ_AND_ITEM_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN };
 
+  @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Used by jelly pages")
   @Restricted(NoExternalUse.class) // called by jelly
   public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };

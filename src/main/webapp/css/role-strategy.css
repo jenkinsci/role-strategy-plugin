@@ -23,6 +23,86 @@
  * THE SOFTWARE.
  */
 
+/* ============================================
+   Cards
+   ============================================ */
+
+.rsp-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsp-card {
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  background: var(--card-background);
+  overflow: hidden;
+}
+
+/* Connected borders: adjacent cards share an edge, flat between them. */
+.rsp-card + .rsp-card {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+.rsp-card:has(+ .rsp-card) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ============================================
+   Card Header
+   ============================================ */
+
+.rsp-card__header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  min-width: 0;
+  transition: background var(--standard-transition);
+}
+
+.rsp-card__header:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-card__header:active {
+  background: var(--item-background--active);
+}
+
+.rsp-card__name {
+  font-weight: var(--font-bold-weight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  color: var(--text-color);
+}
+
+.rsp-card__template-badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--item-background--hover);
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rsp-card__summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+/* Legacy styles */
 .role-strategy-table {
   border-spacing: 2px;
 }
@@ -131,8 +211,8 @@ label.attach-previous {
 }
 
 .jenkins-checkbox {
-	vertical-align: middle;
-	margin: 3px 0px;
+  vertical-align: middle;
+  margin: 3px 0px;
 }
 
 @keyframes highlightentry {
@@ -147,12 +227,12 @@ label.attach-previous {
 }
 
 .jenkins-alert {
-	margin-top: 10px;
+  margin-top: 10px;
 }
 
 .rsp-entry-not-found {
-    text-decoration: line-through;
-    color: grey;
+  text-decoration: line-through;
+  color: grey;
 }
 
 .rsp-table__icon-alert {
@@ -185,7 +265,7 @@ button.migrate {
 }
 
 .patternAnchor:hover {
-    text-decoration: var(--link-text-decoration--hover);
+  text-decoration: var(--link-text-decoration--hover);
 }
 
 .row-filter, .user-filter, .role-filter {

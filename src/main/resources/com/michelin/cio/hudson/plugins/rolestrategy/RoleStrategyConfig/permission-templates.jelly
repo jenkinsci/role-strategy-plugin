@@ -25,10 +25,8 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define"
          xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:local="local">
 
-  <l:layout permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" norefresh="true" title="${%Permission Templates}">
+  <l:layout permissions="${it.strategy.SYSTEM_READ_AND_ITEM_ROLES_ADMIN}" type="one-column" title="${%Permission Templates}">
     <l:breadcrumb title="Permission Templates"/>
-
-    <st:include page="sidepanel.jelly"/>
 
     <j:set var="itemPermissionGroups" value="${it.strategy.descriptor.getGroups(it.strategy.PROJECT)}"/>
     <j:set var="permissionTemplates" value="${it.strategy.getPermissionTemplates()}"/>
@@ -88,10 +86,8 @@
       <j:if test="${empty(descriptorPath)}">
         <j:set var="descriptorPath" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}"/>
       </j:if>
-      <h1>
-        ${%Permission Templates}
-      </h1>
-      ${%blurb}
+      <l:app-bar title="${%Permission Templates}" />
+      <span class="jenkins-page-description">${%blurb}</span>
       <f:form method="post" name="config" action="templatesSubmit" class="jenkins-!-margin-top-5">
         <div id="permissionInputFilter" data-table-id="${tableid}" data-initial-size="${permissionTemplates.size()}"
              class="row-filter">
