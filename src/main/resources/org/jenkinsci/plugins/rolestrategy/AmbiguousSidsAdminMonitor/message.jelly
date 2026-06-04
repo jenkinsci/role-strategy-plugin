@@ -8,7 +8,7 @@
       </form>
     </div>
     <div/>
-    <form method="get" action="${rootURL}/role-strategy/assign-roles">
+    <form method="get" action="${rootURL}/manage/role-strategy/">
       <f:submit value="${%Examine}"/>
     </form>
     <div>There are several permissions declared in Role Based Strategy plugin configuration, that are ambiguous. Classify them correctly with 'USER:username' or 'GROUP:groupname'.</div>
