@@ -16,3 +16,8 @@ work
 
 # VSCode
 .vscode
+
+# Frontend build
+node/
+node_modules/
+src/main/webapp/js/bundles/
