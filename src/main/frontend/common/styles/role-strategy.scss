@@ -1,0 +1,561 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2010-2011, Manufacture Française des Pneumatiques Michelin,
+ * Thomas Maurel, Romain Seguy
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+/* Ensure content fits within the one-column layout */
+/* TODO remove after new settings layout is enabled by default */
+#main-panel {
+  max-width: 100%;
+}
+
+/* ============================================
+   React Dialog (on top of .jenkins-dialog)
+   ============================================ */
+
+dialog.rsp-dialog {
+  width: min(720px, 90vw);
+  max-height: 85vh;
+}
+
+.rsp-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rsp-dialog__form .jenkins-form-item + .jenkins-form-item {
+  margin-top: 0;
+}
+
+.rsp-dialog__form .jenkins-form-label {
+  margin-bottom: 0.25rem;
+}
+
+/* ============================================
+   Help icon
+   ============================================ */
+
+.rsp-help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color-secondary);
+  cursor: help;
+  flex-shrink: 0;
+  margin-left: 0.35rem;
+  opacity: 0.65;
+  transition: opacity var(--standard-transition);
+}
+
+.rsp-help-icon:hover,
+.rsp-help-icon:focus-visible {
+  opacity: 1;
+}
+
+/* Tippy tooltips inside a <dialog> need a higher z-index so they sit on top
+   of the dialog's contents. The dialog itself is in the top layer. */
+dialog .tippy-box {
+  z-index: 1;
+}
+
+/* ============================================
+   Vertical radio stack (React)
+   ============================================ */
+
+/* ============================================
+   Container
+   ============================================ */
+
+/* ============================================
+   App Bar (search + filter + actions)
+   ============================================ */
+
+.rsp-search-wrapper {
+  position: relative;
+}
+
+.rsp-search-wrapper .jenkins-search__input {
+  padding-right: 2.25rem;
+}
+
+/* ============================================
+   Permission Filter Dropdown
+   ============================================ */
+
+.rsp-filter {
+  position: absolute;
+  right: 0.375rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.rsp-filter__button {
+  padding: 0.25rem !important;
+  min-width: 1.875rem !important;
+  min-height: 1.875rem;
+  border-radius: 0.4375rem;
+  margin-right: -0.125rem;
+  color: var(--text-color-secondary);
+  transition: color var(--standard-transition);
+}
+
+.rsp-filter__dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 9999;
+  min-width: 260px;
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+
+  /* Copied from core */
+  background: color-mix(in sRGB, var(--card-background) 85%, transparent);
+  backdrop-filter: var(--dropdown-backdrop-filter);
+  box-shadow: var(--dropdown-box-shadow);
+  border-radius: 1rem;
+}
+
+.rsp-filter__dropdown[hidden] {
+  display: none;
+}
+
+.rsp-filter__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  flex-shrink: 0;
+}
+
+.rsp-filter__header-label {
+  font-weight: var(--font-bold-weight);
+  font-size: var(--font-size-sm);
+}
+
+.rsp-filter__reset-button {
+  font-size: 0.8125rem;
+  color: var(--accent-color);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.rsp-filter__search {
+  padding: 0 0.5rem 0.5rem 0.5rem;
+  border-bottom: var(--jenkins-border);
+}
+
+.rsp-filter__search .jenkins-search {
+  width: 100%;
+}
+
+.rsp-filter__list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.375rem;
+  overflow-y: auto;
+}
+
+.rsp-filter__group-title {
+  color: var(--text-color-secondary) !important;
+  margin: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: var(--font-bold-weight);
+  opacity: 0.8;
+}
+
+.rsp-filter__item-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--text-color-secondary);
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.rsp-filter__item--active .rsp-filter__item-indicator {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+/* ============================================
+   Cards
+   ============================================ */
+
+.rsp-cards {
+  display: flex;
+  flex-direction: column;
+}
+
+.rsp-card {
+  position: relative;
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  background: var(--card-background);
+  overflow: hidden;
+}
+
+/* Adjacent cards join into a single panel: an inner card drops its rounded
+   corners and the shared border so only the first card keeps a rounded top
+   and the last a rounded bottom. Filtered-out cards are removed from the DOM,
+   so plain adjacency selectors are sufficient. */
+.rsp-card + .rsp-card {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-top: none;
+}
+
+.rsp-card:has(+ .rsp-card) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* ============================================
+   Card Header
+   ============================================ */
+
+.rsp-card__header {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  min-width: 0;
+  transition: background var(--standard-transition);
+}
+
+.rsp-card__header:hover {
+  background: var(--item-background--hover);
+}
+
+.rsp-card__header:active {
+  background: var(--item-background--active);
+}
+
+.rsp-card__name {
+  font-weight: var(--font-bold-weight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+  color: var(--text-color);
+}
+
+.rsp-card__template-badge {
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--item-background--hover);
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rsp-card__summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+.rsp-card__summary--empty {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.rsp-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+}
+
+.rsp-card__action {
+  padding: 0 !important;
+  min-height: 2rem;
+  width: 2rem;
+}
+
+.rsp-card__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  transition: transform var(--standard-transition);
+}
+
+.rsp-card[aria-expanded="true"] .rsp-card__toggle {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   Card Body (collapsible)
+   ============================================ */
+
+.rsp-card__body {
+  border-top: var(--jenkins-border);
+}
+
+.rsp-card__body--collapsed {
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  border-top: none;
+  visibility: hidden;
+}
+
+/* ============================================
+   Permissions Section
+   ============================================ */
+
+.rsp-perm__group {
+  display: flex;
+  flex-direction: column;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rsp-perm__group:first-of-type {
+  margin-top: 0.75rem;
+}
+
+.rsp-perm__group-title {
+  color: var(--text-color-secondary);
+  font-weight: var(--font-bold-weight);
+  font-size: 0.8125rem;
+  margin: 0 0.75rem;
+  padding: 0.5rem 0.5rem 0 0.5rem;
+}
+
+.rsp-perm__item-name {
+  font-size: 0.875rem;
+  color: var(--text-color);
+}
+
+.rsp-perm__item-implied {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary);
+  font-style: italic;
+}
+
+/* ============================================
+   Empty State
+   ============================================ */
+
+.rsp-empty-state {
+  min-height: 100px;
+}
+
+.rsp-empty-state[hidden] {
+  display: none;
+}
+
+/* ============================================
+   Cards with no permissions — non-expandable
+   ============================================ */
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__header {
+  cursor: default;
+}
+
+.rsp-card:has(.rsp-card__summary--empty) .rsp-card__header:hover {
+  background: none;
+}
+
+/* ============================================
+   Read-only Mode
+   ============================================ */
+
+.rsp-card.rsp-card--read-only .rsp-card__header {
+  cursor: default;
+}
+
+.rsp-card.rsp-card--read-only .rsp-card__actions .rsp-card__action {
+  display: none;
+}
+
+/* ============================================
+   Implied permissions in dialogs
+   ============================================ */
+
+.rsp-implied-label {
+  color: var(--text-color-secondary);
+  font-style: italic;
+  font-size: 0.8125rem;
+}
+
+.rsp-assign-dialog__role-item[data-implied="true"] {
+  opacity: 0.6;
+}
+
+/* ============================================
+   Assign Role Dialog
+   ============================================ */
+
+.rsp-assign-dialog__roles {
+  border: var(--jenkins-border);
+  border-radius: var(--form-input-border-radius);
+  padding: 0 0 0.5rem 0;
+  margin-top: 0.5rem;
+  /* Fixed scroll viewport so filtering the list scrolls within it rather
+     than resizing the dialog. */
+  height: min(420px, 50vh);
+  overflow-y: auto;
+}
+
+.rsp-assign-dialog__group-title {
+  font-weight: var(--font-bold-weight);
+  font-size: var(--font-size-sm);
+  color: var(--text-color-secondary);
+  padding: 0.75rem 0.75rem 0.25rem;
+}
+
+.rsp-assign-dialog__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rsp-assign-dialog__role-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0 0.75rem;
+}
+
+/* ============================================
+   Manage Roles page
+   ============================================ */
+
+.rsp-container {
+  margin-bottom: var(--section-padding);
+}
+
+.rsp-result-count {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.rsp-radio-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Jenkins radio blocks carry a bottom margin meant for stacked form rows; the
+   flex gap already spaces these options, so drop it to avoid a double gap. */
+.rsp-radio-stack .jenkins-radio {
+  margin-bottom: 0;
+}
+
+.rsp-card__pattern {
+  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* Collapsible role-type section: the heading toggles its body. */
+.rsp-section-collapsible .jenkins-section__title {
+  cursor: pointer;
+  user-select: none;
+}
+
+.rsp-section-collapsible .jenkins-section__title .rsp-section-chevron {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: text-top;
+  margin-left: 0.25rem;
+  transition: transform 0.2s;
+  color: var(--text-color-secondary);
+}
+
+.rsp-section-collapsible.rsp-section--collapsed .rsp-section-chevron {
+  transform: rotate(-90deg);
+  vertical-align: text-bottom;
+}
+
+.rsp-section-collapsible.rsp-section--collapsed > .rsp-cards,
+.rsp-section-collapsible.rsp-section--collapsed > .jenkins-notice {
+  display: none;
+}
+
+.rsp-section-count {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: var(--card-background-lighter, var(--button-background));
+  color: var(--text-color-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
+  min-width: 1.5em;
+  text-align: center;
+}
+
+/* Read-only chips showing a role's assigned permissions in the card body. */
+.rsp-perm__assigned {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin: 0.5rem 0.75rem 0.75rem 0.75rem;
+  padding: 0;
+}
+
+.rsp-perm__assigned-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--form-input-border-radius);
+  background: var(--card-background-lighter, var(--button-background));
+  color: var(--text-color);
+  font-size: 0.8125rem;
+}
+
+.rsp-perm--empty {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
+  padding: 0.75rem;
+}

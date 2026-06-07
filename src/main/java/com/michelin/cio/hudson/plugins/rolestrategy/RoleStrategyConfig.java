@@ -34,11 +34,17 @@ import hudson.ExtensionList;
 import hudson.model.ManagementLink;
 import hudson.security.AuthorizationStrategy;
 import hudson.security.Permission;
+import hudson.security.PermissionGroup;
 import hudson.util.FormApply;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import jenkins.model.Jenkins;
 import jenkins.util.SystemProperties;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -223,6 +229,163 @@ public class RoleStrategyConfig extends ManagementLink {
 
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
     return RoleMacroExtension.all();
+  }
+
+  /**
+   * Bootstrap JSON for the Permission Templates page, intended to be embedded in a {@code data-*}
+   * attribute so the React UI can render immediately without an additional round trip.
+   *
+   * @return JSON string with templates, item-scope permission groups, and edit permissions
+   */
+  @Restricted(NoExternalUse.class)
+  public String getPermissionTemplatesBootstrapJson() {
+    AuthorizationStrategy raw = getStrategy();
+    JSONObject result = new JSONObject();
+    JSONArray templates = new JSONArray();
+    if (raw instanceof RoleBasedAuthorizationStrategy strategy) {
+      for (PermissionTemplate template : strategy.getPermissionTemplates()) {
+        templates.add(templateToJson(template));
+      }
+    }
+    result.put("templates", templates);
+    result.put("permissionGroups", permissionGroupsToJson(
+        RoleBasedAuthorizationStrategy.DESCRIPTOR, RoleBasedAuthorizationStrategy.PROJECT));
+    result.put("canEdit", Jenkins.get().hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN));
+    return result.toString();
+  }
+
+  /**
+   * Permission groups for every role scope (global, item, agent), keyed by the scope's form name.
+   * Embedded in a {@code data-*} attribute so the Manage Roles UI can render each scope's permission
+   * checkboxes without a round trip.
+   *
+   * @return JSON string of permission groups by role scope
+   */
+  @Restricted(NoExternalUse.class)
+  public String getPermissionGroupsJson() {
+    RoleBasedAuthorizationStrategy.DescriptorImpl descriptor = RoleBasedAuthorizationStrategy.DESCRIPTOR;
+    JSONObject result = new JSONObject();
+    for (String type : new String[] {
+        RoleBasedAuthorizationStrategy.GLOBAL,
+        RoleBasedAuthorizationStrategy.PROJECT,
+        RoleBasedAuthorizationStrategy.SLAVE,
+    }) {
+      result.put(type, permissionGroupsToJson(descriptor, type));
+    }
+    return result.toString();
+  }
+
+  /**
+   * Bootstrap JSON for the Manage Roles page: roles by scope (each with name, pattern, template,
+   * permission ids, assigned sids), the available templates, and the current user's edit
+   * permissions. Embedded in a {@code data-*} attribute so the React UI can render immediately.
+   *
+   * @return JSON string with roles, templates, and edit permissions
+   */
+  @Restricted(NoExternalUse.class)
+  public String getManageRolesBootstrapJson() {
+    AuthorizationStrategy raw = getStrategy();
+    JSONObject result = new JSONObject();
+    JSONObject rolesByType = new JSONObject();
+    JSONArray templatesJson = new JSONArray();
+    if (raw instanceof RoleBasedAuthorizationStrategy strategy) {
+      for (String type : new String[] {
+          RoleBasedAuthorizationStrategy.GLOBAL,
+          RoleBasedAuthorizationStrategy.PROJECT,
+          RoleBasedAuthorizationStrategy.SLAVE,
+      }) {
+        rolesByType.put(type, rolesToJson(strategy, type));
+      }
+      for (PermissionTemplate template : strategy.getPermissionTemplates()) {
+        templatesJson.add(templateToJson(template));
+      }
+    } else {
+      for (String type : new String[] {
+          RoleBasedAuthorizationStrategy.GLOBAL,
+          RoleBasedAuthorizationStrategy.PROJECT,
+          RoleBasedAuthorizationStrategy.SLAVE,
+      }) {
+        rolesByType.put(type, new JSONArray());
+      }
+    }
+    result.put("roles", rolesByType);
+    result.put("permissionTemplates", templatesJson);
+    Jenkins jenkins = Jenkins.get();
+    JSONObject perms = new JSONObject();
+    perms.put("canEditGlobal", jenkins.hasPermission(Jenkins.ADMINISTER));
+    perms.put("canEditProject", jenkins.hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN));
+    perms.put("canEditAgent", jenkins.hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN));
+    result.put("permissions", perms);
+    return result.toString();
+  }
+
+  private static JSONArray rolesToJson(RoleBasedAuthorizationStrategy strategy, String type) {
+    JSONArray result = new JSONArray();
+    for (Map.Entry<Role, Set<PermissionEntry>> entry : strategy.getGrantedRolesEntries(type).entrySet()) {
+      Role role = entry.getKey();
+      JSONObject roleJson = new JSONObject();
+      roleJson.put("name", role.getName());
+      roleJson.put("pattern", role.getPattern().pattern());
+      roleJson.put("templateName", role.getTemplateName());
+      JSONArray permIds = new JSONArray();
+      for (Permission p : role.getPermissions()) {
+        permIds.add(p.getId());
+      }
+      roleJson.put("permissionIds", permIds);
+      JSONArray sidsJson = new JSONArray();
+      for (PermissionEntry sid : entry.getValue()) {
+        JSONObject sidJson = new JSONObject();
+        sidJson.put("sid", sid.getSid());
+        sidJson.put("type", sid.getType().toString());
+        sidsJson.add(sidJson);
+      }
+      roleJson.put("sids", sidsJson);
+      result.add(roleJson);
+    }
+    return result;
+  }
+
+  private static JSONObject templateToJson(PermissionTemplate template) {
+    JSONObject templateJson = new JSONObject();
+    templateJson.put("name", template.getName());
+    JSONArray permIds = new JSONArray();
+    for (Permission p : template.getPermissions()) {
+      permIds.add(p.getId());
+    }
+    templateJson.put("permissionIds", permIds);
+    templateJson.put("isUsed", template.isUsed());
+    return templateJson;
+  }
+
+  private static JSONArray permissionGroupsToJson(RoleBasedAuthorizationStrategy.DescriptorImpl descriptor, String type) {
+    JSONArray groupsArray = new JSONArray();
+    List<PermissionGroup> groups = descriptor.getGroups(type);
+    Set<PermissionGroup> deduped = new LinkedHashSet<>(groups);
+    for (PermissionGroup group : deduped) {
+      JSONObject g = new JSONObject();
+      g.put("title", group.title.toString());
+      JSONArray permsArray = new JSONArray();
+      for (Permission p : group.getPermissions()) {
+        if (!descriptor.showPermission(type, p)) {
+          continue;
+        }
+        JSONObject permJson = new JSONObject();
+        permJson.put("id", p.getId());
+        permJson.put("name", p.name);
+        permJson.put("description", p.description != null ? p.description.toString() : "");
+        JSONArray impliedArr = new JSONArray();
+        Permission cursor = p.impliedBy;
+        while (cursor != null) {
+          impliedArr.add(cursor.getId());
+          cursor = cursor.impliedBy;
+        }
+        permJson.put("impliedByList", impliedArr);
+        permsArray.add(permJson);
+      }
+      g.put("permissions", permsArray);
+      groupsArray.add(g);
+    }
+    return groupsArray;
   }
 
   public final RoleType getGlobalRoleType() {
