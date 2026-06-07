@@ -15,6 +15,7 @@ export default defineConfig({
     cssCodeSplit: true,
     rollupOptions: {
       input: {
+        "manage-roles": "src/main/frontend/manage-roles/index.tsx",
         "permission-templates":
           "src/main/frontend/permission-templates/index.tsx",
       },

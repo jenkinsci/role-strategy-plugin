@@ -360,58 +360,6 @@ dialog .tippy-box {
   padding: 0.5rem 0.5rem 0 0.5rem;
 }
 
-.rsp-perm__permissions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  margin: 0.5rem 0.75rem 0.75rem 0.75rem;
-}
-
-.rsp-perm__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  min-width: 150px;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-
-.rsp-perm__item input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.rsp-perm__item:hover {
-  background: var(--item-background--hover);
-}
-
-.rsp-perm__item:has(input:focus-visible) {
-  box-shadow: 0 0 0 0.2rem var(--text-color);
-}
-
-.rsp-perm__item:has(input:checked) {
-  background: var(--accent-color, #0b6cbd);
-  color: var(--background, #fff);
-}
-
-.rsp-perm__item:has(input:checked):hover {
-  filter: brightness(1.1);
-}
-
-.rsp-perm__item:has(input:checked) .rsp-perm__item-name {
-  color: inherit;
-}
-
-.rsp-perm__item:has(input:checked) .rsp-help-icon {
-  color: inherit;
-  opacity: 0.8;
-}
-
 .rsp-perm__item-name {
   font-size: 0.875rem;
   color: var(--text-color);
@@ -421,10 +369,6 @@ dialog .tippy-box {
   font-size: 0.75rem;
   color: var(--text-color-secondary);
   font-style: italic;
-}
-
-.rsp-perm__item:has(input:checked) .rsp-perm__item-implied {
-  color: inherit;
 }
 
 /* ============================================
@@ -452,21 +396,6 @@ dialog .tippy-box {
 }
 
 /* ============================================
-   Card body — view-only permissions (editing via dialog)
-   ============================================ */
-
-.rsp-card__body .rsp-perm__item {
-  pointer-events: none;
-  cursor: default;
-}
-
-/* Keep the help-icon tooltip reachable even though the pill itself is inert. */
-.rsp-card__body .rsp-perm__item .rsp-help-icon,
-.rsp-card--read-only .rsp-perm__item .rsp-help-icon {
-  pointer-events: auto;
-}
-
-/* ============================================
    Read-only Mode
    ============================================ */
 
@@ -476,11 +405,6 @@ dialog .tippy-box {
 
 .rsp-card.rsp-card--read-only .rsp-card__actions .rsp-card__action {
   display: none;
-}
-
-.rsp-card.rsp-card--read-only .rsp-perm__item {
-  pointer-events: none;
-  cursor: default;
 }
 
 /* ============================================
@@ -530,4 +454,108 @@ dialog .tippy-box {
   align-items: center;
   gap: 0.25rem;
   padding: 0 0.75rem;
+}
+
+/* ============================================
+   Manage Roles page
+   ============================================ */
+
+.rsp-container {
+  margin-bottom: var(--section-padding);
+}
+
+.rsp-result-count {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.rsp-radio-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Jenkins radio blocks carry a bottom margin meant for stacked form rows; the
+   flex gap already spaces these options, so drop it to avoid a double gap. */
+.rsp-radio-stack .jenkins-radio {
+  margin-bottom: 0;
+}
+
+.rsp-card__pattern {
+  font-size: 0.8125rem;
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+/* Collapsible role-type section: the heading toggles its body. */
+.rsp-section-collapsible .jenkins-section__title {
+  cursor: pointer;
+  user-select: none;
+}
+
+.rsp-section-collapsible .jenkins-section__title .rsp-section-chevron {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: text-top;
+  margin-left: 0.25rem;
+  transition: transform 0.2s;
+  color: var(--text-color-secondary);
+}
+
+.rsp-section-collapsible.rsp-section--collapsed .rsp-section-chevron {
+  transform: rotate(-90deg);
+  vertical-align: text-bottom;
+}
+
+.rsp-section-collapsible.rsp-section--collapsed > .rsp-cards,
+.rsp-section-collapsible.rsp-section--collapsed > .jenkins-notice {
+  display: none;
+}
+
+.rsp-section-count {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: var(--card-background-lighter, var(--button-background));
+  color: var(--text-color-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
+  min-width: 1.5em;
+  text-align: center;
+}
+
+/* Read-only chips showing a role's assigned permissions in the card body. */
+.rsp-perm__assigned {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  margin: 0.5rem 0.75rem 0.75rem 0.75rem;
+  padding: 0;
+}
+
+.rsp-perm__assigned-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--form-input-border-radius);
+  background: var(--card-background-lighter, var(--button-background));
+  color: var(--text-color);
+  font-size: 0.8125rem;
+}
+
+.rsp-perm--empty {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
+  padding: 0.75rem;
 }

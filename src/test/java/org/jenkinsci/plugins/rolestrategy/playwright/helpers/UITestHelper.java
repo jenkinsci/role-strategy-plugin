@@ -49,4 +49,37 @@ public final class UITestHelper {
 
     return rbas;
   }
+
+  /**
+   * Configure Jenkins with a dummy security realm and a role-based authorization strategy.
+   * Seeded with one role of each scope, the Manage Roles UI test lists:
+   *
+   * <ul>
+   *   <li>global {@code admin} (Administer), assigned to the admin user</li>
+   *   <li>global {@code auditor} (Overall/Read)</li>
+   *   <li>item {@code developers} (pattern {@code dev-.*}, Item Read + Build)</li>
+   *   <li>agent {@code operators} (pattern {@code node-.*}, Computer Build)</li>
+   *   <li>{@code review-template} (Item Read), available in the Add dialog's template dropdown</li>
+   * </ul>
+   */
+  public static RoleBasedAuthorizationStrategy setupRbasWithRoles(JenkinsRule j) throws IOException {
+    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+    RoleBasedAuthorizationStrategy rbas = new RoleBasedAuthorizationStrategy();
+    j.jenkins.setAuthorizationStrategy(rbas);
+
+    rbas.doAddRole("globalRoles", "admin",
+        "hudson.model.Hudson.Administer", "false", "", "");
+    rbas.doAssignUserRole("globalRoles", "admin", "admin");
+
+    rbas.doAddRole("globalRoles", "auditor",
+        "hudson.model.Hudson.Read", "false", "", "");
+    rbas.doAddRole("projectRoles", "developers",
+        "hudson.model.Item.Read,hudson.model.Item.Build", "false", "dev-.*", "");
+    rbas.doAddRole("slaveRoles", "operators",
+        "hudson.model.Computer.Build", "false", "node-.*", "");
+
+    rbas.doAddTemplate("review-template", "hudson.model.Item.Read", false);
+
+    return rbas;
+  }
 }

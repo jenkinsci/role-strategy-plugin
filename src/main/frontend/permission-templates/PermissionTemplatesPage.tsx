@@ -4,11 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { StrategyClient } from "../common/api/strategy.ts";
 import { useAppBarButton } from "../common/components/AppBarButton.tsx";
+import { AssignedPermissions } from "../common/components/AssignedPermissions.tsx";
 import { Card } from "../common/components/Card.tsx";
 import { IconButton } from "../common/components/IconButton.tsx";
 import { EditIcon } from "../common/components/icons/EditIcon.tsx";
 import { TrashIcon } from "../common/components/icons/TrashIcon.tsx";
-import { PermissionGroups } from "../common/components/PermissionGroups.tsx";
 import { SearchWithFilter } from "../common/components/SearchWithFilter.tsx";
 import type { TemplatesBootstrap } from "../common/types/bootstrap.ts";
 import type { PermissionTemplate } from "../common/types/template.ts";
@@ -207,10 +207,9 @@ export function PermissionTemplatesPage({
               }
               readOnly={!bootstrap.canEdit}
               body={
-                <PermissionGroups
-                  groups={bootstrap.permissionGroups}
-                  selectedIds={new Set(template.permissionIds)}
-                  disabled
+                <AssignedPermissions
+                  permissionGroups={bootstrap.permissionGroups}
+                  permissionIds={template.permissionIds}
                 />
               }
             />
