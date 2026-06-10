@@ -22,6 +22,9 @@ export function Dialog({
     if (!node) return;
     if (!node.open) {
       node.showModal();
+      // showModal() focuses the first focusable element (the close button);
+      // honour the data-autofocus convention instead when a child opts in.
+      node.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     }
     // The browser fires "cancel" when ESC is pressed; route it through onClose.
     const onCancel = (e: Event) => {

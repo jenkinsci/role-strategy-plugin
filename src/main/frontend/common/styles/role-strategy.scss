@@ -80,14 +80,6 @@ dialog .tippy-box {
 }
 
 /* ============================================
-   Vertical radio stack (React)
-   ============================================ */
-
-/* ============================================
-   Container
-   ============================================ */
-
-/* ============================================
    App Bar (search + filter + actions)
    ============================================ */
 
@@ -136,10 +128,6 @@ dialog .tippy-box {
   backdrop-filter: var(--dropdown-backdrop-filter);
   box-shadow: var(--dropdown-box-shadow);
   border-radius: 1rem;
-}
-
-.rsp-filter__dropdown[hidden] {
-  display: none;
 }
 
 .rsp-filter__header {
@@ -301,6 +289,11 @@ dialog .tippy-box {
   flex-shrink: 0;
 }
 
+/* Tooltip reference wrapper — keeps tooltips working on disabled buttons. */
+.rsp-icon-button {
+  display: inline-flex;
+}
+
 .rsp-card__action {
   padding: 0 !important;
   min-height: 2rem;
@@ -316,7 +309,7 @@ dialog .tippy-box {
   transition: transform var(--standard-transition);
 }
 
-.rsp-card[aria-expanded="true"] .rsp-card__toggle {
+.rsp-card[data-expanded="true"] .rsp-card__toggle {
   transform: rotate(180deg);
 }
 
@@ -324,16 +317,15 @@ dialog .tippy-box {
    Card Body (collapsible)
    ============================================ */
 
+/* Height (max-height) and overflow are driven inline by Card.tsx: a measured
+   pixel value during the transition, released to "none"/visible once open. */
 .rsp-card__body {
   border-top: var(--jenkins-border);
+  transition: max-height var(--standard-transition);
 }
 
 .rsp-card__body--collapsed {
-  height: 0;
-  overflow: hidden;
-  padding: 0;
   border-top: none;
-  visibility: hidden;
 }
 
 /* ============================================
@@ -435,8 +427,22 @@ dialog .tippy-box {
   min-height: 100px;
 }
 
-.rsp-empty-state[hidden] {
-  display: none;
+/* ============================================
+   Dismissible error alert
+   ============================================ */
+
+.rsp-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rsp-alert__dismiss {
+  padding: 0.25rem !important;
+  min-height: auto;
+  flex-shrink: 0;
+  color: inherit;
 }
 
 /* ============================================
@@ -493,10 +499,6 @@ dialog .tippy-box {
   font-size: 0.8125rem;
 }
 
-.rsp-assign-dialog__role-item[data-implied="true"] {
-  opacity: 0.6;
-}
-
 /* ============================================
    Assign Role Dialog
    ============================================ */
@@ -530,4 +532,11 @@ dialog .tippy-box {
   align-items: center;
   gap: 0.25rem;
   padding: 0 0.75rem;
+}
+
+.rsp-assign-dialog__no-results {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-color-secondary);
+  font-style: italic;
 }

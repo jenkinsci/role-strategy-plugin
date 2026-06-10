@@ -6,6 +6,7 @@ import type { StrategyClient } from "../common/api/strategy.ts";
 import { useAppBarButton } from "../common/components/AppBarButton.tsx";
 import { Card } from "../common/components/Card.tsx";
 import { IconButton } from "../common/components/IconButton.tsx";
+import { CloseIcon } from "../common/components/icons/CloseIcon.tsx";
 import { EditIcon } from "../common/components/icons/EditIcon.tsx";
 import { TrashIcon } from "../common/components/icons/TrashIcon.tsx";
 import { PermissionGroups } from "../common/components/PermissionGroups.tsx";
@@ -136,13 +137,22 @@ export function PermissionTemplatesPage({
       ? (templates.find((t) => t.name === mode.edit) ?? null)
       : null;
 
-  const isFiltering = search.trim() !== "" || filterIds.size > 0;
-
   return (
     <>
       {error && (
-        <div className="jenkins-alert jenkins-alert-danger jenkins-!-margin-bottom-3">
-          {error}
+        <div
+          role="alert"
+          className="jenkins-alert jenkins-alert-danger rsp-alert jenkins-!-margin-bottom-3"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            className="jenkins-button jenkins-button--tertiary rsp-alert__dismiss"
+            aria-label="Dismiss"
+            onClick={() => setError(null)}
+          >
+            <CloseIcon />
+          </button>
         </div>
       )}
       {templates.length > 0 && (
@@ -169,7 +179,17 @@ export function PermissionTemplatesPage({
         </div>
       ) : filtered.length === 0 ? (
         <div className="jenkins-notice rsp-empty-state">
-          No matching templates
+          <div>No matching templates</div>
+          <button
+            type="button"
+            className="jenkins-button jenkins-!-margin-top-2"
+            onClick={() => {
+              setSearch("");
+              setFilterIds(new Set());
+            }}
+          >
+            Clear filters
+          </button>
         </div>
       ) : (
         <div className="rsp-cards">
@@ -183,6 +203,7 @@ export function PermissionTemplatesPage({
                 )
               }
               summary={buildSummary(template)}
+              summaryPlaceholder="No permissions"
               actions={
                 bootstrap.canEdit && (
                   <>
@@ -211,13 +232,13 @@ export function PermissionTemplatesPage({
                   groups={bootstrap.permissionGroups}
                   selectedIds={new Set(template.permissionIds)}
                   disabled
+                  showOnlySelected
                 />
               }
             />
           ))}
         </div>
       )}
-      {!isFiltering && templates.length === 0 && null}
       {mode === "add" && (
         <TemplateDialog
           title="Add permission template"

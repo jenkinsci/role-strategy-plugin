@@ -118,6 +118,7 @@ export function TemplateDialog({
             groups={permissionGroups}
             selectedIds={selected}
             onToggle={togglePermission}
+            filterAutoFocus={!allowNameEdit}
           />
         </div>
       </form>

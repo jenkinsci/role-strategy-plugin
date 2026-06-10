@@ -28,10 +28,11 @@ export function SearchWithFilter({
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (!filterOpen) return;
-    const handler = (e: MouseEvent) => {
+    const onMouseDown = (e: MouseEvent) => {
       if (
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
@@ -39,8 +40,18 @@ export function SearchWithFilter({
         setFilterOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setFilterOpen(false);
+        filterButtonRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [filterOpen]);
 
   const hasActiveFilter = selectedFilterIds.size > 0;
@@ -57,6 +68,7 @@ export function SearchWithFilter({
         <div className="rsp-filter">
           <button
             type="button"
+            ref={filterButtonRef}
             className={`jenkins-button jenkins-button--tertiary rsp-filter__button${
               hasActiveFilter ? " rsp-filter__button--active" : ""
             }`}

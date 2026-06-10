@@ -11,6 +11,8 @@ interface PermissionListProps {
   disabled?: boolean;
   onToggle?: (permissionId: string, next: boolean) => void;
   filterPlaceholder?: string;
+  /** Focus the filter input when the surrounding dialog opens. */
+  filterAutoFocus?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ export function PermissionList({
   disabled,
   onToggle,
   filterPlaceholder = "Filter permissions",
+  filterAutoFocus,
 }: PermissionListProps) {
   const idPrefix = useId();
   const [filter, setFilter] = useState("");
@@ -53,18 +56,11 @@ export function PermissionList({
         placeholder={filterPlaceholder}
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
+        data-autofocus={filterAutoFocus ? "true" : undefined}
       />
       <div className="rsp-assign-dialog__roles">
         {visibleGroups.length === 0 && (
-          <div
-            className="rsp-assign-dialog__no-results"
-            style={{
-              padding: "1rem",
-              textAlign: "center",
-              color: "var(--text-color-secondary)",
-              fontStyle: "italic",
-            }}
-          >
+          <div className="rsp-assign-dialog__no-results">
             No matching permissions
           </div>
         )}

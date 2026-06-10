@@ -9,6 +9,9 @@ interface PermissionGroupsProps {
   selectedIds: ReadonlySet<string>;
   disabled?: boolean;
   onToggle?: (permissionId: string, next: boolean) => void;
+  /** Render only granted (selected or implied) permissions — for view-only
+      contexts where the full catalogue would be noise. */
+  showOnlySelected?: boolean;
 }
 
 export function PermissionGroups({
@@ -16,6 +19,7 @@ export function PermissionGroups({
   selectedIds,
   disabled,
   onToggle,
+  showOnlySelected,
 }: PermissionGroupsProps) {
   const flat = useMemo(() => groups.flatMap((g) => g.permissions), [groups]);
   const implied = useMemo(
@@ -23,9 +27,21 @@ export function PermissionGroups({
     [flat, selectedIds],
   );
 
+  const visibleGroups = useMemo(() => {
+    if (!showOnlySelected) return groups;
+    return groups
+      .map((g) => ({
+        ...g,
+        permissions: g.permissions.filter(
+          (p) => selectedIds.has(p.id) || implied.has(p.id),
+        ),
+      }))
+      .filter((g) => g.permissions.length > 0);
+  }, [groups, selectedIds, implied, showOnlySelected]);
+
   return (
     <div className="rsp-perm">
-      {groups.map((group) => (
+      {visibleGroups.map((group) => (
         <fieldset key={group.title} className="rsp-perm__group">
           <legend className="rsp-perm__group-title">{group.title}</legend>
           <div className="rsp-perm__permissions">
