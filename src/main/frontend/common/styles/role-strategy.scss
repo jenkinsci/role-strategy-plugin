@@ -497,6 +497,7 @@ dialog .tippy-box {
   color: var(--text-color-secondary);
   font-style: italic;
   font-size: 0.8125rem;
+  margin-left: 0.2rem;
 }
 
 /* ============================================
@@ -510,7 +511,7 @@ dialog .tippy-box {
   margin-top: 0.5rem;
   /* Fixed scroll viewport so filtering the list scrolls within it rather
      than resizing the dialog. */
-  height: min(420px, 50vh);
+  height: min(650px, 50vh);
   overflow-y: auto;
 }
 
