@@ -117,7 +117,7 @@ export function SearchWithFilter({
                   if (visiblePerms.length === 0) return null;
                   return (
                     <Fragment key={group.title}>
-                      <div className="rsp-filter__group-title">
+                      <div className="jenkins-dropdown__heading">
                         {group.title}
                       </div>
                       {visiblePerms.map((p) => {
