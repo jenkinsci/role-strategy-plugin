@@ -69,8 +69,8 @@ export function SearchWithFilter({
           <button
             type="button"
             ref={filterButtonRef}
-            className={`jenkins-button jenkins-button--tertiary rsp-filter__button${
-              hasActiveFilter ? " rsp-filter__button--active" : ""
+            className={`jenkins-button rsp-filter__button ${
+              hasActiveFilter ? "jenkins-!-accent-color" : "jenkins-button--tertiary"
             }`}
             aria-expanded={filterOpen}
             aria-haspopup="true"

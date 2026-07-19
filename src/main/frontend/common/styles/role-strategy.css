@@ -109,7 +109,6 @@ dialog .tippy-box {
   min-height: 1.875rem;
   border-radius: 0.4375rem;
   margin-right: -0.125rem;
-  color: var(--text-color-secondary);
   transition: color var(--standard-transition);
 }
 
