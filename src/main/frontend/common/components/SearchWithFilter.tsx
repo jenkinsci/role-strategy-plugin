@@ -131,7 +131,9 @@ export function SearchWithFilter({
                             }`}
                             onClick={() => onFilterToggle?.(p.id)}
                           >
-                            <span className="rsp-filter__item-indicator" />
+                            <div className="jenkins-dropdown__item__icon">
+                              <span className="rsp-filter__item-indicator" />
+                            </div>
                             <span className="rsp-filter__item-name">
                               {p.name}
                             </span>

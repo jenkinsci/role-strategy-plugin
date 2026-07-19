@@ -180,18 +180,20 @@ export function PermissionTemplatesPage({
           )}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="jenkins-notice rsp-empty-state">
+        <div className="jenkins-notice">
           <div>No matching templates</div>
-          <button
-            type="button"
-            className="jenkins-button jenkins-!-margin-top-2"
-            onClick={() => {
-              setSearch("");
-              setFilterIds(new Set());
-            }}
-          >
-            Clear filters
-          </button>
+          <div className="jenkins-notice__description">
+            <button
+              type="button"
+              className="jenkins-button"
+              onClick={() => {
+                setSearch("");
+                setFilterIds(new Set());
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
         </div>
       ) : (
         <div className="rsp-cards">
