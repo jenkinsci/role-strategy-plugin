@@ -299,6 +299,7 @@ dialog .tippy-box {
   width: 2rem;
   height: 2rem;
   transition: transform var(--standard-transition);
+  margin-left: -0.75rem;
 }
 
 .rsp-card[data-expanded="true"] .rsp-card__toggle {
