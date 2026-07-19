@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 import type { PermissionGroup } from "../types/permission.ts";
 import { FilterIcon } from "./icons/FilterIcon.tsx";
@@ -116,7 +116,7 @@ export function SearchWithFilter({
                   );
                   if (visiblePerms.length === 0) return null;
                   return (
-                    <div key={group.title}>
+                    <Fragment key={group.title}>
                       <div className="rsp-filter__group-title">
                         {group.title}
                       </div>
@@ -138,7 +138,7 @@ export function SearchWithFilter({
                           </button>
                         );
                       })}
-                    </div>
+                    </Fragment>
                   );
                 })}
               </div>
