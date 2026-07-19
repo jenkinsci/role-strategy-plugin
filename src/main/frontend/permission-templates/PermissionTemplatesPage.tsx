@@ -174,7 +174,9 @@ export function PermissionTemplatesPage({
             No permission templates defined
           </div>
           {bootstrap.canEdit && (
-            <div>Use the Add template button in the toolbar to create one.</div>
+            <div className="jenkins-notice__description">
+              Click Add Template to create one.
+            </div>
           )}
         </div>
       ) : filtered.length === 0 ? (
