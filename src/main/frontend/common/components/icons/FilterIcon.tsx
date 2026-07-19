@@ -16,7 +16,7 @@ export function FilterIcon() {
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth="48"
+        strokeWidth="32"
       />
     </svg>
   );

@@ -17,7 +17,7 @@ export function CloseIcon() {
         stroke="currentColor"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth="48"
+        strokeWidth="32"
       />
     </svg>
   );
