@@ -2,10 +2,8 @@ import type { InputHTMLAttributes } from "react";
 
 import { SearchIcon } from "./icons/SearchIcon.tsx";
 
-interface SearchInputProps extends Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  "type"
-> {
+interface SearchInputProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, "type"> {
   className?: string;
 }
 

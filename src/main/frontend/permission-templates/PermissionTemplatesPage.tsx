@@ -1,4 +1,4 @@
-import "../common/styles/role-strategy.scss";
+import "../common/styles/role-strategy.css";
 
 import { useCallback, useMemo, useState } from "react";
 
