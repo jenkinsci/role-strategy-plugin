@@ -36,7 +36,7 @@
     <!-- TODO revert back to using jenkins.baseline when back on the LTS line -->
     <jenkins.version>2.559</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <checkstyle.version>12.3.1</checkstyle.version>
+    <checkstyle.version>13.8.0</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
   </properties>
