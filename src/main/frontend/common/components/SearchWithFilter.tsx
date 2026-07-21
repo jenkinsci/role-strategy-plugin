@@ -70,7 +70,9 @@ export function SearchWithFilter({
             type="button"
             ref={filterButtonRef}
             className={`jenkins-button rsp-filter__button ${
-              hasActiveFilter ? "jenkins-!-accent-color" : "jenkins-button--tertiary"
+              hasActiveFilter
+                ? "jenkins-!-accent-color"
+                : "jenkins-button--tertiary"
             }`}
             aria-expanded={filterOpen}
             aria-haspopup="true"
