@@ -39,6 +39,8 @@
     <checkstyle.version>13.8.0</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
+    <node.version>24.15.0</node.version>
+    <npm.version>11.14.0</npm.version>
   </properties>
 
   <dependencyManagement>
@@ -104,6 +106,12 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.playwright</groupId>
+      <artifactId>playwright</artifactId>
+      <version>1.52.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
