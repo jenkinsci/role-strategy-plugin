@@ -23,6 +23,19 @@ async function ensureOk(response: Response): Promise<Response> {
   return response;
 }
 
+export async function getJson<T>(url: string, params: Params): Promise<T> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue;
+    query.append(key, String(value));
+  }
+  const response = await fetch(`${url}?${query}`, {
+    headers: { Accept: "application/json" },
+  });
+  await ensureOk(response);
+  return (await response.json()) as T;
+}
+
 export async function postForm(url: string, params: Params): Promise<void> {
   const body = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
