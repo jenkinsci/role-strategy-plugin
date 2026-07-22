@@ -11,7 +11,7 @@ See the [Developer Documentation](https://www.jenkins.io/doc/developer/).
 The React pages (`Manage Roles`, `Permission Templates`) are covered by Vitest component
 tests (`npm run test`) and Playwright end-to-end tests (`ManageRolesUITest`,
 `PermissionTemplatesUITest`). The remaining jelly/vanilla-JS pages need manual testing.
-After starting Jenkins locally via `mvn hpi:run` go to the `Manage and Assigne Roles` page.
+After starting Jenkins locally via `mvn hpi:run` go to the `Manage and Assign Roles` page.
 
 Verify that following things work on `Assign Roles`:
 1. Adding a new user to global, item and agent role

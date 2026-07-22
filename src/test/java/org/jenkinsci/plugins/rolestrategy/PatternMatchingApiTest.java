@@ -167,6 +167,20 @@ class PatternMatchingApiTest {
   }
 
   @Test
+  void testGetMatchingJobsWithInvalidPattern() throws Exception {
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getMatchingJobs?pattern=(");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
+    performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
+  }
+
+  @Test
+  void testGetMatchingAgentsWithInvalidPattern() throws Exception {
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getMatchingAgents?pattern=(");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
+    performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
+  }
+
+  @Test
   void testGetMatchingJobsWithMaxLimit() throws Exception {
     // Create more jobs than the limit
     for (int i = 0; i < 5; i++) {

@@ -601,13 +601,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     List<String> permissionList = Arrays.asList(permissionIds.split(","));
     Set<Permission> permissionSet = PermissionHelper.fromStrings(permissionList, true);
 
-    Role role;
-    try {
-      role = new Role(roleName, pttrn, permissionSet);
-    } catch (PatternSyntaxException pse) {
-      Stapler.getCurrentResponse2().sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid pattern: " + pse.getMessage());
+    Pattern compiledPattern = compilePatternOrSendError(pttrn);
+    if (compiledPattern == null) {
       return;
     }
+    Role role = new Role(roleName, compiledPattern, permissionSet, null);
 
     if (RoleBasedAuthorizationStrategy.PROJECT.equals(type) && templateName != null) {
       if (!hasPermissionTemplate(template)) {
@@ -628,11 +626,25 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       // turn every edit into an implicit unassign-all.
       Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
       roleMap.removeRole(existing);
-      roleMap.addRole(role, sids);
+      roleMap.addRole(role, sids != null ? sids : Collections.emptySet());
     } else {
       roleMap.addRole(role);
     }
     persistChanges();
+  }
+
+  /**
+   * Compile the given pattern, answering the request with a 400 and returning {@code null} when it is not a valid
+   * regular expression.
+   */
+  @CheckForNull
+  private static Pattern compilePatternOrSendError(String pattern) throws IOException {
+    try {
+      return Pattern.compile(pattern);
+    } catch (PatternSyntaxException pse) {
+      Stapler.getCurrentResponse2().sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid pattern: " + pse.getMessage());
+      return null;
+    }
   }
 
   /**
@@ -1127,8 +1139,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doGetMatchingJobs(@QueryParameter(required = true) String pattern,
       @QueryParameter() int maxJobs) throws IOException {
     checkPerms(ITEM_ROLES_ADMIN);
+    Pattern compiledPattern = compilePatternOrSendError(pattern);
+    if (compiledPattern == null) {
+      return;
+    }
     List<String> matchingItems = new ArrayList<>();
-    int itemCount = RoleMap.getMatchingItemNames(matchingItems, Pattern.compile(pattern), maxJobs);
+    int itemCount = RoleMap.getMatchingItemNames(matchingItems, compiledPattern, maxJobs);
     JSONObject responseJson = new JSONObject();
     responseJson.put("matchingJobs", matchingItems);
     responseJson.put("itemCount", itemCount);
@@ -1154,8 +1170,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doGetMatchingAgents(@QueryParameter(required = true) String pattern,
       @QueryParameter() int maxAgents) throws IOException {
     checkPerms(AGENT_ROLES_ADMIN);
+    Pattern compiledPattern = compilePatternOrSendError(pattern);
+    if (compiledPattern == null) {
+      return;
+    }
     List<String> matchingAgents = new ArrayList<>();
-    int agentCount = RoleMap.getMatchingAgentNames(matchingAgents, Pattern.compile(pattern), maxAgents);
+    int agentCount = RoleMap.getMatchingAgentNames(matchingAgents, compiledPattern, maxAgents);
     JSONObject responseJson = new JSONObject();
     responseJson.put("matchingAgents", matchingAgents);
     responseJson.put("agentCount", agentCount);

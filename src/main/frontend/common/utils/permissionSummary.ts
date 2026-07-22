@@ -26,10 +26,13 @@ export function buildPermissionSummary(
   permissionIds: string[],
   permissionsById: ReadonlyMap<string, PermissionRef>,
 ): string | null {
-  if (permissionIds.length === 0) return null;
-  return permissionIds
+  const resolved = permissionIds
     .map((id) => permissionsById.get(id))
-    .filter((p): p is PermissionRef => !!p)
+    .filter((p): p is PermissionRef => !!p);
+  // Also null when no id resolved (e.g. stale permission ids), so callers show
+  // their placeholder instead of an empty summary.
+  if (resolved.length === 0) return null;
+  return resolved
     .map((p) => `${p.groupTitle}/${p.name}`)
     .sort()
     .join(", ");
