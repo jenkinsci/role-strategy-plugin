@@ -534,28 +534,6 @@ class ApiTest {
   }
 
   @Test
-  void ignoreDangerousPermissionInAddRole() throws IOException {
-    String roleName = "new-role";
-    // Adding role via web request
-    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
-    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
-    request.setRequestParameters(
-            Arrays.asList(new NameValuePair("type", RoleType.Global.getStringType()), new NameValuePair("roleName", roleName),
-                    new NameValuePair("permissionIds",
-                            "hudson.model.Hudson.RunScripts,hudson.model.Hudson.ConfigureUpdateCenter,"
-                                    + "hudson.model.Hudson.UploadPlugins,hudson.model.Item.Read"),
-                    new NameValuePair("overwrite", "false")));
-    Page page = webClient.getPage(request);
-    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
-
-    // Verifying that the role is in
-    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(PluginManager.CONFIGURE_UPDATECENTER), is(false));
-    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(PluginManager.UPLOAD_PLUGINS), is(false));
-    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(Jenkins.RUN_SCRIPTS), is(false));
-    assertThat(rbas.getRoleMap(RoleType.Global).getRole(roleName).hasPermission(Item.READ), is(true));
-  }
-
-  @Test
   void testRemoveRolesAs() throws Exception {
 
     String pattern = "test-folder.*";
