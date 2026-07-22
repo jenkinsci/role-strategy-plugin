@@ -233,6 +233,44 @@ class ApiTest {
   }
 
   @Test
+  void testAddRoleWithOverwriteKeepsAssignments() throws IOException {
+    // "developers" was created in setUp() with developerUser assigned
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(
+            Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
+                    new NameValuePair("roleName", "developers"),
+                    new NameValuePair("permissionIds", "hudson.model.Item.Read"),
+                    new NameValuePair("overwrite", "true"), new NameValuePair("pattern", "dev-.*")));
+    Page page = webClient.getPage(request);
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
+
+    RoleMap roleMap = rbas.getRoleMap(RoleType.Project);
+    Role role = roleMap.getRole("developers");
+    assertThat(role, notNullValue());
+    assertThat(role.getPattern().pattern(), equalTo("dev-.*"));
+    assertThat(role.hasPermission(Item.BUILD), equalTo(false));
+    Set<PermissionEntry> sids = roleMap.getSidEntriesForRole("developers");
+    assertThat(sids, notNullValue());
+    assertTrue(sids.stream().anyMatch(entry -> entry.getSid().equals("developerUser")),
+        "Overwriting a role must keep its assignments");
+  }
+
+  @Test
+  void testAddRoleWithInvalidPattern() throws IOException {
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/addRole");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(
+            Arrays.asList(new NameValuePair("type", RoleType.Project.getStringType()),
+                    new NameValuePair("roleName", "broken-pattern-role"),
+                    new NameValuePair("permissionIds", "hudson.model.Item.Read"),
+                    new NameValuePair("overwrite", "false"), new NameValuePair("pattern", "(")));
+    Page page = webClient.getPage(request);
+    assertEquals(HttpURLConnection.HTTP_BAD_REQUEST, page.getWebResponse().getStatusCode(), "Testing if request failed");
+    assertThat(rbas.getRoleMap(RoleType.Project).getRole("broken-pattern-role"), nullValue());
+  }
+
+  @Test
   void testAddTemplate() throws IOException {
     String template = "quality";
     // Adding role via web request
