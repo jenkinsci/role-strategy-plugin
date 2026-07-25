@@ -601,7 +601,11 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     List<String> permissionList = Arrays.asList(permissionIds.split(","));
     Set<Permission> permissionSet = PermissionHelper.fromStrings(permissionList, true);
 
-    Role role = new Role(roleName, pttrn, permissionSet);
+    Pattern compiledPattern = compilePatternOrSendError(pttrn);
+    if (compiledPattern == null) {
+      return;
+    }
+    Role role = new Role(roleName, compiledPattern, permissionSet, null);
 
     if (RoleBasedAuthorizationStrategy.PROJECT.equals(type) && templateName != null) {
       if (!hasPermissionTemplate(template)) {
@@ -615,15 +619,32 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     RoleType roleType = RoleType.fromString(type);
-    if (overwriteb) {
-      RoleMap roleMap = getRoleMap(roleType);
-      Role role2 = roleMap.getRole(roleName);
-      if (role2 != null) {
-        roleMap.removeRole(role2);
-      }
+    RoleMap roleMap = getRoleMap(roleType);
+    Role existing = overwriteb ? roleMap.getRole(roleName) : null;
+    if (existing != null) {
+      // Keep the assignments of the role being replaced; dropping them would
+      // turn every edit into an implicit unassign-all.
+      Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);
+      roleMap.removeRole(existing);
+      roleMap.addRole(role, sids != null ? sids : Collections.emptySet());
+    } else {
+      roleMap.addRole(role);
     }
-    addRole(roleType, role);
     persistChanges();
+  }
+
+  /**
+   * Compile the given pattern, answering the request with a 400 and returning {@code null} when it is not a valid
+   * regular expression.
+   */
+  @CheckForNull
+  private static Pattern compilePatternOrSendError(String pattern) throws IOException {
+    try {
+      return Pattern.compile(pattern);
+    } catch (PatternSyntaxException pse) {
+      Stapler.getCurrentResponse2().sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid pattern: " + pse.getMessage());
+      return null;
+    }
   }
 
   /**
@@ -1117,9 +1138,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doGetMatchingJobs(@QueryParameter(required = true) String pattern,
       @QueryParameter() int maxJobs) throws IOException {
-    checkAdminPerm();
+    checkPerms(ITEM_ROLES_ADMIN);
+    Pattern compiledPattern = compilePatternOrSendError(pattern);
+    if (compiledPattern == null) {
+      return;
+    }
     List<String> matchingItems = new ArrayList<>();
-    int itemCount = RoleMap.getMatchingItemNames(matchingItems, Pattern.compile(pattern), maxJobs);
+    int itemCount = RoleMap.getMatchingItemNames(matchingItems, compiledPattern, maxJobs);
     JSONObject responseJson = new JSONObject();
     responseJson.put("matchingJobs", matchingItems);
     responseJson.put("itemCount", itemCount);
@@ -1144,9 +1169,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Restricted(NoExternalUse.class)
   public void doGetMatchingAgents(@QueryParameter(required = true) String pattern,
       @QueryParameter() int maxAgents) throws IOException {
-    checkAdminPerm();
+    checkPerms(AGENT_ROLES_ADMIN);
+    Pattern compiledPattern = compilePatternOrSendError(pattern);
+    if (compiledPattern == null) {
+      return;
+    }
     List<String> matchingAgents = new ArrayList<>();
-    int agentCount = RoleMap.getMatchingAgentNames(matchingAgents, Pattern.compile(pattern), maxAgents);
+    int agentCount = RoleMap.getMatchingAgentNames(matchingAgents, compiledPattern, maxAgents);
     JSONObject responseJson = new JSONObject();
     responseJson.put("matchingAgents", matchingAgents);
     responseJson.put("agentCount", agentCount);
@@ -1411,22 +1440,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       } else {
         return FormValidation.warning(Messages.RoleBasedProjectNamingStrategy_WhiteSpaceWillBeTrimmed());
       }
-    }
-
-    /**
-     * Called on role management form's submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws ServletException, IOException {
-      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
-
-      req.setCharacterEncoding("UTF-8");
-      JSONObject json = req.getSubmittedForm();
-      AuthorizationStrategy strategy = this.newInstance(req, json);
-      instance().setAuthorizationStrategy(strategy);
-      // Persist the data
-      persistChanges();
     }
 
     /**

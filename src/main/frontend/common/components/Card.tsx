@@ -80,6 +80,10 @@ export function Card({
 
   const toggle = () => setExpanded((v) => !v);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    // Only react to keys aimed at the header itself. Key events from focused
+    // buttons inside it (badges, actions) bubble up here, and preventDefault
+    // would swallow the native click those buttons synthesize on Enter/Space.
+    if (e.target !== e.currentTarget) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       toggle();
