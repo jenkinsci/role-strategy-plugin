@@ -37,3 +37,32 @@ export async function checkPattern(
   }
   return { ok: true };
 }
+
+/**
+ * Look a sid up via the descriptor's {@code checkSidName} endpoint and return
+ * the FormValidation html snippet (icon plus resolved display name) verbatim,
+ * for rendering below the name field.
+ */
+export async function checkSidName(
+  checkSidNameUrl: string,
+  value: string,
+  type: string,
+): Promise<string> {
+  const body = new URLSearchParams({ value, type });
+  const headers = crumb.wrap({
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  });
+  const response = await fetch(checkSidNameUrl, {
+    method: "POST",
+    headers,
+    body,
+  });
+  if (!response.ok) {
+    throw new ApiError(
+      `${response.status} ${response.statusText}`,
+      response.status,
+      await response.text(),
+    );
+  }
+  return response.text();
+}

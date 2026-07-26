@@ -12,7 +12,9 @@ import {
 import { ChevronDownIcon } from "./icons/ChevronDownIcon.tsx";
 
 interface CardProps {
-  name: string;
+  /** Leading icon shown before the name. */
+  icon?: ReactNode;
+  name: ReactNode;
   badges?: ReactNode;
   summary?: ReactNode;
   /** Shown in the summary slot when `summary` is empty. */
@@ -23,6 +25,7 @@ interface CardProps {
 }
 
 export function Card({
+  icon,
   name,
   badges,
   summary,
@@ -106,6 +109,7 @@ export function Card({
         onClick={expandable ? toggle : undefined}
         onKeyDown={expandable ? onKeyDown : undefined}
       >
+        {icon && <span className="rsp-card__icon">{icon}</span>}
         <span className="rsp-card__name">{name}</span>
         {badges}
         <span

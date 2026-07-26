@@ -25,9 +25,6 @@
 
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
-import static com.michelin.cio.hudson.plugins.rolestrategy.ValidationUtil.formatNonExistentUserGroupValidationResponse;
-import static com.michelin.cio.hudson.plugins.rolestrategy.ValidationUtil.formatUserGroupValidationResponse;
-
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
@@ -679,7 +676,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   /**
    * API method to assign a SID of type EITHER to role.
    *
-   * This method should no longer be used.
+   * This method should no longer be used to create new entries. The Assign Roles UI still calls it
+   * to edit existing ambiguous entries in place until they are migrated to a user or group entry.
    * <p>
    * Example:
    * {@code curl -X POST localhost:8080/role-strategy/strategy/assignRole --data "type=globalRoles&amp;roleName=ADM
@@ -829,7 +827,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
   /**
    * API method to remove a SID from a role.
-   * Only entries of type EITHER will be removed.
+   * Only entries of type EITHER will be removed. The Assign Roles UI still calls this to edit
+   * existing ambiguous entries in place until they are migrated to a user or group entry.
    *
    * use {@link #doUnassignUserRole(String, String, String)} or {@link #doUnassignGroupRole(String, String, String)} to unassign a
    * User or a Group.
@@ -1101,15 +1100,30 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
     checkPermByRoleTypeForReading(type);
 
-    Set<PermissionEntry> sidEntries = getRoleMap(RoleType.fromString(type)).getSidEntries(true);
+    JSONArray responseJson = roleAssignmentsToJson(type);
+    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
+    Writer writer = Stapler.getCurrentResponse2().getWriter();
+    responseJson.write(writer);
+    writer.close();
+  }
 
+  /**
+   * Serializes all sid entries of a role type with their assigned roles. Shared by
+   * {@link #doGetRoleAssignments} and the Assign Roles page bootstrap so the two cannot drift.
+   *
+   * @param type role type (globalRoles, projectRoles, slaveRoles)
+   * @return JSON array of {@code {name, type, roles[]}} objects
+   */
+  @Restricted(NoExternalUse.class)
+  JSONArray roleAssignmentsToJson(String type) {
+    Set<PermissionEntry> sidEntries = getRoleMap(RoleType.fromString(type)).getSidEntries(true);
+    SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(type);
     JSONArray responseJson = new JSONArray();
     for (PermissionEntry entry : sidEntries) {
       JSONObject userEntry = new JSONObject();
       userEntry.put("name", entry.getSid());
       userEntry.put("type", entry.getType().toString());
       JSONArray roles = new JSONArray();
-      SortedMap<Role, Set<PermissionEntry>> rolesEntries = getGrantedRolesEntries(type);
       for (Map.Entry<Role, Set<PermissionEntry>> roleEntry : rolesEntries.entrySet()) {
         if (roleEntry.getValue().contains(entry)) {
           roles.add(roleEntry.getKey().getName());
@@ -1118,10 +1132,112 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       userEntry.put("roles", roles);
       responseJson.add(userEntry);
     }
-    Stapler.getCurrentResponse2().setContentType("application/json;charset=UTF-8");
-    Writer writer = Stapler.getCurrentResponse2().getWriter();
+    return responseJson;
+  }
+
+  /**
+   * API method to resolve a batch of sids against the security realm.
+   *
+   * <p>
+   * Example: {@code curl -X POST localhost:8080/role-strategy/strategy/getSidsInfo
+   * --data-urlencode 'sids=[{"sid":"alice","type":"USER"}]'}
+   *
+   * <p>
+   * Returns a json array in request order; each item carries a {@code resolution} of
+   * {@code found}, {@code not-found}, {@code unknown} (realm cannot decide or the caller lacks
+   * Overall/SystemRead) or {@code internal} (the reserved {@code authenticated} and
+   * {@code anonymous} sids), plus {@code foundAs} (USER or GROUP) and {@code displayName} when
+   * the sid resolved to a name differing from the id.
+   *
+   * @param sids JSON array of {@code {sid, type}} objects; a form field rather than repeated query
+   *             parameters because sids may contain arbitrary characters (e.g. LDAP DNs)
+   * @throws IOException when unable to write the response
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doGetSidsInfo(@QueryParameter(required = true) String sids) throws IOException {
+    Jenkins jenkins = Jenkins.get();
+    jenkins.checkAnyPermission(SYSTEM_READ_AND_SOME_ROLES_ADMIN);
+    // Role-type admins without SystemRead may manage assignments but must not probe the realm,
+    // mirroring the reading gate the legacy checkName endpoint applied.
+    SecurityRealm realm = jenkins.hasPermission(Jenkins.SYSTEM_READ) ? jenkins.getSecurityRealm() : null;
+
+    JSONArray responseJson = new JSONArray();
+    for (Object item : JSONArray.fromObject(sids)) {
+      JSONObject request = (JSONObject) item;
+      responseJson.add(sidInfoToJson(request.getString("sid"), AuthorizationType.valueOf(request.getString("type")), realm));
+    }
+    StaplerResponse2 response = Stapler.getCurrentResponse2();
+    response.setContentType("application/json;charset=UTF-8");
+    Writer writer = response.getWriter();
     responseJson.write(writer);
     writer.close();
+  }
+
+  private static JSONObject sidInfoToJson(String sid, AuthorizationType type, @CheckForNull SecurityRealm realm) {
+    JSONObject json = new JSONObject();
+    json.put("sid", sid);
+    json.put("type", type.toString());
+    if (realm == null) {
+      json.put("resolution", "unknown");
+      return json;
+    }
+    if ("authenticated".equals(sid) && type != AuthorizationType.USER) {
+      json.put("resolution", "internal");
+      json.put("foundAs", AuthorizationType.GROUP.toString());
+      return json;
+    }
+    if ("anonymous".equals(sid) && type != AuthorizationType.GROUP) {
+      json.put("resolution", "internal");
+      json.put("foundAs", AuthorizationType.USER.toString());
+      return json;
+    }
+    try {
+      ValidationUtil.SidResolution userResolution = null;
+      ValidationUtil.SidResolution groupResolution = null;
+      switch (type) {
+        case USER:
+          userResolution = ValidationUtil.resolveUser(sid, realm);
+          break;
+        case GROUP:
+          groupResolution = ValidationUtil.resolveGroup(sid, realm);
+          break;
+        case EITHER:
+        default:
+          userResolution = ValidationUtil.resolveUser(sid, realm);
+          if (userResolution.getKind() != ValidationUtil.SidResolutionKind.FOUND) {
+            groupResolution = ValidationUtil.resolveGroup(sid, realm);
+          }
+          break;
+      }
+      if (userResolution != null && userResolution.getKind() == ValidationUtil.SidResolutionKind.FOUND) {
+        json.put("resolution", "found");
+        json.put("foundAs", AuthorizationType.USER.toString());
+        putDisplayName(json, userResolution);
+      } else if (groupResolution != null && groupResolution.getKind() == ValidationUtil.SidResolutionKind.FOUND) {
+        json.put("resolution", "found");
+        json.put("foundAs", AuthorizationType.GROUP.toString());
+        putDisplayName(json, groupResolution);
+      } else if (isUnknown(userResolution) || isUnknown(groupResolution)) {
+        json.put("resolution", "unknown");
+      } else {
+        json.put("resolution", "not-found");
+      }
+    } catch (RuntimeException e) {
+      // one misbehaving sid must not fail the whole batch
+      json.put("resolution", "unknown");
+    }
+    return json;
+  }
+
+  private static boolean isUnknown(@CheckForNull ValidationUtil.SidResolution resolution) {
+    return resolution != null && resolution.getKind() == ValidationUtil.SidResolutionKind.UNKNOWN;
+  }
+
+  private static void putDisplayName(JSONObject json, ValidationUtil.SidResolution resolution) {
+    if (resolution.getDisplayName() != null) {
+      json.put("displayName", resolution.getDisplayName());
+    }
   }
 
   /**
@@ -1443,50 +1559,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * Called on role assignment form's submission.
-     */
-    @RequirePOST
-    @Restricted(NoExternalUse.class)
-    public void doAssignSubmit(JSONObject json) throws ServletException, IOException {
-      checkPerms(ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN);
-
-      AuthorizationStrategy oldStrategy = instance().getAuthorizationStrategy();
-
-      if (oldStrategy instanceof RoleBasedAuthorizationStrategy strategy) {
-        Map<RoleType, RoleMap> maps = strategy.getRoleMaps();
-
-        for (Map.Entry<RoleType, RoleMap> map : maps.entrySet()) {
-          final String roleTypeAsString = map.getKey().getStringType();
-          // if no permission, take the globalRoles from the oldStrategy
-          if (!hasPermissionByRoleTypeForUpdates(roleTypeAsString)) {
-            LOGGER.fine("Not enough permissions to save assignments for " + roleTypeAsString + ". Skipping...");
-            continue;
-          }
-          LOGGER.fine("Saving assignments for " + roleTypeAsString);
-
-          // Get roles and skip non-existent role entries (backward-comp)
-          RoleMap roleMap = map.getValue();
-          JSONArray userEntries = json.getJSONArray(map.getKey().getStringType());
-
-          roleMap.clearSids();
-
-          userEntries.forEach(e -> {
-            JSONObject entry = (JSONObject) e;
-            PermissionEntry pe = new PermissionEntry(AuthorizationType.valueOf(entry.getString("type")), entry.getString("name"));
-            entry.getJSONArray("roles").forEach(r -> {
-              Role role = roleMap.getRole((String) r);
-              if (role != null) {
-                roleMap.assignRole(role, pe);
-              }
-            });
-          });
-        }
-        // Persist the data
-        persistChanges();
-      }
-    }
-
-    /**
      * Called on role generator form submission.
      */
     @RequirePOST
@@ -1733,21 +1805,6 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * Create PermissionEntry.
-     *
-     * @param type AuthorizationType
-     * @param sid  SID
-     * @return PermissionEntry
-     */
-    @Restricted(DoNotUse.class) // Jelly only
-    public PermissionEntry entryFor(String type, String sid) {
-      if (type == null) {
-        return null; // template row only
-      }
-      return new PermissionEntry(AuthorizationType.valueOf(type), sid);
-    }
-
-    /**
      * Validate the pattern.
      *
      * @param value Pattern to validate
@@ -1765,97 +1822,74 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     }
 
     /**
-     * Check the given SID and look it up in the security realm and returns html snippet that will be displayed in the form
-     * instead of the plain sid.
+     * Looks a sid up in the security realm and returns an html snippet, with icon and resolved
+     * display name, that the Assign Roles dialog shows below the name field.
      *
-     * <p>When the name matches an existing user the users full name will be shown, otherwise it will be just the sid.
-     * For Existing users and groups, the corresponding icon will be used.
+     * <p>Missing sids render struck through but still validate OK: an assignment for a sid the
+     * realm cannot resolve (e.g. a group from an external directory) is legal.
      *
-     * @param value Name to validate
-     * @return FormValidation object
+     * @param value the sid to look up
+     * @param type  USER or GROUP
+     * @return FormValidation whose message is the html snippet
      */
     @RequirePOST
-    public FormValidation doCheckName(@QueryParameter String value) {
-      final String unbracketedValue = value.substring(1, value.length() - 1);
-
-      final int splitIndex = unbracketedValue.indexOf(':');
-      if (splitIndex < 0) {
-        return FormValidation.error("No type prefix: " + unbracketedValue);
+    @Restricted(NoExternalUse.class)
+    public FormValidation doCheckSidName(@QueryParameter String value, @QueryParameter String type) {
+      String sid = Util.fixEmptyAndTrim(value);
+      if (sid == null) {
+        return FormValidation.ok();
       }
-
-      final String typeString = unbracketedValue.substring(0, splitIndex);
-      final AuthorizationType type;
-      try {
-        type = AuthorizationType.valueOf(typeString);
-      } catch (Exception ex) {
-        return FormValidation.error("Invalid type prefix: " + unbracketedValue);
-      }
-      String sid = unbracketedValue.substring(splitIndex + 1);
       String escapedSid = Functions.escape(sid);
 
       if (!Jenkins.get().hasPermission(Jenkins.SYSTEM_READ)) {
         return FormValidation.ok(escapedSid); // can't check
       }
 
-      SecurityRealm sr = Jenkins.get().getSecurityRealm();
-
-      if (sid.equals("authenticated") && type == AuthorizationType.EITHER) {
-        // system reserved group
-        return FormValidation.respond(FormValidation.Kind.OK,
-                ValidationUtil.formatUserGroupValidationResponse(type, escapedSid,
-            "Internal group found; but permissions would also be granted to a user of this name", true));
-      }
-
-      if (sid.equals("anonymous") && type == AuthorizationType.EITHER) {
-        // system reserved user
-        return FormValidation.respond(FormValidation.Kind.OK,
-                formatUserGroupValidationResponse(type, escapedSid,
-            "Internal user found; but permissions would also be granted to a group of this name", true));
-      }
-
+      final AuthorizationType authType;
       try {
-        FormValidation groupValidation;
-        FormValidation userValidation;
-        switch (type) {
-          case GROUP:
-            groupValidation = ValidationUtil.validateGroup(sid, sr, false);
-            if (groupValidation != null) {
-              return groupValidation;
-            }
+        authType = AuthorizationType.valueOf(type);
+      } catch (RuntimeException e) {
+        return FormValidation.error("Invalid type: " + type);
+      }
+      if (authType == AuthorizationType.EITHER) {
+        // ambiguous entries cannot be created from the dialog
+        return FormValidation.error("Invalid type: " + type);
+      }
+      boolean isGroup = authType == AuthorizationType.GROUP;
+
+      if ("authenticated".equals(sid) && isGroup) {
+        return FormValidation.respond(FormValidation.Kind.OK,
+            ValidationUtil.formatUserGroupValidationResponse(authType, escapedSid, "Internal group"));
+      }
+      if ("anonymous".equals(sid) && !isGroup) {
+        return FormValidation.respond(FormValidation.Kind.OK,
+            ValidationUtil.formatUserGroupValidationResponse(authType, escapedSid, "Internal user"));
+      }
+
+      SecurityRealm realm = Jenkins.get().getSecurityRealm();
+      ValidationUtil.SidResolution resolution = isGroup
+          ? ValidationUtil.resolveGroup(sid, realm)
+          : ValidationUtil.resolveUser(sid, realm);
+      String kindWord = isGroup ? "Group" : "User";
+      switch (resolution.getKind()) {
+        case FOUND:
+          String displayName = resolution.getDisplayName();
+          if (displayName == null) {
             return FormValidation.respond(FormValidation.Kind.OK,
-                    formatNonExistentUserGroupValidationResponse(type, escapedSid, "Group not found"));
-          case USER:
-            userValidation = ValidationUtil.validateUser(sid, sr, false);
-            if (userValidation != null) {
-              return userValidation;
-            }
-            return FormValidation.respond(FormValidation.Kind.OK,
-                    formatNonExistentUserGroupValidationResponse(type, escapedSid, "User not found"));
-          case EITHER:
-            userValidation = ValidationUtil.validateUser(sid, sr, true);
-            if (userValidation != null) {
-              return userValidation;
-            }
-            groupValidation = ValidationUtil.validateGroup(sid, sr, true);
-            if (groupValidation != null) {
-              return groupValidation;
-            }
-            return FormValidation.respond(FormValidation.Kind.OK,
-                formatNonExistentUserGroupValidationResponse(type, escapedSid, "User or group not found", true));
-          default:
-            return FormValidation.error("Unexpected type: " + type);
-        }
-      } catch (Exception e) {
-        // if the check fails miserably, we still want the user to be able to see the name of the user,
-        // so use 'escapedSid' as the message
-        return FormValidation.error(e, escapedSid);
+                ValidationUtil.formatUserGroupValidationResponse(authType, escapedSid, kindWord));
+          }
+          return FormValidation.respond(FormValidation.Kind.OK,
+              ValidationUtil.formatUserGroupValidationResponse(authType, Util.escape(displayName),
+                  kindWord + " " + escapedSid));
+        case NOT_FOUND:
+          return FormValidation.respond(FormValidation.Kind.OK,
+              ValidationUtil.formatNonExistentUserGroupValidationResponse(authType, escapedSid,
+                  kindWord + " not found"));
+        default:
+          // the realm cannot decide, so show the plain sid without a verdict
+          return FormValidation.ok(escapedSid);
       }
     }
 
-    @Restricted(DoNotUse.class)
-    public boolean hasAmbiguousEntries(SortedMap<Role, Set<PermissionEntry>> grantedRoles) {
-      return grantedRoles.entrySet().stream()
-          .anyMatch(entry -> entry.getValue().stream().anyMatch(pe -> pe.getType() == AuthorizationType.EITHER));
-    }
   }
 }
