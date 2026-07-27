@@ -411,6 +411,21 @@ dialog .tippy-box {
   color: inherit;
 }
 
+/* Implied grants are context, not the role's own selections; render them as
+   muted pills so the directly granted permissions stand out. */
+.rsp-perm__item--implied:has(input:checked) {
+  background: var(--item-background--hover);
+  color: var(--text-color-secondary);
+}
+
+.rsp-perm__item--implied:has(input:checked):hover {
+  filter: none;
+}
+
+.rsp-perm__item--implied:has(input:checked) .rsp-perm__item-name {
+  color: var(--text-color-secondary);
+}
+
 /* ============================================
    Dismissible error alert
    ============================================ */
@@ -512,6 +527,12 @@ dialog .tippy-box {
   gap: 0.25rem;
 }
 
+/* An ungrouped list (the Assign Roles dialog) has no group title above it, so
+   the container's top spacing has to come from the group itself. */
+.rsp-assign-dialog__roles > .rsp-assign-dialog__group {
+  padding-top: 0.75rem;
+}
+
 .rsp-assign-dialog__role-item {
   display: flex;
   align-items: center;
@@ -524,4 +545,213 @@ dialog .tippy-box {
   text-align: center;
   color: var(--text-color-secondary);
   font-style: italic;
+}
+
+/* ============================================
+   Tabs (Manage Roles)
+   ============================================ */
+
+.rsp-tabs {
+  display: flex;
+  gap: 0.25rem;
+
+  button {
+    border-radius: 100px;
+
+    &:not(.jenkins-button--tertiary) {
+      pointer-events: none;
+      font-weight: var(--font-bold-weight);
+    }
+
+    &.jenkins-button--tertiary {
+      color: color-mix(
+        in sRGB,
+        var(--text-color-secondary) 75%,
+        var(--text-color)
+      ) !important;
+
+      &::before,
+      &::after {
+        inset: 3px;
+      }
+    }
+
+    &:hover {
+      color: var(--text-color) !important;
+
+      &::before,
+      &::after {
+        inset: 1.5px;
+      }
+    }
+  }
+}
+
+/* ============================================
+   Role pattern chip
+   ============================================ */
+
+.rsp-card__pattern {
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--item-background--hover);
+  color: var(--text-color-secondary);
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 2rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 16rem;
+}
+
+.rsp-card__pattern--button {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  transition: var(--standard-transition);
+}
+
+.rsp-card__pattern--button:hover {
+  background: var(--item-background--active);
+  color: var(--text-color);
+}
+
+/* ============================================
+   Matching items/agents dialog
+   ============================================ */
+
+.rsp-matching-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  word-break: break-all;
+}
+
+/* ============================================
+   Assign Roles page
+   ============================================ */
+
+.rsp-card__icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--text-color-secondary);
+}
+
+/* Sid that does not exist in the security realm. */
+.rsp-assign__name--not-found {
+  text-decoration: line-through;
+  color: var(--text-color-secondary);
+}
+
+.rsp-assign__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.rsp-assign__badge--warning {
+  background: color-mix(
+    in srgb,
+    var(--warning-color, #f1b120) 20%,
+    transparent
+  );
+  color: var(--text-color);
+}
+
+.rsp-assign__badge--warning svg {
+  color: var(--warning-color, #f1b120);
+}
+
+/* Server-rendered sid lookup snippet below the dialog's name field: icon
+   next to the resolved name; missing sids struck through. */
+.rsp-assign__name-feedback {
+  margin-top: 0.5rem;
+}
+
+.rsp-table__cell {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.rsp-entry-not-found {
+  text-decoration: line-through;
+  color: var(--text-color-secondary);
+}
+
+.rsp-assign-dialog__role-item .rsp-card__pattern {
+  margin-left: 0.375rem;
+}
+
+.rsp-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.rsp-pagination__status {
+  color: var(--text-color-secondary);
+  font-size: 0.875rem;
+}
+
+.rsp-pagination__controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Read-only assigned-role chips in the expanded card body. */
+.rsp-assign__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.75rem;
+}
+
+.rsp-assign__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background: var(--accent-color, #0b6cbd);
+  color: var(--background, #fff);
+  /* Inert display chips, like the view-only permission pills on the Manage
+     Roles cards: no text I-beam on hover. */
+  cursor: default;
+}
+
+.rsp-assign__chip .rsp-card__pattern {
+  color: inherit;
+}
+
+/* Keep the page select's text clear of the jenkins-select chevron. */
+.rsp-pagination__select .jenkins-select__input {
+  width: auto;
+  padding-right: 2.25rem;
+}
+
+.rsp-assign__kind {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* Core spaces stacked radios via margin-bottom; in this horizontal row that
+   margin only inflates the row height. */
+.rsp-assign__kind .jenkins-radio {
+  margin-bottom: 0;
 }

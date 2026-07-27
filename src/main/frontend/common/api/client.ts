@@ -23,7 +23,24 @@ async function ensureOk(response: Response): Promise<Response> {
   return response;
 }
 
-export async function postForm(url: string, params: Params): Promise<void> {
+export async function getJson<T>(url: string, params: Params): Promise<T> {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue;
+    query.append(key, String(value));
+  }
+  const response = await fetch(`${url}?${query}`, {
+    headers: { Accept: "application/json" },
+  });
+  await ensureOk(response);
+  return (await response.json()) as T;
+}
+
+async function postFormRaw(
+  url: string,
+  params: Params,
+  signal?: AbortSignal,
+): Promise<Response> {
   const body = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue;
@@ -37,6 +54,21 @@ export async function postForm(url: string, params: Params): Promise<void> {
     method: "POST",
     headers,
     body,
+    signal,
   });
-  await ensureOk(response);
+  return ensureOk(response);
+}
+
+export async function postForm(url: string, params: Params): Promise<void> {
+  await postFormRaw(url, params);
+}
+
+/** POST that returns a JSON body, for read endpoints that require POST. */
+export async function postFormJson<T>(
+  url: string,
+  params: Params,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await postFormRaw(url, params, signal);
+  return (await response.json()) as T;
 }

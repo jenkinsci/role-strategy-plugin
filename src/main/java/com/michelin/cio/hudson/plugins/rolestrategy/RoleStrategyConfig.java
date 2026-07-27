@@ -42,7 +42,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import jenkins.model.Jenkins;
-import jenkins.util.SystemProperties;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
@@ -67,10 +66,6 @@ public class RoleStrategyConfig extends ManagementLink {
   @NonNull
   public static RoleStrategyConfig get() {
     return ExtensionList.lookupSingleton(RoleStrategyConfig.class);
-  }
-
-  public static int getMaxRows() {
-    return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
   }
 
   /**
@@ -120,24 +115,6 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /**
-   * Text displayed for the roles assignment panel.
-   *
-   * @return Title of the Role assignment panel
-   */
-  public String getAssignRolesName() {
-    return Messages.RoleBasedAuthorizationStrategy_Assign();
-  }
-
-  /**
-   * Text displayed for the roles management panel.
-   *
-   * @return Title of the Role management panel
-   */
-  public String getManageRolesName() {
-    return Messages.RoleBasedAuthorizationStrategy_Manage();
-  }
-
-  /**
    * The description of the link.
    *
    * @return The description of the link
@@ -166,19 +143,6 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /**
-   * Called on roles management form submission.
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doRolesSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    // Let the strategy descriptor handle the form
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doRolesSubmit(req, rsp);
-    // Redirect to the plugin index page
-    FormApply.success(".").generateResponse(req, rsp, this);
-  }
-
-  /**
    * Called on roles generator form submission.
    */
   @RequirePOST
@@ -201,30 +165,6 @@ public class RoleStrategyConfig extends ManagementLink {
   // // Redirect to the plugin index page
   // FormApply.success(".").generateResponse(req, rsp, this);
   // }
-
-  /**
-   * Called on role's assignment form submission.
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    // Let the strategy descriptor handle the form
-    req.setCharacterEncoding("UTF-8");
-    JSONObject json = req.getSubmittedForm();
-    JSONObject rolesMapping;
-    if (json.has("submit")) {
-      String rm = json.getString("rolesMapping");
-      rolesMapping = JSONObject.fromObject(rm);
-    } else {
-      rolesMapping = json.getJSONObject("rolesMapping");
-    }
-    if (rolesMapping.has("agentRoles")) {
-      rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
-    }
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
-    FormApply.success(".").generateResponse(req, rsp, this);
-  }
 
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
     return RoleMacroExtension.all();
@@ -251,6 +191,116 @@ public class RoleStrategyConfig extends ManagementLink {
         RoleBasedAuthorizationStrategy.DESCRIPTOR, RoleBasedAuthorizationStrategy.PROJECT));
     result.put("canEdit", Jenkins.get().hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN));
     return result.toString();
+  }
+
+  /**
+   * Bootstrap JSON for the Manage Roles page, intended to be embedded in a {@code data-*}
+   * attribute so the React UI can render immediately without an additional round trip.
+   *
+   * @return JSON string with the roles, permission groups and edit permission per role type,
+   *         plus the permission templates for the item-role dialog
+   */
+  @Restricted(NoExternalUse.class)
+  public String getManageRolesBootstrapJson() {
+    AuthorizationStrategy raw = getStrategy();
+    RoleBasedAuthorizationStrategy strategy = raw instanceof RoleBasedAuthorizationStrategy rbas ? rbas : null;
+    Jenkins jenkins = Jenkins.get();
+    JSONObject result = new JSONObject();
+    result.put(RoleBasedAuthorizationStrategy.GLOBAL, roleTypeToJson(strategy, RoleType.Global,
+        jenkins.hasPermission(Jenkins.SYSTEM_READ),
+        jenkins.hasPermission(Jenkins.ADMINISTER)));
+    result.put(RoleBasedAuthorizationStrategy.PROJECT, roleTypeToJson(strategy, RoleType.Project,
+        jenkins.hasAnyPermission(Jenkins.SYSTEM_READ, RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN),
+        jenkins.hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN)));
+    result.put(RoleBasedAuthorizationStrategy.SLAVE, roleTypeToJson(strategy, RoleType.Slave,
+        jenkins.hasAnyPermission(Jenkins.SYSTEM_READ, RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN),
+        jenkins.hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN)));
+    JSONArray templates = new JSONArray();
+    if (strategy != null) {
+      for (PermissionTemplate template : strategy.getPermissionTemplates()) {
+        templates.add(templateToJson(template));
+      }
+    }
+    result.put("templates", templates);
+    return result.toString();
+  }
+
+  /**
+   * Bootstrap JSON for the Assign Roles page, intended to be embedded in a {@code data-*}
+   * attribute so the React UI can render immediately without an additional round trip.
+   *
+   * @return JSON string with the roles, sid entries and edit permission per role type
+   */
+  @Restricted(NoExternalUse.class)
+  public String getAssignRolesBootstrapJson() {
+    AuthorizationStrategy raw = getStrategy();
+    RoleBasedAuthorizationStrategy strategy = raw instanceof RoleBasedAuthorizationStrategy rbas ? rbas : null;
+    Jenkins jenkins = Jenkins.get();
+    JSONObject result = new JSONObject();
+    result.put(RoleBasedAuthorizationStrategy.GLOBAL, assignRoleTypeToJson(strategy, RoleType.Global,
+        jenkins.hasPermission(Jenkins.SYSTEM_READ),
+        jenkins.hasPermission(Jenkins.ADMINISTER)));
+    result.put(RoleBasedAuthorizationStrategy.PROJECT, assignRoleTypeToJson(strategy, RoleType.Project,
+        jenkins.hasAnyPermission(Jenkins.SYSTEM_READ, RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN),
+        jenkins.hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN)));
+    result.put(RoleBasedAuthorizationStrategy.SLAVE, assignRoleTypeToJson(strategy, RoleType.Slave,
+        jenkins.hasAnyPermission(Jenkins.SYSTEM_READ, RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN),
+        jenkins.hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN)));
+    return result.toString();
+  }
+
+  private static JSONObject assignRoleTypeToJson(@CheckForNull RoleBasedAuthorizationStrategy strategy, RoleType roleType,
+      boolean visible, boolean canEdit) {
+    JSONObject json = new JSONObject();
+    json.put("visible", visible);
+    json.put("canEdit", visible && canEdit);
+    JSONArray roles = new JSONArray();
+    JSONArray entries = new JSONArray();
+    if (visible && strategy != null) {
+      for (Role role : strategy.getRoleMap(roleType).getRoles()) {
+        roles.add(roleToJson(role, roleType));
+      }
+      entries = strategy.roleAssignmentsToJson(roleType.getStringType());
+    }
+    json.put("roles", roles);
+    json.put("entries", entries);
+    return json;
+  }
+
+  private static JSONObject roleTypeToJson(@CheckForNull RoleBasedAuthorizationStrategy strategy, RoleType roleType,
+      boolean visible, boolean canEdit) {
+    JSONObject json = new JSONObject();
+    json.put("visible", visible);
+    json.put("canEdit", visible && canEdit);
+    JSONArray groups = new JSONArray();
+    JSONArray roles = new JSONArray();
+    if (visible && strategy != null) {
+      groups = permissionGroupsToJson(RoleBasedAuthorizationStrategy.DESCRIPTOR, roleType.getStringType());
+      for (Role role : strategy.getRoleMap(roleType).getRoles()) {
+        roles.add(roleToJson(role, roleType));
+      }
+    }
+    json.put("permissionGroups", groups);
+    json.put("roles", roles);
+    return json;
+  }
+
+  private static JSONObject roleToJson(Role role, RoleType roleType) {
+    JSONObject roleJson = new JSONObject();
+    roleJson.put("name", role.getName());
+    if (roleType != RoleType.Global) {
+      roleJson.put("pattern", role.getPattern().pattern());
+    }
+    String templateName = role.getTemplateName();
+    if (roleType == RoleType.Project && templateName != null && !templateName.isEmpty()) {
+      roleJson.put("templateName", templateName);
+    }
+    JSONArray permIds = new JSONArray();
+    for (Permission p : role.getPermissions()) {
+      permIds.add(p.getId());
+    }
+    roleJson.put("permissionIds", permIds);
+    return roleJson;
   }
 
   private static JSONObject templateToJson(PermissionTemplate template) {
@@ -294,17 +344,5 @@ public class RoleStrategyConfig extends ManagementLink {
       groupsArray.add(g);
     }
     return groupsArray;
-  }
-
-  public final RoleType getGlobalRoleType() {
-    return RoleType.Global;
-  }
-
-  public final RoleType getProjectRoleType() {
-    return RoleType.Project;
-  }
-
-  public final RoleType getSlaveRoleType() {
-    return RoleType.Slave;
   }
 }

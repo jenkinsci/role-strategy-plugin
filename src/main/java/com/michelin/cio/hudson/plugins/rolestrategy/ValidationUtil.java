@@ -1,12 +1,11 @@
 package com.michelin.cio.hudson.plugins.rolestrategy;
 
-import hudson.Functions;
-import hudson.Util;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.User;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException2;
-import hudson.util.FormValidation;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
@@ -15,147 +14,111 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+/**
+ * Resolves sids against the security realm for the Assign Roles UI.
+ */
 @Restricted(NoExternalUse.class)
 class ValidationUtil {
 
   private static String userSymbol;
   private static String groupSymbol;
 
-  private static String warningSymbol;
-
   private ValidationUtil() {
     // do not use
   }
 
-  static String formatNonExistentUserGroupValidationResponse(AuthorizationType type, String user, String tooltip) {
-    return formatNonExistentUserGroupValidationResponse(type, user, tooltip, false);
-  }
-
-  static String formatNonExistentUserGroupValidationResponse(AuthorizationType type, String user, String tooltip, boolean alert) {
-    return formatUserGroupValidationResponse(type, "<span class='rsp-entry-not-found'>" + user + "</span>",
-            tooltip, alert);
-  }
-
   private static String getSymbol(String symbol, String clazzes) {
     SymbolRequest.Builder builder = new SymbolRequest.Builder();
-
     return Symbol.get(builder.withRaw("symbol-" + symbol + "-outline plugin-ionicons-api").withClasses(clazzes).build());
   }
 
-  private static void loadUserSymbol() {
+  private static String loadUserSymbol() {
     if (userSymbol == null) {
       userSymbol = getSymbol("person", "icon-sm");
     }
+    return userSymbol;
   }
 
-  private static void loadGroupSymbol() {
+  private static String loadGroupSymbol() {
     if (groupSymbol == null) {
       groupSymbol = getSymbol("people", "icon-sm");
     }
+    return groupSymbol;
   }
 
-  private static void loadWarningSymbol() {
-    if (warningSymbol == null) {
-      warningSymbol = getSymbol("warning", "icon-md rsp-table__icon-alert");
-    }
-  }
-
+  /**
+   * Html snippet with the user/group icon next to the (already escaped) name,
+   * as shown below the name field of the Assign Roles dialog.
+   */
   static String formatUserGroupValidationResponse(AuthorizationType type, String user, String tooltip) {
-    return formatUserGroupValidationResponse(type, user, tooltip, false);
-  }
-
-  static String formatUserGroupValidationResponse(AuthorizationType type, String user, String tooltip, boolean alert) {
-    String symbol;
-    switch (type) {
-      case GROUP:
-        loadGroupSymbol();
-        symbol = groupSymbol;
-        break;
-      case EITHER:
-      case USER:
-      default:
-        loadUserSymbol();
-        symbol = userSymbol;
-        break;
-    }
-    if (alert) {
-      loadWarningSymbol();
-      return String.format("<div tooltip='%s' class='rsp-table__cell'>%s%s%s</div>", tooltip, warningSymbol, symbol, user);
-    }
+    String symbol = type == AuthorizationType.GROUP ? loadGroupSymbol() : loadUserSymbol();
     return String.format("<div tooltip='%s' class='rsp-table__cell'>%s%s</div>", tooltip, symbol, user);
   }
 
-  static FormValidation validateGroup(String groupName, SecurityRealm sr, boolean ambiguous) {
-    String escapedSid = Functions.escape(groupName);
-    try {
-      GroupDetails details = sr.loadGroupByGroupname2(groupName, false);
-      escapedSid = Util.escape(StringUtils.abbreviate(details.getDisplayName(), 50));
-      if (ambiguous) {
-        return FormValidation.respond(FormValidation.Kind.WARNING,
-                formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid,
-            "Group found; but permissions would also be granted to a user of this name", true));
-      } else {
-        return FormValidation.respond(FormValidation.Kind.OK, formatUserGroupValidationResponse(AuthorizationType.GROUP,
-                escapedSid, "Group"));
-      }
-    } catch (UserMayOrMayNotExistException2 e) {
-      // undecidable, meaning the group may exist
-      if (ambiguous) {
-        return FormValidation.respond(FormValidation.Kind.WARNING,
-            formatUserGroupValidationResponse(AuthorizationType.GROUP, escapedSid,
-                    "Permissions would also be granted to a user or group of this name", true));
-      } else {
-        return FormValidation.ok(escapedSid);
-      }
-    } catch (UsernameNotFoundException e) {
-      // fall through next
-    } catch (AuthenticationException e) {
-      // other seemingly unexpected error.
-      return FormValidation.error(e, "Failed to test the validity of the group name " + groupName);
-    }
-    return null;
+  static String formatNonExistentUserGroupValidationResponse(AuthorizationType type, String user, String tooltip) {
+    return formatUserGroupValidationResponse(type, "<span class='rsp-entry-not-found'>" + user + "</span>", tooltip);
   }
 
-  static FormValidation validateUser(String userName, SecurityRealm sr, boolean ambiguous) {
-    String escapedSid = Functions.escape(userName);
+  enum SidResolutionKind {
+    FOUND,
+    NOT_FOUND,
+    /** The realm cannot decide whether the sid exists (e.g. it does not support lookups). */
+    UNKNOWN
+  }
+
+  /**
+   * Outcome of a sid lookup: whether it exists and, when it does, a display name differing from the sid.
+   */
+  static final class SidResolution {
+    private final SidResolutionKind kind;
+    private final String displayName;
+
+    SidResolution(SidResolutionKind kind, @CheckForNull String displayName) {
+      this.kind = kind;
+      this.displayName = displayName;
+    }
+
+    SidResolutionKind getKind() {
+      return kind;
+    }
+
+    @CheckForNull
+    String getDisplayName() {
+      return displayName;
+    }
+  }
+
+  @NonNull
+  static SidResolution resolveUser(String userName, SecurityRealm sr) {
     try {
       sr.loadUserByUsername2(userName);
-      User u = User.getById(userName, true);
-      if (userName.equals(u.getFullName())) {
-        // Sid and full name are identical, no need for tooltip
-        if (ambiguous) {
-          return FormValidation.respond(FormValidation.Kind.WARNING,
-                  formatUserGroupValidationResponse(AuthorizationType.EITHER, escapedSid,
-              "User found; but permissions would also be granted to a group of this name", true));
-        } else {
-          return FormValidation.respond(FormValidation.Kind.OK,
-                  formatUserGroupValidationResponse(AuthorizationType.USER, escapedSid, "User"));
-        }
-      }
-      if (ambiguous) {
-        return FormValidation.respond(FormValidation.Kind.WARNING,
-                formatUserGroupValidationResponse(AuthorizationType.EITHER, Util.escape(StringUtils.abbreviate(u.getFullName(), 50)),
-                "User " + escapedSid + " found, but permissions would also be granted to a group of this name", true));
-      } else {
-        return FormValidation.respond(FormValidation.Kind.OK,
-            formatUserGroupValidationResponse(AuthorizationType.USER, Util.escape(StringUtils.abbreviate(u.getFullName(), 50)),
-                    "User " + escapedSid));
-      }
+      User user = User.getById(userName, true);
+      String fullName = user != null ? user.getFullName() : userName;
+      String displayName = userName.equals(fullName) ? null : StringUtils.abbreviate(fullName, 50);
+      return new SidResolution(SidResolutionKind.FOUND, displayName);
     } catch (UserMayOrMayNotExistException2 e) {
-      // undecidable, meaning the user may exist
-      if (ambiguous) {
-        return FormValidation.respond(FormValidation.Kind.WARNING,
-            formatUserGroupValidationResponse(AuthorizationType.EITHER, escapedSid,
-                    "Permissions would also be granted to a user or group of this name", true));
-      } else {
-        return FormValidation.ok(escapedSid);
-      }
+      return new SidResolution(SidResolutionKind.UNKNOWN, null);
     } catch (UsernameNotFoundException e) {
-      // fall through next
+      return new SidResolution(SidResolutionKind.NOT_FOUND, null);
     } catch (AuthenticationException e) {
-      // other seemingly unexpected error.
-      return FormValidation.error(e, "Failed to test the validity of the user name " + escapedSid);
+      // an unexpected realm failure says nothing about the sid itself
+      return new SidResolution(SidResolutionKind.UNKNOWN, null);
     }
-    return null;
+  }
+
+  @NonNull
+  static SidResolution resolveGroup(String groupName, SecurityRealm sr) {
+    try {
+      GroupDetails details = sr.loadGroupByGroupname2(groupName, false);
+      String display = details.getDisplayName();
+      String displayName = display == null || groupName.equals(display) ? null : StringUtils.abbreviate(display, 50);
+      return new SidResolution(SidResolutionKind.FOUND, displayName);
+    } catch (UserMayOrMayNotExistException2 e) {
+      return new SidResolution(SidResolutionKind.UNKNOWN, null);
+    } catch (UsernameNotFoundException e) {
+      return new SidResolution(SidResolutionKind.NOT_FOUND, null);
+    } catch (AuthenticationException e) {
+      return new SidResolution(SidResolutionKind.UNKNOWN, null);
+    }
   }
 }

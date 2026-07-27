@@ -51,7 +51,7 @@ export function PermissionGroups({
               return (
                 <label
                   key={p.id}
-                  className="rsp-perm__item"
+                  className={`rsp-perm__item${isImplied ? " rsp-perm__item--implied" : ""}`}
                   data-permission-id={p.id}
                 >
                   <input

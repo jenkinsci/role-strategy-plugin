@@ -10,6 +10,8 @@ interface SearchWithFilterProps {
   onSearchChange: (next: string) => void;
   filterGroups?: PermissionGroup[];
   filterLabel?: string;
+  /** Placeholder of the search box inside the filter dropdown. */
+  filterSearchPlaceholder?: string;
   selectedFilterIds?: ReadonlySet<string>;
   onFilterToggle?: (permissionId: string) => void;
   onFilterReset?: () => void;
@@ -21,6 +23,7 @@ export function SearchWithFilter({
   onSearchChange,
   filterGroups,
   filterLabel = "Filter by permission",
+  filterSearchPlaceholder = "Search permissions",
   selectedFilterIds = new Set(),
   onFilterToggle,
   onFilterReset,
@@ -103,7 +106,7 @@ export function SearchWithFilter({
               <div className="rsp-filter__search">
                 <SearchInput
                   className="rsp-filter__search-bar"
-                  placeholder="Search permissions"
+                  placeholder={filterSearchPlaceholder}
                   value={filterQuery}
                   onChange={(e) => setFilterQuery(e.target.value)}
                 />
