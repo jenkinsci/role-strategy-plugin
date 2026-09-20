@@ -432,7 +432,14 @@ export function AssignRolesPage({
       <div
         id="rsp-assign-panel"
         role="tabpanel"
-        aria-labelledby={`rsp-tab-${activeKey}`}
+        aria-labelledby={
+          visibleTabs.length > 1 ? `rsp-tab-${activeKey}` : undefined
+        }
+        aria-label={
+          visibleTabs.length > 1
+            ? undefined
+            : (TABS.find((t) => t.key === activeKey)?.label ?? undefined)
+        }
       >
         {hasAmbiguous && (
           <div className="jenkins-alert jenkins-alert-warning jenkins-!-margin-bottom-3">

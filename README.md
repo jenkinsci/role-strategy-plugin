@@ -73,7 +73,7 @@ You can assign roles to users and user groups using the _Assign Roles_ screen
 To ensure a responsive UI the item assignment works with pagination. With many roles the tooltips and the highlighter might still be a bit laggy.
 Applying a role filter will make them work smoothly usually.
 
-By default the number of rows is limited to 30 for the item role assignment page. You can change this by setting the system property
+By default the number of rows is limited to 50 for the item role assignment page. You can change this by setting the system property
 `com.michelin.cio.hudson.plugins.rolestrategy.RoleStrategyConfig.MAX_ROWS` at jvm start or via the script console.
 
 The number of parameters in a form submission is limited to 10000 by default in Jenkins and the max formsize is limited to 200000 by Jetty.

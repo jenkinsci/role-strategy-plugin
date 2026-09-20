@@ -192,6 +192,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public static final Permission[] SYSTEM_READ_AND_SOME_ROLES_ADMIN =
           new Permission[] { Jenkins.SYSTEM_READ, ITEM_ROLES_ADMIN, AGENT_ROLES_ADMIN };
 
+  /**
+   * Upper bound on the number of sids a single {@link #doGetSidsInfo(String)} request may resolve.
+   * Each entry can require up to two synchronous security realm lookups, so this keeps a single
+   * request from tying up Jenkins request threads or an external realm.
+   */
+  @Restricted(NoExternalUse.class)
+  static final int MAX_SIDS_PER_REQUEST = 150;
+
   @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "Used by jelly pages")
   @Restricted(NoExternalUse.class) // called by jelly
   public static final Permission[] ADMINISTER_AND_SOME_ROLES_ADMIN =
@@ -1150,7 +1158,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * the sid resolved to a name differing from the id.
    *
    * @param sids JSON array of {@code {sid, type}} objects; a form field rather than repeated query
-   *             parameters because sids may contain arbitrary characters (e.g. LDAP DNs)
+   *             parameters because sids may contain arbitrary characters (e.g. LDAP DNs). Rejected
+   *             with {@code 400} when it holds more than {@link #MAX_SIDS_PER_REQUEST} entries.
    * @throws IOException when unable to write the response
    */
   @RequirePOST
@@ -1158,16 +1167,27 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   public void doGetSidsInfo(@QueryParameter(required = true) String sids) throws IOException {
     Jenkins jenkins = Jenkins.get();
     jenkins.checkAnyPermission(SYSTEM_READ_AND_SOME_ROLES_ADMIN);
+
+    JSONArray items = JSONArray.fromObject(sids);
+    StaplerResponse2 response = Stapler.getCurrentResponse2();
+    if (items.size() > MAX_SIDS_PER_REQUEST) {
+      // Reject oversized batches up front, before any realm lookup begins: an EITHER entry can
+      // cost two lookups each, and an unbounded array could otherwise tie up Jenkins request
+      // threads or an external realm.
+      response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+          "Too many sids requested at once (" + items.size() + " > " + MAX_SIDS_PER_REQUEST + ")");
+      return;
+    }
+
     // Role-type admins without SystemRead may manage assignments but must not probe the realm,
     // mirroring the reading gate the legacy checkName endpoint applied.
     SecurityRealm realm = jenkins.hasPermission(Jenkins.SYSTEM_READ) ? jenkins.getSecurityRealm() : null;
 
     JSONArray responseJson = new JSONArray();
-    for (Object item : JSONArray.fromObject(sids)) {
+    for (Object item : items) {
       JSONObject request = (JSONObject) item;
       responseJson.add(sidInfoToJson(request.getString("sid"), AuthorizationType.valueOf(request.getString("type")), realm));
     }
-    StaplerResponse2 response = Stapler.getCurrentResponse2();
     response.setContentType("application/json;charset=UTF-8");
     Writer writer = response.getWriter();
     responseJson.write(writer);
@@ -1867,9 +1887,14 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       }
 
       SecurityRealm realm = Jenkins.get().getSecurityRealm();
-      ValidationUtil.SidResolution resolution = isGroup
-          ? ValidationUtil.resolveGroup(sid, realm)
-          : ValidationUtil.resolveUser(sid, realm);
+      ValidationUtil.SidResolution resolution;
+      try {
+        resolution = isGroup ? ValidationUtil.resolveGroup(sid, realm) : ValidationUtil.resolveUser(sid, realm);
+      } catch (RuntimeException e) {
+        // A realm may throw for lookups it does not support (e.g. UnsupportedOperationException);
+        // treat that the same as an inconclusive lookup instead of failing the request.
+        return FormValidation.ok(escapedSid);
+      }
       String kindWord = isGroup ? "Group" : "User";
       switch (resolution.getKind()) {
         case FOUND:
