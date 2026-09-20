@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -213,7 +214,7 @@ public class RoleMap {
                 cache.put(sid.getSid(), userDetails);
               }
               for (GrantedAuthority grantedAuthority : userDetails.getAuthorities()) {
-                if (grantedAuthority.getAuthority().equals(current.getName())) {
+                if (current.getName().equals(grantedAuthority.getAuthority())) {
                   hasPermission[0] = true;
                   abort();
                   return;
@@ -637,11 +638,15 @@ public class RoleMap {
   @NonNull
   @Restricted(NoExternalUse.class)
   public Set<String> getRolesForAuth(Authentication auth) {
-    PermissionEntry userEntry = new PermissionEntry(AuthorizationType.USER, auth.getPrincipal().toString());
+    PermissionEntry userEntry = new PermissionEntry(
+        AuthorizationType.USER, Objects.requireNonNull(auth.getPrincipal(), "principal").toString());
     Set<String> roleSet = new HashSet<>(getRolesForSidEntry(userEntry));
     for (GrantedAuthority group : auth.getAuthorities()) {
-      PermissionEntry groupEntry = new PermissionEntry(AuthorizationType.GROUP, group.getAuthority());
-      roleSet.addAll(getRolesForSidEntry(groupEntry));
+      String authority = group.getAuthority();
+      if (authority != null) {
+        PermissionEntry groupEntry = new PermissionEntry(AuthorizationType.GROUP, authority);
+        roleSet.addAll(getRolesForSidEntry(groupEntry));
+      }
     }
     return roleSet;
   }
