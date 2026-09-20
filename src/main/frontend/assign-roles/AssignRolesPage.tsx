@@ -218,18 +218,16 @@ export function AssignRolesPage({
   );
 
   // Realm lookups are scoped to the visible page so a large instance does not
-  // fire thousands of lookups up front. While a search is active, display-name
-  // matching needs every entry resolved (not just the current page), so the
-  // full list is used instead; this only costs extra lookups once the admin
-  // opts in by typing a query. The reserved entries are skipped: they always
-  // exist and never carry a display name. A lookup whose page is left before
-  // it lands (paging on, typing in search) is aborted and its sids are
-  // released for a retry on their next appearance.
-  const searching = search.trim().length > 0;
+  // fire thousands of lookups up front; a search only matches sids already
+  // resolved this way (current and previously-visited pages), not the full
+  // list, so a single keystroke can never fan out into thousands of realm
+  // lookups. The reserved entries are skipped: they always exist and never
+  // carry a display name. A lookup whose page is left before it lands
+  // (paging away before it resolves) is aborted and its sids are released
+  // for a retry on their next appearance.
   const requestedInfo = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const source = searching ? entries : pageEntries;
-    const items = source
+    const items = pageEntries
       .filter(
         (e) =>
           !isInternal(e) && !requestedInfo.current.has(infoKey(e.type, e.name)),
@@ -253,7 +251,7 @@ export function AssignRolesPage({
         }
       });
     return () => controller.abort();
-  }, [pageEntries, entries, searching, client, mergeSidInfo]);
+  }, [pageEntries, client, mergeSidInfo]);
 
   const updateEntries = (
     key: RoleTypeKey,

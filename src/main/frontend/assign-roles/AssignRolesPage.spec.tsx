@@ -623,7 +623,7 @@ describe("AssignRolesPage", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("matches display names on pages beyond the current one", async () => {
+    it("does not widen sid resolution beyond the current page when searching", async () => {
       const user = userEvent.setup();
       const client = createClient();
       vi.mocked(client.getSidsInfo).mockImplementation(async (items) =>
@@ -638,15 +638,20 @@ describe("AssignRolesPage", () => {
           })),
       );
       renderPage(manyUsersBootstrap(), client);
+      await waitFor(() => expect(client.getSidsInfo).toHaveBeenCalledTimes(1));
 
-      // "user119" is on the third page, unresolved until a search widens the
-      // lookup beyond the current (first) page.
+      // "user119" is on the third page. Searching must not trigger resolution
+      // of entries outside the visible page(s) -- that would fan out into
+      // thousands of realm lookups on a large instance from a single
+      // keystroke. So a display-name search for an unresolved, off-page sid
+      // finds nothing.
       await user.type(
         screen.getByPlaceholderText("Search users and groups"),
         "Zed Target",
       );
 
-      expect(await screen.findByText(/user119/)).toBeInTheDocument();
+      expect(screen.queryByText(/user119/)).not.toBeInTheDocument();
+      expect(client.getSidsInfo).toHaveBeenCalledTimes(1);
     });
 
     it("resolves sids one page at a time", async () => {
