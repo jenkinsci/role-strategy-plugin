@@ -69,8 +69,6 @@ const sameSid = (a: SidEntry, name: string, type: SidType) =>
 
 const infoKey = (type: SidType, sid: string) => `${type}:${sid}`;
 
-const PAGE_SIZE = 50;
-
 /** Synthetic filter id for narrowing to ambiguous (EITHER) entries; it lives
     in the same dropdown as the role filters but matches on entry type. */
 const AMBIGUOUS_FILTER_ID = "__rsp-ambiguous__";
@@ -209,23 +207,29 @@ export function AssignRolesPage({
   }, [entries, search, roleFilter, sidInfo]);
 
   // Rendering thousands of cards at once makes the page sluggish, so the list
-  // is paged client-side; search and the role filter still cover all entries.
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // is paged client-side (page size from the MAX_ROWS system property); search
+  // and the role filter still cover all entries.
+  const pageSize = bootstrap.pageSize;
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount - 1);
   const pageEntries = useMemo(
-    () =>
-      filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
-    [filtered, currentPage],
+    () => filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize),
+    [filtered, currentPage, pageSize],
   );
 
   // Realm lookups are scoped to the visible page so a large instance does not
-  // fire thousands of lookups up front. The reserved entries are skipped: they
-  // always exist and never carry a display name. A lookup whose page is left
-  // before it lands (paging on, typing in search) is aborted and its sids are
+  // fire thousands of lookups up front. While a search is active, display-name
+  // matching needs every entry resolved (not just the current page), so the
+  // full list is used instead; this only costs extra lookups once the admin
+  // opts in by typing a query. The reserved entries are skipped: they always
+  // exist and never carry a display name. A lookup whose page is left before
+  // it lands (paging on, typing in search) is aborted and its sids are
   // released for a retry on their next appearance.
+  const searching = search.trim().length > 0;
   const requestedInfo = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const items = pageEntries
+    const source = searching ? entries : pageEntries;
+    const items = source
       .filter(
         (e) =>
           !isInternal(e) && !requestedInfo.current.has(infoKey(e.type, e.name)),
@@ -249,7 +253,7 @@ export function AssignRolesPage({
         }
       });
     return () => controller.abort();
-  }, [pageEntries, client, mergeSidInfo]);
+  }, [pageEntries, entries, searching, client, mergeSidInfo]);
 
   const updateEntries = (
     key: RoleTypeKey,
@@ -269,8 +273,15 @@ export function AssignRolesPage({
 
   const handleAddSubmit = async (input: AssignSidDialogResult) => {
     const key = activeKey;
-    for (const roleName of input.roles) {
-      await client.assignSidRole(key, roleName, input.name, input.type);
+    try {
+      for (const roleName of input.roles) {
+        await client.assignSidRole(key, roleName, input.name, input.type);
+      }
+    } catch (err) {
+      // Some grants may have been applied before the failure; realign with
+      // the server before the dialog surfaces the error.
+      await resync(key);
+      throw err;
     }
     const nextEntries = [
       ...entriesByType[key],
@@ -284,7 +295,7 @@ export function AssignRolesPage({
     setPage(
       Math.floor(
         nextEntries.findIndex((e) => sameSid(e, input.name, input.type)) /
-          PAGE_SIZE,
+          pageSize,
       ),
     );
     setMode("closed");
@@ -480,7 +491,7 @@ export function AssignRolesPage({
           page={currentPage}
           pageCount={pageCount}
           totalItems={filtered.length}
-          pageSize={PAGE_SIZE}
+          pageSize={pageSize}
           onPageChange={setPage}
         />
       </div>
@@ -510,6 +521,7 @@ export function AssignRolesPage({
           initialName={editing.name}
           initialRoles={editing.roles}
           submitLabel="Save"
+          allowEmptyRoles={isInternal(editing)}
           onCancel={() => setMode("closed")}
           onSubmit={(input) => handleEditSubmit(editing, input)}
         />

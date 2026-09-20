@@ -42,6 +42,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import jenkins.model.Jenkins;
+import jenkins.util.SystemProperties;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
@@ -246,7 +247,19 @@ public class RoleStrategyConfig extends ManagementLink {
     result.put(RoleBasedAuthorizationStrategy.SLAVE, assignRoleTypeToJson(strategy, RoleType.Slave,
         jenkins.hasAnyPermission(Jenkins.SYSTEM_READ, RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN),
         jenkins.hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN)));
+    result.put("pageSize", getMaxRows());
     return result.toString();
+  }
+
+  /**
+   * The number of Assign Roles cards rendered per page, kept configurable via the
+   * documented {@code MAX_ROWS} system property so large instances can tune it for
+   * performance.
+   *
+   * @return the configured page size, defaulting to 30
+   */
+  public static int getMaxRows() {
+    return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
   }
 
   private static JSONObject assignRoleTypeToJson(@CheckForNull RoleBasedAuthorizationStrategy strategy, RoleType roleType,
@@ -344,5 +357,35 @@ public class RoleStrategyConfig extends ManagementLink {
       groupsArray.add(g);
     }
     return groupsArray;
+  }
+
+  /**
+   * Returns the global role type, used by {@code list-macros.jelly} to evaluate a macro's
+   * applicability to global roles.
+   *
+   * @return the {@link RoleType#Global} constant
+   */
+  public final RoleType getGlobalRoleType() {
+    return RoleType.Global;
+  }
+
+  /**
+   * Returns the project role type, used by {@code list-macros.jelly} to evaluate a macro's
+   * applicability to item roles.
+   *
+   * @return the {@link RoleType#Project} constant
+   */
+  public final RoleType getProjectRoleType() {
+    return RoleType.Project;
+  }
+
+  /**
+   * Returns the slave role type, used by {@code list-macros.jelly} to evaluate a macro's
+   * applicability to agent roles.
+   *
+   * @return the {@link RoleType#Slave} constant
+   */
+  public final RoleType getSlaveRoleType() {
+    return RoleType.Slave;
   }
 }

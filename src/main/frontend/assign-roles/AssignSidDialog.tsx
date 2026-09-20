@@ -27,6 +27,12 @@ interface AssignSidDialogProps {
   initialName: string;
   initialRoles: string[];
   submitLabel: string;
+  /**
+   * Allows saving with no roles selected. Used for the built-in
+   * anonymous/authenticated entries, which always exist and have no delete
+   * action, so unassigning their last role must stay reachable through Save.
+   */
+  allowEmptyRoles?: boolean;
   onCancel: () => void;
   onSubmit: (input: AssignSidDialogResult) => Promise<void>;
 }
@@ -56,6 +62,7 @@ export function AssignSidDialog({
   initialName,
   initialRoles,
   submitLabel,
+  allowEmptyRoles = false,
   onCancel,
   onSubmit,
 }: AssignSidDialogProps) {
@@ -81,9 +88,14 @@ export function AssignSidDialog({
     allowNameEdit &&
     existingEntries.some((e) => e.name === trimmed && e.type === "EITHER");
   // An assignment entry only exists through its roles, so an empty selection
-  // has nothing to save; removal is a separate card action.
+  // has nothing to save; removal is a separate card action. Built-in entries
+  // are the exception: they always exist and have no delete action, so an
+  // empty selection is how their last role gets revoked.
   const canSubmit =
-    trimmed !== "" && !taken && selected.size > 0 && !submitting;
+    trimmed !== "" &&
+    !taken &&
+    (selected.size > 0 || allowEmptyRoles) &&
+    !submitting;
 
   const kindWord = kind === "GROUP" ? "Group" : "User";
 
@@ -292,7 +304,7 @@ export function AssignSidDialog({
                   })}
                 </div>
               </div>
-              {selected.size === 0 && (
+              {selected.size === 0 && !allowEmptyRoles && (
                 <div className="jenkins-form-description">
                   Select at least one role.
                 </div>

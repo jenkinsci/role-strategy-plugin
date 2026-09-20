@@ -39,6 +39,7 @@ const bootstrap = (
     entries: [{ name: "devs", type: "GROUP", roles: ["dev"] }],
   }),
   slaveRoles: typeBootstrap({ roles: [], entries: [] }),
+  pageSize: 50,
   ...overrides,
 });
 
@@ -265,6 +266,43 @@ describe("AssignRolesPage", () => {
 
     await user.click(screen.getByRole("checkbox", { name: /reader/ }));
     expect(screen.getByRole("button", { name: "Add" })).toBeEnabled();
+  });
+
+  it("allows saving an empty role selection when editing a built-in entry", async () => {
+    const user = userEvent.setup();
+    const client = renderPage(
+      bootstrap({
+        globalRoles: typeBootstrap({
+          roles: [{ name: "admin", permissionIds: [] }],
+          entries: [{ name: "anonymous", type: "USER", roles: ["admin"] }],
+        }),
+      }),
+    );
+
+    await user.click(within(cardOf("anonymous")).getByLabelText("Edit roles"));
+    expect(
+      await screen.findByText("Edit roles: anonymous"),
+    ).toBeInTheDocument();
+    // No "select at least one role" hint for built-in entries, and Save
+    // starts enabled since the built-in has an existing role.
+    expect(
+      screen.queryByText("Select at least one role."),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "admin" }));
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(client.unassignSidRole).toHaveBeenCalledWith(
+        "globalRoles",
+        "admin",
+        "anonymous",
+        "USER",
+      ),
+    );
+    // The synthetic card is retained rather than disappearing.
+    expect(screen.getByText("anonymous")).toBeInTheDocument();
   });
 
   it("shows the server-rendered name lookup snippet after leaving the field", async () => {
@@ -583,6 +621,32 @@ describe("AssignRolesPage", () => {
       expect(
         screen.queryByRole("button", { name: "Next" }),
       ).not.toBeInTheDocument();
+    });
+
+    it("matches display names on pages beyond the current one", async () => {
+      const user = userEvent.setup();
+      const client = createClient();
+      vi.mocked(client.getSidsInfo).mockImplementation(async (items) =>
+        items
+          .filter((i) => i.sid === "user119")
+          .map((i) => ({
+            sid: i.sid,
+            type: i.type,
+            resolution: "found" as const,
+            foundAs: "USER" as const,
+            displayName: "Zed Target",
+          })),
+      );
+      renderPage(manyUsersBootstrap(), client);
+
+      // "user119" is on the third page, unresolved until a search widens the
+      // lookup beyond the current (first) page.
+      await user.type(
+        screen.getByPlaceholderText("Search users and groups"),
+        "Zed Target",
+      );
+
+      expect(await screen.findByText(/user119/)).toBeInTheDocument();
     });
 
     it("resolves sids one page at a time", async () => {

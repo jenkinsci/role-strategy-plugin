@@ -92,7 +92,10 @@ class ValidationUtil {
   static SidResolution resolveUser(String userName, SecurityRealm sr) {
     try {
       sr.loadUserByUsername2(userName);
-      User user = User.getById(userName, true);
+      // Do not create a User record as a side effect of resolving a sid for
+      // display; the null fallback below already covers sids with no local
+      // user record.
+      User user = User.getById(userName, false);
       String fullName = user != null ? user.getFullName() : userName;
       String displayName = userName.equals(fullName) ? null : StringUtils.abbreviate(fullName, 50);
       return new SidResolution(SidResolutionKind.FOUND, displayName);

@@ -37,4 +37,6 @@ export interface AssignRolesBootstrap {
   globalRoles: AssignRoleTypeBootstrap;
   projectRoles: AssignRoleTypeBootstrap;
   slaveRoles: AssignRoleTypeBootstrap;
+  /** Cards rendered per page, from the MAX_ROWS system property (default 30). */
+  pageSize: number;
 }
