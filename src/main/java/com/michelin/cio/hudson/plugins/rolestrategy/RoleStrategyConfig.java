@@ -256,10 +256,10 @@ public class RoleStrategyConfig extends ManagementLink {
    * documented {@code MAX_ROWS} system property so large instances can tune it for
    * performance.
    *
-   * @return the configured page size, defaulting to 30
+   * @return the configured page size, defaulting to 50
    */
   public static int getMaxRows() {
-    return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
+    return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 50);
   }
 
   private static JSONObject assignRoleTypeToJson(@CheckForNull RoleBasedAuthorizationStrategy strategy, RoleType roleType,
