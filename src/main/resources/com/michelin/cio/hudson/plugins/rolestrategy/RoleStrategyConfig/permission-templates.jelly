@@ -27,15 +27,15 @@
   <j:set var="header">
     <l:view>
       <l:app-bar title="${%Permission Templates}">
-        <a href="manage-roles" class="jenkins-button">
-          ${%Manage Roles}
-        </a>
         <l:hasPermission permission="${it.strategy.ITEM_ROLES_ADMIN}">
           <button type="button" class="jenkins-button jenkins-button--primary" id="rsp-add-template-btn">
             <l:icon src="symbol-add plugin-ionicons-api"/>
             ${%Add Template}
           </button>
         </l:hasPermission>
+        <a href="manage-roles" class="jenkins-button">
+          ${%Manage Roles}
+        </a>
       </l:app-bar>
       <p class="jenkins-page-description">
         ${%blurb}
