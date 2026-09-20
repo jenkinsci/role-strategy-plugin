@@ -32,9 +32,8 @@
 
   <properties>
     <changelist>999999-SNAPSHOT</changelist>
-    <jenkins.baseline>2.555</jenkins.baseline>
-    <!-- TODO revert back to using jenkins.baseline when back on the LTS line -->
-    <jenkins.version>2.559</jenkins.version>
+    <jenkins.baseline>2.568</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <checkstyle.version>13.11.0</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
@@ -48,7 +47,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>6453.v115ff6f496dd</version>
+        <version>7046.v43536164769c</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

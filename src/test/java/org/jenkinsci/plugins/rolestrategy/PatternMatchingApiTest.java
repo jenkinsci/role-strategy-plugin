@@ -20,7 +20,8 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 /**
  * Tests for permission-based access control on pattern matching API endpoints.
  * These endpoints are used by the UI to show which items/agents match a given pattern.
- * They require Jenkins.ADMINISTER permission.
+ * getMatchingJobs requires ITEM_ROLES_ADMIN, getMatchingAgents requires AGENT_ROLES_ADMIN
+ * (both implied by Jenkins.ADMINISTER).
  */
 @WithJenkins
 class PatternMatchingApiTest {
@@ -50,13 +51,13 @@ class PatternMatchingApiTest {
         "false", "", "");
     rbas.doAssignUserRole("globalRoles", "adminRole", "adminUser");
 
-    // Adding itemAdmin role and assigning itemAdminUser (should NOT have access to pattern matching)
+    // Adding itemAdmin role and assigning itemAdminUser (may match jobs but not agents)
     rbas.doAddRole("globalRoles", "itemAdminRole",
         "hudson.model.Hudson.Read," + RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN.getId(),
         "false", "", "");
     rbas.doAssignUserRole("globalRoles", "itemAdminRole", "itemAdminUser");
 
-    // Adding agentAdmin role and assigning agentAdminUser (should NOT have access to pattern matching)
+    // Adding agentAdmin role and assigning agentAdminUser (may match agents but not jobs)
     rbas.doAddRole("globalRoles", "agentAdminRole",
         "hudson.model.Hudson.Read," + RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN.getId(),
         "false", "", "");
@@ -108,13 +109,13 @@ class PatternMatchingApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getMatchingJobs?pattern=.*");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
 
-    // adminUser has Jenkins.ADMINISTER - should succeed
+    // adminUser has Jenkins.ADMINISTER (implies ITEM_ROLES_ADMIN) - should succeed
     performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_OK);
 
-    // itemAdminUser does NOT have Jenkins.ADMINISTER - should fail
-    performAsAndExpect("itemAdminUser", request, HttpURLConnection.HTTP_FORBIDDEN);
+    // itemAdminUser has ITEM_ROLES_ADMIN - should succeed
+    performAsAndExpect("itemAdminUser", request, HttpURLConnection.HTTP_OK);
 
-    // agentAdminUser does NOT have Jenkins.ADMINISTER - should fail
+    // agentAdminUser does NOT have ITEM_ROLES_ADMIN - should fail
     performAsAndExpect("agentAdminUser", request, HttpURLConnection.HTTP_FORBIDDEN);
 
     // developerUser has no admin permissions - should fail
@@ -152,17 +153,31 @@ class PatternMatchingApiTest {
     URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getMatchingAgents?pattern=.*");
     WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
 
-    // adminUser has Jenkins.ADMINISTER - should succeed
+    // adminUser has Jenkins.ADMINISTER (implies AGENT_ROLES_ADMIN) - should succeed
     performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_OK);
 
-    // itemAdminUser does NOT have Jenkins.ADMINISTER - should fail
+    // itemAdminUser does NOT have AGENT_ROLES_ADMIN - should fail
     performAsAndExpect("itemAdminUser", request, HttpURLConnection.HTTP_FORBIDDEN);
 
-    // agentAdminUser does NOT have Jenkins.ADMINISTER - should fail
-    performAsAndExpect("agentAdminUser", request, HttpURLConnection.HTTP_FORBIDDEN);
+    // agentAdminUser has AGENT_ROLES_ADMIN - should succeed
+    performAsAndExpect("agentAdminUser", request, HttpURLConnection.HTTP_OK);
 
     // developerUser has no admin permissions - should fail
     performAsAndExpect("developerUser", request, HttpURLConnection.HTTP_FORBIDDEN);
+  }
+
+  @Test
+  void testGetMatchingJobsWithInvalidPattern() throws Exception {
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getMatchingJobs?pattern=(");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
+    performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
+  }
+
+  @Test
+  void testGetMatchingAgentsWithInvalidPattern() throws Exception {
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getMatchingAgents?pattern=(");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.GET);
+    performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
   }
 
   @Test

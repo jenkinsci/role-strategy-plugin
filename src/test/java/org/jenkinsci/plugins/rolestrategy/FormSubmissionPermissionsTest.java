@@ -23,7 +23,7 @@ import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
  * These tests verify that the entry-level permission checks work correctly.
  * The actual form processing logic is tested through the REST API endpoints.
  *
- * Note: Form submission handlers (doRolesSubmit, doAssignSubmit, doTemplatesSubmit)
+ * Note: Form submission handlers (doAssignSubmit, doTemplatesSubmit)
  * check minimum permissions at entry, then delegate to descriptor methods that use
  * selective filtering (processing sections the user has permission for, copying
  * unauthorized sections from the old strategy). This selective filtering behavior
@@ -83,26 +83,6 @@ class FormSubmissionPermissionsTest {
     webClient.login(username, username);
     Page page = webClient.getPage(request);
     assertEquals(expectedCode, page.getWebResponse().getStatusCode(), "HTTP code mismatch for user " + username);
-  }
-
-  @Test
-  void testRolesSubmitAccessControl() throws Exception {
-    // Test that doRolesSubmit entry point correctly checks for ADMINISTER_AND_SOME_ROLES_ADMIN
-
-    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/rolesSubmit");
-    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
-
-    // adminUser has Jenkins.ADMINISTER - should pass entry check (but will fail on empty form)
-    performAsAndExpect("adminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
-
-    // itemAdminUser has ITEM_ROLES_ADMIN - should pass entry check (but will fail on empty form)
-    performAsAndExpect("itemAdminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
-
-    // agentAdminUser has AGENT_ROLES_ADMIN - should pass entry check (but will fail on empty form)
-    performAsAndExpect("agentAdminUser", request, HttpURLConnection.HTTP_BAD_REQUEST);
-
-    // developerUser has no admin permissions - should get 403 at entry
-    performAsAndExpect("developerUser", request, HttpURLConnection.HTTP_FORBIDDEN);
   }
 
   @Test

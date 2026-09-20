@@ -13,6 +13,10 @@ import { PermissionGroups } from "../common/components/PermissionGroups.tsx";
 import { SearchWithFilter } from "../common/components/SearchWithFilter.tsx";
 import type { TemplatesBootstrap } from "../common/types/bootstrap.ts";
 import type { PermissionTemplate } from "../common/types/template.ts";
+import {
+  buildPermissionSummary,
+  indexPermissions,
+} from "../common/utils/permissionSummary.ts";
 import { TemplateDialog } from "./TemplateDialog.tsx";
 
 interface PermissionTemplatesPageProps {
@@ -40,15 +44,10 @@ export function PermissionTemplatesPage({
   const openAdd = useCallback(() => setMode("add"), []);
   useAppBarButton("rsp-add-template-btn", openAdd);
 
-  const permissionsById = useMemo(() => {
-    const m = new Map<string, { name: string; groupTitle: string }>();
-    for (const g of bootstrap.permissionGroups) {
-      for (const p of g.permissions) {
-        m.set(p.id, { name: p.name, groupTitle: g.title });
-      }
-    }
-    return m;
-  }, [bootstrap.permissionGroups]);
+  const permissionsById = useMemo(
+    () => indexPermissions(bootstrap.permissionGroups),
+    [bootstrap.permissionGroups],
+  );
 
   const toggleFilter = (id: string) => {
     setFilterIds((prev) => {
@@ -70,15 +69,8 @@ export function PermissionTemplatesPage({
     });
   }, [templates, search, filterIds]);
 
-  const buildSummary = (template: PermissionTemplate) => {
-    if (template.permissionIds.length === 0) return null;
-    return template.permissionIds
-      .map((id) => permissionsById.get(id))
-      .filter((p): p is { name: string; groupTitle: string } => !!p)
-      .map((p) => `${p.groupTitle}/${p.name}`)
-      .sort()
-      .join(", ");
-  };
+  const buildSummary = (template: PermissionTemplate) =>
+    buildPermissionSummary(template.permissionIds, permissionsById);
 
   const handleAdd = async (input: {
     name: string;

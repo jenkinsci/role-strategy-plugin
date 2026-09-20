@@ -33,6 +33,9 @@
             ${%Add Template}
           </button>
         </l:hasPermission>
+        <a href="manage-roles" class="jenkins-button">
+          ${%Manage Roles}
+        </a>
       </l:app-bar>
       <p class="jenkins-page-description">
         ${%blurb}

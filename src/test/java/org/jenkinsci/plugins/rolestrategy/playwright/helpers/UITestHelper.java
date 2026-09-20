@@ -49,4 +49,25 @@ public final class UITestHelper {
 
     return rbas;
   }
+
+  /**
+   * The template seed plus one role per type, as the Manage Roles UI test expects.
+   *
+   * <ul>
+   *   <li>{@code readers}: global role with Overall Read</li>
+   *   <li>{@code dev-role}: item role on {@code dev-.*}</li>
+   *   <li>{@code agent-role}: agent role on {@code agent-.*}</li>
+   * </ul>
+   */
+  public static RoleBasedAuthorizationStrategy setupRbasWithRoles(JenkinsRule j) throws IOException {
+    RoleBasedAuthorizationStrategy rbas = setupRbasWithTemplates(j);
+
+    rbas.doAddRole("globalRoles", "readers", "hudson.model.Hudson.Read", "false", "", "");
+    rbas.doAddRole("projectRoles", "dev-role",
+        "hudson.model.Item.Read,hudson.model.Item.Build", "false", "dev-.*", "");
+    rbas.doAddRole("slaveRoles", "agent-role",
+        "hudson.model.Computer.Connect", "false", "agent-.*", "");
+
+    return rbas;
+  }
 }
