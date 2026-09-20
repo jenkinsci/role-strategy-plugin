@@ -542,46 +542,6 @@ dialog .tippy-box {
 }
 
 /* ============================================
-   Tabs (Manage Roles)
-   ============================================ */
-
-.rsp-tabs {
-  display: flex;
-  gap: 0.25rem;
-
-  button {
-    border-radius: 100px;
-
-    &:not(.jenkins-button--tertiary) {
-      pointer-events: none;
-      font-weight: var(--font-bold-weight);
-    }
-
-    &.jenkins-button--tertiary {
-      color: color-mix(
-        in sRGB,
-        var(--text-color-secondary) 75%,
-        var(--text-color)
-      ) !important;
-
-      &::before,
-      &::after {
-        inset: 3px;
-      }
-    }
-
-    &:hover {
-      color: var(--text-color) !important;
-
-      &::before,
-      &::after {
-        inset: 1.5px;
-      }
-    }
-  }
-}
-
-/* ============================================
    Role pattern chip
    ============================================ */
 
