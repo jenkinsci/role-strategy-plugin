@@ -417,6 +417,38 @@ describe("AssignRolesPage", () => {
     expect(screen.queryByText("anonymous")).not.toBeInTheDocument();
   });
 
+  it("does not confuse a role named like the ambiguous filter with the ambiguous filter itself", async () => {
+    const user = userEvent.setup();
+    renderPage(
+      bootstrap({
+        globalRoles: typeBootstrap({
+          roles: [
+            { name: "admin", permissionIds: [] },
+            { name: "__rsp-ambiguous__", permissionIds: [] },
+          ],
+          entries: [
+            { name: "alice", type: "USER", roles: ["admin"] },
+            {
+              name: "bob",
+              type: "USER",
+              roles: ["__rsp-ambiguous__"],
+            },
+            { name: "old", type: "EITHER", roles: ["admin"] },
+          ],
+        }),
+      }),
+    );
+
+    await user.click(screen.getByTitle("Filter by role"));
+    // Filtering by the role literally named "__rsp-ambiguous__" must only
+    // match entries carrying that role, not entries of type EITHER.
+    await user.click(screen.getByRole("button", { name: "__rsp-ambiguous__" }));
+
+    expect(screen.getByText("bob")).toBeInTheDocument();
+    expect(screen.queryByText("alice")).not.toBeInTheDocument();
+    expect(screen.queryByText("old")).not.toBeInTheDocument();
+  });
+
   it("rejects adding a duplicate user", async () => {
     const user = userEvent.setup();
     renderPage();

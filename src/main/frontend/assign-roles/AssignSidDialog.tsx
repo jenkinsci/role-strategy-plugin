@@ -109,12 +109,16 @@ export function AssignSidDialog({
   // never blocks submitting: sids that the realm cannot resolve (e.g. groups
   // from an external directory) are still legal assignments.
   const runNameCheck = async (kindToUse: SidType) => {
+    // Invalidate any in-flight lookup for a previous type/value unconditionally,
+    // even when this call itself has nothing to check: otherwise a stale
+    // response could still pass the seq check below and render under the
+    // new type.
+    const seq = ++nameCheckSeq.current;
     const value = name.trim();
     const isTaken =
       allowNameEdit &&
       existingEntries.some((e) => e.name === value && e.type === kindToUse);
     if (value === "" || isTaken) return;
-    const seq = ++nameCheckSeq.current;
     try {
       const html = await checkSidName(checkSidNameUrl, value, kindToUse);
       if (seq !== nameCheckSeq.current) return;

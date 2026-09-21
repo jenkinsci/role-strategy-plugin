@@ -73,6 +73,13 @@ const infoKey = (type: SidType, sid: string) => `${type}:${sid}`;
     in the same dropdown as the role filters but matches on entry type. */
 const AMBIGUOUS_FILTER_ID = "__rsp-ambiguous__";
 
+/** Role filter ids are namespaced so a role literally named like the
+    ambiguous filter id (or any other reserved id) cannot collide with it. */
+const ROLE_FILTER_PREFIX = "role:";
+const roleFilterId = (roleName: string) => `${ROLE_FILTER_PREFIX}${roleName}`;
+const roleNameFromFilterId = (id: string) =>
+  id.slice(ROLE_FILTER_PREFIX.length);
+
 export function AssignRolesPage({
   bootstrap,
   client,
@@ -157,7 +164,7 @@ export function AssignRolesPage({
       groups.push({
         title: "Roles",
         permissions: roles.map((r) => ({
-          id: r.name,
+          id: roleFilterId(r.name),
           name: r.name,
           description: r.pattern ?? "",
           impliedByList: [],
@@ -167,11 +174,11 @@ export function AssignRolesPage({
     return groups;
   }, [roles, hasAmbiguous]);
 
-  const toggleRoleFilter = (roleName: string) => {
+  const toggleRoleFilter = (filterId: string) => {
     setRoleFilter((prev) => {
       const next = new Set(prev);
-      if (next.has(roleName)) next.delete(roleName);
-      else next.add(roleName);
+      if (next.has(filterId)) next.delete(filterId);
+      else next.add(filterId);
       return next;
     });
     setPage(0);
@@ -201,6 +208,7 @@ export function AssignRolesPage({
         !roleFilter.has(AMBIGUOUS_FILTER_ID) || entry.type === "EITHER";
       const matchesRoles = [...roleFilter]
         .filter((id) => id !== AMBIGUOUS_FILTER_ID)
+        .map(roleNameFromFilterId)
         .every((roleName) => entry.roles.includes(roleName));
       return matchesSearch && matchesAmbiguous && matchesRoles;
     });
@@ -222,9 +230,12 @@ export function AssignRolesPage({
   // resolved this way (current and previously-visited pages), not the full
   // list, so a single keystroke can never fan out into thousands of realm
   // lookups. The reserved entries are skipped: they always exist and never
-  // carry a display name. A lookup whose page is left before it lands
-  // (paging away before it resolves) is aborted and its sids are released
-  // for a retry on their next appearance.
+  // carry a display name. A lookup whose page is left before it resolves is
+  // aborted and its sids released synchronously in cleanup so they are
+  // retried on their next appearance; a request that already resolved is left
+  // marked (its keys are done, not pending), and `owned` scopes the abort
+  // path's release to this invocation so a later request for the same sids
+  // is never cleared by the older, aborted one.
   const requestedInfo = useRef<Set<string>>(new Set());
   useEffect(() => {
     const items = pageEntries
@@ -234,14 +245,20 @@ export function AssignRolesPage({
       )
       .map((e) => ({ sid: e.name, type: e.type }));
     if (items.length === 0) return;
+    let owned = true;
+    let resolved = false;
     for (const item of items) {
       requestedInfo.current.add(infoKey(item.type, item.sid));
     }
     const controller = new AbortController();
     client
       .getSidsInfo(items, controller.signal)
-      .then(mergeSidInfo)
+      .then((infos) => {
+        resolved = true;
+        mergeSidInfo(infos);
+      })
       .catch((err) => {
+        if (!owned) return; // cleanup already released these keys for a newer request
         for (const item of items) {
           requestedInfo.current.delete(infoKey(item.type, item.sid));
         }
@@ -250,7 +267,15 @@ export function AssignRolesPage({
           console.error("Failed to resolve sids", err);
         }
       });
-    return () => controller.abort();
+    return () => {
+      owned = false;
+      controller.abort();
+      if (!resolved) {
+        for (const item of items) {
+          requestedInfo.current.delete(infoKey(item.type, item.sid));
+        }
+      }
+    };
   }, [pageEntries, client, mergeSidInfo]);
 
   const updateEntries = (
