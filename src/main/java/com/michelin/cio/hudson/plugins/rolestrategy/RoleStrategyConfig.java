@@ -126,6 +126,32 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /**
+   * Text formerly displayed for the roles assignment panel; kept for binary and source
+   * compatibility with external callers now that the panel is rendered by the React Assign
+   * Roles page instead of a Jelly view referencing this method.
+   *
+   * @return Title of the Role assignment panel
+   * @deprecated no longer used internally; retained only for compatibility
+   */
+  @Deprecated
+  public String getAssignRolesName() {
+    return Messages.RoleBasedAuthorizationStrategy_Assign();
+  }
+
+  /**
+   * Text formerly displayed for the roles management panel; kept for binary and source
+   * compatibility with external callers now that the panel is rendered by the React Manage
+   * Roles page instead of a Jelly view referencing this method.
+   *
+   * @return Title of the Role management panel
+   * @deprecated no longer used internally; retained only for compatibility
+   */
+  @Deprecated
+  public String getManageRolesName() {
+    return Messages.RoleBasedAuthorizationStrategy_Manage();
+  }
+
+  /**
    * Retrieve the {@link RoleBasedAuthorizationStrategy} object from the Hudson instance.
    * <p>
    * Used by the views to build matrix.
@@ -256,11 +282,15 @@ public class RoleStrategyConfig extends ManagementLink {
    * documented {@code MAX_ROWS} system property so large instances can tune it for
    * performance.
    *
-   * @return the configured page size, defaulting to 50, clamped to at least 1 since a
-   *     misconfigured value of 0 or less would make client-side pagination invalid
+   * @return the configured page size, defaulting to 50, clamped to between 1 and
+   *     {@link RoleBasedAuthorizationStrategy#MAX_SIDS_PER_REQUEST}: a value of 0 or less would
+   *     make client-side pagination invalid, and a page larger than that limit would make every
+   *     realm-lookup request for a full page (which sends one sid per non-internal entry) fail
+   *     with {@code 400}
    */
   public static int getMaxRows() {
-    return Math.max(1, SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 50));
+    int configured = SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 50);
+    return Math.max(1, Math.min(configured, RoleBasedAuthorizationStrategy.MAX_SIDS_PER_REQUEST));
   }
 
   private static JSONObject assignRoleTypeToJson(@CheckForNull RoleBasedAuthorizationStrategy strategy, RoleType roleType,

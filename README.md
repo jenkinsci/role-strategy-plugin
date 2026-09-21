@@ -74,7 +74,8 @@ To ensure a responsive UI the item assignment works with pagination. With many r
 Applying a role filter will make them work smoothly usually.
 
 By default the number of rows is limited to 50 for the item role assignment page. You can change this by setting the system property
-`com.michelin.cio.hudson.plugins.rolestrategy.RoleStrategyConfig.MAX_ROWS` at jvm start or via the script console.
+`com.michelin.cio.hudson.plugins.rolestrategy.RoleStrategyConfig.MAX_ROWS` at jvm start or via the script console. The value is capped at 150,
+the maximum number of sids the realm-lookup endpoint resolves in a single request.
 
 The number of parameters in a form submission is limited to 10000 by default in Jenkins and the max formsize is limited to 200000 by Jetty.
 If you encounter problems when saving the "Manage Roles" due to too many form keys this can be increased by passing the parameter `--maxParamCount=N` 
