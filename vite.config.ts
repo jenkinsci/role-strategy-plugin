@@ -18,6 +18,7 @@ export default defineConfig({
         "permission-templates":
           "src/main/frontend/permission-templates/index.tsx",
         "manage-roles": "src/main/frontend/manage-roles/index.tsx",
+        "assign-roles": "src/main/frontend/assign-roles/index.tsx",
       },
       output: {
         entryFileNames: "[name]-bundle.js",

@@ -69,10 +69,6 @@ public class RoleStrategyConfig extends ManagementLink {
     return ExtensionList.lookupSingleton(RoleStrategyConfig.class);
   }
 
-  public static int getMaxRows() {
-    return SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 30);
-  }
-
   /**
    * Provides the icon for the Manage Hudson page link.
    *
@@ -120,24 +116,6 @@ public class RoleStrategyConfig extends ManagementLink {
   }
 
   /**
-   * Text displayed for the roles assignment panel.
-   *
-   * @return Title of the Role assignment panel
-   */
-  public String getAssignRolesName() {
-    return Messages.RoleBasedAuthorizationStrategy_Assign();
-  }
-
-  /**
-   * Text displayed for the roles management panel.
-   *
-   * @return Title of the Role management panel
-   */
-  public String getManageRolesName() {
-    return Messages.RoleBasedAuthorizationStrategy_Manage();
-  }
-
-  /**
    * The description of the link.
    *
    * @return The description of the link
@@ -145,6 +123,32 @@ public class RoleStrategyConfig extends ManagementLink {
   @Override
   public String getDescription() {
     return Messages.RoleBasedAuthorizationStrategy_Description();
+  }
+
+  /**
+   * Text formerly displayed for the roles assignment panel; kept for binary and source
+   * compatibility with external callers now that the panel is rendered by the React Assign
+   * Roles page instead of a Jelly view referencing this method.
+   *
+   * @return Title of the Role assignment panel
+   * @deprecated no longer used internally; retained only for compatibility
+   */
+  @Deprecated
+  public String getAssignRolesName() {
+    return Messages.RoleBasedAuthorizationStrategy_Assign();
+  }
+
+  /**
+   * Text formerly displayed for the roles management panel; kept for binary and source
+   * compatibility with external callers now that the panel is rendered by the React Manage
+   * Roles page instead of a Jelly view referencing this method.
+   *
+   * @return Title of the Role management panel
+   * @deprecated no longer used internally; retained only for compatibility
+   */
+  @Deprecated
+  public String getManageRolesName() {
+    return Messages.RoleBasedAuthorizationStrategy_Manage();
   }
 
   /**
@@ -188,30 +192,6 @@ public class RoleStrategyConfig extends ManagementLink {
   // // Redirect to the plugin index page
   // FormApply.success(".").generateResponse(req, rsp, this);
   // }
-
-  /**
-   * Called on role's assignment form submission.
-   */
-  @RequirePOST
-  @Restricted(NoExternalUse.class)
-  public void doAssignSubmit(StaplerRequest2 req, StaplerResponse2 rsp) throws IOException, ServletException {
-    Jenkins.get().checkAnyPermission(RoleBasedAuthorizationStrategy.ADMINISTER_AND_SOME_ROLES_ADMIN);
-    // Let the strategy descriptor handle the form
-    req.setCharacterEncoding("UTF-8");
-    JSONObject json = req.getSubmittedForm();
-    JSONObject rolesMapping;
-    if (json.has("submit")) {
-      String rm = json.getString("rolesMapping");
-      rolesMapping = JSONObject.fromObject(rm);
-    } else {
-      rolesMapping = json.getJSONObject("rolesMapping");
-    }
-    if (rolesMapping.has("agentRoles")) {
-      rolesMapping.put(RoleBasedAuthorizationStrategy.SLAVE, rolesMapping.getJSONArray("agentRoles"));
-    }
-    RoleBasedAuthorizationStrategy.DESCRIPTOR.doAssignSubmit(rolesMapping);
-    FormApply.success(".").generateResponse(req, rsp, this);
-  }
 
   public ExtensionList<RoleMacroExtension> getRoleMacroExtensions() {
     return RoleMacroExtension.all();
@@ -270,6 +250,65 @@ public class RoleStrategyConfig extends ManagementLink {
     }
     result.put("templates", templates);
     return result.toString();
+  }
+
+  /**
+   * Bootstrap JSON for the Assign Roles page, intended to be embedded in a {@code data-*}
+   * attribute so the React UI can render immediately without an additional round trip.
+   *
+   * @return JSON string with the roles, sid entries and edit permission per role type
+   */
+  @Restricted(NoExternalUse.class)
+  public String getAssignRolesBootstrapJson() {
+    AuthorizationStrategy raw = getStrategy();
+    RoleBasedAuthorizationStrategy strategy = raw instanceof RoleBasedAuthorizationStrategy rbas ? rbas : null;
+    Jenkins jenkins = Jenkins.get();
+    JSONObject result = new JSONObject();
+    result.put(RoleBasedAuthorizationStrategy.GLOBAL, assignRoleTypeToJson(strategy, RoleType.Global,
+        jenkins.hasPermission(Jenkins.SYSTEM_READ),
+        jenkins.hasPermission(Jenkins.ADMINISTER)));
+    result.put(RoleBasedAuthorizationStrategy.PROJECT, assignRoleTypeToJson(strategy, RoleType.Project,
+        jenkins.hasAnyPermission(Jenkins.SYSTEM_READ, RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN),
+        jenkins.hasPermission(RoleBasedAuthorizationStrategy.ITEM_ROLES_ADMIN)));
+    result.put(RoleBasedAuthorizationStrategy.SLAVE, assignRoleTypeToJson(strategy, RoleType.Slave,
+        jenkins.hasAnyPermission(Jenkins.SYSTEM_READ, RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN),
+        jenkins.hasPermission(RoleBasedAuthorizationStrategy.AGENT_ROLES_ADMIN)));
+    result.put("pageSize", getMaxRows());
+    return result.toString();
+  }
+
+  /**
+   * The number of Assign Roles cards rendered per page, kept configurable via the
+   * documented {@code MAX_ROWS} system property so large instances can tune it for
+   * performance.
+   *
+   * @return the configured page size, defaulting to 50, clamped to between 1 and
+   *     {@link RoleBasedAuthorizationStrategy#MAX_SIDS_PER_REQUEST}: a value of 0 or less would
+   *     make client-side pagination invalid, and a page larger than that limit would make every
+   *     realm-lookup request for a full page (which sends one sid per non-internal entry) fail
+   *     with {@code 400}
+   */
+  public static int getMaxRows() {
+    int configured = SystemProperties.getInteger(RoleStrategyConfig.class.getName() + ".MAX_ROWS", 50);
+    return Math.max(1, Math.min(configured, RoleBasedAuthorizationStrategy.MAX_SIDS_PER_REQUEST));
+  }
+
+  private static JSONObject assignRoleTypeToJson(@CheckForNull RoleBasedAuthorizationStrategy strategy, RoleType roleType,
+      boolean visible, boolean canEdit) {
+    JSONObject json = new JSONObject();
+    json.put("visible", visible);
+    json.put("canEdit", visible && canEdit);
+    JSONArray roles = new JSONArray();
+    JSONArray entries = new JSONArray();
+    if (visible && strategy != null) {
+      for (Role role : strategy.getRoleMap(roleType).getRoles()) {
+        roles.add(roleToJson(role, roleType));
+      }
+      entries = strategy.roleAssignmentsToJson(roleType.getStringType());
+    }
+    json.put("roles", roles);
+    json.put("entries", entries);
+    return json;
   }
 
   private static JSONObject roleTypeToJson(@CheckForNull RoleBasedAuthorizationStrategy strategy, RoleType roleType,
@@ -351,14 +390,32 @@ public class RoleStrategyConfig extends ManagementLink {
     return groupsArray;
   }
 
+  /**
+   * Returns the global role type, used by {@code list-macros.jelly} to evaluate a macro's
+   * applicability to global roles.
+   *
+   * @return the {@link RoleType#Global} constant
+   */
   public final RoleType getGlobalRoleType() {
     return RoleType.Global;
   }
 
+  /**
+   * Returns the project role type, used by {@code list-macros.jelly} to evaluate a macro's
+   * applicability to item roles.
+   *
+   * @return the {@link RoleType#Project} constant
+   */
   public final RoleType getProjectRoleType() {
     return RoleType.Project;
   }
 
+  /**
+   * Returns the slave role type, used by {@code list-macros.jelly} to evaluate a macro's
+   * applicability to agent roles.
+   *
+   * @return the {@link RoleType#Slave} constant
+   */
   public final RoleType getSlaveRoleType() {
     return RoleType.Slave;
   }

@@ -275,4 +275,21 @@ class ApiWithFineGrainedRolesTest {
       }
     }
   }
+
+  @Test
+  void testGetSidsInfoWithoutSystemReadReturnsUnknown() throws Exception {
+    // itemAdminUser passes the entry gate via ITEM_ROLES_ADMIN but lacks
+    // SYSTEM_READ, so the realm is not probed and every sid comes back unknown.
+    webClient.login("itemAdminUser", "itemAdminUser");
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/getSidsInfo");
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(List.of(
+        new NameValuePair("sids", "[{\"sid\":\"adminUser\",\"type\":\"USER\"},{\"sid\":\"anonymous\",\"type\":\"USER\"}]")));
+    Page page = webClient.getPage(request);
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
+
+    net.sf.json.JSONArray json = net.sf.json.JSONArray.fromObject(page.getWebResponse().getContentAsString());
+    assertEquals("unknown", json.getJSONObject(0).getString("resolution"));
+    assertEquals("unknown", json.getJSONObject(1).getString("resolution"));
+  }
 }

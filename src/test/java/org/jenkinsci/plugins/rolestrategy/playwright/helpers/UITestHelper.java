@@ -70,4 +70,26 @@ public final class UITestHelper {
 
     return rbas;
   }
+
+  /**
+   * The role seed plus the sid assignments the Assign Roles UI test expects.
+   *
+   * <ul>
+   *   <li>{@code alice}: user assigned to the {@code readers} global role and the {@code agent-role} agent role</li>
+   *   <li>{@code devs}: group assigned to the {@code dev-role} item role</li>
+   *   <li>{@code legacy}: ambiguous (EITHER) entry on the {@code readers} global role</li>
+   * </ul>
+   */
+  @SuppressWarnings("deprecation")
+  public static RoleBasedAuthorizationStrategy setupRbasWithAssignments(JenkinsRule j) throws IOException {
+    RoleBasedAuthorizationStrategy rbas = setupRbasWithRoles(j);
+
+    rbas.doAssignUserRole("globalRoles", "readers", "alice");
+    rbas.doAssignUserRole("slaveRoles", "agent-role", "alice");
+    rbas.doAssignGroupRole("projectRoles", "dev-role", "devs");
+    // A legacy ambiguous entry, to exercise the warning badge and migration.
+    rbas.doAssignRole("globalRoles", "readers", "legacy");
+
+    return rbas;
+  }
 }
