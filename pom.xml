@@ -84,7 +84,7 @@
     <dependency>
       <groupId>com.synopsys.jenkinsci</groupId>
       <artifactId>ownership</artifactId>
-      <version>0.13.0</version>
+      <version>373.vb_41d439617c2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
