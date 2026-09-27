@@ -698,6 +698,16 @@ dialog .tippy-box {
   color: inherit;
 }
 
+.rsp-assign__chip .rsp-help-icon {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.rsp-assign__chip .rsp-help-icon:hover,
+.rsp-assign__chip .rsp-help-icon:focus-visible {
+  opacity: 1;
+}
+
 /* Keep the page select's text clear of the jenkins-select chevron. */
 .rsp-pagination__select .jenkins-select__input {
   width: auto;
