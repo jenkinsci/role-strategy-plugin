@@ -31,6 +31,8 @@ export interface AssignRoleTypeBootstrap {
   canEdit: boolean;
   roles: Role[];
   entries: SidEntry[];
+  /** For the role permissions tooltip, mirroring Manage Roles' permission catalogue. */
+  permissionGroups: PermissionGroup[];
 }
 
 export interface AssignRolesBootstrap {

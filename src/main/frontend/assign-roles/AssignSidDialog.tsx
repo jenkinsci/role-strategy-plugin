@@ -3,9 +3,14 @@ import { type FormEvent, useId, useRef, useState } from "react";
 import { ApiError } from "../common/api/client.ts";
 import { checkSidName } from "../common/api/validation.ts";
 import { Dialog } from "../common/components/Dialog.tsx";
+import { HelpIcon } from "../common/components/HelpIcon.tsx";
 import { SearchInput } from "../common/components/SearchInput.tsx";
 import type { SidEntry, SidType } from "../common/types/assignment.ts";
 import type { Role } from "../common/types/role.ts";
+import {
+  buildPermissionSummary,
+  type PermissionRef,
+} from "../common/utils/permissionSummary.ts";
 
 export interface AssignSidDialogResult {
   name: string;
@@ -23,6 +28,8 @@ interface AssignSidDialogProps {
   /** For the duplicate check when adding. */
   existingEntries: SidEntry[];
   roles: Role[];
+  /** Permission catalogue for the active role type, for the role permissions tooltip. */
+  permissionsById: ReadonlyMap<string, PermissionRef>;
   checkSidNameUrl: string;
   initialName: string;
   initialRoles: string[];
@@ -58,6 +65,7 @@ export function AssignSidDialog({
   allowNameEdit,
   existingEntries,
   roles,
+  permissionsById,
   checkSidNameUrl,
   initialName,
   initialRoles,
@@ -303,6 +311,14 @@ export function AssignSidDialog({
                             </span>
                           )}
                         </label>
+                        <HelpIcon
+                          description={
+                            buildPermissionSummary(
+                              role.permissionIds,
+                              permissionsById,
+                            ) ?? "No permissions"
+                          }
+                        />
                       </div>
                     );
                   })}

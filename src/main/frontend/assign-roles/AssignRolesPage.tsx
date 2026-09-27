@@ -11,6 +11,7 @@ import { Tabs } from "../common/components/Tabs.tsx";
 import type { SidEntry, SidInfo, SidType } from "../common/types/assignment.ts";
 import type { AssignRolesBootstrap } from "../common/types/bootstrap.ts";
 import type { RoleTypeKey } from "../common/types/role.ts";
+import { indexPermissions } from "../common/utils/permissionSummary.ts";
 import {
   AssignSidDialog,
   type AssignSidDialogResult,
@@ -113,6 +114,10 @@ export function AssignRolesPage({
   const active = bootstrap[activeKey];
   const entries = entriesByType[activeKey];
   const roles = active.roles;
+  const permissionsById = useMemo(
+    () => indexPermissions(active.permissionGroups),
+    [active.permissionGroups],
+  );
 
   const openAdd = useCallback(() => setMode("add"), []);
   useAppBarButton("rsp-add-sid-btn", openAdd, {
@@ -508,6 +513,7 @@ export function AssignRolesPage({
                 entry={entry}
                 info={sidInfo[infoKey(entry.type, entry.name)]}
                 roles={roles}
+                permissionsById={permissionsById}
                 canEdit={active.canEdit}
                 internal={isInternal(entry)}
                 onEdit={(e) => setMode({ edit: infoKey(e.type, e.name) })}
@@ -532,6 +538,7 @@ export function AssignRolesPage({
           allowNameEdit
           existingEntries={entries}
           roles={roles}
+          permissionsById={permissionsById}
           checkSidNameUrl={checkSidNameUrl}
           initialName=""
           initialRoles={[]}
@@ -547,6 +554,7 @@ export function AssignRolesPage({
           allowNameEdit={false}
           existingEntries={entries}
           roles={roles}
+          permissionsById={permissionsById}
           checkSidNameUrl={checkSidNameUrl}
           initialName={editing.name}
           initialRoles={editing.roles}

@@ -1,4 +1,5 @@
 import { Card } from "../common/components/Card.tsx";
+import { HelpIcon } from "../common/components/HelpIcon.tsx";
 import { IconButton } from "../common/components/IconButton.tsx";
 import { EditIcon } from "../common/components/icons/EditIcon.tsx";
 import { PeopleIcon } from "../common/components/icons/PeopleIcon.tsx";
@@ -8,6 +9,10 @@ import { WarningIcon } from "../common/components/icons/WarningIcon.tsx";
 import { Tooltip } from "../common/components/Tooltip.tsx";
 import type { SidEntry, SidInfo } from "../common/types/assignment.ts";
 import type { Role } from "../common/types/role.ts";
+import {
+  buildPermissionSummary,
+  type PermissionRef,
+} from "../common/utils/permissionSummary.ts";
 
 interface SidCardProps {
   entry: SidEntry;
@@ -15,6 +20,8 @@ interface SidCardProps {
   info?: SidInfo;
   /** All roles of the active role type, in display order. */
   roles: Role[];
+  /** Permission catalogue for the active role type, for the role permissions tooltip. */
+  permissionsById: ReadonlyMap<string, PermissionRef>;
   canEdit: boolean;
   /** The reserved anonymous/authenticated entries cannot be removed. */
   internal: boolean;
@@ -30,6 +37,7 @@ export function SidCard({
   entry,
   info,
   roles,
+  permissionsById,
   canEdit,
   internal,
   onEdit,
@@ -149,6 +157,16 @@ export function SidCard({
               {role.name}
               {role.pattern !== undefined && (
                 <span className="rsp-card__pattern">{role.pattern}</span>
+              )}
+              {role.permissionIds !== undefined && (
+                <HelpIcon
+                  description={
+                    buildPermissionSummary(
+                      role.permissionIds,
+                      permissionsById,
+                    ) ?? "No permissions"
+                  }
+                />
               )}
             </span>
           ))}

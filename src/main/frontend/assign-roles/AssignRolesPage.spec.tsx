@@ -21,6 +21,7 @@ const typeBootstrap = (
   canEdit: true,
   roles: [{ name: "admin", permissionIds: [] }],
   entries: [],
+  permissionGroups: [],
   ...overrides,
 });
 
@@ -140,6 +141,48 @@ describe("AssignRolesPage", () => {
       within(card).getByText("admin", { selector: ".rsp-assign__chip" }),
     ).toBeInTheDocument();
     expect(within(card).queryByRole("checkbox")).not.toBeInTheDocument();
+  });
+
+  it("shows a role's permissions in a tooltip next to its chip and in the role picker", async () => {
+    const user = userEvent.setup();
+    renderPage(
+      bootstrap({
+        globalRoles: typeBootstrap({
+          roles: [
+            {
+              name: "admin",
+              permissionIds: ["hudson.model.item.build"],
+            },
+          ],
+          entries: [{ name: "alice", type: "USER", roles: ["admin"] }],
+          permissionGroups: [
+            {
+              title: "Item",
+              permissions: [
+                {
+                  id: "hudson.model.item.build",
+                  name: "Build",
+                  description: "",
+                  impliedByList: [],
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    );
+
+    const card = await expandCard(user, "alice");
+    expect(
+      within(card).getByRole("img", { name: "Item/Build" }),
+    ).toBeInTheDocument();
+
+    await user.click(within(cardOf("alice")).getByLabelText("Edit roles"));
+    expect(await screen.findByText("Edit roles: alice")).toBeInTheDocument();
+    const dialogEl = screen.getByRole("dialog");
+    expect(
+      within(dialogEl).getByRole("img", { name: "Item/Build" }),
+    ).toBeInTheDocument();
   });
 
   it("assigns and unassigns roles through the edit dialog", async () => {

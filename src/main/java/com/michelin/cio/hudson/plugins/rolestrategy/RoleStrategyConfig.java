@@ -300,14 +300,19 @@ public class RoleStrategyConfig extends ManagementLink {
     json.put("canEdit", visible && canEdit);
     JSONArray roles = new JSONArray();
     JSONArray entries = new JSONArray();
+    JSONArray groups = new JSONArray();
     if (visible && strategy != null) {
       for (Role role : strategy.getRoleMap(roleType).getRoles()) {
         roles.add(roleToJson(role, roleType));
       }
       entries = strategy.roleAssignmentsToJson(roleType.getStringType());
+      // Lets the Assign Roles UI show a role's permissions in a tooltip, mirroring the
+      // hover-over-column-header help the previous UI offered.
+      groups = permissionGroupsToJson(RoleBasedAuthorizationStrategy.DESCRIPTOR, roleType.getStringType());
     }
     json.put("roles", roles);
     json.put("entries", entries);
+    json.put("permissionGroups", groups);
     return json;
   }
 
