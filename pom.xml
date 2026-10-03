@@ -35,7 +35,7 @@
     <jenkins.baseline>2.568</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
-    <checkstyle.version>13.11.0</checkstyle.version>
+    <checkstyle.version>14.1.0</checkstyle.version>
     <hpi.compatibleSinceVersion>640</hpi.compatibleSinceVersion>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <node.version>24.15.0</node.version>
@@ -84,7 +84,7 @@
     <dependency>
       <groupId>com.synopsys.jenkinsci</groupId>
       <artifactId>ownership</artifactId>
-      <version>0.13.0</version>
+      <version>373.vb_41d439617c2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -133,7 +133,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>tidy-maven-plugin</artifactId>
-        <version>1.4.0</version>
+        <version>1.4.1</version>
         <executions>
           <execution>
             <id>validate</id>
