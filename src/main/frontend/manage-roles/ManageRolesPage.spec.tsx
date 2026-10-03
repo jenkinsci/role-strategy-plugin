@@ -63,6 +63,11 @@ const createClient = (): StrategyClient => ({
   getMatchingAgents: vi
     .fn()
     .mockResolvedValue({ matchingAgents: [], agentCount: 0 }),
+  assignSidRole: vi.fn(),
+  unassignSidRole: vi.fn(),
+  deleteSidEntry: vi.fn(),
+  getRoleAssignments: vi.fn(),
+  getSidsInfo: vi.fn(),
 });
 
 const renderPage = (

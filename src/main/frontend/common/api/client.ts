@@ -36,7 +36,11 @@ export async function getJson<T>(url: string, params: Params): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function postForm(url: string, params: Params): Promise<void> {
+async function postFormRaw(
+  url: string,
+  params: Params,
+  signal?: AbortSignal,
+): Promise<Response> {
   const body = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue;
@@ -50,6 +54,21 @@ export async function postForm(url: string, params: Params): Promise<void> {
     method: "POST",
     headers,
     body,
+    signal,
   });
-  await ensureOk(response);
+  return ensureOk(response);
+}
+
+export async function postForm(url: string, params: Params): Promise<void> {
+  await postFormRaw(url, params);
+}
+
+/** POST that returns a JSON body, for read endpoints that require POST. */
+export async function postFormJson<T>(
+  url: string,
+  params: Params,
+  signal?: AbortSignal,
+): Promise<T> {
+  const response = await postFormRaw(url, params, signal);
+  return (await response.json()) as T;
 }

@@ -14,9 +14,12 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import hudson.PluginManager;
 import hudson.model.Item;
 import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -720,6 +723,193 @@ class ApiTest {
         // Should return an array of user/group assignments with their roles
         assertThat("Response should be a JSON array for user: " + username,
                 jsonArray, notNullValue());
+      }
+    }
+  }
+
+  private void assignAllTypesToDevelopers(String sid) throws IOException {
+    rbas.doAssignUserRole("projectRoles", "developers", sid);
+    rbas.doAssignGroupRole("projectRoles", "developers", sid);
+    rbas.doAssignRole("projectRoles", "developers", sid);
+  }
+
+  private Page postToStrategy(String endpoint, List<NameValuePair> params) throws IOException {
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl() + "role-strategy/strategy/" + endpoint);
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(params);
+    return webClient.getPage(request);
+  }
+
+  @Test
+  void testDeleteUser() throws IOException {
+    assignAllTypesToDevelopers("mixed");
+
+    Page page = postToStrategy("deleteUser", Arrays.asList(
+            new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("user", "mixed")));
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
+
+    Set<PermissionEntry> sids = rbas.getRoleMap(RoleType.Project).getSidEntriesForRole("developers");
+    assertFalse(sids.contains(new PermissionEntry(AuthorizationType.USER, "mixed")));
+    assertTrue(sids.contains(new PermissionEntry(AuthorizationType.GROUP, "mixed")));
+    assertTrue(sids.contains(new PermissionEntry(AuthorizationType.EITHER, "mixed")));
+  }
+
+  @Test
+  void testDeleteGroup() throws IOException {
+    assignAllTypesToDevelopers("mixed");
+
+    Page page = postToStrategy("deleteGroup", Arrays.asList(
+            new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("group", "mixed")));
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
+
+    Set<PermissionEntry> sids = rbas.getRoleMap(RoleType.Project).getSidEntriesForRole("developers");
+    assertTrue(sids.contains(new PermissionEntry(AuthorizationType.USER, "mixed")));
+    assertFalse(sids.contains(new PermissionEntry(AuthorizationType.GROUP, "mixed")));
+    assertTrue(sids.contains(new PermissionEntry(AuthorizationType.EITHER, "mixed")));
+  }
+
+  @Test
+  void testDeleteSid() throws IOException {
+    assignAllTypesToDevelopers("mixed");
+
+    Page page = postToStrategy("deleteSid", Arrays.asList(
+            new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair("sid", "mixed")));
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
+
+    // deleteSid only removes ambiguous (EITHER) entries and leaves the typed ones alone
+    Set<PermissionEntry> sids = rbas.getRoleMap(RoleType.Project).getSidEntriesForRole("developers");
+    assertTrue(sids.contains(new PermissionEntry(AuthorizationType.USER, "mixed")));
+    assertTrue(sids.contains(new PermissionEntry(AuthorizationType.GROUP, "mixed")));
+    assertFalse(sids.contains(new PermissionEntry(AuthorizationType.EITHER, "mixed")));
+  }
+
+  @Test
+  void testDeleteEndpointsRequirePermission() throws Exception {
+    webClient.login("developerUser", "developerUser");
+
+    for (String endpoint : List.of("deleteUser", "deleteGroup", "deleteSid")) {
+      String param = endpoint.equals("deleteUser") ? "user" : endpoint.equals("deleteGroup") ? "group" : "sid";
+      Page page = postToStrategy(endpoint, Arrays.asList(
+              new NameValuePair("type", RoleType.Project.getStringType()), new NameValuePair(param, "mixed")));
+      assertEquals(HttpURLConnection.HTTP_FORBIDDEN, page.getWebResponse().getStatusCode(),
+              "HTTP code mismatch for endpoint " + endpoint);
+    }
+  }
+
+  @Test
+  void testGetSidsInfo() throws IOException {
+    securityRealm.addGroups("groupMember", "devGroup");
+    User.getById("alice", true).setFullName("Alice Smith");
+
+    String sids = "["
+            + "{\"sid\":\"alice\",\"type\":\"USER\"},"
+            + "{\"sid\":\"devGroup\",\"type\":\"GROUP\"},"
+            + "{\"sid\":\"ghosts\",\"type\":\"GROUP\"},"
+            + "{\"sid\":\"bob\",\"type\":\"EITHER\"},"
+            + "{\"sid\":\"authenticated\",\"type\":\"GROUP\"},"
+            + "{\"sid\":\"anonymous\",\"type\":\"USER\"}"
+            + "]";
+    Page page = postToStrategy("getSidsInfo", List.of(new NameValuePair("sids", sids)));
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode(), "Testing if request is successful");
+
+    net.sf.json.JSONArray json = net.sf.json.JSONArray.fromObject(page.getWebResponse().getContentAsString());
+    assertEquals(6, json.size());
+
+    JSONObject alice = json.getJSONObject(0);
+    assertEquals("found", alice.getString("resolution"));
+    assertEquals("USER", alice.getString("foundAs"));
+    assertEquals("Alice Smith", alice.getString("displayName"));
+
+    JSONObject devGroup = json.getJSONObject(1);
+    assertEquals("found", devGroup.getString("resolution"));
+    assertEquals("GROUP", devGroup.getString("foundAs"));
+
+    assertEquals("not-found", json.getJSONObject(2).getString("resolution"));
+
+    // The dummy realm resolves every username, so an ambiguous sid resolves as a user
+    JSONObject bob = json.getJSONObject(3);
+    assertEquals("found", bob.getString("resolution"));
+    assertEquals("USER", bob.getString("foundAs"));
+
+    assertEquals("internal", json.getJSONObject(4).getString("resolution"));
+    assertEquals("internal", json.getJSONObject(5).getString("resolution"));
+  }
+
+  @Test
+  void testCheckSidName() throws IOException {
+    securityRealm.addGroups("groupMember", "devGroup");
+    User.getById("alice", true).setFullName("Alice Smith");
+
+    URL apiUrl = new URL(jenkinsRule.jenkins.getRootUrl()
+            + "descriptor/" + RoleBasedAuthorizationStrategy.class.getName() + "/checkSidName");
+
+    // a found user renders its resolved display name
+    WebRequest request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(Arrays.asList(
+            new NameValuePair("value", "alice"), new NameValuePair("type", "USER")));
+    Page page = webClient.getPage(request);
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    String content = page.getWebResponse().getContentAsString();
+    assertTrue(content.contains("Alice Smith"), "expected the display name in: " + content);
+    assertFalse(content.contains("rsp-entry-not-found"));
+
+    // a seeded group resolves without the not-found styling
+    request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(Arrays.asList(
+            new NameValuePair("value", "devGroup"), new NameValuePair("type", "GROUP")));
+    content = webClient.getPage(request).getWebResponse().getContentAsString();
+    assertTrue(content.contains("devGroup"));
+    assertFalse(content.contains("rsp-entry-not-found"));
+
+    // an unknown group renders struck through but still validates OK
+    request = new WebRequest(apiUrl, HttpMethod.POST);
+    request.setRequestParameters(Arrays.asList(
+            new NameValuePair("value", "ghosts"), new NameValuePair("type", "GROUP")));
+    page = webClient.getPage(request);
+    assertEquals(HttpURLConnection.HTTP_OK, page.getWebResponse().getStatusCode());
+    content = page.getWebResponse().getContentAsString();
+    assertTrue(content.contains("rsp-entry-not-found"), "expected not-found styling in: " + content);
+  }
+
+  @Test
+  void testGetSidsInfoRequiresPermission() throws Exception {
+    webClient.login("developerUser", "developerUser");
+    Page page = postToStrategy("getSidsInfo",
+            List.of(new NameValuePair("sids", "[{\"sid\":\"alice\",\"type\":\"USER\"}]")));
+    assertEquals(HttpURLConnection.HTTP_FORBIDDEN, page.getWebResponse().getStatusCode());
+  }
+
+  @Test
+  void testAssignRolesBootstrapJson() {
+    try (ACLContext ignored = ACL.as(User.getById("adminUser", true))) {
+      JSONObject json = JSONObject.fromObject(RoleStrategyConfig.get().getAssignRolesBootstrapJson());
+      JSONObject global = json.getJSONObject(RoleBasedAuthorizationStrategy.GLOBAL);
+      assertTrue(global.getBoolean("visible"));
+      assertTrue(global.getBoolean("canEdit"));
+      List<String> roleNames = new ArrayList<>();
+      for (Object role : global.getJSONArray("roles")) {
+        roleNames.add(((JSONObject) role).getString("name"));
+      }
+      assertTrue(roleNames.contains("adminRole"));
+      boolean foundAdminEntry = false;
+      for (Object entry : global.getJSONArray("entries")) {
+        JSONObject entryJson = (JSONObject) entry;
+        if (entryJson.getString("name").equals("adminUser") && entryJson.getString("type").equals("USER")) {
+          foundAdminEntry = entryJson.getJSONArray("roles").contains("adminRole");
+        }
+      }
+      assertTrue(foundAdminEntry, "adminUser entry with adminRole expected in the global bootstrap");
+    }
+
+    try (ACLContext ignored = ACL.as(User.getById("developerUser", true))) {
+      JSONObject json = JSONObject.fromObject(RoleStrategyConfig.get().getAssignRolesBootstrapJson());
+      for (String type : List.of(RoleBasedAuthorizationStrategy.GLOBAL, RoleBasedAuthorizationStrategy.PROJECT,
+              RoleBasedAuthorizationStrategy.SLAVE)) {
+        JSONObject typeJson = json.getJSONObject(type);
+        assertFalse(typeJson.getBoolean("visible"), "developerUser must not see " + type);
+        assertFalse(typeJson.getBoolean("canEdit"));
+        assertTrue(typeJson.getJSONArray("roles").isEmpty());
+        assertTrue(typeJson.getJSONArray("entries").isEmpty());
       }
     }
   }
