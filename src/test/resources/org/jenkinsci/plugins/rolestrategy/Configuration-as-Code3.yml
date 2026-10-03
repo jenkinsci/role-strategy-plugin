@@ -12,9 +12,6 @@ jenkins:
           - name: "dangerous"
             description: "Dangerous"
             permissions:
-              - "Overall/RunScripts"
-              - "Overall/ConfigureUpdateCenter"
-              - "Overall/UploadPlugins"
               - "Job/Read"
             entries:
               - user: "test"
