@@ -634,6 +634,28 @@ describe("AssignRolesPage", () => {
     );
   });
 
+  it("shows local display names when the realm cannot resolve the user", async () => {
+    const client = createClient();
+    vi.mocked(client.getSidsInfo).mockResolvedValue([
+      {
+        sid: "alice",
+        type: "USER",
+        resolution: "unknown",
+        displayName: "张三",
+      },
+    ]);
+    renderPage(bootstrap(), client);
+
+    expect(await screen.findByText("张三 (alice)")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.type(
+      screen.getByPlaceholderText("Search users and groups"),
+      "张三",
+    );
+    expect(screen.getByText("张三 (alice)")).toBeInTheDocument();
+    expect(screen.queryByText("anonymous")).not.toBeInTheDocument();
+  });
+
   it("filters entries by search", async () => {
     const user = userEvent.setup();
     renderPage();

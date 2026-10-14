@@ -67,7 +67,7 @@ class ValidationUtil {
   }
 
   /**
-   * Outcome of a sid lookup: whether it exists and, when it does, a display name differing from the sid.
+   * Outcome of a sid lookup: whether it exists and an optional display name differing from the sid.
    */
   static final class SidResolution {
     private final SidResolutionKind kind;
@@ -90,23 +90,26 @@ class ValidationUtil {
 
   @NonNull
   static SidResolution resolveUser(String userName, SecurityRealm sr) {
+    SidResolutionKind kind;
     try {
       sr.loadUserByUsername2(userName);
-      // Do not create a User record as a side effect of resolving a sid for
-      // display; the null fallback below already covers sids with no local
-      // user record.
-      User user = User.getById(userName, false);
-      String fullName = user != null ? user.getFullName() : userName;
-      String displayName = userName.equals(fullName) ? null : StringUtils.abbreviate(fullName, 50);
-      return new SidResolution(SidResolutionKind.FOUND, displayName);
+      kind = SidResolutionKind.FOUND;
     } catch (UserMayOrMayNotExistException2 e) {
-      return new SidResolution(SidResolutionKind.UNKNOWN, null);
+      // A local display name does not establish whether the user still exists in the realm.
+      kind = SidResolutionKind.UNKNOWN;
     } catch (UsernameNotFoundException e) {
       return new SidResolution(SidResolutionKind.NOT_FOUND, null);
     } catch (AuthenticationException e) {
       // an unexpected realm failure says nothing about the sid itself
       return new SidResolution(SidResolutionKind.UNKNOWN, null);
     }
+    // Do not create a User record as a side effect of resolving a sid for
+    // display; the null fallback below already covers sids with no local
+    // user record.
+    User user = User.getById(userName, false);
+    String fullName = user != null ? user.getFullName() : userName;
+    String displayName = userName.equals(fullName) ? null : StringUtils.abbreviate(fullName, 50);
+    return new SidResolution(kind, displayName);
   }
 
   @NonNull
