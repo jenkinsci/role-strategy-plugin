@@ -1154,8 +1154,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
    * Returns a json array in request order; each item carries a {@code resolution} of
    * {@code found}, {@code not-found}, {@code unknown} (realm cannot decide or the caller lacks
    * Overall/SystemRead) or {@code internal} (the reserved {@code authenticated} and
-   * {@code anonymous} sids), plus {@code foundAs} (USER or GROUP) and {@code displayName} when
-   * the sid resolved to a name differing from the id.
+   * {@code anonymous} sids), plus {@code foundAs} (USER or GROUP) for resolved entries and
+   * {@code displayName} when a name differing from the id is available. Unknown users may have
+   * a display name from an existing local user record without confirming their existence in the realm.
    *
    * @param sids JSON array of {@code {sid, type}} objects; a form field rather than repeated query
    *             parameters because sids may contain arbitrary characters (e.g. LDAP DNs). Rejected
@@ -1240,6 +1241,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         putDisplayName(json, groupResolution);
       } else if (isUnknown(userResolution) || isUnknown(groupResolution)) {
         json.put("resolution", "unknown");
+        if (userResolution != null) {
+          putDisplayName(json, userResolution);
+        }
       } else {
         json.put("resolution", "not-found");
       }
