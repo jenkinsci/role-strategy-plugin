@@ -16,12 +16,14 @@ import {
   AssignSidDialog,
   type AssignSidDialogResult,
 } from "./AssignSidDialog.tsx";
-import { SidCard } from "./SidCard.tsx";
+import { resolvedDisplayName, SidCard } from "./SidCard.tsx";
 
 interface AssignRolesPageProps {
   bootstrap: AssignRolesBootstrap;
   client: StrategyClient;
   checkSidNameUrl: string;
+  /** Principal search endpoint; empty when the security realm cannot be searched. */
+  searchPrincipalsUrl?: string;
 }
 
 interface TabConfig {
@@ -85,6 +87,7 @@ export function AssignRolesPage({
   bootstrap,
   client,
   checkSidNameUrl,
+  searchPrincipalsUrl = "",
 }: AssignRolesPageProps) {
   const visibleTabs = useMemo(
     () => TABS.filter((t) => bootstrap[t.key].visible),
@@ -302,8 +305,10 @@ export function AssignRolesPage({
   const handleAddSubmit = async (input: AssignSidDialogResult) => {
     const key = activeKey;
     try {
-      for (const roleName of input.roles) {
-        await client.assignSidRole(key, roleName, input.name, input.type);
+      for (const sid of input.sids) {
+        for (const roleName of input.roles) {
+          await client.assignSidRole(key, roleName, sid.name, sid.type);
+        }
       }
     } catch (err) {
       // Some grants may have been applied before the failure; realign with
@@ -313,16 +318,17 @@ export function AssignRolesPage({
     }
     const nextEntries = [
       ...entriesByType[key],
-      { name: input.name, type: input.type, roles: input.roles },
+      ...input.sids.map((sid) => ({ ...sid, roles: input.roles })),
     ].sort(byEntry);
     setEntriesByType((prev) => ({ ...prev, [key]: nextEntries }));
-    // Drop any filtering and jump to the page the new entry lands on so it is
-    // visible immediately.
+    // Drop any filtering and jump to the page the (first) new entry lands on
+    // so it is visible immediately.
     setSearch("");
     setRoleFilter(new Set());
+    const first = input.sids[0];
     setPage(
       Math.floor(
-        nextEntries.findIndex((e) => sameSid(e, input.name, input.type)) /
+        nextEntries.findIndex((e) => sameSid(e, first.name, first.type)) /
           pageSize,
       ),
     );
@@ -359,10 +365,15 @@ export function AssignRolesPage({
     setMode("closed");
   };
 
+  // Display name for confirmations and messages; falls back to the sid.
+  const labelOf = (entry: SidEntry) =>
+    resolvedDisplayName(entry, sidInfo[infoKey(entry.type, entry.name)]) ??
+    entry.name;
+
   const handleDelete = async (entry: SidEntry) => {
     // dialog.confirm rejects when the user cancels.
     const confirmed = await dialog
-      .confirm(`Remove "${entry.name}" and all its role assignments?`, {
+      .confirm(`Remove "${labelOf(entry)}" and all its role assignments?`, {
         type: "destructive",
         okText: "Remove",
       })
@@ -380,7 +391,7 @@ export function AssignRolesPage({
       );
     } catch (err) {
       console.error("Failed to remove entry", entry.name, err);
-      setError(`Failed to remove "${entry.name}".`);
+      setError(`Failed to remove "${labelOf(entry)}".`);
       await resync(key);
     }
   };
@@ -389,7 +400,7 @@ export function AssignRolesPage({
     const kindWord = to === "USER" ? "user" : "group";
     const confirmed = await dialog
       .confirm(
-        `Migrate the ambiguous entry "${entry.name}" to a ${kindWord}? Its role assignments are kept.`,
+        `Migrate the ambiguous entry "${labelOf(entry)}" to a ${kindWord}? Its role assignments are kept.`,
         { okText: "Migrate" },
       )
       .catch(() => false);
@@ -419,7 +430,7 @@ export function AssignRolesPage({
       });
     } catch (err) {
       console.error("Failed to migrate entry", entry.name, err);
-      setError(`Failed to migrate "${entry.name}".`);
+      setError(`Failed to migrate "${labelOf(entry)}".`);
       await resync(key);
     }
   };
@@ -533,13 +544,16 @@ export function AssignRolesPage({
       </div>
       {mode === "add" && (
         <AssignSidDialog
-          title="Add user or group"
+          title={
+            searchPrincipalsUrl ? "Add users or groups" : "Add user or group"
+          }
           kind="USER"
           allowNameEdit
           existingEntries={entries}
           roles={roles}
           permissionsById={permissionsById}
           checkSidNameUrl={checkSidNameUrl}
+          searchPrincipalsUrl={searchPrincipalsUrl}
           initialName=""
           initialRoles={[]}
           submitLabel="Add"
@@ -549,7 +563,7 @@ export function AssignRolesPage({
       )}
       {editing && (
         <AssignSidDialog
-          title={`Edit roles: ${editing.name}`}
+          title={`Edit roles: ${labelOf(editing)}`}
           kind={editing.type}
           allowNameEdit={false}
           existingEntries={entries}

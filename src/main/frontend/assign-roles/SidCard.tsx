@@ -30,6 +30,15 @@ interface SidCardProps {
   onMigrate: (entry: SidEntry, to: "USER" | "GROUP") => void;
 }
 
+/**
+ * The realm's display name for an entry, or undefined when there is none or it
+ * just repeats the sid.
+ */
+export const resolvedDisplayName = (entry: SidEntry, info?: SidInfo) =>
+  info?.displayName && info.displayName !== entry.name
+    ? info.displayName
+    : undefined;
+
 const kindLabel = (entry: SidEntry) =>
   entry.type === "GROUP" ? "group" : "user";
 
@@ -45,14 +54,19 @@ export function SidCard({
   onMigrate,
 }: SidCardProps) {
   const notFound = info?.resolution === "not-found";
-  const displayName = info?.displayName;
+  // Show the friendly name and keep the raw sid (e.g. an Entra ID object ID)
+  // in the tooltip, matching matrix-auth.
+  const displayName = resolvedDisplayName(entry, info);
+  const typeLabel = entry.type === "GROUP" ? "Group" : "User";
 
   const name = (
     <Tooltip
       content={
         notFound
-          ? `${entry.type === "GROUP" ? "Group" : "User"} not found in the security realm`
-          : undefined
+          ? `${typeLabel} not found in the security realm`
+          : displayName
+            ? `${typeLabel} ${entry.name}`
+            : undefined
       }
       placement="top"
     >
@@ -60,7 +74,7 @@ export function SidCard({
         className={notFound ? "rsp-assign__name--not-found" : undefined}
         data-sid={entry.name}
       >
-        {displayName ? `${displayName} (${entry.name})` : entry.name}
+        {displayName ?? entry.name}
       </span>
     </Tooltip>
   );
