@@ -1,4 +1,4 @@
-import { type FormEvent, useId, useRef, useState } from "react";
+import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 
 import { ApiError } from "../common/api/client.ts";
 import { checkSidName } from "../common/api/validation.ts";
@@ -6,6 +6,10 @@ import { Dialog } from "../common/components/Dialog.tsx";
 import { HelpIcon } from "../common/components/HelpIcon.tsx";
 import { SearchInput } from "../common/components/SearchInput.tsx";
 import type { SidEntry, SidType } from "../common/types/assignment.ts";
+import type {
+  PrincipalSearchElement,
+  SearchedPrincipal,
+} from "../common/types/principalSearch.ts";
 import type { Role } from "../common/types/role.ts";
 import {
   buildPermissionSummary,
@@ -13,8 +17,8 @@ import {
 } from "../common/utils/permissionSummary.ts";
 
 export interface AssignSidDialogResult {
-  name: string;
-  type: SidType;
+  /** The entries to assign; several when picked through principal search. */
+  sids: { name: string; type: SidType }[];
   /** Selected role names, in catalogue order. */
   roles: string[];
 }
@@ -31,6 +35,12 @@ interface AssignSidDialogProps {
   /** Permission catalogue for the active role type, for the role permissions tooltip. */
   permissionsById: ReadonlyMap<string, PermissionRef>;
   checkSidNameUrl: string;
+  /**
+   * Principal search endpoint for autocompleting users and groups while
+   * adding; empty when the security realm cannot be searched. With it,
+   * several users (or groups, per the User/Group choice) can be picked at once.
+   */
+  searchPrincipalsUrl?: string;
   initialName: string;
   initialRoles: string[];
   submitLabel: string;
@@ -67,6 +77,7 @@ export function AssignSidDialog({
   roles,
   permissionsById,
   checkSidNameUrl,
+  searchPrincipalsUrl = "",
   initialName,
   initialRoles,
   submitLabel,
@@ -87,6 +98,10 @@ export function AssignSidDialog({
   const [error, setError] = useState<string | null>(null);
   // Invalidates in-flight name lookups once the field is edited again.
   const nameCheckSeq = useRef(0);
+  const usePrincipalSearch = allowNameEdit && searchPrincipalsUrl !== "";
+  // Users and groups picked through principal search.
+  const [principals, setPrincipals] = useState<SearchedPrincipal[]>([]);
+  const principalSearchRef = useRef<PrincipalSearchElement | null>(null);
 
   const trimmed = name.trim();
   const taken =
@@ -99,9 +114,10 @@ export function AssignSidDialog({
   // has nothing to save; removal is a separate card action. Built-in entries
   // are the exception: they always exist and have no delete action, so an
   // empty selection is how their last role gets revoked.
+  const hasSids = usePrincipalSearch ? principals.length > 0 : trimmed !== "";
   const canSubmit =
-    trimmed !== "" &&
-    !taken &&
+    hasSids &&
+    !(taken && !usePrincipalSearch) &&
     (selected.size > 0 || allowEmptyRoles) &&
     !submitting;
 
@@ -116,13 +132,13 @@ export function AssignSidDialog({
   // Realm feedback runs outside typing (on blur and on type switches) and
   // never blocks submitting: sids that the realm cannot resolve (e.g. groups
   // from an external directory) are still legal assignments.
-  const runNameCheck = async (kindToUse: SidType) => {
+  const runNameCheck = async (kindToUse: SidType, nameToCheck = name) => {
     // Invalidate any in-flight lookup for a previous type/value unconditionally,
     // even when this call itself has nothing to check: otherwise a stale
     // response could still pass the seq check below and render under the
     // new type.
     const seq = ++nameCheckSeq.current;
-    const value = name.trim();
+    const value = nameToCheck.trim();
     const isTaken =
       allowNameEdit &&
       existingEntries.some((e) => e.name === value && e.type === kindToUse);
@@ -143,8 +159,55 @@ export function AssignSidDialog({
   const handleKindChange = (next: SidType) => {
     setKind(next);
     setNameFeedbackHtml(null);
+    if (usePrincipalSearch) {
+      // Picks are of the previous type; start over for the new one.
+      // (the element may not be upgraded yet, before its adjunct loads)
+      const element = principalSearchRef.current;
+      if (typeof element?.clear === "function") element.clear();
+      setPrincipals([]);
+      return;
+    }
     runNameCheck(next);
   };
+
+  const existingEntriesRef = useRef(existingEntries);
+  existingEntriesRef.current = existingEntries;
+
+  useEffect(() => {
+    const element = principalSearchRef.current;
+    if (!usePrincipalSearch || !element) return;
+    // Entries that already exist are not offered again.
+    element.exclude = (p) =>
+      existingEntriesRef.current.some(
+        (e) => e.name === p.sid && e.type === p.type,
+      );
+    const onChange = () => setPrincipals(element.selectedPrincipals ?? []);
+    element.addEventListener("change", onChange);
+    // The auth-commons adjunct defines the element asynchronously, so the
+    // dialog's initial autofocus may have reached it before it had an input to
+    // focus. Focus it once it is upgraded, unless focus has moved elsewhere.
+    let active = true;
+    window.customElements
+      ?.whenDefined("auth-commons-principal-search")
+      .then(() => {
+        const focused = document.activeElement;
+        const dialogEl = element.closest("dialog");
+        if (
+          active &&
+          element.isConnected &&
+          (focused === null ||
+            focused === document.body ||
+            focused === dialogEl ||
+            focused === element)
+        ) {
+          element.focus();
+        }
+      });
+    return () => {
+      active = false;
+      element.removeEventListener("change", onChange);
+    };
+  }, [usePrincipalSearch]);
 
   const filterQ = roleFilter.trim().toLowerCase();
   const visibleRoles = filterQ
@@ -167,8 +230,9 @@ export function AssignSidDialog({
     setError(null);
     try {
       await onSubmit({
-        name: trimmed,
-        type: kind,
+        sids: usePrincipalSearch
+          ? principals.map((p) => ({ name: p.sid, type: p.type }))
+          : [{ name: trimmed, type: kind }],
         roles: roles.filter((r) => selected.has(r.name)).map((r) => r.name),
       });
     } catch (err) {
@@ -231,32 +295,55 @@ export function AssignSidDialog({
           </div>
         )}
         <div className="jenkins-form-item">
-          <label className="jenkins-form-label" htmlFor="rsp-sid-name">
-            {nameLabel(kind)}
-          </label>
-          <input
-            id="rsp-sid-name"
-            type="text"
-            className="jenkins-input"
-            value={name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            onBlur={allowNameEdit ? handleNameBlur : undefined}
-            disabled={!allowNameEdit}
-            data-autofocus={allowNameEdit ? "true" : undefined}
-            required
-          />
-          {taken && (
+          {usePrincipalSearch ? (
+            <>
+              <div className="jenkins-form-label">
+                {kind === "GROUP" ? "Groups" : "Users"}
+              </div>
+              <auth-commons-principal-search
+                ref={principalSearchRef}
+                id="rsp-sid-name"
+                search-url={searchPrincipalsUrl}
+                type={kind}
+                placeholder={
+                  kind === "GROUP"
+                    ? "Search by name, or type a group name"
+                    : "Search by name, or type a user ID"
+                }
+                multiple
+                data-autofocus="true"
+              />
+            </>
+          ) : (
+            <>
+              <label className="jenkins-form-label" htmlFor="rsp-sid-name">
+                {nameLabel(kind)}
+              </label>
+              <input
+                id="rsp-sid-name"
+                type="text"
+                className="jenkins-input"
+                value={name}
+                onChange={(e) => handleNameChange(e.target.value)}
+                onBlur={allowNameEdit ? handleNameBlur : undefined}
+                disabled={!allowNameEdit}
+                data-autofocus={allowNameEdit ? "true" : undefined}
+                required
+              />
+            </>
+          )}
+          {taken && !usePrincipalSearch && (
             <div className="jenkins-form-description jenkins-!-color-red">
               An entry for this {kindWord.toLowerCase()} already exists.
             </div>
           )}
-          {!taken && ambiguousExists && (
+          {!taken && !usePrincipalSearch && ambiguousExists && (
             <div className="jenkins-form-description">
               An ambiguous entry with this name already exists. Consider
               migrating it instead of adding a second entry.
             </div>
           )}
-          {!taken && nameFeedbackHtml && (
+          {!taken && !usePrincipalSearch && nameFeedbackHtml && (
             <div
               className="jenkins-form-description rsp-assign__name-feedback"
               // Server-rendered FormValidation snippet from checkSidName; the
