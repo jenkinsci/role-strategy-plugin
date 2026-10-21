@@ -26,10 +26,8 @@ package org.jenkinsci.plugins.rolestrategy.permissions;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.PluginManager;
 import hudson.security.Permission;
 import hudson.security.PermissionGroup;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,12 +37,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import jenkins.model.Jenkins;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- * Helper methods for dangerous permission handling.
+ * Helper methods for permission handling.
  *
  * @author Oleg Nenashev
  */
@@ -55,21 +52,13 @@ public class PermissionHelper {
 
   private static final Pattern PERMISSION_PATTERN = Pattern.compile("^([^\\/]+)\\/(.+)$");
 
-  /**
-   * List of the dangerous permissions, which need to be suppressed by the plugin.
-   */
-  @SuppressWarnings("deprecation")
-  @Restricted(NoExternalUse.class)
-  public static final Set<Permission> DANGEROUS_PERMISSIONS = Collections.unmodifiableSet(
-      new HashSet<>(Arrays.asList(Jenkins.RUN_SCRIPTS, PluginManager.CONFIGURE_UPDATECENTER, PluginManager.UPLOAD_PLUGINS)));
-
   private PermissionHelper() {
     // Cannot be constructed
   }
 
   /**
    * Convert a set of string to a collection of permissions.
-   * Dangerous and non-solvable permissions are ignored
+   * Non-solvable permissions are ignored
    *
    * @param permissionStrings A list of Permission IDs or UI names.
    * @param allowPermissionId Allow to resolve the permission from the ID.
@@ -95,16 +84,6 @@ public class PermissionHelper {
   }
 
   /**
-   * Check if the permissions is dangerous.
-   *
-   * @param p Permission
-   * @return {@code true} if the permission is considered as dangerous.
-   */
-  public static boolean isDangerous(Permission p) {
-    return DANGEROUS_PERMISSIONS.contains(p);
-  }
-
-  /**
    * Attempt to match a given permission to what is defined in the UI.
    *
    * @param id String of the form "Title/Permission" (Look in the UI) for a particular permission
@@ -113,7 +92,7 @@ public class PermissionHelper {
   @CheckForNull
   public static Permission findPermission(String id) {
     final String resolvedId = findPermissionId(id);
-    return resolvedId != null ? getSafePermission(resolvedId) : null;
+    return resolvedId != null ? Permission.fromId(resolvedId) : null;
   }
 
   /**
@@ -145,23 +124,18 @@ public class PermissionHelper {
   }
 
   private static @CheckForNull Permission getSafePermission(String id) {
-    Permission permission = Permission.fromId(id);
-    if (permission != null && isDangerous(permission)) {
-      LOGGER.log(Level.WARNING, "The permission: '"  + permission + "' is dangerous and will be ignored.");
-      return null;
-    }
-    return permission;
+    return Permission.fromId(id);
   }
 
   /**
    * Attempt to match a given permission to what is defined in the UI or from the ID representation used in the config.xml.
    *
    * @param id String of the form "Title/Permission" (Look in the UI) for a particular permission or in the form used in the config.xml
-   * @return a matched permission, null if permission couldn't be resolved or is dangerous
+   * @return a matched permission, null if permission couldn't be resolved
    */
   @CheckForNull
   public static Permission resolvePermissionFromString(String id) {
-    Permission permission = getSafePermission(id);
+    Permission permission = Permission.fromId(id);
     if (permission == null) {
       permission = PermissionHelper.findPermission(id);
     }

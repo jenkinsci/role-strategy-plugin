@@ -140,18 +140,6 @@ class ConfigurationAsCodeTest {
   }
 
   @Test
-  @ConfiguredWithCode("Configuration-as-Code3.yml")
-  void dangerousPermissionsAreIgnored(JenkinsConfiguredWithCodeRule jcwcRule) {
-    AuthorizationStrategy s = jcwcRule.jenkins.getAuthorizationStrategy();
-    assertThat("Authorization Strategy has been read incorrectly", s, instanceOf(RoleBasedAuthorizationStrategy.class));
-    RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) s;
-
-    assertThat(rbas.getRoleMap(RoleType.Global).getRole("dangerous").hasPermission(PluginManager.CONFIGURE_UPDATECENTER), is(false));
-    assertThat(rbas.getRoleMap(RoleType.Global).getRole("dangerous").hasPermission(PluginManager.UPLOAD_PLUGINS), is(false));
-    assertThat(rbas.getRoleMap(RoleType.Global).getRole("dangerous").hasPermission(Jenkins.RUN_SCRIPTS), is(false));
-  }
-
-  @Test
   @ConfiguredWithCode("Configuration-as-Code-no-permissions.yml")
   void exportWithEmptyRole(JenkinsConfiguredWithCodeRule jcwcRule) throws Exception {
     ConfiguratorRegistry registry = ConfiguratorRegistry.get();
