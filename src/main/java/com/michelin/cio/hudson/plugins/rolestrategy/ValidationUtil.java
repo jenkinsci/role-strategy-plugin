@@ -70,7 +70,7 @@ class ValidationUtil {
   }
 
   /**
-   * Outcome of a sid lookup: whether it exists and, when it does, a display name differing from the sid.
+   * Outcome of a sid lookup: whether it exists and an optional display name differing from the sid.
    */
   static final class SidResolution {
     private final SidResolutionKind kind;
@@ -103,7 +103,15 @@ class ValidationUtil {
       String displayName = userName.equals(fullName) ? lookupDisplayName(userName, PrincipalType.USER) : fullName;
       return new SidResolution(SidResolutionKind.FOUND, StringUtils.abbreviate(displayName, 50));
     } catch (UserMayOrMayNotExistException2 e) {
-      return fromDirectory(userName, PrincipalType.USER, SidResolutionKind.UNKNOWN);
+      SidResolution resolution = fromDirectory(userName, PrincipalType.USER, SidResolutionKind.UNKNOWN);
+      if (resolution.getKind() == SidResolutionKind.FOUND) {
+        return resolution;
+      }
+      // A local display name does not establish whether the user still exists in the realm.
+      User user = User.getById(userName, false);
+      String fullName = user != null ? user.getFullName() : userName;
+      String displayName = userName.equals(fullName) ? null : StringUtils.abbreviate(fullName, 50);
+      return new SidResolution(SidResolutionKind.UNKNOWN, displayName);
     } catch (UsernameNotFoundException e) {
       return fromDirectory(userName, PrincipalType.USER, SidResolutionKind.NOT_FOUND);
     } catch (AuthenticationException e) {
