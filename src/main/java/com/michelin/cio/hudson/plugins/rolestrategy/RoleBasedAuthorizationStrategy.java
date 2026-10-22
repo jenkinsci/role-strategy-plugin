@@ -54,6 +54,7 @@ import hudson.security.PermissionScope;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import hudson.util.FormValidation;
+import io.jenkins.plugins.authcommons.PrincipalSearch;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -85,6 +86,7 @@ import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
 import org.kohsuke.stapler.StaplerRequest2;
@@ -1843,6 +1845,41 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
         return FormValidation.error(pse.getMessage());
       }
       return FormValidation.ok();
+    }
+
+    /**
+     * Whether the Assign Roles dialog can autocomplete users and groups for the current user.
+     *
+     * @return true when a {@link io.jenkins.plugins.authcommons.PrincipalSearchProvider} can search the configured security realm and the
+     *     current user may look sids up in it
+     */
+    @Restricted(NoExternalUse.class)
+    public boolean isPrincipalSearchAvailable() {
+      Jenkins jenkins = Jenkins.get();
+      return jenkins.hasAnyPermission(ADMINISTER_AND_SOME_ROLES_ADMIN)
+          && jenkins.hasPermission(Jenkins.SYSTEM_READ)
+          && PrincipalSearch.isAvailable();
+    }
+
+    /**
+     * Searches the security realm for users and groups to assign roles to.
+     *
+     * <p>Like {@link #doCheckSidName(String, String)}, the realm is only consulted for users with
+     * {@link Jenkins#SYSTEM_READ}.
+     *
+     * @param q the text to search for
+     * @param type USER, GROUP, or empty for both
+     * @param limit maximum number of results
+     * @return JSON of the form {@code {"results": [{"sid", "type", "displayName", "description"}]}}
+     */
+    @GET
+    @Restricted(NoExternalUse.class)
+    public HttpResponse doSearchPrincipals(@QueryParameter String q, @QueryParameter String type,
+        @QueryParameter Integer limit) {
+      Jenkins jenkins = Jenkins.get();
+      jenkins.checkAnyPermission(ADMINISTER_AND_SOME_ROLES_ADMIN);
+      jenkins.checkPermission(Jenkins.SYSTEM_READ);
+      return PrincipalSearch.searchResponse(q, type, limit);
     }
 
     /**

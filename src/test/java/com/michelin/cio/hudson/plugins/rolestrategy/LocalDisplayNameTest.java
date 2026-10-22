@@ -4,12 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.User;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException2;
+import io.jenkins.plugins.authcommons.Principal;
+import io.jenkins.plugins.authcommons.PrincipalSearchProvider;
+import io.jenkins.plugins.authcommons.PrincipalType;
 import java.net.URL;
 import java.util.List;
+import java.util.Set;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -21,6 +26,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -100,6 +106,18 @@ class LocalDisplayNameTest {
     ValidationUtil.SidResolution resolution = ValidationUtil.resolveUser("alice", realm);
     assertEquals(ValidationUtil.SidResolutionKind.UNKNOWN, resolution.getKind());
     assertEquals("张三", resolution.getDisplayName());
+  }
+
+  @Test
+  void directoryLookupTakesPrecedenceOverLocalName() throws Exception {
+    User.getById("directory-user", true).setFullName("Local user name");
+    ValidationUtil.SidResolution resolution = ValidationUtil.resolveUser("directory-user", realm);
+    assertEquals(ValidationUtil.SidResolutionKind.FOUND, resolution.getKind());
+    assertEquals("Directory user name", resolution.getDisplayName());
+    JSONObject info = resolveAs("admin", "[{\"sid\":\"directory-user\",\"type\":\"USER\"}]").getJSONObject(0);
+    assertEquals("found", info.getString("resolution"));
+    assertEquals("USER", info.getString("foundAs"));
+    assertEquals("Directory user name", info.getString("displayName"));
   }
 
   @Test
@@ -187,6 +205,26 @@ class LocalDisplayNameTest {
       Page page = client.getPage(request);
       assertEquals(200, page.getWebResponse().getStatusCode());
       return JSONArray.fromObject(page.getWebResponse().getContentAsString());
+    }
+  }
+
+  @TestExtension("directoryLookupTakesPrecedenceOverLocalName")
+  public static class TestProvider extends PrincipalSearchProvider {
+    @Override
+    public boolean isApplicable(@NonNull SecurityRealm realm) {
+      return true;
+    }
+
+    @NonNull
+    @Override
+    public List<Principal> search(@NonNull String query, @NonNull Set<PrincipalType> types, int limit) {
+      return List.of();
+    }
+
+    @Override
+    public Principal lookup(@NonNull String sid, @NonNull PrincipalType type) {
+      return "directory-user".equals(sid) && type == PrincipalType.USER
+          ? Principal.user(sid, "Directory user name", null) : null;
     }
   }
 }

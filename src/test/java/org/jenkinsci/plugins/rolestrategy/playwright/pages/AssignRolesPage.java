@@ -108,6 +108,54 @@ public class AssignRolesPage extends RoleStrategyPage<AssignRolesPage> {
     return this;
   }
 
+  /** Type into the principal search field, available when a search provider is installed. */
+  public AssignRolesPage dialogSearchPrincipal(String query) {
+    Locator input = dialog().locator("auth-commons-principal-search input");
+    input.fill("");
+    input.pressSequentially(query);
+    return this;
+  }
+
+  public AssignRolesPage dialogSearchHasOption(String text) {
+    assertThat(searchOption(text)).isVisible();
+    return this;
+  }
+
+  public AssignRolesPage dialogSearchHasNoOption(String text) {
+    assertThat(searchOption(text)).hasCount(0);
+    return this;
+  }
+
+  public AssignRolesPage dialogPickPrincipal(String text) {
+    searchOption(text).click();
+    return this;
+  }
+
+  public AssignRolesPage dialogHasChip(String label) {
+    assertThat(chip(label)).isVisible();
+    return this;
+  }
+
+  public AssignRolesPage dialogHasNoChips() {
+    assertThat(dialog().locator(".auth-commons-principal-search__chip")).hasCount(0);
+    return this;
+  }
+
+  public AssignRolesPage dialogRemoveChip(String label) {
+    chip(label).getByRole(AriaRole.BUTTON).click();
+    return this;
+  }
+
+  private Locator searchOption(String name) {
+    return dialog().locator("[role=option]:has(.auth-commons-principal-search__name:text-is(\""
+        + name + "\"))");
+  }
+
+  private Locator chip(String label) {
+    return dialog().locator(".auth-commons-principal-search__chip:has("
+        + ".auth-commons-principal-search__chip-name:text-is(\"" + label + "\"))");
+  }
+
   /** Click a role's checkbox inside the add/edit dialog. */
   public AssignRolesPage dialogToggleRole(String roleName) {
     dialog().locator(".rsp-assign-dialog__role-item[data-role-name=\"" + roleName + "\"] label")

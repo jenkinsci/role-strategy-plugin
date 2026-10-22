@@ -284,6 +284,31 @@ describe("AssignRolesPage", () => {
     );
   });
 
+  it("names the entry by its display name when confirming removal", async () => {
+    const user = userEvent.setup();
+    const client = createClient();
+    vi.mocked(client.getSidsInfo).mockResolvedValue([
+      {
+        sid: "alice",
+        type: "USER",
+        resolution: "found",
+        foundAs: "USER",
+        displayName: "Alice Smith",
+      },
+    ]);
+    renderPage(bootstrap(), client);
+
+    await screen.findByText("Alice Smith");
+    await user.click(
+      within(cardOf("Alice Smith")).getByLabelText("Remove user"),
+    );
+
+    expect(dialog.confirm).toHaveBeenCalledWith(
+      'Remove "Alice Smith" and all its role assignments?',
+      expect.anything(),
+    );
+  });
+
   it("keeps the entry when the removal is cancelled", async () => {
     vi.stubGlobal("dialog", {
       confirm: vi.fn().mockRejectedValue(new Error("cancelled")),
@@ -625,7 +650,10 @@ describe("AssignRolesPage", () => {
     ]);
     renderPage(bootstrap(), client);
 
-    expect(await screen.findByText("Alice Smith (alice)")).toBeInTheDocument();
+    expect(await screen.findByText("Alice Smith")).toHaveAttribute(
+      "data-sid",
+      "alice",
+    );
     await waitFor(() =>
       expect(client.getSidsInfo).toHaveBeenCalledWith(
         [{ sid: "alice", type: "USER" }],
@@ -646,13 +674,16 @@ describe("AssignRolesPage", () => {
     ]);
     renderPage(bootstrap(), client);
 
-    expect(await screen.findByText("张三 (alice)")).toBeInTheDocument();
+    expect(await screen.findByText("张三")).toHaveAttribute(
+      "data-sid",
+      "alice",
+    );
     const user = userEvent.setup();
     await user.type(
       screen.getByPlaceholderText("Search users and groups"),
       "张三",
     );
-    expect(screen.getByText("张三 (alice)")).toBeInTheDocument();
+    expect(screen.getByText("张三")).toHaveAttribute("data-sid", "alice");
     expect(screen.queryByText("anonymous")).not.toBeInTheDocument();
   });
 

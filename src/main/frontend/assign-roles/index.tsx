@@ -20,6 +20,7 @@ if (mountNode) {
         bootstrap={bootstrap}
         client={client}
         checkSidNameUrl={mountNode.dataset.checkSidNameUrl ?? ""}
+        searchPrincipalsUrl={mountNode.dataset.searchPrincipalsUrl ?? ""}
       />
     </StrictMode>,
   );

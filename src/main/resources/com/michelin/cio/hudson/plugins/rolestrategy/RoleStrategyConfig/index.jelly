@@ -51,10 +51,17 @@
                       noDefer="true"
                       includeBreadcrumb="true"
                       header="${header}">
+    <j:set var="principalSearchAvailable" value="${it.strategy.descriptor.principalSearchAvailable}"/>
+    <j:set var="searchPrincipalsUrl" value=""/>
+    <j:if test="${principalSearchAvailable}">
+      <j:set var="searchPrincipalsUrl" value="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}/searchPrincipals"/>
+      <st:adjunct includes="io.jenkins.plugins.authcommons.principal-search"/>
+    </j:if>
     <div id="assign-roles-root"
          data-root-url="${rootURL}"
          data-strategy-url="${rootURL}/role-strategy/strategy"
          data-check-sid-name-url="${rootURL}/descriptor/${it.strategy.descriptor.clazz.name}/checkSidName"
+         data-search-principals-url="${searchPrincipalsUrl}"
          data-bootstrap="${it.assignRolesBootstrapJson}"/>
     <script src="${resURL}/plugin/role-strategy/js/bundles/assign-roles-bundle.js" type="module"/>
   </l:settings-subpage>

@@ -6,6 +6,9 @@ import hudson.model.User;
 import hudson.security.GroupDetails;
 import hudson.security.SecurityRealm;
 import hudson.security.UserMayOrMayNotExistException2;
+import io.jenkins.plugins.authcommons.Principal;
+import io.jenkins.plugins.authcommons.PrincipalSearch;
+import io.jenkins.plugins.authcommons.PrincipalType;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkins.ui.symbol.Symbol;
 import org.jenkins.ui.symbol.SymbolRequest;
@@ -90,26 +93,31 @@ class ValidationUtil {
 
   @NonNull
   static SidResolution resolveUser(String userName, SecurityRealm sr) {
-    SidResolutionKind kind;
     try {
       sr.loadUserByUsername2(userName);
-      kind = SidResolutionKind.FOUND;
+      // Do not create a User record as a side effect of resolving a sid for
+      // display; the null fallback below already covers sids with no local
+      // user record.
+      User user = User.getById(userName, false);
+      String fullName = user != null ? user.getFullName() : userName;
+      String displayName = userName.equals(fullName) ? lookupDisplayName(userName, PrincipalType.USER) : fullName;
+      return new SidResolution(SidResolutionKind.FOUND, StringUtils.abbreviate(displayName, 50));
     } catch (UserMayOrMayNotExistException2 e) {
+      SidResolution resolution = fromDirectory(userName, PrincipalType.USER, SidResolutionKind.UNKNOWN);
+      if (resolution.getKind() == SidResolutionKind.FOUND) {
+        return resolution;
+      }
       // A local display name does not establish whether the user still exists in the realm.
-      kind = SidResolutionKind.UNKNOWN;
+      User user = User.getById(userName, false);
+      String fullName = user != null ? user.getFullName() : userName;
+      String displayName = userName.equals(fullName) ? null : StringUtils.abbreviate(fullName, 50);
+      return new SidResolution(SidResolutionKind.UNKNOWN, displayName);
     } catch (UsernameNotFoundException e) {
-      return new SidResolution(SidResolutionKind.NOT_FOUND, null);
+      return fromDirectory(userName, PrincipalType.USER, SidResolutionKind.NOT_FOUND);
     } catch (AuthenticationException e) {
       // an unexpected realm failure says nothing about the sid itself
       return new SidResolution(SidResolutionKind.UNKNOWN, null);
     }
-    // Do not create a User record as a side effect of resolving a sid for
-    // display; the null fallback below already covers sids with no local
-    // user record.
-    User user = User.getById(userName, false);
-    String fullName = user != null ? user.getFullName() : userName;
-    String displayName = userName.equals(fullName) ? null : StringUtils.abbreviate(fullName, 50);
-    return new SidResolution(kind, displayName);
   }
 
   @NonNull
@@ -117,14 +125,42 @@ class ValidationUtil {
     try {
       GroupDetails details = sr.loadGroupByGroupname2(groupName, false);
       String display = details.getDisplayName();
-      String displayName = display == null || groupName.equals(display) ? null : StringUtils.abbreviate(display, 50);
-      return new SidResolution(SidResolutionKind.FOUND, displayName);
+      String displayName = display == null || groupName.equals(display)
+          ? lookupDisplayName(groupName, PrincipalType.GROUP) : display;
+      return new SidResolution(SidResolutionKind.FOUND, StringUtils.abbreviate(displayName, 50));
     } catch (UserMayOrMayNotExistException2 e) {
-      return new SidResolution(SidResolutionKind.UNKNOWN, null);
+      return fromDirectory(groupName, PrincipalType.GROUP, SidResolutionKind.UNKNOWN);
     } catch (UsernameNotFoundException e) {
-      return new SidResolution(SidResolutionKind.NOT_FOUND, null);
+      return fromDirectory(groupName, PrincipalType.GROUP, SidResolutionKind.NOT_FOUND);
     } catch (AuthenticationException e) {
       return new SidResolution(SidResolutionKind.UNKNOWN, null);
     }
+  }
+
+  /**
+   * For sids the security realm cannot resolve, e.g. directory users who never logged in to Jenkins, asks the
+   * principal search providers whether the directory knows them.
+   */
+  @NonNull
+  private static SidResolution fromDirectory(String sid, PrincipalType type, SidResolutionKind otherwise) {
+    Principal principal = PrincipalSearch.lookup(sid, type);
+    if (principal == null) {
+      return new SidResolution(otherwise, null);
+    }
+    String displayName = sid.equals(principal.displayName()) ? null : principal.displayName();
+    return new SidResolution(SidResolutionKind.FOUND, StringUtils.abbreviate(displayName, 50));
+  }
+
+  /**
+   * Asks the principal search providers for a friendly name, for realms whose sids are not meaningful by
+   * themselves (e.g. object ids).
+   */
+  @CheckForNull
+  private static String lookupDisplayName(String sid, PrincipalType type) {
+    Principal principal = PrincipalSearch.lookup(sid, type);
+    if (principal == null || sid.equals(principal.displayName())) {
+      return null;
+    }
+    return principal.displayName();
   }
 }
