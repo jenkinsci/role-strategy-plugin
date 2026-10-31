@@ -485,6 +485,59 @@ describe("AssignRolesPage", () => {
     expect(screen.queryByText("anonymous")).not.toBeInTheDocument();
   });
 
+  it("filters to entries the security realm does not know, across all pages", async () => {
+    const user = userEvent.setup();
+    const client = createClient();
+    vi.mocked(client.getSidsInfo).mockImplementation(async (items) =>
+      items.map((item) => ({
+        sid: item.sid,
+        type: item.type,
+        resolution:
+          item.sid === "zzz-ghost"
+            ? ("not-found" as const)
+            : ("found" as const),
+      })),
+    );
+    renderPage(
+      bootstrap({
+        // Two built-in entries per page, so the ghost is never on the page
+        // whose sids the initial lookup resolves.
+        pageSize: 2,
+        globalRoles: typeBootstrap({
+          entries: [
+            { name: "alice", type: "USER", roles: ["admin"] },
+            { name: "bob", type: "USER", roles: ["admin"] },
+            { name: "zzz-ghost", type: "USER", roles: ["admin"] },
+          ],
+        }),
+      }),
+      client,
+    );
+
+    await user.click(screen.getByTitle("Filter by role"));
+    await user.click(
+      screen.getByRole("button", { name: "Not found in security realm" }),
+    );
+
+    expect(
+      await screen.findByText("zzz-ghost", { selector: "[data-sid]" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("alice", { selector: "[data-sid]" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("anonymous", { selector: "[data-sid]" }),
+    ).not.toBeInTheDocument();
+    // The filter resolves every assignment, not only the visible page.
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(client.getSidsInfo)
+          .mock.calls.some(([items]) => items.length === 3),
+      ).toBe(true),
+    );
+  }, 20000);
+
   it("does not confuse a role named like the ambiguous filter with the ambiguous filter itself", async () => {
     const user = userEvent.setup();
     renderPage(

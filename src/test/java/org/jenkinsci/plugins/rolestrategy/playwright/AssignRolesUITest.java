@@ -105,6 +105,23 @@ class AssignRolesUITest {
   }
 
   @Test
+  @DisplayName("filters down to entries the security realm cannot resolve")
+  void notFoundFilterShowsOnlyUnresolvedEntries(JenkinsRule j, Page page) throws Exception {
+    rbas = UITestHelper.setupRbasWithAssignments(j);
+    // The dummy realm resolves every user, but only groups that were seeded.
+    rbas.doAssignGroupRole("globalRoles", "readers", "ghosts");
+    String baseUrl = j.jenkins.getRootUrl();
+    UITestHelper.loginAsAdmin(page, baseUrl);
+    new AssignRolesPage(page, baseUrl)
+        .goTo()
+        .openFilterDropdown()
+        .clickFilterOption("Not found in security realm")
+        .hasSidCard("ghosts")
+        .hasNoSidCard("alice")
+        .hasNoSidCard("anonymous");
+  }
+
+  @Test
   @DisplayName("requires at least one role before an entry can be added")
   void requiresAtLeastOneRole(JenkinsRule j, Page page) throws Exception {
     open(j, page)

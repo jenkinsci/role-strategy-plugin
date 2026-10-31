@@ -76,6 +76,13 @@ const infoKey = (type: SidType, sid: string) => `${type}:${sid}`;
     in the same dropdown as the role filters but matches on entry type. */
 const AMBIGUOUS_FILTER_ID = "__rsp-ambiguous__";
 
+/** Synthetic filter id for entries the security realm cannot resolve, e.g. a
+    user who was removed from LDAP but still has role assignments. */
+const NOT_FOUND_FILTER_ID = "__rsp-not-found__";
+
+/** Realm lookups are batched; the server rejects batches above 150 sids. */
+const SIDS_BATCH_SIZE = 100;
+
 /** Role filter ids are namespaced so a role literally named like the
     ambiguous filter id (or any other reserved id) cannot collide with it. */
 const ROLE_FILTER_PREFIX = "role:";
@@ -106,6 +113,7 @@ export function AssignRolesPage({
     slaveRoles: withFixedEntries(bootstrap.slaveRoles.entries),
   }));
   const [sidInfo, setSidInfo] = useState<Record<string, SidInfo>>({});
+  const [resolvingNotFound, setResolvingNotFound] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ReadonlySet<string>>(new Set());
   const [mode, setMode] = useState<"closed" | "add" | { edit: string }>(
@@ -152,20 +160,40 @@ export function AssignRolesPage({
   };
 
   const hasAmbiguous = entries.some((e) => e.type === "EITHER");
+  const notFoundFilterActive = roleFilter.has(NOT_FOUND_FILTER_ID);
+  const realmLookupItems = useMemo(
+    () =>
+      entries
+        .filter((e) => !isInternal(e))
+        .map((e) => ({ sid: e.name, type: e.type })),
+    [entries],
+  );
+  const hasRealmEntries = realmLookupItems.length > 0;
 
   const filterGroups = useMemo(() => {
     const groups = [];
+    const entryFilters = [];
     if (hasAmbiguous) {
+      entryFilters.push({
+        id: AMBIGUOUS_FILTER_ID,
+        name: "Ambiguous",
+        description: "Entries that apply to both a user and a group",
+        impliedByList: [],
+      });
+    }
+    if (hasRealmEntries) {
+      entryFilters.push({
+        id: NOT_FOUND_FILTER_ID,
+        name: "Not found in security realm",
+        description:
+          "Entries whose user or group no longer exists in the security realm",
+        impliedByList: [],
+      });
+    }
+    if (entryFilters.length > 0) {
       groups.push({
         title: "Entries",
-        permissions: [
-          {
-            id: AMBIGUOUS_FILTER_ID,
-            name: "Ambiguous",
-            description: "Entries that apply to both a user and a group",
-            impliedByList: [],
-          },
-        ],
+        permissions: entryFilters,
       });
     }
     if (roles.length > 0) {
@@ -180,7 +208,7 @@ export function AssignRolesPage({
       });
     }
     return groups;
-  }, [roles, hasAmbiguous]);
+  }, [roles, hasAmbiguous, hasRealmEntries]);
 
   const toggleRoleFilter = (filterId: string) => {
     setRoleFilter((prev) => {
@@ -214,13 +242,20 @@ export function AssignRolesPage({
         displayName.toLowerCase().includes(q);
       const matchesAmbiguous =
         !roleFilter.has(AMBIGUOUS_FILTER_ID) || entry.type === "EITHER";
+      const matchesNotFound =
+        !notFoundFilterActive ||
+        sidInfo[infoKey(entry.type, entry.name)]?.resolution === "not-found";
       const matchesRoles = [...roleFilter]
-        .filter((id) => id !== AMBIGUOUS_FILTER_ID)
+        .filter(
+          (id) => id !== AMBIGUOUS_FILTER_ID && id !== NOT_FOUND_FILTER_ID,
+        )
         .map(roleNameFromFilterId)
         .every((roleName) => entry.roles.includes(roleName));
-      return matchesSearch && matchesAmbiguous && matchesRoles;
+      return (
+        matchesSearch && matchesAmbiguous && matchesNotFound && matchesRoles
+      );
     });
-  }, [entries, search, roleFilter, sidInfo]);
+  }, [entries, search, roleFilter, notFoundFilterActive, sidInfo]);
 
   // Rendering thousands of cards at once makes the page sluggish, so the list
   // is paged client-side (page size from the MAX_ROWS system property); search
@@ -285,6 +320,44 @@ export function AssignRolesPage({
       }
     };
   }, [pageEntries, client, mergeSidInfo]);
+
+  // The not-found filter can only select entries once the realm has been asked
+  // about every assignment, not just the visible page. This lookup fans out on
+  // demand (the user explicitly selected the filter) but still batches the
+  // sids so a single request stays within the server's limit.
+  useEffect(() => {
+    if (!notFoundFilterActive || realmLookupItems.length === 0) return;
+    let active = true;
+    const controller = new AbortController();
+    setResolvingNotFound(true);
+    (async () => {
+      try {
+        for (
+          let start = 0;
+          start < realmLookupItems.length;
+          start += SIDS_BATCH_SIZE
+        ) {
+          const infos = await client.getSidsInfo(
+            realmLookupItems.slice(start, start + SIDS_BATCH_SIZE),
+            controller.signal,
+          );
+          if (!active) return;
+          mergeSidInfo(infos);
+        }
+      } catch (err) {
+        if (active && !controller.signal.aborted) {
+          console.error("Failed to resolve sids", err);
+        }
+      } finally {
+        if (active) setResolvingNotFound(false);
+      }
+    })();
+    return () => {
+      active = false;
+      controller.abort();
+      setResolvingNotFound(false);
+    };
+  }, [notFoundFilterActive, realmLookupItems, client, mergeSidInfo]);
 
   const updateEntries = (
     key: RoleTypeKey,
@@ -505,7 +578,11 @@ export function AssignRolesPage({
         </div>
         {filtered.length === 0 ? (
           <div className="jenkins-notice">
-            <div>No matching users or groups</div>
+            <div>
+              {notFoundFilterActive && resolvingNotFound
+                ? "Checking the security realm…"
+                : "No matching users or groups"}
+            </div>
             <div className="jenkins-notice__description">
               <button
                 type="button"
