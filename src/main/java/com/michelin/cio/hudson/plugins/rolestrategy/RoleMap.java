@@ -45,6 +45,7 @@ import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -112,6 +114,19 @@ public class RoleMap {
    */
   private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048).expireAfterWrite(1, TimeUnit.HOURS)
       .build();
+
+  /**
+   * Counts additions and removals of roles, so {@link #matchIndex} is rebuilt after the set of roles changes. Changes
+   * to assigned sids do not affect which roles match an item and do not count.
+   */
+  private final AtomicLong roleSetVersion = new AtomicLong();
+
+  /**
+   * Folder-scoped roles indexed by folder, so a {@link #matchingRoleMapCache} miss looks up the item's parent folders
+   * instead of testing every folder role. {@code null} until first needed.
+   */
+  @CheckForNull
+  private volatile MatchIndex matchIndex;
 
   RoleMap() {
     this.grantedRoles = new ConcurrentSkipListMap<>();
@@ -298,6 +313,7 @@ public class RoleMap {
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
       this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
+      roleSetVersion.incrementAndGet();
       matchingRoleMapCache.invalidateAll();
     }
   }
@@ -311,6 +327,7 @@ public class RoleMap {
    */
   public void addRole(Role role, Set<PermissionEntry> sids) {
     this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
+    roleSetVersion.incrementAndGet();
     matchingRoleMapCache.invalidateAll();
   }
 
@@ -490,6 +507,7 @@ public class RoleMap {
    */
   public void removeRole(Role role) {
     this.grantedRoles.remove(role);
+    roleSetVersion.incrementAndGet();
     matchingRoleMapCache.invalidateAll();
   }
 
@@ -678,15 +696,76 @@ public class RoleMap {
 
   private RoleMap createMatchingRoleMap(String itemNamePrefix) {
     SortedMap<Role, Set<PermissionEntry>> roleMap = new TreeMap<>();
-    new RoleWalker() {
-      @Override
-      public void perform(Role current) {
-        if (current.matches(itemNamePrefix)) {
-          roleMap.put(current, grantedRoles.get(current));
+    MatchIndex index = matchIndex();
+    for (Role role : index.patternRoles()) {
+      if (role.matches(itemNamePrefix)) {
+        putGranted(roleMap, role);
+      }
+    }
+    if (!index.folderRoles().isEmpty()) {
+      // A folder covers the item when it equals the item's full name or a prefix of it ending just before a '/'.
+      int longest = index.longestFolder();
+      for (int slash = itemNamePrefix.indexOf('/'); slash != -1 && slash <= longest;
+          slash = itemNamePrefix.indexOf('/', slash + 1)) {
+        putGranted(roleMap, index.folderRoles().get(itemNamePrefix.substring(0, slash)));
+      }
+      if (itemNamePrefix.length() <= longest) {
+        putGranted(roleMap, index.folderRoles().get(itemNamePrefix));
+      }
+    }
+    return new RoleMap(roleMap);
+  }
+
+  private void putGranted(SortedMap<Role, Set<PermissionEntry>> roleMap, @CheckForNull List<Role> roles) {
+    if (roles != null) {
+      for (Role role : roles) {
+        putGranted(roleMap, role);
+      }
+    }
+  }
+
+  /** Adds the role with its sids, unless it was removed since the index was built. */
+  private void putGranted(SortedMap<Role, Set<PermissionEntry>> roleMap, Role role) {
+    Set<PermissionEntry> sids = grantedRoles.get(role);
+    if (sids != null) {
+      roleMap.put(role, sids);
+    }
+  }
+
+  private MatchIndex matchIndex() {
+    long version = roleSetVersion.get();
+    MatchIndex index = matchIndex;
+    if (index == null || index.version() != version) {
+      Map<String, List<Role>> folderRoles = new HashMap<>();
+      List<Role> patternRoles = new ArrayList<>();
+      int longest = 0;
+      for (Role role : grantedRoles.keySet()) {
+        SortedSet<String> folders = role.getFolders();
+        if (folders != null) {
+          for (String folder : folders) {
+            folderRoles.computeIfAbsent(folder, f -> new ArrayList<>()).add(role);
+            longest = Math.max(longest, folder.length());
+          }
+        } else {
+          patternRoles.add(role);
         }
       }
-    };
-    return new RoleMap(roleMap);
+      index = new MatchIndex(version, Map.copyOf(folderRoles), List.copyOf(patternRoles), longest);
+      matchIndex = index;
+    }
+    return index;
+  }
+
+  /**
+   * The roles of this map split for matching: folder-scoped roles by each of their folders, and every other role.
+   *
+   * @param version       {@link #roleSetVersion} when this index was built
+   * @param folderRoles   folder-scoped roles by folder full name
+   * @param patternRoles  roles that match by regular expression
+   * @param longestFolder length of the longest folder, so longer prefixes of an item name are not looked up
+   */
+  private record MatchIndex(long version, Map<String, List<Role>> folderRoles, List<Role> patternRoles,
+      int longestFolder) {
   }
 
   /**
