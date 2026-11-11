@@ -46,7 +46,9 @@ import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -136,6 +138,16 @@ public class RoleMap {
   /** The {@link #MATCHING_CACHE_EPOCH} value {@link #matchingRoleMapCache} was last cleared at. */
   private volatile long matchingCacheEpoch = MATCHING_CACHE_EPOCH.get();
 
+  /** Counts changes to roles and their assigned sids, so {@link #sidIndex} is rebuilt after any of them. */
+  private final AtomicLong grantVersion = new AtomicLong();
+
+  /**
+   * Roles by assigned sid, so a permission check looks up the sid instead of comparing it with the sids of every role.
+   * {@code null} until first needed.
+   */
+  @CheckForNull
+  private volatile SidIndex sidIndex;
+
   RoleMap() {
     this.grantedRoles = new ConcurrentSkipListMap<>();
   }
@@ -166,9 +178,23 @@ public class RoleMap {
     final boolean principal = sid.getType() == AuthorizationType.USER;
     final IdStrategy strategy = principal ? securityRealm.getUserIdStrategy() : securityRealm.getGroupIdStrategy();
 
+    final SidIndex index = sidIndex(securityRealm);
+    final Collection<Role> rolesToWalk;
+    if (index == null) {
+      rolesToWalk = getRoles();
+    } else if (index.grants(sid, principal, implying, strategy)) {
+      return true;
+    } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && sid.getType() == AuthorizationType.USER) {
+      // Any role can match by name through the user's authorities, which the index does not cover.
+      rolesToWalk = getRoles();
+    } else {
+      // Macro roles decide through their extension, so the index leaves them out.
+      rolesToWalk = index.macroRoles();
+    }
+
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
-    new RoleWalker() {
+    new RoleWalker(rolesToWalk) {
 
       /**
        * Checks whether the given sid is granted permission.
@@ -256,6 +282,129 @@ public class RoleMap {
     return hasPermission[0];
   }
 
+  private void invalidateCaches() {
+    grantVersion.incrementAndGet();
+    clearMatchingRoleMapCache();
+  }
+
+  /**
+   * The current {@link SidIndex}, rebuilt when roles, sids, the id strategies or {@link #FORCE_CASE_SENSITIVE} changed.
+   *
+   * @return the index, or {@code null} when an id strategy does not define equality by {@link IdStrategy#keyFor}, in
+   *     which case sids are compared role by role
+   */
+  @CheckForNull
+  private SidIndex sidIndex(SecurityRealm securityRealm) {
+    IdStrategy userStrategy = securityRealm.getUserIdStrategy();
+    IdStrategy groupStrategy = securityRealm.getGroupIdStrategy();
+    boolean caseSensitive = FORCE_CASE_SENSITIVE;
+    if (!caseSensitive && !(equalityIsKeyFor(userStrategy) && equalityIsKeyFor(groupStrategy))) {
+      return null;
+    }
+    long version = grantVersion.get();
+    SidIndex index = sidIndex;
+    if (index == null || index.version() != version || index.caseSensitive() != caseSensitive
+        || !userStrategy.equals(index.userStrategy()) || !groupStrategy.equals(index.groupStrategy())) {
+      index = SidIndex.build(version, caseSensitive, userStrategy, groupStrategy, grantedRoles);
+      sidIndex = index;
+    }
+    return index;
+  }
+
+  /**
+   * Whether two ids are equal exactly when their {@link IdStrategy#keyFor} values are, so ids can be looked up by key.
+   * True for the strategies in Jenkins core; other implementations do not promise it.
+   */
+  private static boolean equalityIsKeyFor(IdStrategy strategy) {
+    Class<?> type = strategy.getClass();
+    return type == IdStrategy.CaseInsensitive.class || type == IdStrategy.CaseSensitive.class
+        || type == IdStrategy.CaseSensitiveEmailAddress.class;
+  }
+
+  /** A role assigned to a sid, as written in the role's entry. */
+  private record Assignment(String sid, Role role) {
+  }
+
+  /**
+   * Non-macro roles by assigned sid, for {@link #hasPermission}. Roles are referenced rather than copied, so permission
+   * changes from templates apply immediately.
+   *
+   * @param version       {@link #grantVersion} when this index was built
+   * @param caseSensitive whether it was built for {@link #FORCE_CASE_SENSITIVE}
+   * @param userStrategy  the user id strategy keys in {@code users} come from
+   * @param groupStrategy the group id strategy keys in {@code groups} come from
+   * @param exact         with {@link #FORCE_CASE_SENSITIVE}: roles by exact entry
+   * @param users         otherwise: roles assigned to users (user and either entries), by user id key
+   * @param groups        otherwise: roles assigned to groups (group and either entries), by group id key
+   * @param macroRoles    roles whose extension decides, which are always walked
+   */
+  private record SidIndex(long version, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
+      Map<PermissionEntry, List<Role>> exact, Map<String, List<Assignment>> users, Map<String, List<Assignment>> groups,
+      List<Role> macroRoles) {
+
+    static SidIndex build(long version, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
+        Map<Role, Set<PermissionEntry>> grantedRoles) {
+      Map<PermissionEntry, List<Role>> exact = new HashMap<>();
+      Map<String, List<Assignment>> users = new HashMap<>();
+      Map<String, List<Assignment>> groups = new HashMap<>();
+      List<Role> macroRoles = new ArrayList<>();
+      for (Map.Entry<Role, Set<PermissionEntry>> granted : grantedRoles.entrySet()) {
+        Role role = granted.getKey();
+        if (Macro.isMacro(role)) {
+          macroRoles.add(role);
+          continue;
+        }
+        for (PermissionEntry entry : granted.getValue()) {
+          if (caseSensitive) {
+            exact.computeIfAbsent(entry, e -> new ArrayList<>()).add(role);
+            continue;
+          }
+          Assignment assignment = new Assignment(entry.getSid(), role);
+          if (entry.isApplicable(true)) {
+            users.computeIfAbsent(userStrategy.keyFor(entry.getSid()), k -> new ArrayList<>()).add(assignment);
+          }
+          if (entry.isApplicable(false)) {
+            groups.computeIfAbsent(groupStrategy.keyFor(entry.getSid()), k -> new ArrayList<>()).add(assignment);
+          }
+        }
+      }
+      return new SidIndex(version, caseSensitive, userStrategy, groupStrategy, exact, users, groups,
+          List.copyOf(macroRoles));
+    }
+
+    /**
+     * Whether a non-macro role assigned to {@code sid} has an enabled permission from {@code implying}: the same as matching the sid
+     * against every role's entries, as {@link #hasPermission} did before the index.
+     */
+    boolean grants(PermissionEntry sid, boolean principal, Permission[] implying, IdStrategy strategy) {
+      if (caseSensitive) {
+        return anyHas(exact.get(sid), implying)
+            || anyHas(exact.get(new PermissionEntry(AuthorizationType.EITHER, sid.getSid())), implying);
+      }
+      List<Assignment> candidates = (principal ? users : groups).get(strategy.keyFor(sid.getSid()));
+      if (candidates != null) {
+        for (Assignment candidate : candidates) {
+          // Confirms the key match with the strategy's own equality, so the index can never grant more.
+          if (strategy.equals(candidate.sid(), sid.getSid()) && hasAnyEnabled(candidate.role(), implying)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    private static boolean anyHas(@CheckForNull List<Role> roles, Permission[] implying) {
+      if (roles != null) {
+        for (Role role : roles) {
+          if (hasAnyEnabled(role, implying)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+  }
+
   /**
    * The permission followed by the permissions that imply it, or {@link Jenkins#ADMINISTER} for a dangerous permission.
    * The chain never changes, so it is worked out once per permission; whether each permission is enabled can change,
@@ -316,7 +465,7 @@ public class RoleMap {
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
       this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
-      clearMatchingRoleMapCache();
+      invalidateCaches();
     }
   }
 
@@ -329,7 +478,7 @@ public class RoleMap {
    */
   public void addRole(Role role, Set<PermissionEntry> sids) {
     this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
-    clearMatchingRoleMapCache();
+    invalidateCaches();
   }
 
   /**
@@ -341,7 +490,7 @@ public class RoleMap {
   public void assignRole(Role role, PermissionEntry sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
-      clearMatchingRoleMapCache();
+      invalidateCaches();
     }
   }
 
@@ -358,7 +507,7 @@ public class RoleMap {
   public void assignRole(Role role, String sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(new PermissionEntry(AuthorizationType.EITHER, sid));
-      clearMatchingRoleMapCache();
+      invalidateCaches();
     }
   }
 
@@ -372,7 +521,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(sid);
-      clearMatchingRoleMapCache();
+      invalidateCaches();
     }
   }
 
@@ -390,7 +539,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
-      clearMatchingRoleMapCache();
+      invalidateCaches();
     }
   }
 
@@ -402,7 +551,7 @@ public class RoleMap {
   public void clearSidsForRole(Role role) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).clear();
-      clearMatchingRoleMapCache();
+      invalidateCaches();
     }
   }
 
@@ -416,7 +565,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(sid);
     }
-    clearMatchingRoleMapCache();
+    invalidateCaches();
   }
 
   /**
@@ -433,7 +582,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
     }
-    clearMatchingRoleMapCache();
+    invalidateCaches();
   }
 
   /**
@@ -508,7 +657,7 @@ public class RoleMap {
    */
   public void removeRole(Role role) {
     this.grantedRoles.remove(role);
-    clearMatchingRoleMapCache();
+    invalidateCaches();
   }
 
   /**
@@ -914,7 +1063,11 @@ public class RoleMap {
     boolean shouldAbort = false;
 
     RoleWalker() {
-      walk();
+      this(RoleMap.this.getRoles());
+    }
+
+    RoleWalker(Collection<Role> roles) {
+      walk(roles);
     }
 
     /**
@@ -931,7 +1084,10 @@ public class RoleMap {
      * Walk through the roles.
      */
     public void walk() {
-      Set<Role> roles = RoleMap.this.getRoles();
+      walk(RoleMap.this.getRoles());
+    }
+
+    private void walk(Collection<Role> roles) {
       for (Role current : roles) {
         perform(current);
         if (shouldAbort) {
