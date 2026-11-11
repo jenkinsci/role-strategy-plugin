@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.model.ProjectNamingStrategy;
@@ -114,14 +113,14 @@ public class RoleBasedProjectNamingStrategy extends ProjectNamingStrategy implem
         Role key = entry.getKey();
         if (!Macro.isMacro(key) && key.hasPermission(Item.CREATE)) {
           Set<PermissionEntry> sids = entry.getValue();
-          Pattern namePattern = key.getPattern();
-          if (StringUtils.isNotBlank(namePattern.toString())) {
-            if (namePattern.matcher(fullName).matches()) {
+          // A folder-scoped role always has a derived, non-blank pattern, so it is never skipped here.
+          if (StringUtils.isNotBlank(key.getPattern().toString())) {
+            if (key.matches(fullName)) {
               if (hasAnyPermission(principal, authorities, sids)) {
                 return;
               }
             } else {
-              badList.add(namePattern.toString());
+              badList.add(key.getScopeDescription());
             }
           }
         }

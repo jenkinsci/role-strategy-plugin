@@ -12,6 +12,11 @@ export interface MatchingAgents {
   agentCount: number;
 }
 
+export interface FolderList {
+  folders: string[];
+  count: number;
+}
+
 /**
  * Client for the role-strategy REST endpoints exposed on
  * RoleBasedAuthorizationStrategy (`<rootURL>/role-strategy/strategy`).
@@ -33,7 +38,9 @@ export interface StrategyClient {
   /**
    * Create or update a role. Pass {@code overwrite: true} when editing an
    * existing role; its assignments are kept. A bound {@code template} takes
-   * precedence over {@code permissionIds} (item roles only).
+   * precedence over {@code permissionIds} (item roles only). Non-empty
+   * {@code folders} create an item role scoped to those folders instead of
+   * {@code pattern}.
    */
   addRole(
     type: RoleTypeKey,
@@ -42,9 +49,12 @@ export interface StrategyClient {
     overwrite: boolean,
     pattern?: string,
     template?: string,
+    folders?: string[],
   ): Promise<void>;
   removeRoles(type: RoleTypeKey, roleNames: string[]): Promise<void>;
   getMatchingJobs(pattern: string, maxJobs: number): Promise<MatchingJobs>;
+  /** Folders whose full name contains {@code query}, for the folder picker. */
+  getFolders(query: string, max: number): Promise<FolderList>;
   getMatchingAgents(
     pattern: string,
     maxAgents: number,
@@ -98,15 +108,32 @@ export function createStrategyClient(baseUrl: string): StrategyClient {
       postForm(url("removeTemplates"), {
         names: templateNames.join(","),
       }),
-    addRole: (type, roleName, permissionIds, overwrite, pattern, template) =>
-      postForm(url("addRole"), {
-        type,
-        roleName,
-        permissionIds: permissionIds.join(","),
-        overwrite: String(overwrite),
-        pattern,
-        template,
-      }),
+    addRole: (
+      type,
+      roleName,
+      permissionIds,
+      overwrite,
+      pattern,
+      template,
+      folders,
+    ) =>
+      folders && folders.length > 0
+        ? postForm(url("addFolderRole"), {
+            roleName,
+            permissionIds: permissionIds.join(","),
+            overwrite: String(overwrite),
+            // Item names may contain commas but never line breaks.
+            folders: folders.join("\n"),
+            template,
+          })
+        : postForm(url("addRole"), {
+            type,
+            roleName,
+            permissionIds: permissionIds.join(","),
+            overwrite: String(overwrite),
+            pattern,
+            template,
+          }),
     removeRoles: (type, roleNames) =>
       postForm(url("removeRoles"), {
         type,
@@ -114,6 +141,7 @@ export function createStrategyClient(baseUrl: string): StrategyClient {
       }),
     getMatchingJobs: (pattern, maxJobs) =>
       getJson(url("getMatchingJobs"), { pattern, maxJobs }),
+    getFolders: (query, max) => getJson(url("getFolders"), { query, max }),
     getMatchingAgents: (pattern, maxAgents) =>
       getJson(url("getMatchingAgents"), { pattern, maxAgents }),
     assignSidRole: (type, roleName, sid, sidType) => {

@@ -1,0 +1,10 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "global-role"
+            folders:
+              - "Team"
+            permissions:
+              - "Overall/Read"

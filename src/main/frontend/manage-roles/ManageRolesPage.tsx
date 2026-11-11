@@ -19,6 +19,7 @@ import {
   buildPermissionSummary,
   indexPermissions,
 } from "../common/utils/permissionSummary.ts";
+import { folderPattern, isFolderScoped } from "../common/utils/roleScope.ts";
 import { MatchingDialog } from "./MatchingDialog.tsx";
 import { RoleDialog, type RoleDialogResult } from "./RoleDialog.tsx";
 
@@ -89,6 +90,8 @@ export function ManageRolesPage({
   const [matching, setMatching] = useState<{
     kind: "items" | "agents";
     pattern: string;
+    /** Shown instead of the pattern, e.g. a folder name. */
+    label?: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,6 +101,11 @@ export function ManageRolesPage({
   const roles = rolesByType[activeKey];
 
   const openAdd = useCallback(() => setMode("add"), []);
+  const loadFolders = useCallback(
+    async (query: string, max: number) =>
+      (await client.getFolders(query, max)).folders,
+    [client],
+  );
   useAppBarButton("rsp-add-role-btn", openAdd, { visible: active.canEdit });
 
   const permissionsById = useMemo(
@@ -133,7 +141,9 @@ export function ManageRolesPage({
       const matchesSearch =
         !q ||
         r.name.toLowerCase().includes(q) ||
-        (r.pattern ?? "").toLowerCase().includes(q);
+        (isFolderScoped(r)
+          ? (r.folders ?? []).some((f) => f.toLowerCase().includes(q))
+          : (r.pattern ?? "").toLowerCase().includes(q));
       const matchesFilter =
         filterIds.size === 0 ||
         [...filterIds].every((id) => r.permissionIds.includes(id));
@@ -152,7 +162,10 @@ export function ManageRolesPage({
       : undefined;
     return {
       name: input.name,
-      pattern: input.pattern,
+      pattern: input.folders?.length
+        ? folderPattern(input.folders)
+        : input.pattern,
+      folders: input.folders,
       templateName: template?.name,
       permissionIds: template ? template.permissionIds : input.permissionIds,
     };
@@ -166,6 +179,7 @@ export function ManageRolesPage({
       false,
       input.pattern,
       input.template,
+      input.folders,
     );
     updateRoles(activeKey, (prev) => [...prev, toRole(input)].sort(byName));
     setMode("closed");
@@ -179,6 +193,7 @@ export function ManageRolesPage({
       true,
       input.pattern,
       input.template,
+      input.folders,
     );
     updateRoles(activeKey, (prev) =>
       prev.map((r) => (r.name === input.name ? toRole(input) : r)),
@@ -211,7 +226,43 @@ export function ManageRolesPage({
     const matchKind = activeKey === "slaveRoles" ? "agents" : "items";
     return (
       <>
-        {role.pattern !== undefined &&
+        {isFolderScoped(role) && (
+          <span className="rsp-card__folders">
+            {(role.folders ?? []).map((folder) =>
+              active.canEdit ? (
+                <Tooltip
+                  key={folder}
+                  content="Show matching items"
+                  placement="top"
+                >
+                  <button
+                    type="button"
+                    className="rsp-card__pattern rsp-card__pattern--button rsp-card__folder"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMatching({
+                        kind: "items",
+                        pattern: folderPattern([folder]),
+                        label: folder,
+                      });
+                    }}
+                  >
+                    {folder}
+                  </button>
+                </Tooltip>
+              ) : (
+                <span
+                  key={folder}
+                  className="rsp-card__pattern rsp-card__folder"
+                >
+                  {folder}
+                </span>
+              ),
+            )}
+          </span>
+        )}
+        {!isFolderScoped(role) &&
+          role.pattern !== undefined &&
           (active.canEdit ? (
             <Tooltip content={`Show matching ${matchKind}`} placement="top">
               <button
@@ -376,6 +427,7 @@ export function ManageRolesPage({
           rootUrl={rootUrl}
           initialName=""
           initialPattern=".*"
+          loadFolders={loadFolders}
           initialTemplateName=""
           initialPermissionIds={[]}
           onCancel={() => setMode("closed")}
@@ -394,7 +446,11 @@ export function ManageRolesPage({
           checkPatternUrl={checkPatternUrl}
           rootUrl={rootUrl}
           initialName={editing.name}
+          // A folder role's pattern is its derived equivalent, so switching to
+          // Pattern keeps the same scope instead of widening it to every item.
           initialPattern={editing.pattern ?? ".*"}
+          initialFolders={editing.folders}
+          loadFolders={loadFolders}
           initialTemplateName={editing.templateName ?? ""}
           initialPermissionIds={
             editing.templateName ? [] : editing.permissionIds
@@ -407,6 +463,7 @@ export function ManageRolesPage({
         <MatchingDialog
           kind={matching.kind}
           pattern={matching.pattern}
+          label={matching.label}
           client={client}
           onClose={() => setMatching(null)}
         />

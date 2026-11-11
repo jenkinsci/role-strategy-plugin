@@ -59,7 +59,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.model.IdStrategy;
@@ -109,7 +108,7 @@ public class RoleMap {
 
   /**
    * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)} for different
-   * permissions for the same {@code itemNamePrefix}, so cache them and avoid wasting time matching regular expressions.
+   * permissions for the same {@code itemNamePrefix}, so cache them and avoid matching every role again.
    */
   private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048).expireAfterWrite(1, TimeUnit.HOURS)
       .build();
@@ -682,8 +681,7 @@ public class RoleMap {
     new RoleWalker() {
       @Override
       public void perform(Role current) {
-        Matcher m = current.getPattern().matcher(itemNamePrefix);
-        if (m.matches()) {
+        if (current.matches(itemNamePrefix)) {
           roleMap.put(current, grantedRoles.get(current));
         }
       }

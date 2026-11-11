@@ -1,0 +1,31 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+          - name: "admin"
+            permissions:
+              - "Overall/Administer"
+            entries:
+              - user: "admin"
+          - name: "read"
+            permissions:
+              - "Overall/Read"
+              - "Job/Read"
+            entries:
+              - group: "authenticated"
+        items:
+          - name: "special-builders"
+            folders:
+              - "Team/Special"
+              - "/Team/Ops/"
+            permissions:
+              - "Job/Build"
+            entries:
+              - group: "special-team"
+          - name: "by-pattern"
+            pattern: "Team/Other/.*"
+            permissions:
+              - "Job/Build"
+            entries:
+              - user: "bob"

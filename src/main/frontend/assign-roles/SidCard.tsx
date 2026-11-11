@@ -1,5 +1,6 @@
 import { Card } from "../common/components/Card.tsx";
 import { HelpIcon } from "../common/components/HelpIcon.tsx";
+import { ScopeChips } from "../common/components/ScopeChips.tsx";
 import { IconButton } from "../common/components/IconButton.tsx";
 import { EditIcon } from "../common/components/icons/EditIcon.tsx";
 import { PeopleIcon } from "../common/components/icons/PeopleIcon.tsx";
@@ -169,9 +170,7 @@ export function SidCard({
               data-role-name={role.name}
             >
               {role.name}
-              {role.pattern !== undefined && (
-                <span className="rsp-card__pattern">{role.pattern}</span>
-              )}
+              <ScopeChips role={role} />
               {role.permissionIds !== undefined && (
                 <HelpIcon
                   description={

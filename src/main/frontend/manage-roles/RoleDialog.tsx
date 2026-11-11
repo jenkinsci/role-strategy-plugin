@@ -7,13 +7,18 @@ import { PermissionList } from "../common/components/PermissionList.tsx";
 import type { PermissionGroup } from "../common/types/permission.ts";
 import type { RoleTypeKey } from "../common/types/role.ts";
 import type { PermissionTemplate } from "../common/types/template.ts";
+import { FolderPicker, withPendingFolder } from "./FolderPicker.tsx";
 
 export interface RoleDialogResult {
   name: string;
   pattern?: string;
+  /** Set instead of {@link pattern} for a folder-scoped item role. */
+  folders?: string[];
   template?: string;
   permissionIds: string[];
 }
+
+type Scope = "pattern" | "folders";
 
 interface RoleDialogProps {
   roleType: RoleTypeKey;
@@ -28,6 +33,10 @@ interface RoleDialogProps {
   rootUrl: string;
   initialName: string;
   initialPattern: string;
+  /** Non-empty for an existing folder-scoped item role. */
+  initialFolders?: string[];
+  /** Folder suggestions for the folder picker; item roles only. */
+  loadFolders?: (query: string, max: number) => Promise<string[]>;
   initialTemplateName: string;
   initialPermissionIds: string[];
   onCancel: () => void;
@@ -46,6 +55,8 @@ export function RoleDialog({
   rootUrl,
   initialName,
   initialPattern,
+  initialFolders = [],
+  loadFolders,
   initialTemplateName,
   initialPermissionIds,
   onCancel,
@@ -53,6 +64,11 @@ export function RoleDialog({
 }: RoleDialogProps) {
   const [name, setName] = useState(initialName);
   const [pattern, setPattern] = useState(initialPattern);
+  const [folders, setFolders] = useState<string[]>(initialFolders);
+  const [folderInput, setFolderInput] = useState("");
+  const [scope, setScope] = useState<Scope>(
+    initialFolders.length > 0 ? "folders" : "pattern",
+  );
   const [patternError, setPatternError] = useState<string | null>(null);
   const [templateName, setTemplateName] = useState(initialTemplateName);
   const [selected, setSelected] = useState<ReadonlySet<string>>(
@@ -63,7 +79,9 @@ export function RoleDialog({
   // Invalidates in-flight pattern checks once the field is edited again.
   const patternCheckSeq = useRef(0);
 
-  const hasPattern = roleType !== "globalRoles";
+  const hasFolders = roleType === "projectRoles" && loadFolders !== undefined;
+  const usesFolders = hasFolders && scope === "folders";
+  const hasPattern = roleType !== "globalRoles" && !usesFolders;
   const hasTemplates = roleType === "projectRoles" && templates.length > 0;
 
   // Validation runs on blur only, never mid-typing, and only ever disables
@@ -104,11 +122,15 @@ export function RoleDialog({
   const nameHasComma = trimmedName.includes(",");
   const patternInvalid =
     hasPattern && (pattern.trim() === "" || patternError !== null);
+  // A folder typed but not added yet still counts, and is saved with the rest.
+  const submittedFolders = withPendingFolder(folders, folderInput);
+  const foldersInvalid = usesFolders && submittedFolders.length === 0;
   const canSubmit =
     trimmedName !== "" &&
     !nameTaken &&
     !nameHasComma &&
     !patternInvalid &&
+    !foldersInvalid &&
     !submitting;
 
   // A bound template dictates the permissions; show its set read-only.
@@ -129,6 +151,7 @@ export function RoleDialog({
       await onSubmit({
         name: trimmedName,
         pattern: hasPattern ? pattern.trim() : undefined,
+        folders: usesFolders ? submittedFolders : undefined,
         template: boundTemplate ? boundTemplate.name : undefined,
         permissionIds: boundTemplate ? [] : Array.from(selected),
       });
@@ -189,6 +212,61 @@ export function RoleDialog({
             </div>
           )}
         </div>
+        {hasFolders && (
+          <div className="jenkins-form-item">
+            <div className="jenkins-form-label" id="rsp-role-scope-label">
+              Applies to
+            </div>
+            <div
+              className="rsp-role-scope"
+              role="radiogroup"
+              aria-labelledby="rsp-role-scope-label"
+            >
+              {(
+                [
+                  ["folders", "Folders"],
+                  ["pattern", "Pattern"],
+                ] as const
+              ).map(([value, label]) => (
+                <span key={value} className="jenkins-radio">
+                  <input
+                    type="radio"
+                    className="jenkins-radio__input"
+                    id={`rsp-role-scope-${value}`}
+                    name="rsp-role-scope"
+                    checked={scope === value}
+                    onChange={() => setScope(value)}
+                  />
+                  <label
+                    className="jenkins-radio__label"
+                    htmlFor={`rsp-role-scope-${value}`}
+                  >
+                    {label}
+                  </label>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {usesFolders && loadFolders && (
+          <div className="jenkins-form-item">
+            <label className="jenkins-form-label" htmlFor="rsp-role-folder">
+              Folders
+            </label>
+            <FolderPicker
+              inputId="rsp-role-folder"
+              folders={folders}
+              onChange={setFolders}
+              input={folderInput}
+              onInputChange={setFolderInput}
+              loadFolders={loadFolders}
+            />
+            <div className="jenkins-form-description">
+              {foldersInvalid ? "Add at least one folder. " : ""}
+              The role applies to each folder and to everything inside it.
+            </div>
+          </div>
+        )}
         {hasPattern && (
           <div className="jenkins-form-item">
             <label className="jenkins-form-label" htmlFor="rsp-role-pattern">

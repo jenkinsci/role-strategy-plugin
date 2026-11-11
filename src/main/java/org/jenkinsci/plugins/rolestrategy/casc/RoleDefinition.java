@@ -42,6 +42,8 @@ public class RoleDefinition implements Comparable<RoleDefinition> {
   private final String pattern;
 
   private String templateName;
+  @CheckForNull
+  private SortedSet<String> folders;
   private final Set<String> permissions;
 
   private SortedSet<RoleDefinitionEntry> entries = Collections.emptySortedSet();
@@ -101,8 +103,13 @@ public class RoleDefinition implements Comparable<RoleDefinition> {
   public final Role getRole() {
     if (role == null) {
       Set<Permission> resolvedPermissions = PermissionHelper.fromStrings(permissions, false);
-      Pattern p = Pattern.compile(pattern != null ? pattern : Role.GLOBAL_ROLE_PATTERN);
-      role = new Role(name, p, resolvedPermissions, description, templateName);
+      if (folders != null) {
+        // An empty set is rejected by the configurator before roles are built; forFolders throws if it slips through.
+        role = Role.forFolders(name, folders, resolvedPermissions, description, templateName);
+      } else {
+        Pattern p = Pattern.compile(pattern != null ? pattern : Role.GLOBAL_ROLE_PATTERN);
+        role = new Role(name, p, resolvedPermissions, description, templateName);
+      }
     }
     return role;
   }
@@ -122,6 +129,29 @@ public class RoleDefinition implements Comparable<RoleDefinition> {
 
   public String getTemplateName() {
     return templateName;
+  }
+
+  /**
+   * Full names of the folders an item role applies to, instead of {@link #getPattern()}.
+   *
+   * @return the folders, or {@code null} for a pattern-based role. An empty set means {@code folders} was given but
+   *     held no usable entry, which the configurator rejects rather than widening the role to every item.
+   */
+  @CheckForNull
+  public SortedSet<String> getFolders() {
+    return folders;
+  }
+
+  /**
+   * Scopes an item role to folders instead of a pattern: the role then applies to each folder and everything nested
+   * in it. Setting both {@code folders} and {@code pattern} is a configuration error.
+   *
+   * @param folders Full names of the folders
+   */
+  @DataBoundSetter
+  public void setFolders(@CheckForNull Collection<String> folders) {
+    this.folders = folders == null ? null : Role.normalizeFolders(folders);
+    this.role = null;
   }
 
   @DataBoundSetter

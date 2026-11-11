@@ -12,6 +12,7 @@ import type { SidEntry, SidInfo, SidType } from "../common/types/assignment.ts";
 import type { AssignRolesBootstrap } from "../common/types/bootstrap.ts";
 import type { RoleTypeKey } from "../common/types/role.ts";
 import { indexPermissions } from "../common/utils/permissionSummary.ts";
+import { roleScope } from "../common/utils/roleScope.ts";
 import {
   AssignSidDialog,
   type AssignSidDialogResult,
@@ -174,7 +175,7 @@ export function AssignRolesPage({
         permissions: roles.map((r) => ({
           id: roleFilterId(r.name),
           name: r.name,
-          description: r.pattern ?? "",
+          description: roleScope(r) ?? "",
           impliedByList: [],
         })),
       });
