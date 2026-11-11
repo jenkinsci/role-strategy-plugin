@@ -7,7 +7,7 @@ describe("roleScope", () => {
     expect(
       roleScope({
         name: "r",
-        pattern: "^(?:\\QA\\E|\\QB/C\\E)(?:/.*)?$",
+        pattern: "^(?:\\QA\\E|\\QB/C\\E)(?s:/.*)?$",
         folders: ["A", "B/C"],
         permissionIds: [],
       }),

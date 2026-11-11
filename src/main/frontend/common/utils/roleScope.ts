@@ -26,5 +26,5 @@ function quoteRegex(value: string): string {
  * so a role added in this session can show its matching items before reload.
  */
 export function folderPattern(folders: string[]): string {
-  return `^(?:${folders.map(quoteRegex).join("|")})(?:/.*)?$`;
+  return `^(?:${folders.map(quoteRegex).join("|")})(?s:/.*)?$`;
 }

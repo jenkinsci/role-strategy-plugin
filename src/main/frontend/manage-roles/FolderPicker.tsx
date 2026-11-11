@@ -22,14 +22,25 @@ interface FolderPickerProps {
 }
 
 /**
+ * Mirrors Java's String.trim, which strips only characters up to U+0020.
+ * JavaScript's trim also strips Unicode spaces such as U+00A0, which can be
+ * part of an item name.
+ */
+function javaTrim(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value.charCodeAt(start) <= 0x20) start++;
+  while (end > start && value.charCodeAt(end - 1) <= 0x20) end--;
+  return value.substring(start, end);
+}
+
+/**
  * Strips the slashes and whitespace the backend ignores (Role.normalizeFolders),
- * so duplicates are caught before saving.
+ * so duplicates are caught before saving and the saved name matches what REST
+ * and CasC would store.
  */
 export function normalizeFolder(value: string): string {
-  return value
-    .trim()
-    .replace(/^\/+|\/+$/g, "")
-    .trim();
+  return javaTrim(javaTrim(value).replace(/^\/+|\/+$/g, ""));
 }
 
 /** Adds the typed folder to the list unless it is blank or already listed. */

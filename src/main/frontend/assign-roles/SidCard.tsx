@@ -1,12 +1,12 @@
 import { Card } from "../common/components/Card.tsx";
 import { HelpIcon } from "../common/components/HelpIcon.tsx";
-import { ScopeChips } from "../common/components/ScopeChips.tsx";
 import { IconButton } from "../common/components/IconButton.tsx";
 import { EditIcon } from "../common/components/icons/EditIcon.tsx";
 import { PeopleIcon } from "../common/components/icons/PeopleIcon.tsx";
 import { PersonIcon } from "../common/components/icons/PersonIcon.tsx";
 import { TrashIcon } from "../common/components/icons/TrashIcon.tsx";
 import { WarningIcon } from "../common/components/icons/WarningIcon.tsx";
+import { ScopeChips } from "../common/components/ScopeChips.tsx";
 import { Tooltip } from "../common/components/Tooltip.tsx";
 import type { SidEntry, SidInfo } from "../common/types/assignment.ts";
 import type { Role } from "../common/types/role.ts";

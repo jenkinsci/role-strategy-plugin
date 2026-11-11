@@ -48,7 +48,7 @@ const bootstrap = (
       },
       {
         name: "special-builders",
-        pattern: "^(?:\\QTeam/Special\\E)(?:/.*)?$",
+        pattern: "^(?:\\QTeam/Special\\E)(?s:/.*)?$",
         folders: ["Team/Special"],
         permissionIds: ["job.read"],
       },
@@ -396,7 +396,7 @@ describe("ManageRolesPage", () => {
         "special-builders",
         ["job.read"],
         true,
-        "^(?:\\QTeam/Special\\E)(?:/.*)?$",
+        "^(?:\\QTeam/Special\\E)(?s:/.*)?$",
         undefined,
         undefined,
       ),
@@ -404,7 +404,9 @@ describe("ManageRolesPage", () => {
   });
 
   it("derives the same regex as java.util.regex.Pattern.quote", () => {
-    expect(folderPattern(["a/b", "c"])).toBe("^(?:\\Qa/b\\E|\\Qc\\E)(?:/.*)?$");
-    expect(folderPattern(["x\\Ey"])).toBe("^(?:\\Qx\\E\\\\E\\Qy\\E)(?:/.*)?$");
+    expect(folderPattern(["a/b", "c"])).toBe(
+      "^(?:\\Qa/b\\E|\\Qc\\E)(?s:/.*)?$",
+    );
+    expect(folderPattern(["x\\Ey"])).toBe("^(?:\\Qx\\E\\\\E\\Qy\\E)(?s:/.*)?$");
   });
 });

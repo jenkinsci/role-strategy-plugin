@@ -9,7 +9,7 @@ describe("ScopeChips", () => {
       <ScopeChips
         role={{
           name: "r",
-          pattern: "^(?:\\QA\\E|\\QB\\E)(?:/.*)?$",
+          pattern: "^(?:\\QA\\E|\\QB\\E)(?s:/.*)?$",
           folders: ["A", "B"],
           permissionIds: [],
         }}

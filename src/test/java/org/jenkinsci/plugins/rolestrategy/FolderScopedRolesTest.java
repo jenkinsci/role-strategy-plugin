@@ -107,7 +107,7 @@ class FolderScopedRolesTest {
     assertThat(xml, containsString("<folder>Team/Special</folder>"));
     // Versions that do not know about folders fall back to this equivalent pattern.
     String derived = Pattern.quote("Team/Special");
-    assertThat(xml, containsString("pattern=\"^(?:" + derived + ")(?:/.*)?$\""));
+    assertThat(xml, containsString("pattern=\"^(?:" + derived + ")(?s:/.*)?$\""));
     // Older readers expect permissions then sids, and skip any child after them.
     int roleStart = xml.indexOf("<role name=\"special-builders\"");
     int sids = xml.indexOf("<assignedSIDs>", roleStart);
@@ -176,6 +176,13 @@ class FolderScopedRolesTest {
     JSONObject json = JSONObject.fromObject(
         get("admin", "getRole?type=projectRoles&roleName=special-builders").getWebResponse().getContentAsString());
     assertThat(json.getJSONArray("folders"), contains("Team/Ops", "Team/Special"));
+  }
+
+  @Test
+  void addFolderRoleSplitsFoldersOnlyOnLineBreaks() throws Exception {
+    rbas.doAddFolderRole("r", Item.BUILD.getId(), "false", "Team/Special\u2028Archive\r\nTeam/Ops\rTeam/Other", "");
+    assertThat(rbas.getRoleMap(RoleType.Project).getRole("r").getFolders(),
+        contains("Team/Ops", "Team/Other", "Team/Special\u2028Archive"));
   }
 
   @Test
@@ -303,9 +310,9 @@ class FolderScopedRolesTest {
   @Test
   void legacyFormSubmitKeepsFolderRolesAndRejectsAnEmptyFolderList() {
     RoleBasedAuthorizationStrategy submitted = (RoleBasedAuthorizationStrategy)
-        RoleBasedAuthorizationStrategy.DESCRIPTOR.newInstance((StaplerRequest2) null, legacyForm("Team/Special\nTeam/Ops"));
+        RoleBasedAuthorizationStrategy.DESCRIPTOR.newInstance((StaplerRequest2) null, legacyForm("Team/Special\nTeam/Ops\u2029Archive"));
     assertThat(submitted.getRoleMap(RoleType.Project).getRole("special-builders").getFolders(),
-        contains("Team/Ops", "Team/Special"));
+        contains("Team/Ops\u2029Archive", "Team/Special"));
 
     Failure failure = assertThrows(Failure.class,
         () -> RoleBasedAuthorizationStrategy.DESCRIPTOR.newInstance((StaplerRequest2) null, legacyForm(" / ")));

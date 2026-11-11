@@ -652,7 +652,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     Set<Permission> permissionSet = PermissionHelper.fromStrings(Arrays.asList(permissionIds.split(",")), true);
     Role role;
     try {
-      role = Role.forFolders(roleName, Arrays.asList(folders.split("\\R")), permissionSet, null, null);
+      role = Role.forFolders(roleName, Arrays.asList(folders.split(FOLDER_SEPARATOR)), permissionSet, null, null);
     } catch (IllegalArgumentException e) {
       Stapler.getCurrentResponse2().sendError(HttpServletResponse.SC_BAD_REQUEST, "At least one folder is required.");
       return;
@@ -1347,6 +1347,12 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private static final int DEFAULT_MAX_FOLDERS = 20;
 
   /**
+   * Separates folders in a submitted list. Only CR and LF count: {@code \R} also splits on U+2028 and U+2029, which
+   * can be part of an item name.
+   */
+  private static final String FOLDER_SEPARATOR = "\\r\\n|[\\r\\n]";
+
+  /**
    * API method to list folders, for choosing the scope of a folder-scoped item role.
    *
    * <p>
@@ -1831,7 +1837,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             Object raw = r.getValue().get("folders");
             Collection<String> rawFolders = raw instanceof JSONArray
                 ? ((JSONArray) raw).stream().map(String::valueOf).collect(Collectors.toList())
-                : Arrays.asList(String.valueOf(raw).split("\\R"));
+                : Arrays.asList(String.valueOf(raw).split(FOLDER_SEPARATOR));
             folders = Role.normalizeFolders(rawFolders);
             if (folders.isEmpty()) {
               // Falling back to the pattern here would grant the role on every item.

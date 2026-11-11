@@ -217,7 +217,7 @@ describe("AssignRolesPage", () => {
 
   it("shows the folders of a folder-scoped role rather than its derived pattern", async () => {
     const user = userEvent.setup();
-    const derived = "^(?:\\QTeam/Special\\E|\\QTeam/Ops\\E)(?:/.*)?$";
+    const derived = "^(?:\\QTeam/Special\\E|\\QTeam/Ops\\E)(?s:/.*)?$";
     renderPage(
       bootstrap({
         projectRoles: typeBootstrap({

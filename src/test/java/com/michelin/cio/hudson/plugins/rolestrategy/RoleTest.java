@@ -95,9 +95,24 @@ class RoleTest {
   void derivedPatternMatchesTheSameNames() {
     Role role = folderRole("Team/Special", "a.b");
     Pattern derived = role.getPattern();
-    for (String name : List.of("Team/Special", "Team/Special/x", "Team/Special-old", "Team", "a.b/c", "aXb/c", "x/a.b")) {
+    for (String name : List.of("Team/Special", "Team/Special/x", "Team/Special-old", "Team", "a.b/c", "aXb/c", "x/a.b",
+        "Team/Special/build\u2028archive", "Team/Special\u2029x", "a.b/\u2028")) {
       assertEquals(role.matches(name), derived.matcher(name).matches(), name);
     }
+  }
+
+  @Test
+  void derivedPatternMatchesDescendantsWithLineSeparatorsInTheirNames() {
+    Role role = folderRole("Team");
+    String name = "Team/build\u2028archive";
+    assertTrue(role.matches(name));
+    assertTrue(role.getPattern().matcher(name).matches());
+    assertFalse(role.getPattern().matcher("Team\u2028x").matches());
+  }
+
+  @Test
+  void folderNamesKeepUnicodeSpaces() {
+    assertThat(folderRole("\u00a0Team/Special").getFolders(), contains("\u00a0Team/Special"));
   }
 
   @Test

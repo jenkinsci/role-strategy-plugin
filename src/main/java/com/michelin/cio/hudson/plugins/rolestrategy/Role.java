@@ -315,11 +315,12 @@ public final class Role implements Comparable {
 
   /**
    * The regular expression equivalent to a folder scope, kept for {@link #getPattern()} callers and for older plugin
-   * versions reading the stored configuration.
+   * versions reading the stored configuration. The descendant part is DOTALL because item names can contain line
+   * separators such as U+2028, which {@link #matches(String)} accepts.
    */
   private static Pattern folderPattern(SortedSet<String> folders) {
     String alternatives = folders.stream().map(Pattern::quote).collect(Collectors.joining("|"));
-    return Pattern.compile("^(?:" + alternatives + ")(?:/.*)?$");
+    return Pattern.compile("^(?:" + alternatives + ")(?s:/.*)?$");
   }
 
   /**
