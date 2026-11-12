@@ -10,6 +10,8 @@ const MAX_AGENTS = 10;
 interface MatchingDialogProps {
   kind: "items" | "agents";
   pattern: string;
+  /** Shown in the title instead of the pattern, e.g. a folder name. */
+  label?: string;
   client: StrategyClient;
   onClose: () => void;
 }
@@ -18,6 +20,7 @@ interface MatchingDialogProps {
 export function MatchingDialog({
   kind,
   pattern,
+  label,
   client,
   onClose,
 }: MatchingDialogProps) {
@@ -57,11 +60,11 @@ export function MatchingDialog({
   let title = `Matching ${noun}`;
   if (names !== null) {
     if (names.length === 0) {
-      title = `No ${noun} found matching "${pattern}"`;
+      title = `No ${noun} found matching "${label ?? pattern}"`;
     } else if (totalCount > names.length) {
-      title = `First ${max} ${noun} (out of ${totalCount}) matching "${pattern}"`;
+      title = `First ${max} ${noun} (out of ${totalCount}) matching "${label ?? pattern}"`;
     } else {
-      title = `${kind === "items" ? "Items" : "Agents"} matching "${pattern}"`;
+      title = `${kind === "items" ? "Items" : "Agents"} matching "${label ?? pattern}"`;
     }
   }
 

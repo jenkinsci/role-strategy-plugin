@@ -1,7 +1,15 @@
 package org.jenkinsci.plugins.rolestrategy.playwright;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+
+import com.cloudbees.hudson.plugins.folder.Folder;
+import com.michelin.cio.hudson.plugins.rolestrategy.Role;
+import com.michelin.cio.hudson.plugins.rolestrategy.RoleBasedAuthorizationStrategy;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.junit.UsePlaywright;
+import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import hudson.model.FreeStyleProject;
 import org.jenkinsci.plugins.rolestrategy.playwright.config.PlaywrightConfig;
 import org.jenkinsci.plugins.rolestrategy.playwright.helpers.UITestHelper;
 import org.jenkinsci.plugins.rolestrategy.playwright.pages.ManageRolesPage;
@@ -154,5 +162,35 @@ class ManageRolesUITest {
         .submitDialog()
         .hasRoleCard("builders")
         .roleCardHasSummary("builders", "Build");
+  }
+
+  @Test
+  @DisplayName("adds an item role scoped to a folder and shows only the items inside it")
+  void addFolderScopedItemRole(JenkinsRule j, Page page) throws Exception {
+    ManageRolesPage roles = open(j, page);
+    Folder team = j.jenkins.createProject(Folder.class, "Team");
+    Folder special = team.createProject(Folder.class, "Special");
+    special.createProject(FreeStyleProject.class, "inside-job");
+    team.createProject(Folder.class, "Special-old").createProject(FreeStyleProject.class, "lookalike-job");
+
+    roles.selectTab("Item roles")
+        .clickAddRole()
+        .waitForDialog()
+        .dialogSetName("special-builders")
+        .dialogScopeToFolders()
+        .dialogAddFolder("Team/Special")
+        .dialogTogglePermission(ITEM_BUILD)
+        .submitDialog()
+        .hasRoleCard("special-builders")
+        .roleCardHasFolder("special-builders", "Team/Special")
+        .roleCardHasSummary("special-builders", "Build")
+        .clickFolderChip("special-builders", "Team/Special")
+        .matchingDialogContainsText("inside-job")
+        .matchingDialogDoesNotContainText("lookalike-job")
+        .closeMatchingDialog();
+
+    Role role = ((RoleBasedAuthorizationStrategy) j.jenkins.getAuthorizationStrategy())
+        .getRoleMap(RoleType.Project).getRole("special-builders");
+    assertThat(role.getFolders(), contains("Team/Special"));
   }
 }

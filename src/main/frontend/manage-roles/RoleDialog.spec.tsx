@@ -186,4 +186,147 @@ describe("RoleDialog", () => {
       permissionIds: [],
     });
   });
+
+  describe("folder scope", () => {
+    const loadFolders = vi.fn().mockResolvedValue(["Team", "Team/Special"]);
+
+    it("is offered for item roles only", () => {
+      const { unmount } = render(
+        <RoleDialog
+          {...baseProps}
+          roleType="slaveRoles"
+          loadFolders={loadFolders}
+          onSubmit={vi.fn()}
+        />,
+      );
+      expect(
+        screen.queryByRole("radio", { name: "Folders" }),
+      ).not.toBeInTheDocument();
+      unmount();
+
+      render(
+        <RoleDialog
+          {...baseProps}
+          roleType="projectRoles"
+          loadFolders={loadFolders}
+          onSubmit={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole("radio", { name: "Pattern" })).toBeChecked();
+    });
+
+    it("needs a folder, adds typed folders on Enter and submits them instead of a pattern", async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn().mockResolvedValue(undefined);
+      render(
+        <RoleDialog
+          {...baseProps}
+          roleType="projectRoles"
+          loadFolders={loadFolders}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      await user.type(screen.getByLabelText("Name"), "builders");
+      await user.click(screen.getByRole("radio", { name: "Folders" }));
+      const submit = screen.getByRole("button", { name: "Add" });
+      expect(submit).toBeDisabled();
+
+      const input = screen.getByRole("combobox", { name: "Folders" });
+      await user.type(input, " /Team/Special/ {Enter}");
+      // Enter adds the folder; it must not submit the dialog.
+      expect(onSubmit).not.toHaveBeenCalled();
+      await user.type(input, "Team/Special{Enter}");
+      expect(
+        screen.getAllByRole("button", { name: "Remove Team/Special" }),
+      ).toHaveLength(1);
+      await user.type(input, "Ops{Enter}");
+      await user.click(screen.getByRole("button", { name: "Remove Ops" }));
+
+      await user.click(submit);
+      expect(onSubmit).toHaveBeenCalledWith({
+        name: "builders",
+        pattern: undefined,
+        folders: ["Team/Special"],
+        template: undefined,
+        permissionIds: [],
+      });
+    });
+
+    it("opens an existing folder role in folder mode", () => {
+      render(
+        <RoleDialog
+          {...baseProps}
+          roleType="projectRoles"
+          initialFolders={["Team/Special"]}
+          loadFolders={loadFolders}
+          onSubmit={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole("radio", { name: "Folders" })).toBeChecked();
+      expect(screen.queryByRole("textbox", { name: "Pattern" })).toBeNull();
+    });
+
+    it("saves a folder that was typed but not added, and explains an empty list", async () => {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn().mockResolvedValue(undefined);
+      render(
+        <RoleDialog
+          {...baseProps}
+          roleType="projectRoles"
+          loadFolders={loadFolders}
+          onSubmit={onSubmit}
+        />,
+      );
+
+      await user.type(screen.getByLabelText("Name"), "builders");
+      await user.click(screen.getByRole("radio", { name: "Folders" }));
+      expect(screen.getByText(/Add at least one folder/)).toBeInTheDocument();
+
+      await user.type(screen.getByRole("combobox", { name: "Folders" }), "Ops");
+      expect(screen.queryByText(/Add at least one folder/)).toBeNull();
+      await user.click(screen.getByRole("button", { name: "Add" }));
+
+      expect(onSubmit).toHaveBeenCalledWith(
+        expect.objectContaining({ folders: ["Ops"], pattern: undefined }),
+      );
+    });
+
+    it("loads suggestions only once the folder field is used", async () => {
+      const user = userEvent.setup();
+      loadFolders.mockClear();
+      render(
+        <RoleDialog
+          {...baseProps}
+          roleType="projectRoles"
+          initialFolders={["Team/Special"]}
+          loadFolders={loadFolders}
+          onSubmit={vi.fn()}
+        />,
+      );
+      await new Promise((r) => setTimeout(r, 300));
+      expect(loadFolders).not.toHaveBeenCalled();
+
+      await user.click(screen.getByRole("combobox", { name: "Folders" }));
+      await waitFor(() => expect(loadFolders).toHaveBeenCalledWith("", 20));
+    });
+
+    it("moves focus to the folder field after removing a folder", async () => {
+      const user = userEvent.setup();
+      render(
+        <RoleDialog
+          {...baseProps}
+          roleType="projectRoles"
+          initialFolders={["A", "B"]}
+          loadFolders={loadFolders}
+          onSubmit={vi.fn()}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: "Remove A" }));
+
+      expect(screen.getByRole("combobox", { name: "Folders" })).toHaveFocus();
+      expect(screen.getByRole("status")).toHaveTextContent("Removed A");
+    });
+  });
 });

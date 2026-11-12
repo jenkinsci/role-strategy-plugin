@@ -1,0 +1,10 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        items:
+          - name: "special-builders"
+            folders:
+              - " / "
+            permissions:
+              - "Job/Build"

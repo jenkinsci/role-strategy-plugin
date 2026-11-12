@@ -44,6 +44,9 @@ import hudson.init.Initializer;
 import hudson.model.AbstractItem;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
+import hudson.model.Failure;
+import hudson.model.Item;
+import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Node;
 import hudson.security.ACL;
@@ -66,9 +69,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -612,12 +617,55 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     if (compiledPattern == null) {
       return;
     }
-    Role role = new Role(roleName, compiledPattern, permissionSet, null);
+    saveRole(type, new Role(roleName, compiledPattern, permissionSet, null), templateName, overwriteb);
+  }
 
+  /**
+   * API method to add an item role scoped to folders rather than to a pattern.
+   *
+   * <p>The role applies to each listed folder and to everything nested in it, compared by whole path segments, so
+   * {@code Team/Special} covers {@code Team/Special/build} but not {@code Team/Special-old}. Folders that do not
+   * exist yet are accepted.
+   *
+   * <p>Like {@link #doAddRole}, the given permissions are ignored when a <code>template</code> is named, and an
+   * overwritten role keeps its assignments.
+   *
+   * <p>Example:
+   * {@code curl -X POST localhost:8080/role-strategy/strategy/addFolderRole --data "roleName=special-builders&
+   * permissionIds=hudson.model.Item.Build&overwrite=true&folders=Team/Special"}
+   *
+   * @param roleName      Name of role
+   * @param permissionIds Comma separated list of IDs for given roleName
+   * @param overwrite     Overwrite existing role
+   * @param folders       Full names of the folders, separated by line breaks (item names can contain commas)
+   * @param template      Name of template
+   * @throws IOException In case saving changes fails
+   */
+  @RequirePOST
+  @Restricted(NoExternalUse.class)
+  public void doAddFolderRole(@QueryParameter(required = true) String roleName,
+      @QueryParameter(required = true) String permissionIds,
+      @QueryParameter(required = true) String overwrite,
+      @QueryParameter(required = true) String folders,
+      @QueryParameter(required = false) String template) throws IOException {
+    checkPermByRoleTypeForUpdates(PROJECT);
+    Set<Permission> permissionSet = PermissionHelper.fromStrings(Arrays.asList(permissionIds.split(",")), true);
+    Role role;
+    try {
+      role = Role.forFolders(roleName, Arrays.asList(folders.split(FOLDER_SEPARATOR)), permissionSet, null, null);
+    } catch (IllegalArgumentException e) {
+      Stapler.getCurrentResponse2().sendError(HttpServletResponse.SC_BAD_REQUEST, "At least one folder is required.");
+      return;
+    }
+    saveRole(PROJECT, role, Util.fixEmptyAndTrim(template), Boolean.parseBoolean(overwrite));
+  }
+
+  private void saveRole(String type, Role role, @CheckForNull String templateName, boolean overwrite) throws IOException {
+    String roleName = role.getName();
     if (RoleBasedAuthorizationStrategy.PROJECT.equals(type) && templateName != null) {
-      if (!hasPermissionTemplate(template)) {
+      if (!hasPermissionTemplate(templateName)) {
         Stapler.getCurrentResponse2().sendError(
-                HttpServletResponse.SC_BAD_REQUEST, "A template with name " + template + " doesn't exists."
+                HttpServletResponse.SC_BAD_REQUEST, "A template with name " + templateName + " doesn't exists."
         );
         return;
       }
@@ -627,7 +675,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
 
     RoleType roleType = RoleType.fromString(type);
     RoleMap roleMap = getRoleMap(roleType);
-    Role existing = overwriteb ? roleMap.getRole(roleName) : null;
+    Role existing = overwrite ? roleMap.getRole(roleName) : null;
     if (existing != null) {
       // Keep the assignments of the role being replaced; dropping them would
       // turn every edit into an implicit unassign-all.
@@ -1019,6 +1067,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
       if (!type.equals(RoleBasedAuthorizationStrategy.GLOBAL)) {
         responseJson.put("pattern", role.getPattern().pattern());
       }
+      if (role.isFolderScoped()) {
+        responseJson.put("folders", JSONArray.fromObject(role.getFolders()));
+      }
       Map<Role, Set<PermissionEntry>> grantedRoleMap = roleMap.getGrantedRolesEntries();
       responseJson.put("sids", grantedRoleMap.get(role));
       if (type.equals(RoleBasedAuthorizationStrategy.PROJECT)) {
@@ -1293,6 +1344,52 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
     writer.close();
   }
 
+  private static final int DEFAULT_MAX_FOLDERS = 20;
+
+  /**
+   * Separates folders in a submitted list. Only CR and LF count: {@code \R} also splits on U+2028 and U+2029, which
+   * can be part of an item name.
+   */
+  private static final String FOLDER_SEPARATOR = "\\r\\n|[\\r\\n]";
+
+  /**
+   * API method to list folders, for choosing the scope of a folder-scoped item role.
+   *
+   * <p>
+   * Lists the full names of items that contain other items (folders, multibranch projects, organization folders)
+   * whose full name contains {@code query}, ignoring case.
+   *
+   * <p>
+   * Example: {@code curl -X GET localhost:8080/role-strategy/strategy/getFolders?query=team&max=20}
+   *
+   * @param query Text the full name must contain; empty or missing lists all folders
+   * @param max   Maximum number of names to return; missing or not positive means 20.
+   *              {@code count} in the response is the total number of matches, so callers can tell when the list
+   *              was cut short.
+   * @throws IOException when unable to write response
+   */
+  @GET
+  @Restricted(NoExternalUse.class)
+  public void doGetFolders(@QueryParameter String query, @QueryParameter int max) throws IOException {
+    checkPerms(ITEM_ROLES_ADMIN);
+    int limit = max > 0 ? max : DEFAULT_MAX_FOLDERS;
+    String needle = Util.fixNull(query).trim().toLowerCase(Locale.ROOT);
+    List<String> folders = new ArrayList<>();
+    for (Item item : Jenkins.get().allItems(Item.class,
+        i -> i instanceof ItemGroup && i.getFullName().toLowerCase(Locale.ROOT).contains(needle))) {
+      folders.add(item.getFullName());
+    }
+    Collections.sort(folders);
+    JSONObject responseJson = new JSONObject();
+    responseJson.put("folders", folders.subList(0, Math.min(limit, folders.size())));
+    responseJson.put("count", folders.size());
+    StaplerResponse2 response = Stapler.getCurrentResponse2();
+    response.setContentType("application/json;charset=UTF-8");
+    Writer writer = response.getWriter();
+    responseJson.write(writer);
+    writer.close();
+  }
+
   /**
    * API method to get a list of agents matching a pattern.
    *
@@ -1420,6 +1517,19 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
             }
             writer.endNode();
 
+            // Last child, so older versions that do not know it read permissions and sids first and then skip it,
+            // falling back to the equivalent pattern written above.
+            SortedSet<String> folders = role.getFolders();
+            if (folders != null) {
+              writer.startNode("folders");
+              for (String folder : folders) {
+                writer.startNode("folder");
+                writer.setValue(folder);
+                writer.endNode();
+              }
+              writer.endNode();
+            }
+
             writer.endNode();
           }
         }
@@ -1464,8 +1574,8 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           while (reader.hasMoreChildren()) {
             reader.moveDown();
             String name = reader.getAttribute("name");
-            String pattern = reader.getAttribute("pattern");
-            String templateName = reader.getAttribute("templateName");
+            final String pattern = reader.getAttribute("pattern");
+            final String templateName = reader.getAttribute("templateName");
             Set<Permission> permissions = new HashSet<>();
 
             String next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
@@ -1483,9 +1593,7 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
               reader.moveUp();
             }
 
-            Role role = new Role(name, Pattern.compile(pattern), permissions, "", templateName);
-            map.addRole(role);
-
+            List<PermissionEntry> sids = new ArrayList<>();
             next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
             if (next != null && next.equals("assignedSIDs")) {
               reader.moveDown();
@@ -1503,11 +1611,33 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
                     throw ex;
                   }
                 }
-                PermissionEntry pe = new PermissionEntry(authType, sid);
-                map.assignRole(role, pe);
+                sids.add(new PermissionEntry(authType, sid));
                 reader.moveUp();
               }
               reader.moveUp();
+            }
+
+            List<String> folders = null;
+            next = ((ExtendedHierarchicalStreamReader) reader).peekNextChild();
+            if (next != null && next.equals("folders")) {
+              folders = new ArrayList<>();
+              reader.moveDown();
+              while (reader.hasMoreChildren()) {
+                reader.moveDown();
+                folders.add(reader.getValue());
+                reader.moveUp();
+              }
+              reader.moveUp();
+            }
+
+            // Only item roles can be folder-scoped; anything else, or an empty list, keeps the stored pattern.
+            SortedSet<String> folderSet = PROJECT.equals(type) ? Role.normalizeFolders(folders) : Collections.emptySortedSet();
+            Role role = folderSet.isEmpty()
+                ? new Role(name, Pattern.compile(pattern), permissions, "", templateName)
+                : Role.forFolders(name, folderSet, permissions, "", templateName);
+            map.addRole(role);
+            for (PermissionEntry pe : sids) {
+              map.assignRole(role, pe);
             }
             reader.moveUp();
           }
@@ -1701,6 +1831,21 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           templateName = r.getValue().getString("templateName");
           r.getValue().remove("templateName");
         }
+        SortedSet<String> folders = Collections.emptySortedSet();
+        if (r.getValue().has("folders")) {
+          if (roleType == RoleType.Project) {
+            Object raw = r.getValue().get("folders");
+            Collection<String> rawFolders = raw instanceof JSONArray
+                ? ((JSONArray) raw).stream().map(String::valueOf).collect(Collectors.toList())
+                : Arrays.asList(String.valueOf(raw).split(FOLDER_SEPARATOR));
+            folders = Role.normalizeFolders(rawFolders);
+            if (folders.isEmpty()) {
+              // Falling back to the pattern here would grant the role on every item.
+              throw new Failure("Role '" + r.getKey() + "': folders must contain at least one folder");
+            }
+          }
+          r.getValue().remove("folders");
+        }
         Set<Permission> permissions = new HashSet<>();
         for (Map.Entry<String, Boolean> e : (Set<Map.Entry<String, Boolean>>) r.getValue().entrySet()) {
           if (e.getValue()) {
@@ -1709,7 +1854,9 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
           }
         }
         String roleName = r.getKey();
-        Role role = new Role(roleName, Pattern.compile(pattern), permissions, "", templateName);
+        Role role = folders.isEmpty()
+            ? new Role(roleName, Pattern.compile(pattern), permissions, "", templateName)
+            : Role.forFolders(roleName, folders, permissions, "", templateName);
         targetStrategy.addRole(roleType, role);
 
         Set<PermissionEntry> sids = roleMap.getSidEntriesForRole(roleName);

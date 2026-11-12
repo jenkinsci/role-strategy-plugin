@@ -35,6 +35,25 @@ You can define roles by using the _Manages Roles_ screen. It is possible to defi
 * Global roles apply to any item in Jenkins and override *anything* you specify in the Item Roles. That is, when you give a role the
   right `Job/Read` in the Global Roles, then this role is allowed to read all Jobs, no matter what you specify in the Item Roles.
   Giving `Job/Create` in a global role will allow to create jobs of any name.
+* Item roles can be scoped to folders instead of a pattern: choose _Folders_ under _Applies to_ and pick one or more folders. The role then
+  applies to each folder and to everything inside it, compared by whole path segments, so `Team/Special` covers `Team/Special` and
+  `Team/Special/Nested/build` but not `Team/Special-old`. No regular expressions are involved. Folders that do not exist yet can be entered by
+  their full name. With Configuration as Code, use `folders` instead of `pattern`:
+  ```yaml
+  jenkins:
+    authorizationStrategy:
+      roleBased:
+        roles:
+          items:
+            - name: "special-builders"
+              folders:
+                - "Team/Special"
+              permissions:
+                - "Job/Build"
+              entries:
+                - group: "special-team"
+  ```
+  As with patterns, `Job/Read` on an item only takes effect when the user can also read its parent folders (for example through a global role).
 * For item and agent roles you can set a regular expression pattern for matching items. The regular expression aimes at matching the full item name.
   * For example, if you set the field to `Roger-.*`, then the role will match all jobs which name starts with `Roger-`. 
   * Patterns are case-sensitive. To perform a case-insensitive match, use `(?i)` notation: upper, `Roger-.*` vs. lower, `roger-.*` 

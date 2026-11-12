@@ -34,9 +34,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.commons.collections.CollectionUtils;
 import org.jenkinsci.plugins.rolestrategy.permissions.PermissionHelper;
 import org.kohsuke.accmod.Restricted;
@@ -64,6 +67,17 @@ public final class Role implements Comparable {
   private final Pattern pattern;
 
   /**
+   * Full names of the items this role is scoped to, or {@code null} when the role matches by {@link #pattern}.
+   *
+   * <p>A folder-scoped role applies to every listed item and to everything nested below it, compared by whole path
+   * segments, so no regular expression is evaluated when checking permissions. {@link #pattern} still holds an
+   * equivalent regular expression so that callers of {@link #getPattern()} and older plugin versions reading the
+   * stored configuration keep seeing the same scope.
+   */
+  @CheckForNull
+  private final SortedSet<String> folders;
+
+  /**
    * Role description (optional).
    */
   @CheckForNull
@@ -81,6 +95,22 @@ public final class Role implements Comparable {
   private Set<Permission> permissions;
 
   private transient Integer cachedHashCode = null;
+
+  /**
+   * Roles with more folders than this look up the item's parent folders in {@link #folderLookup}. Comparing the item
+   * name with each folder is cheaper up to about this many folders, measured with JMH.
+   */
+  private static final int FOLDER_LOOKUP_THRESHOLD = 7;
+
+  /**
+   * Hash copy of {@link #folders} for roles with many folders, so matching costs one lookup per path segment of the
+   * item name rather than one comparison per folder. {@code null} for other roles.
+   */
+  @CheckForNull
+  private final transient Set<String> folderLookup;
+
+  /** Length of the longest folder, so prefixes that cannot be a folder are not looked up. */
+  private final transient int longestFolder;
 
   /**
    * Constructor for a global role with no pattern (which is then defaulted to {@code .*}).
@@ -139,8 +169,41 @@ public final class Role implements Comparable {
    * @param templateName   True to mark this role as generated
    */
   public Role(String name, Pattern pattern, Set<Permission> permissions, @CheckForNull String description, String templateName) {
+    this(name, pattern, null, permissions, description, templateName);
+  }
+
+  /**
+   * Create a role scoped to folders instead of a pattern.
+   *
+   * <p>The role applies to each listed item and to everything nested below it. Entries are full item names such as
+   * {@code Team/Special}; leading and trailing slashes and surrounding whitespace are ignored.
+   *
+   * @param name         The role name
+   * @param folders      Full names of the items the role applies to; must contain at least one non-blank entry
+   * @param permissions  The {@link Permission}s associated to the role. {@code null} permissions will be ignored.
+   * @param description  A description for the role
+   * @param templateName Name of the permission template the role takes its permissions from, if any
+   * @return the new role
+   * @throws IllegalArgumentException if {@code folders} has no usable entry
+   */
+  @Restricted(NoExternalUse.class)
+  @NonNull
+  public static Role forFolders(String name, @NonNull Collection<String> folders, Set<Permission> permissions,
+      @CheckForNull String description, @CheckForNull String templateName) {
+    SortedSet<String> normalized = normalizeFolders(folders);
+    if (normalized.isEmpty()) {
+      throw new IllegalArgumentException("A folder-scoped role needs at least one folder");
+    }
+    return new Role(name, folderPattern(normalized), normalized, permissions, description, templateName);
+  }
+
+  private Role(String name, Pattern pattern, @CheckForNull SortedSet<String> folders, Set<Permission> permissions,
+      @CheckForNull String description, String templateName) {
     this.name = name;
     this.pattern = pattern;
+    this.folders = folders;
+    this.folderLookup = folders != null && folders.size() > FOLDER_LOOKUP_THRESHOLD ? Set.copyOf(folders) : null;
+    this.longestFolder = folders == null ? 0 : folders.stream().mapToInt(String::length).max().orElse(0);
     this.description = description;
     this.templateName = templateName;
     this.permissions = new HashSet<>();
@@ -174,10 +237,125 @@ public final class Role implements Comparable {
   /**
    * Getter for the regexp pattern.
    *
+   * <p>For a folder-scoped role this is an equivalent pattern derived from its folders; use {@link #matches(String)}
+   * to check whether the role applies to a name.
+   *
    * @return The pattern associated to the role
    */
   public Pattern getPattern() {
     return pattern;
+  }
+
+  /**
+   * Full names of the items a folder-scoped role applies to.
+   *
+   * @return the folders, or {@code null} when the role matches by {@link #getPattern()}
+   */
+  @Restricted(NoExternalUse.class)
+  @CheckForNull
+  public SortedSet<String> getFolders() {
+    return folders == null ? null : Collections.unmodifiableSortedSet(folders);
+  }
+
+  /**
+   * Whether this role is scoped to folders rather than to a pattern.
+   *
+   * @return {@code true} for a folder-scoped role
+   */
+  @Restricted(NoExternalUse.class)
+  public boolean isFolderScoped() {
+    return folders != null;
+  }
+
+  /**
+   * Checks whether this role applies to the item or agent with the given name.
+   *
+   * @param name the full name of an item, or the name of an agent
+   * @return {@code true} if the role applies to it
+   */
+  public boolean matches(@NonNull String name) {
+    if (folders == null) {
+      return pattern.matcher(name).matches();
+    }
+    if (folderLookup != null) {
+      return matchesFolderLookup(name, folderLookup);
+    }
+    for (String folder : folders) {
+      if (name.startsWith(folder) && (name.length() == folder.length() || name.charAt(folder.length()) == '/')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Whether the item itself or one of its parent folders is in {@code lookup}. A folder covers an item when the
+   * item's full name equals it or continues with {@code /} right after it, which is exactly when it equals the name
+   * or a prefix of the name ending just before a {@code /}.
+   */
+  private boolean matchesFolderLookup(String name, Set<String> lookup) {
+    for (int slash = name.indexOf('/'); slash != -1 && slash <= longestFolder; slash = name.indexOf('/', slash + 1)) {
+      if (lookup.contains(name.substring(0, slash))) {
+        return true;
+      }
+    }
+    return name.length() <= longestFolder && lookup.contains(name);
+  }
+
+  /**
+   * Human readable description of what this role applies to, for messages shown to users.
+   *
+   * @return the folder list for a folder-scoped role, otherwise the pattern
+   */
+  @Restricted(NoExternalUse.class)
+  @NonNull
+  public String getScopeDescription() {
+    return folders == null ? pattern.pattern() : String.join(", ", folders);
+  }
+
+  /**
+   * Normalizes folder names entered by users or read from configuration: trims whitespace, drops leading and
+   * trailing slashes and empty entries.
+   *
+   * @param folders the raw folder names
+   * @return the normalized, sorted, de-duplicated folder names
+   */
+  @NonNull
+  @Restricted(NoExternalUse.class)
+  public static SortedSet<String> normalizeFolders(@CheckForNull Collection<String> folders) {
+    SortedSet<String> result = new TreeSet<>();
+    if (folders == null) {
+      return result;
+    }
+    for (String folder : folders) {
+      if (folder == null) {
+        continue;
+      }
+      String f = folder.trim();
+      int start = 0;
+      int end = f.length();
+      while (start < end && f.charAt(start) == '/') {
+        start++;
+      }
+      while (end > start && f.charAt(end - 1) == '/') {
+        end--;
+      }
+      f = f.substring(start, end).trim();
+      if (!f.isEmpty()) {
+        result.add(f);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * The regular expression equivalent to a folder scope, kept for {@link #getPattern()} callers and for older plugin
+   * versions reading the stored configuration. The descendant part is DOTALL because item names can contain line
+   * separators such as U+2028, which {@link #matches(String)} accepts.
+   */
+  private static Pattern folderPattern(SortedSet<String> folders) {
+    String alternatives = folders.stream().map(Pattern::quote).collect(Collectors.joining("|"));
+    return Pattern.compile("^(?:" + alternatives + ")(?s:/.*)?$");
   }
 
   /**
@@ -296,6 +474,7 @@ public final class Role implements Comparable {
     int hash = 7;
     hash = 53 * hash + (this.name != null ? this.name.hashCode() : 0);
     hash = 53 * hash + (this.pattern != null ? this.pattern.hashCode() : 0);
+    hash = 53 * hash + Objects.hashCode(this.folders);
     hash = 53 * hash + this.permissions.hashCode();
     return hash;
   }
@@ -316,6 +495,9 @@ public final class Role implements Comparable {
       return false;
     }
     if (!Objects.equals(this.pattern, other.pattern)) {
+      return false;
+    }
+    if (!Objects.equals(this.folders, other.folders)) {
       return false;
     }
     return Objects.equals(this.permissions, other.permissions);
