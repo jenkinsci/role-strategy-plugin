@@ -52,6 +52,11 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
     return this;
   }
 
+  public ManageRolesPage roleCardHasFolder(String name, String folder) {
+    assertThat(folderChip(name, folder)).isVisible();
+    return this;
+  }
+
   public ManageRolesPage roleCardHasTemplateBadge(String name, String template) {
     assertThat(card(name).locator(".rsp-card__template-badge")).containsText(template);
     return this;
@@ -85,6 +90,17 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
     return this;
   }
 
+  /** Open the matching items dialog from one of a folder-scoped role's folder chips. */
+  public ManageRolesPage clickFolderChip(String name, String folder) {
+    folderChip(name, folder).click();
+    return this;
+  }
+
+  public ManageRolesPage matchingDialogDoesNotContainText(String text) {
+    assertThat(dialog()).not().containsText(text);
+    return this;
+  }
+
   public ManageRolesPage matchingDialogContainsText(String text) {
     assertThat(dialog()).containsText(text);
     return this;
@@ -114,6 +130,20 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
     // Blur after filling: pattern validation only runs when the field loses focus.
     dialog().locator("#rsp-role-pattern").fill(pattern);
     dialog().locator("#rsp-role-pattern").blur();
+    return this;
+  }
+
+  public ManageRolesPage dialogScopeToFolders() {
+    dialog().locator("label[for='rsp-role-scope-folders']").click();
+    return this;
+  }
+
+  /** Types a folder name into the folder picker and adds it with Enter. */
+  public ManageRolesPage dialogAddFolder(String folder) {
+    Locator input = dialog().locator("#rsp-role-folder");
+    input.fill(folder);
+    input.press("Enter");
+    assertThat(dialog().locator(".rsp-folder-picker__name:text-is(\"" + folder + "\")")).isVisible();
     return this;
   }
 
@@ -152,6 +182,10 @@ public class ManageRolesPage extends RoleStrategyPage<ManageRolesPage> {
   }
 
   // --- Locators ---
+
+  private Locator folderChip(String name, String folder) {
+    return card(name).locator(".rsp-card__folder:text-is(\"" + folder + "\")");
+  }
 
   private Locator card(String name) {
     return page.locator(".rsp-card:has(.rsp-card__name:text-is(\"" + name + "\"))");

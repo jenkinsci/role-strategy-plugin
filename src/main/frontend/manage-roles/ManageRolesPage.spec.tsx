@@ -7,6 +7,7 @@ import type {
   ManageRolesBootstrap,
   RoleTypeBootstrap,
 } from "../common/types/bootstrap.ts";
+import { folderPattern } from "../common/utils/roleScope.ts";
 import { ManageRolesPage } from "./ManageRolesPage.tsx";
 
 vi.mock("../common/api/validation.ts", () => ({
@@ -45,6 +46,12 @@ const bootstrap = (
         templateName: "developer",
         permissionIds: ["job.read"],
       },
+      {
+        name: "special-builders",
+        pattern: "^(?:\\QTeam/Special\\E)(?s:/.*)?$",
+        folders: ["Team/Special"],
+        permissionIds: ["job.read"],
+      },
     ],
   }),
   slaveRoles: typeBootstrap(),
@@ -60,6 +67,9 @@ const createClient = (): StrategyClient => ({
   getMatchingJobs: vi
     .fn()
     .mockResolvedValue({ matchingJobs: ["dev-a"], itemCount: 1 }),
+  getFolders: vi
+    .fn()
+    .mockResolvedValue({ folders: ["Team", "Team/Special"], count: 2 }),
   getMatchingAgents: vi
     .fn()
     .mockResolvedValue({ matchingAgents: [], agentCount: 0 }),
@@ -183,6 +193,7 @@ describe("ManageRolesPage", () => {
         false,
         undefined,
         undefined,
+        undefined,
       ),
     );
     expect(screen.getByText("reader")).toBeInTheDocument();
@@ -267,5 +278,135 @@ describe("ManageRolesPage", () => {
       expect(client.getMatchingJobs).toHaveBeenCalledWith("dev-.*", 15),
     );
     expect(await screen.findByText("dev-a")).toBeInTheDocument();
+  });
+
+  describe("folder-scoped item roles", () => {
+    it("shows folders instead of the derived pattern", async () => {
+      renderPage();
+      await userEvent
+        .setup()
+        .click(screen.getByRole("tab", { name: "Item roles" }));
+
+      expect(
+        screen.getByRole("button", { name: "Team/Special" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/\\QTeam\/Special/)).not.toBeInTheDocument();
+    });
+
+    it("opens the matching dialog for one folder", async () => {
+      const user = userEvent.setup();
+      const client = renderPage();
+      await user.click(screen.getByRole("tab", { name: "Item roles" }));
+
+      await user.click(screen.getByRole("button", { name: "Team/Special" }));
+
+      await waitFor(() =>
+        expect(client.getMatchingJobs).toHaveBeenCalledWith(
+          folderPattern(["Team/Special"]),
+          15,
+        ),
+      );
+      expect(
+        await screen.findByText(/matching "Team\/Special"/),
+      ).toBeInTheDocument();
+    });
+
+    it("finds roles by folder name", async () => {
+      const user = userEvent.setup();
+      renderPage();
+      await user.click(screen.getByRole("tab", { name: "Item roles" }));
+
+      await user.type(screen.getByRole("searchbox"), "team/spec");
+
+      expect(screen.getByText("special-builders")).toBeInTheDocument();
+      expect(screen.queryByText("dev")).not.toBeInTheDocument();
+    });
+
+    it("adds a folder-scoped role without a pattern", async () => {
+      const user = userEvent.setup();
+      const client = renderPage();
+      await user.click(screen.getByRole("tab", { name: "Item roles" }));
+      await user.click(addButton);
+
+      await user.type(screen.getByLabelText("Name"), "builders");
+      await user.click(screen.getByRole("radio", { name: "Folders" }));
+      await user.type(
+        screen.getByRole("combobox", { name: "Folders" }),
+        "Team/Other{Enter}",
+      );
+      await user.click(screen.getByRole("button", { name: "Add" }));
+
+      await waitFor(() =>
+        expect(client.addRole).toHaveBeenCalledWith(
+          "projectRoles",
+          "builders",
+          [],
+          false,
+          undefined,
+          undefined,
+          ["Team/Other"],
+        ),
+      );
+      expect(
+        screen.getByRole("button", { name: "Team/Other" }),
+      ).toBeInTheDocument();
+    });
+
+    it("edits a folder-scoped role with its folders preselected", async () => {
+      const user = userEvent.setup();
+      const client = renderPage();
+      await user.click(screen.getByRole("tab", { name: "Item roles" }));
+
+      // Item roles are sorted: dev, special-builders, templated.
+      await user.click(screen.getAllByLabelText("Edit role")[1]);
+
+      expect(screen.getByRole("radio", { name: "Folders" })).toBeChecked();
+      expect(
+        screen.getByRole("button", { name: "Remove Team/Special" }),
+      ).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() =>
+        expect(client.addRole).toHaveBeenCalledWith(
+          "projectRoles",
+          "special-builders",
+          ["job.read"],
+          true,
+          undefined,
+          undefined,
+          ["Team/Special"],
+        ),
+      );
+    });
+  });
+
+  it("keeps a folder role's scope when it is switched to a pattern", async () => {
+    const user = userEvent.setup();
+    const client = renderPage();
+    await user.click(screen.getByRole("tab", { name: "Item roles" }));
+    // Item roles are sorted: dev, special-builders, templated.
+    await user.click(screen.getAllByLabelText("Edit role")[1]);
+
+    await user.click(screen.getByRole("radio", { name: "Pattern" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(client.addRole).toHaveBeenCalledWith(
+        "projectRoles",
+        "special-builders",
+        ["job.read"],
+        true,
+        "^(?:\\QTeam/Special\\E)(?s:/.*)?$",
+        undefined,
+        undefined,
+      ),
+    );
+  });
+
+  it("derives the same regex as java.util.regex.Pattern.quote", () => {
+    expect(folderPattern(["a/b", "c"])).toBe(
+      "^(?:\\Qa/b\\E|\\Qc\\E)(?s:/.*)?$",
+    );
+    expect(folderPattern(["x\\Ey"])).toBe("^(?:\\Qx\\E\\\\E\\Qy\\E)(?s:/.*)?$");
   });
 });

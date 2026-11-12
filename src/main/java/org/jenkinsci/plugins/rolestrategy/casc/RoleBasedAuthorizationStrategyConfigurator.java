@@ -62,9 +62,47 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
   protected RoleBasedAuthorizationStrategy instance(Mapping map, ConfigurationContext context) throws ConfiguratorException {
     final Configurator<GrantedRoles> c = context.lookupOrFail(GrantedRoles.class);
     final GrantedRoles roles = c.configure(map.remove("roles"), context);
+    rejectFolders(roles.getGlobal(), "global");
+    rejectFolders(roles.getAgents(), "agent");
+    validateItemFolders(roles.getItems());
     final Set<PermissionTemplate> permissionTemplates = getPermissionTemplates(map, context);
 
     return new RoleBasedAuthorizationStrategy(roles.toMap(), permissionTemplates);
+  }
+
+  private static void rejectFolders(@CheckForNull Set<RoleDefinition> definitions, String roleType)
+      throws ConfiguratorException {
+    if (definitions == null) {
+      return;
+    }
+    for (RoleDefinition definition : definitions) {
+      if (definition.getFolders() != null) {
+        throw new ConfiguratorException("Role '" + definition.getName() + "': folders are only supported for item roles, not "
+            + roleType + " roles");
+      }
+    }
+  }
+
+  /**
+   * A folder list that ends up empty must fail rather than fall back to the default pattern, which would grant the
+   * role on every item; giving a pattern as well would leave one of the two silently ignored.
+   */
+  private static void validateItemFolders(@CheckForNull Set<RoleDefinition> definitions) throws ConfiguratorException {
+    if (definitions == null) {
+      return;
+    }
+    for (RoleDefinition definition : definitions) {
+      SortedSet<String> folders = definition.getFolders();
+      if (folders == null) {
+        continue;
+      }
+      if (folders.isEmpty()) {
+        throw new ConfiguratorException("Role '" + definition.getName() + "': folders must contain at least one folder");
+      }
+      if (definition.getPattern() != null) {
+        throw new ConfiguratorException("Role '" + definition.getName() + "': set either pattern or folders, not both");
+      }
+    }
   }
 
   private static Set<PermissionTemplate> getPermissionTemplates(Mapping map, ConfigurationContext context) throws ConfiguratorException {
@@ -142,7 +180,8 @@ public class RoleBasedAuthorizationStrategyConfigurator extends BaseConfigurator
               .map(RoleDefinition.RoleDefinitionEntry::fromPermissionEntry)
               .collect(Collectors.toSet());
       final RoleDefinition roleDefinition = new RoleDefinition(role.getName(), role.getDescription(),
-              role.getPattern().pattern(), permissions);
+              role.isFolderScoped() ? null : role.getPattern().pattern(), permissions);
+      roleDefinition.setFolders(role.getFolders());
       roleDefinition.setEntries(roleDefinitionEntries);
       roleDefinition.setTemplateName(role.getTemplateName());
       return roleDefinition;

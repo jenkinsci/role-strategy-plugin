@@ -1,0 +1,16 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      permissionTemplates:
+        - name: "builder"
+          permissions:
+            - "Job/Build"
+            - "Job/Cancel"
+      roles:
+        items:
+          - name: "special-builders"
+            templateName: "builder"
+            folders:
+              - "Team/Special"
+            entries:
+              - group: "special-team"

@@ -1,0 +1,10 @@
+jenkins:
+  authorizationStrategy:
+    roleBased:
+      roles:
+        agents:
+          - name: "agent-role"
+            folders:
+              - "agent1"
+            permissions:
+              - "Agent/Build"

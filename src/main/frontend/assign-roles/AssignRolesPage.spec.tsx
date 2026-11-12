@@ -50,6 +50,7 @@ const createClient = (): StrategyClient => ({
   addRole: vi.fn(),
   removeRoles: vi.fn(),
   getMatchingJobs: vi.fn(),
+  getFolders: vi.fn(),
   getMatchingAgents: vi.fn(),
   assignSidRole: vi.fn().mockResolvedValue(undefined),
   unassignSidRole: vi.fn().mockResolvedValue(undefined),
@@ -212,6 +213,52 @@ describe("AssignRolesPage", () => {
       "USER",
     );
     expect(within(cardOf("alice")).getByText("reader")).toBeInTheDocument();
+  });
+
+  it("shows the folders of a folder-scoped role rather than its derived pattern", async () => {
+    const user = userEvent.setup();
+    const derived = "^(?:\\QTeam/Special\\E|\\QTeam/Ops\\E)(?s:/.*)?$";
+    renderPage(
+      bootstrap({
+        projectRoles: typeBootstrap({
+          roles: [
+            {
+              name: "special-builders",
+              pattern: derived,
+              folders: ["Team/Ops", "Team/Special"],
+              permissionIds: [],
+            },
+          ],
+          entries: [
+            {
+              name: "special-team",
+              type: "GROUP",
+              roles: ["special-builders"],
+            },
+          ],
+        }),
+      }),
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Item roles" }));
+    // The assigned roles with their scope show in the expanded card body.
+    await user.click(
+      screen.getByText("special-team", { selector: "[data-sid]" }),
+    );
+    const card = within(cardOf("special-team"));
+    // One chip per folder, not a single comma-joined chip.
+    expect(card.getByText("Team/Ops")).toHaveClass("rsp-card__pattern");
+    expect(card.getByText("Team/Special")).toHaveClass("rsp-card__pattern");
+
+    await user.click(
+      within(cardOf("special-team")).getByLabelText("Edit roles"),
+    );
+    expect(
+      screen.getByRole("checkbox", {
+        name: /special-builders\s+Team\/Ops\s+Team\/Special/,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(derived)).not.toBeInTheDocument();
   });
 
   it("dispatches group edits to the group endpoint", async () => {

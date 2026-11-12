@@ -10,15 +10,19 @@ import { CloseIcon } from "../common/components/icons/CloseIcon.tsx";
 import { EditIcon } from "../common/components/icons/EditIcon.tsx";
 import { TrashIcon } from "../common/components/icons/TrashIcon.tsx";
 import { PermissionGroups } from "../common/components/PermissionGroups.tsx";
+import {
+  ScopeChips,
+  type ScopeMatch,
+} from "../common/components/ScopeChips.tsx";
 import { SearchWithFilter } from "../common/components/SearchWithFilter.tsx";
 import { Tabs } from "../common/components/Tabs.tsx";
-import { Tooltip } from "../common/components/Tooltip.tsx";
 import type { ManageRolesBootstrap } from "../common/types/bootstrap.ts";
 import type { Role, RoleTypeKey } from "../common/types/role.ts";
 import {
   buildPermissionSummary,
   indexPermissions,
 } from "../common/utils/permissionSummary.ts";
+import { folderPattern, isFolderScoped } from "../common/utils/roleScope.ts";
 import { MatchingDialog } from "./MatchingDialog.tsx";
 import { RoleDialog, type RoleDialogResult } from "./RoleDialog.tsx";
 
@@ -86,10 +90,7 @@ export function ManageRolesPage({
   const [mode, setMode] = useState<"closed" | "add" | { edit: string }>(
     "closed",
   );
-  const [matching, setMatching] = useState<{
-    kind: "items" | "agents";
-    pattern: string;
-  } | null>(null);
+  const [matching, setMatching] = useState<ScopeMatch | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const activeTab =
@@ -98,6 +99,11 @@ export function ManageRolesPage({
   const roles = rolesByType[activeKey];
 
   const openAdd = useCallback(() => setMode("add"), []);
+  const loadFolders = useCallback(
+    async (query: string, max: number) =>
+      (await client.getFolders(query, max)).folders,
+    [client],
+  );
   useAppBarButton("rsp-add-role-btn", openAdd, { visible: active.canEdit });
 
   const permissionsById = useMemo(
@@ -133,7 +139,9 @@ export function ManageRolesPage({
       const matchesSearch =
         !q ||
         r.name.toLowerCase().includes(q) ||
-        (r.pattern ?? "").toLowerCase().includes(q);
+        (isFolderScoped(r)
+          ? (r.folders ?? []).some((f) => f.toLowerCase().includes(q))
+          : (r.pattern ?? "").toLowerCase().includes(q));
       const matchesFilter =
         filterIds.size === 0 ||
         [...filterIds].every((id) => r.permissionIds.includes(id));
@@ -152,7 +160,10 @@ export function ManageRolesPage({
       : undefined;
     return {
       name: input.name,
-      pattern: input.pattern,
+      pattern: input.folders?.length
+        ? folderPattern(input.folders)
+        : input.pattern,
+      folders: input.folders,
       templateName: template?.name,
       permissionIds: template ? template.permissionIds : input.permissionIds,
     };
@@ -166,6 +177,7 @@ export function ManageRolesPage({
       false,
       input.pattern,
       input.template,
+      input.folders,
     );
     updateRoles(activeKey, (prev) => [...prev, toRole(input)].sort(byName));
     setMode("closed");
@@ -179,6 +191,7 @@ export function ManageRolesPage({
       true,
       input.pattern,
       input.template,
+      input.folders,
     );
     updateRoles(activeKey, (prev) =>
       prev.map((r) => (r.name === input.name ? toRole(input) : r)),
@@ -208,29 +221,13 @@ export function ManageRolesPage({
 
   const buildBadges = (role: Role) => {
     if (!role.pattern && !role.templateName) return null;
-    const matchKind = activeKey === "slaveRoles" ? "agents" : "items";
     return (
       <>
-        {role.pattern !== undefined &&
-          (active.canEdit ? (
-            <Tooltip content={`Show matching ${matchKind}`} placement="top">
-              <button
-                type="button"
-                className="rsp-card__pattern rsp-card__pattern--button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMatching({
-                    kind: matchKind,
-                    pattern: role.pattern ?? "",
-                  });
-                }}
-              >
-                {role.pattern}
-              </button>
-            </Tooltip>
-          ) : (
-            <span className="rsp-card__pattern">{role.pattern}</span>
-          ))}
+        <ScopeChips
+          role={role}
+          matchKind={activeKey === "slaveRoles" ? "agents" : "items"}
+          onShowMatching={active.canEdit ? setMatching : undefined}
+        />
         {role.templateName && (
           <span className="rsp-card__template-badge">
             Template: {role.templateName}
@@ -376,6 +373,7 @@ export function ManageRolesPage({
           rootUrl={rootUrl}
           initialName=""
           initialPattern=".*"
+          loadFolders={loadFolders}
           initialTemplateName=""
           initialPermissionIds={[]}
           onCancel={() => setMode("closed")}
@@ -394,7 +392,11 @@ export function ManageRolesPage({
           checkPatternUrl={checkPatternUrl}
           rootUrl={rootUrl}
           initialName={editing.name}
+          // A folder role's pattern is its derived equivalent, so switching to
+          // Pattern keeps the same scope instead of widening it to every item.
           initialPattern={editing.pattern ?? ".*"}
+          initialFolders={editing.folders}
+          loadFolders={loadFolders}
           initialTemplateName={editing.templateName ?? ""}
           initialPermissionIds={
             editing.templateName ? [] : editing.permissionIds
@@ -407,6 +409,7 @@ export function ManageRolesPage({
         <MatchingDialog
           kind={matching.kind}
           pattern={matching.pattern}
+          label={matching.label}
           client={client}
           onClose={() => setMatching(null)}
         />

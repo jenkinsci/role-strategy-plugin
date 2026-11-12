@@ -6,6 +6,7 @@ import { PeopleIcon } from "../common/components/icons/PeopleIcon.tsx";
 import { PersonIcon } from "../common/components/icons/PersonIcon.tsx";
 import { TrashIcon } from "../common/components/icons/TrashIcon.tsx";
 import { WarningIcon } from "../common/components/icons/WarningIcon.tsx";
+import { ScopeChips } from "../common/components/ScopeChips.tsx";
 import { Tooltip } from "../common/components/Tooltip.tsx";
 import type { SidEntry, SidInfo } from "../common/types/assignment.ts";
 import type { Role } from "../common/types/role.ts";
@@ -169,9 +170,7 @@ export function SidCard({
               data-role-name={role.name}
             >
               {role.name}
-              {role.pattern !== undefined && (
-                <span className="rsp-card__pattern">{role.pattern}</span>
-              )}
+              <ScopeChips role={role} />
               {role.permissionIds !== undefined && (
                 <HelpIcon
                   description={

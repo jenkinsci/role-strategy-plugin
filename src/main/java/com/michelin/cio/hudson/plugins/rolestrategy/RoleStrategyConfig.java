@@ -340,6 +340,9 @@ public class RoleStrategyConfig extends ManagementLink {
     if (roleType != RoleType.Global) {
       roleJson.put("pattern", role.getPattern().pattern());
     }
+    if (role.isFolderScoped()) {
+      roleJson.put("folders", JSONArray.fromObject(role.getFolders()));
+    }
     String templateName = role.getTemplateName();
     if (roleType == RoleType.Project && templateName != null && !templateName.isEmpty()) {
       roleJson.put("templateName", templateName);

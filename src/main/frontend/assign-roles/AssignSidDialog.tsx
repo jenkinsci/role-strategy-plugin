@@ -4,6 +4,7 @@ import { ApiError } from "../common/api/client.ts";
 import { checkSidName } from "../common/api/validation.ts";
 import { Dialog } from "../common/components/Dialog.tsx";
 import { HelpIcon } from "../common/components/HelpIcon.tsx";
+import { ScopeChips } from "../common/components/ScopeChips.tsx";
 import { SearchInput } from "../common/components/SearchInput.tsx";
 import type { SidEntry, SidType } from "../common/types/assignment.ts";
 import type {
@@ -392,11 +393,7 @@ export function AssignSidDialog({
                         />
                         <label htmlFor={inputId}>
                           {role.name}
-                          {role.pattern !== undefined && (
-                            <span className="rsp-card__pattern">
-                              {role.pattern}
-                            </span>
-                          )}
+                          <ScopeChips role={role} />
                         </label>
                         <HelpIcon
                           description={

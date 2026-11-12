@@ -649,7 +649,9 @@ dialog .tippy-box {
   color: var(--text-color-secondary);
 }
 
-.rsp-assign-dialog__role-item .rsp-card__pattern {
+.rsp-assign-dialog__role-item .rsp-scope-chips {
+  /* The core checkbox label is a flex row, so the space before the chips
+     takes no room and the gap comes from here. */
   margin-left: 0.375rem;
 }
 
@@ -724,4 +726,125 @@ dialog .tippy-box {
    margin only inflates the row height. */
 .rsp-assign__kind .jenkins-radio {
   margin-bottom: 0;
+}
+
+/* ============================================
+   Folder-scoped item roles
+   ============================================ */
+
+.rsp-role-scope {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.rsp-role-scope .jenkins-radio {
+  margin-bottom: 0;
+}
+
+.rsp-folder-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rsp-folder-picker__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rsp-folder-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0.125rem 0.125rem 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  background: var(--item-background--hover);
+  color: var(--text-color-secondary);
+  font-family: var(--font-family-mono);
+  font-size: 0.75rem;
+}
+
+/* Long folder paths wrap inside the dialog instead of overflowing it. */
+.rsp-folder-picker__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rsp-folder-picker__remove {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--text-color-secondary);
+  cursor: pointer;
+  transition: var(--standard-transition);
+}
+
+.rsp-folder-picker__remove:hover {
+  background: var(--item-background--active);
+  color: var(--text-color);
+}
+
+.rsp-folder-picker__remove:focus-visible,
+.rsp-card__pattern--button:focus-visible {
+  /* Same focus ring as core inputs and buttons. */
+  outline: none;
+  box-shadow: 0 0 0 0.2rem var(--focus-input-glow);
+}
+
+.rsp-folder-picker__remove svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.rsp-folder-picker__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.rsp-folder-picker__add .jenkins-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.rsp-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Core pulls descriptions up towards the label above them. These dialogs put
+ * descriptions under the control instead, so they need room from it.
+ */
+.rsp-dialog__form
+  .jenkins-form-item
+  > :not(.jenkins-form-label, .jenkins-form-description)
+  + .jenkins-form-description {
+  margin-top: 0.5rem;
+}
+
+/* One chip per folder (or a single pattern chip) next to a role name. */
+.rsp-scope-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  vertical-align: middle;
 }
