@@ -6,11 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import hudson.model.Item;
 import hudson.security.Permission;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
+import jenkins.model.Jenkins;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
@@ -35,6 +37,28 @@ class RoleMapCachingTest {
     } finally {
       permission.setEnabled(enabled);
     }
+  }
+
+  @Test
+  void permissionsAreGrantedThroughThePermissionsThatImplyThem(JenkinsRule j) {
+    RoleMap admins = mapGranting(Jenkins.ADMINISTER);
+    assertTrue(admins.hasPermission(ALICE, Item.BUILD, RoleType.Project, null));
+    assertTrue(admins.hasPermission(ALICE, Item.CONFIGURE, RoleType.Project, null));
+
+    RoleMap builders = mapGranting(Item.BUILD);
+    assertTrue(builders.hasPermission(ALICE, Item.BUILD, RoleType.Project, null));
+    assertFalse(builders.hasPermission(ALICE, Item.CONFIGURE, RoleType.Project, null));
+  }
+
+  @Test
+  void dangerousPermissionsNeedAdminister(JenkinsRule j) {
+    assertFalse(mapGranting(Jenkins.RUN_SCRIPTS).hasPermission(ALICE, Jenkins.RUN_SCRIPTS, RoleType.Global, null));
+    assertTrue(mapGranting(Jenkins.ADMINISTER).hasPermission(ALICE, Jenkins.RUN_SCRIPTS, RoleType.Global, null));
+  }
+
+  private static RoleMap mapGranting(Permission permission) {
+    return new RoleMap(new TreeMap<>(Map.of(
+        new Role("role", Pattern.compile(".*"), Set.of(permission), null, null), Set.of(ALICE))));
   }
 
   @Test

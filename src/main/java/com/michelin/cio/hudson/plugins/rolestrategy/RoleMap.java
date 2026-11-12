@@ -56,6 +56,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -99,6 +100,9 @@ public class RoleMap {
   private final SortedMap<Role, Set<PermissionEntry>> grantedRoles;
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
+
+  /** See {@link #implyingChain}. Permissions are a fixed, small set, so entries are never evicted. */
+  private static final Map<Permission, Permission[]> IMPLYING_CHAINS = new ConcurrentHashMap<>();
 
   private final Cache<String, UserDetails> cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
       .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
@@ -144,7 +148,7 @@ public class RoleMap {
    */
   @Restricted(NoExternalUse.class)
   public boolean hasPermission(PermissionEntry sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
-    final Set<Permission> permissions = getImplyingPermissions(permission);
+    final Permission[] implying = implyingChain(permission);
     final boolean[] hasPermission = { false };
     final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
     final boolean principal = sid.getType() == AuthorizationType.USER;
@@ -185,7 +189,7 @@ public class RoleMap {
 
       @Override
       public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
+        if (hasAnyEnabled(current, implying)) {
           PermissionEntry entry = hasPermission(current, sid);
           if (entry != null) {
             // Handle roles macro
@@ -240,23 +244,35 @@ public class RoleMap {
   }
 
   /**
-   * Get the set of permissions which imply the permission {@code permission}.
-   *
-   * @param permission find permissions that imply this permission
-   * @return set of permissions which imply {@code permission}, including itself while it is enabled
+   * The permission followed by the permissions that imply it, or {@link Jenkins#ADMINISTER} for a dangerous permission.
+   * The chain never changes, so it is worked out once per permission; whether each permission is enabled can change,
+   * so {@link #hasAnyEnabled} checks that on every use.
    */
-  private static Set<Permission> getImplyingPermissions(Permission permission) {
-    // Computed on every check: walking a few permissions is cheaper than a cache lookup that reads the clock, and a
-    // permission that gets disabled stops counting immediately.
-    Set<Permission> implyingPermissions = new HashSet<>();
-    // A dangerous permission falls back to Administer.
+  private static Permission[] implyingChain(Permission permission) {
+    Permission[] chain = IMPLYING_CHAINS.get(permission);
+    if (chain == null) {
+      chain = IMPLYING_CHAINS.computeIfAbsent(permission, RoleMap::computeImplyingChain);
+    }
+    return chain;
+  }
+
+  private static Permission[] computeImplyingChain(Permission permission) {
+    List<Permission> chain = new ArrayList<>();
     Permission start = PermissionHelper.isDangerous(permission) ? Jenkins.ADMINISTER : permission;
     for (Permission p = start; p != null; p = p.impliedBy) {
-      if (p.getEnabled()) {
-        implyingPermissions.add(p);
+      chain.add(p);
+    }
+    return chain.toArray(new Permission[0]);
+  }
+
+  /** Whether the role holds an enabled permission from the chain, without building a set on every check. */
+  private static boolean hasAnyEnabled(Role role, Permission[] chain) {
+    for (Permission p : chain) {
+      if (p.getEnabled() && role.hasPermission(p)) {
+        return true;
       }
     }
-    return implyingPermissions;
+    return false;
   }
 
   /**
