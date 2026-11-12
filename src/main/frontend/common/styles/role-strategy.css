@@ -742,12 +742,6 @@ dialog .tippy-box {
   margin-bottom: 0;
 }
 
-.rsp-card__folders {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-}
-
 .rsp-folder-picker {
   display: flex;
   flex-direction: column;
@@ -834,6 +828,17 @@ dialog .tippy-box {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/*
+ * Core pulls descriptions up towards the label above them. These dialogs put
+ * descriptions under the control instead, so they need room from it.
+ */
+.rsp-dialog__form
+  .jenkins-form-item
+  > :not(.jenkins-form-label, .jenkins-form-description)
+  + .jenkins-form-description {
+  margin-top: 0.5rem;
 }
 
 /* One chip per folder (or a single pattern chip) next to a role name. */

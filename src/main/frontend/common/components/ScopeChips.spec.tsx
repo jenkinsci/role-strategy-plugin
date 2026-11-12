@@ -1,5 +1,8 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import { folderPattern } from "../utils/roleScope.ts";
 
 import { ScopeChips } from "./ScopeChips.tsx";
 
@@ -32,5 +35,52 @@ describe("ScopeChips", () => {
       <ScopeChips role={{ name: "r", permissionIds: [] }} />,
     );
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it("renders plain chips unless it can show what they match", () => {
+    render(
+      <ScopeChips role={{ name: "r", pattern: "dev-.*", permissionIds: [] }} />,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+
+  it("shows the items one folder covers", async () => {
+    const onShowMatching = vi.fn();
+    render(
+      <ScopeChips
+        role={{
+          name: "r",
+          pattern: "^(?:\\QA\\E|\\QB\\E)(?s:/.*)?$",
+          folders: ["A", "B"],
+          permissionIds: [],
+        }}
+        matchKind="agents"
+        onShowMatching={onShowMatching}
+      />,
+    );
+    await userEvent.setup().click(screen.getByRole("button", { name: "B" }));
+    expect(onShowMatching).toHaveBeenCalledWith({
+      kind: "items",
+      pattern: folderPattern(["B"]),
+      label: "B",
+    });
+  });
+
+  it("shows the agents a pattern matches", async () => {
+    const onShowMatching = vi.fn();
+    render(
+      <ScopeChips
+        role={{ name: "r", pattern: "linux-.*", permissionIds: [] }}
+        matchKind="agents"
+        onShowMatching={onShowMatching}
+      />,
+    );
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "linux-.*" }));
+    expect(onShowMatching).toHaveBeenCalledWith({
+      kind: "agents",
+      pattern: "linux-.*",
+    });
   });
 });
