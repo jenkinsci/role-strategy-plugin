@@ -33,10 +33,12 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
 import hudson.Util;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
+import hudson.model.PeriodicWork;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
@@ -57,6 +59,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -97,22 +100,25 @@ public class RoleMap {
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
-  private static final Cache<Permission, Set<Permission>> implyingPermissionCache = Caffeine.newBuilder().maximumSize(100)
-      .expireAfterWrite(20, TimeUnit.SECONDS).build();
-
-  static {
-    Permission.getAll().forEach(RoleMap::cacheImplyingPermissions);
-  }
-
   private final Cache<String, UserDetails> cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
       .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
 
   /**
    * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)} for different
    * permissions for the same {@code itemNamePrefix}, so cache them and avoid wasting time matching regular expressions.
+   *
+   * <p>Entries have no time based expiry because that reads the clock on every lookup, which is expensive on hosts
+   * without a fast clock source. They are cleared whenever roles or sids change through this class, and every hour
+   * through {@link #MATCHING_CACHE_EPOCH} to also pick up changes made elsewhere, such as to the sid sets returned by
+   * {@link #getGrantedRolesEntries()}.
    */
-  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048).expireAfterWrite(1, TimeUnit.HOURS)
-      .build();
+  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048).build();
+
+  /** Advanced every hour by {@link MatchingCacheExpiry}; a {@link RoleMap} clears its cache when it sees a new value. */
+  private static final AtomicLong MATCHING_CACHE_EPOCH = new AtomicLong();
+
+  /** The {@link #MATCHING_CACHE_EPOCH} value {@link #matchingRoleMapCache} was last cleared at. */
+  private volatile long matchingCacheEpoch = MATCHING_CACHE_EPOCH.get();
 
   RoleMap() {
     this.grantedRoles = new ConcurrentSkipListMap<>();
@@ -234,40 +240,22 @@ public class RoleMap {
   }
 
   /**
-   * Get the set of permissions which imply the permission {@code p}.
+   * Get the set of permissions which imply the permission {@code permission}.
    *
-   * @param p find permissions that imply this permission
-   * @return set of permissions which imply {@code p}
+   * @param permission find permissions that imply this permission
+   * @return set of permissions which imply {@code permission}, including itself while it is enabled
    */
-  private static Set<Permission> getImplyingPermissions(Permission p) {
-    return implyingPermissionCache.get(p, RoleMap::cacheImplyingPermissions);
-  }
-
-  /**
-   * Finds the implying permissions and caches them for future use.
-   *
-   * @param permission the permission for which to cache implying permissions
-   * @return a set of permissions that imply this permission (including itself)
-   */
-  private static Set<Permission> cacheImplyingPermissions(Permission permission) {
-    Set<Permission> implyingPermissions;
-    if (PermissionHelper.isDangerous(permission)) {
-      /*
-       * if this is a dangerous permission, fall back to Administer unless we're in compat mode
-       */
-      implyingPermissions = getImplyingPermissions(Jenkins.ADMINISTER);
-    } else {
-      implyingPermissions = new HashSet<>();
-
-      // Get the implying permissions
-      for (Permission p = permission; p != null; p = p.impliedBy) {
-        if (!p.getEnabled()) {
-          continue;
-        }
+  private static Set<Permission> getImplyingPermissions(Permission permission) {
+    // Computed on every check: walking a few permissions is cheaper than a cache lookup that reads the clock, and a
+    // permission that gets disabled stops counting immediately.
+    Set<Permission> implyingPermissions = new HashSet<>();
+    // A dangerous permission falls back to Administer.
+    Permission start = PermissionHelper.isDangerous(permission) ? Jenkins.ADMINISTER : permission;
+    for (Permission p = start; p != null; p = p.impliedBy) {
+      if (p.getEnabled()) {
         implyingPermissions.add(p);
       }
     }
-
     return implyingPermissions;
   }
 
@@ -674,6 +662,11 @@ public class RoleMap {
    * @return A {@link RoleMap} containing roles that are applicable on the itemNamePrefix
    */
   public RoleMap newMatchingRoleMap(String itemNamePrefix) {
+    long epoch = MATCHING_CACHE_EPOCH.get();
+    if (epoch != matchingCacheEpoch) {
+      matchingCacheEpoch = epoch;
+      matchingRoleMapCache.invalidateAll();
+    }
     return matchingRoleMapCache.get(itemNamePrefix, this::createMatchingRoleMap);
   }
 
@@ -885,5 +878,20 @@ public class RoleMap {
      * The method to implement which will be called on each {@link Role}.
      */
     public abstract void perform(Role current);
+  }
+
+  /** Clears every {@link RoleMap}'s matching cache once an hour, see {@link #matchingRoleMapCache}. */
+  @Restricted(NoExternalUse.class)
+  @Extension
+  public static class MatchingCacheExpiry extends PeriodicWork {
+    @Override
+    public long getRecurrencePeriod() {
+      return HOUR;
+    }
+
+    @Override
+    protected void doRun() {
+      MATCHING_CACHE_EPOCH.incrementAndGet();
+    }
   }
 }
