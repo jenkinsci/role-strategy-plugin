@@ -126,6 +126,22 @@ class RoleMapSidIndexTest {
     assertFalse(map.hasPermission(upper, Item.BUILD, RoleType.Project, null));
   }
 
+  /** Changes to the live sid sets bypass RoleMap, so like the matching cache the index picks them up every hour. */
+  @Test
+  void indexIsRebuiltEveryHour() {
+    j.jenkins.setSecurityRealm(new Realm(new IdStrategy.CaseInsensitive(), new IdStrategy.CaseInsensitive()));
+    Role builders = role("builders", Item.BUILD);
+    RoleMap map = new RoleMap(new TreeMap<>(Map.of(builders, Set.of())));
+    PermissionEntry alice = new PermissionEntry(AuthorizationType.USER, "alice");
+    assertFalse(map.hasPermission(alice, Item.BUILD, RoleType.Project, null));
+
+    map.getGrantedRolesEntries().get(builders).add(alice);
+    assertFalse(map.hasPermission(alice, Item.BUILD, RoleType.Project, null));
+
+    new RoleMap.MatchingCacheExpiry().doRun();
+    assertTrue(map.hasPermission(alice, Item.BUILD, RoleType.Project, null));
+  }
+
   private void compareWithMatchingRules(IdStrategy users, IdStrategy groups, boolean caseSensitive, long seed) {
     j.jenkins.setSecurityRealm(new Realm(users, groups));
     RoleMap.FORCE_CASE_SENSITIVE = caseSensitive;

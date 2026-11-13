@@ -302,7 +302,8 @@ public class RoleMap {
   }
 
   /**
-   * The current {@link SidIndex}, rebuilt when roles, sids, the id strategies or {@link #FORCE_CASE_SENSITIVE} changed.
+   * The current {@link SidIndex}, rebuilt when roles, sids, the id strategies or {@link #FORCE_CASE_SENSITIVE} changed,
+   * and every hour.
    *
    * @return the index, or {@code null} when an id strategy does not define equality by {@link IdStrategy#keyFor}, in
    *     which case sids are compared role by role
@@ -317,9 +318,10 @@ public class RoleMap {
     }
     long version = grantVersion.get();
     SidIndex index = sidIndex;
-    if (index == null || index.version() != version || index.caseSensitive() != caseSensitive
+    long epoch = MATCHING_CACHE_EPOCH.get();
+    if (index == null || index.version() != version || index.epoch() != epoch || index.caseSensitive() != caseSensitive
         || !userStrategy.equals(index.userStrategy()) || !groupStrategy.equals(index.groupStrategy())) {
-      index = SidIndex.build(version, caseSensitive, userStrategy, groupStrategy, grantedRoles);
+      index = SidIndex.build(version, epoch, caseSensitive, userStrategy, groupStrategy, grantedRoles);
       sidIndex = index;
     }
     return index;
@@ -357,6 +359,8 @@ public class RoleMap {
    * changes from templates apply immediately.
    *
    * @param version       {@link #grantVersion} when this index was built
+   * @param epoch         {@link #MATCHING_CACHE_EPOCH} when this index was built, so it is rebuilt every hour to pick up
+   *                      changes made to the sid sets outside this class, like {@link #matchingRoleMapCache}
    * @param caseSensitive whether it was built for {@link #FORCE_CASE_SENSITIVE}
    * @param userStrategy  the user id strategy keys in {@code users} come from
    * @param groupStrategy the group id strategy keys in {@code groups} come from
@@ -367,11 +371,11 @@ public class RoleMap {
    * @param userKeys      the shared {@link #KEY_CACHES} entry for {@code userStrategy}
    * @param groupKeys     the shared {@link #KEY_CACHES} entry for {@code groupStrategy}
    */
-  private record SidIndex(long version, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
+  private record SidIndex(long version, long epoch, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
       Map<PermissionEntry, List<Role>> exact, Map<String, List<Assignment>> users, Map<String, List<Assignment>> groups,
       List<Role> macroRoles, Map<String, String> userKeys, Map<String, String> groupKeys) {
 
-    static SidIndex build(long version, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
+    static SidIndex build(long version, long epoch, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
         Map<Role, Set<PermissionEntry>> grantedRoles) {
       Map<PermissionEntry, List<Role>> exact = new HashMap<>();
       Map<String, List<Assignment>> users = new HashMap<>();
@@ -397,7 +401,7 @@ public class RoleMap {
           }
         }
       }
-      return new SidIndex(version, caseSensitive, userStrategy, groupStrategy, exact, users, groups,
+      return new SidIndex(version, epoch, caseSensitive, userStrategy, groupStrategy, exact, users, groups,
           List.copyOf(macroRoles), keyCache(userStrategy), keyCache(groupStrategy));
     }
 
