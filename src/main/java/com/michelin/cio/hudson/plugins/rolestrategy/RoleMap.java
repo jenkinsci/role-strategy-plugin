@@ -172,25 +172,39 @@ public class RoleMap {
    */
   @Restricted(NoExternalUse.class)
   public boolean hasPermission(PermissionEntry sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
+    return hasPermission(sid.getType(), sid.getSid(), permission, roleType, controlledItem);
+  }
+
+  /**
+   * {@link #hasPermission(PermissionEntry, Permission, RoleType, AccessControlled)} for a sid given by its parts, so
+   * {@link AclImpl} can ask for each of a user's identities without creating an entry for each when none is needed.
+   */
+  private boolean hasPermission(AuthorizationType type, String sidName, Permission permission, RoleType roleType,
+      AccessControlled controlledItem) {
     final Permission[] implying = implyingChain(permission);
-    final boolean[] hasPermission = { false };
     final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
-    final boolean principal = sid.getType() == AuthorizationType.USER;
+    final boolean principal = type == AuthorizationType.USER;
     final IdStrategy strategy = principal ? securityRealm.getUserIdStrategy() : securityRealm.getGroupIdStrategy();
 
     final SidIndex index = sidIndex(securityRealm);
     final Collection<Role> rolesToWalk;
     if (index == null) {
       rolesToWalk = getRoles();
-    } else if (index.grants(sid, principal, implying, strategy)) {
+    } else if (index.grants(type, sidName, principal, implying, strategy)) {
       return true;
-    } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && sid.getType() == AuthorizationType.USER) {
+    } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && principal) {
       // Any role can match by name through the user's authorities, which the index does not cover.
       rolesToWalk = getRoles();
     } else {
       // Macro roles decide through their extension, so the index leaves them out.
       rolesToWalk = index.macroRoles();
     }
+    if (rolesToWalk.isEmpty()) {
+      return false;
+    }
+
+    final PermissionEntry sid = new PermissionEntry(type, sidName);
+    final boolean[] hasPermission = { false };
 
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
@@ -321,6 +335,19 @@ public class RoleMap {
         || type == IdStrategy.CaseSensitiveEmailAddress.class;
   }
 
+  /** The most ids each of {@link #KEY_CACHES} holds before it starts over. */
+  private static final int KEY_CACHE_SIZE = 10_000;
+
+  /**
+   * {@link IdStrategy#keyFor} results by id, for each strategy class {@link #equalityIsKeyFor} accepts. Their keys
+   * depend only on the id, and looking one up costs less than lower-casing every identity on every check.
+   */
+  private static final Map<Class<?>, Map<String, String>> KEY_CACHES = new ConcurrentHashMap<>();
+
+  private static Map<String, String> keyCache(IdStrategy strategy) {
+    return KEY_CACHES.computeIfAbsent(strategy.getClass(), type -> new ConcurrentHashMap<>());
+  }
+
   /** A role assigned to a sid, as written in the role's entry. */
   private record Assignment(String sid, Role role) {
   }
@@ -337,10 +364,12 @@ public class RoleMap {
    * @param users         otherwise: roles assigned to users (user and either entries), by user id key
    * @param groups        otherwise: roles assigned to groups (group and either entries), by group id key
    * @param macroRoles    roles whose extension decides, which are always walked
+   * @param userKeys      the shared {@link #KEY_CACHES} entry for {@code userStrategy}
+   * @param groupKeys     the shared {@link #KEY_CACHES} entry for {@code groupStrategy}
    */
   private record SidIndex(long version, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
       Map<PermissionEntry, List<Role>> exact, Map<String, List<Assignment>> users, Map<String, List<Assignment>> groups,
-      List<Role> macroRoles) {
+      List<Role> macroRoles, Map<String, String> userKeys, Map<String, String> groupKeys) {
 
     static SidIndex build(long version, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
         Map<Role, Set<PermissionEntry>> grantedRoles) {
@@ -369,28 +398,42 @@ public class RoleMap {
         }
       }
       return new SidIndex(version, caseSensitive, userStrategy, groupStrategy, exact, users, groups,
-          List.copyOf(macroRoles));
+          List.copyOf(macroRoles), keyCache(userStrategy), keyCache(groupStrategy));
     }
 
     /**
      * Whether a non-macro role assigned to {@code sid} has an enabled permission from {@code implying}: the same as matching the sid
      * against every role's entries, as {@link #hasPermission} did before the index.
      */
-    boolean grants(PermissionEntry sid, boolean principal, Permission[] implying, IdStrategy strategy) {
+    boolean grants(AuthorizationType type, String sid, boolean principal, Permission[] implying, IdStrategy strategy) {
       if (caseSensitive) {
-        return anyHas(exact.get(sid), implying)
-            || anyHas(exact.get(new PermissionEntry(AuthorizationType.EITHER, sid.getSid())), implying);
+        return anyHas(exact.get(new PermissionEntry(type, sid)), implying)
+            || anyHas(exact.get(new PermissionEntry(AuthorizationType.EITHER, sid)), implying);
       }
-      List<Assignment> candidates = (principal ? users : groups).get(strategy.keyFor(sid.getSid()));
+      List<Assignment> candidates = (principal ? users : groups).get(key(principal ? userKeys : groupKeys, strategy, sid));
       if (candidates != null) {
         for (Assignment candidate : candidates) {
-          // Confirms the key match with the strategy's own equality, so the index can never grant more.
-          if (strategy.equals(candidate.sid(), sid.getSid()) && hasAnyEnabled(candidate.role(), implying)) {
+          // Confirms the key match with the strategy's own equality, so the index can never grant more. Identical ids
+          // are equal under any strategy, and core's case-insensitive equality lower-cases both ids, so those skip it.
+          if (hasAnyEnabled(candidate.role(), implying)
+              && (candidate.sid().equals(sid) || strategy.equals(candidate.sid(), sid))) {
             return true;
           }
         }
       }
       return false;
+    }
+
+    private static String key(Map<String, String> keys, IdStrategy strategy, String sid) {
+      String key = keys.get(sid);
+      if (key == null) {
+        key = strategy.keyFor(sid);
+        if (keys.size() >= KEY_CACHE_SIZE) {
+          keys.clear();
+        }
+        keys.put(sid, key);
+      }
+      return key;
     }
 
     private static boolean anyHas(@CheckForNull List<Role> roles, Permission[] implying) {
@@ -1009,9 +1052,9 @@ public class RoleMap {
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      boolean principal = sid instanceof PrincipalSid ? true : false;
-      PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, toString(sid));
-      if (RoleMap.this.hasPermission(entry, permission, roleType, item)) {
+      AuthorizationType type = sid instanceof PrincipalSid ? AuthorizationType.USER : AuthorizationType.GROUP;
+      String sidName = toString(sid);
+      if (RoleMap.this.hasPermission(type, sidName, permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))
@@ -1036,7 +1079,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(entry, permission, RoleType.Project, item)) {
+          if (roleMapProject.hasPermission(type, sidName, permission, RoleType.Project, item)) {
             return true;
           }
         }
