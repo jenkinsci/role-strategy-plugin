@@ -115,8 +115,12 @@ public class RoleMap {
    * without a fast clock source. They are cleared whenever roles or sids change through this class, and every hour
    * through {@link #MATCHING_CACHE_EPOCH} to also pick up changes made elsewhere, such as to the sid sets returned by
    * {@link #getGrantedRolesEntries()}.
+   *
+   * <p>Maintenance such as eviction runs on the calling thread. With Caffeine's default executor every miss once the
+   * cache is full hands it to the common pool, and waking a pool thread costs more than the eviction itself.
    */
-  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048).build();
+  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048)
+      .executor(Runnable::run).build();
 
   /** Advanced every hour by {@link MatchingCacheExpiry}; a {@link RoleMap} clears its cache when it sees a new value. */
   private static final AtomicLong MATCHING_CACHE_EPOCH = new AtomicLong();
