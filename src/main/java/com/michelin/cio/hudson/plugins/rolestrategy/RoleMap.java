@@ -33,10 +33,12 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
 import hudson.Util;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
+import hudson.model.PeriodicWork;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
@@ -44,7 +46,9 @@ import hudson.security.Permission;
 import hudson.security.SecurityRealm;
 import hudson.security.SidACL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,9 +58,11 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -97,22 +103,50 @@ public class RoleMap {
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
-  private static final Cache<Permission, Set<Permission>> implyingPermissionCache = Caffeine.newBuilder().maximumSize(100)
-      .expireAfterWrite(20, TimeUnit.SECONDS).build();
+  /** See {@link #implyingChain}. Permissions are a fixed, small set, so entries are never evicted. */
+  private static final Map<Permission, Permission[]> IMPLYING_CHAINS = new ConcurrentHashMap<>();
 
-  static {
-    Permission.getAll().forEach(RoleMap::cacheImplyingPermissions);
-  }
+  /**
+   * User details for {@link Settings#TREAT_USER_AUTHORITIES_AS_ROLES}. Created when first needed, like
+   * {@link #matchingRoleMapCache}, because every {@link #newMatchingRoleMap} miss creates a map and building a cache
+   * costs more than the rest of that.
+   */
+  @CheckForNull
+  private volatile Cache<String, UserDetails> userDetailsCache;
 
-  private final Cache<String, UserDetails> cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
-      .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
+  /** Guards the creation of {@link #userDetailsCache} and {@link #matchingRoleMapCache}. */
+  private final transient Object cacheLock = new Object();
 
   /**
    * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)} for different
    * permissions for the same {@code itemNamePrefix}, so cache them and avoid wasting time matching regular expressions.
+   *
+   * <p>Entries have no time based expiry because that reads the clock on every lookup, which is expensive on hosts
+   * without a fast clock source. They are cleared whenever roles or sids change through this class, and every hour
+   * through {@link #MATCHING_CACHE_EPOCH} to also pick up changes made elsewhere, such as to the sid sets returned by
+   * {@link #getGrantedRolesEntries()}.
+   *
+   * <p>Maintenance such as eviction runs on the calling thread. With Caffeine's default executor every miss once the
+   * cache is full hands it to the common pool, and waking a pool thread costs more than the eviction itself.
    */
-  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048).expireAfterWrite(1, TimeUnit.HOURS)
-      .build();
+  @CheckForNull
+  private volatile Cache<String, RoleMap> matchingRoleMapCache;
+
+  /** Advanced every hour by {@link MatchingCacheExpiry}; a {@link RoleMap} clears its cache when it sees a new value. */
+  private static final AtomicLong MATCHING_CACHE_EPOCH = new AtomicLong();
+
+  /** The {@link #MATCHING_CACHE_EPOCH} value {@link #matchingRoleMapCache} was last cleared at. */
+  private volatile long matchingCacheEpoch = MATCHING_CACHE_EPOCH.get();
+
+  /** Counts changes to roles and their assigned sids, so {@link #sidIndex} is rebuilt after any of them. */
+  private final AtomicLong grantVersion = new AtomicLong();
+
+  /**
+   * Roles by assigned sid, so a permission check looks up the sid instead of comparing it with the sids of every role.
+   * {@code null} until first needed.
+   */
+  @CheckForNull
+  private volatile SidIndex sidIndex;
 
   RoleMap() {
     this.grantedRoles = new ConcurrentSkipListMap<>();
@@ -138,15 +172,43 @@ public class RoleMap {
    */
   @Restricted(NoExternalUse.class)
   public boolean hasPermission(PermissionEntry sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
-    final Set<Permission> permissions = getImplyingPermissions(permission);
-    final boolean[] hasPermission = { false };
+    return hasPermission(sid.getType(), sid.getSid(), permission, roleType, controlledItem);
+  }
+
+  /**
+   * {@link #hasPermission(PermissionEntry, Permission, RoleType, AccessControlled)} for a sid given by its parts, so
+   * {@link AclImpl} can ask for each of a user's identities without creating an entry for each when none is needed.
+   */
+  private boolean hasPermission(AuthorizationType type, String sidName, Permission permission, RoleType roleType,
+      AccessControlled controlledItem) {
+    final Permission[] implying = implyingChain(permission);
     final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
-    final boolean principal = sid.getType() == AuthorizationType.USER;
+    final boolean principal = type == AuthorizationType.USER;
     final IdStrategy strategy = principal ? securityRealm.getUserIdStrategy() : securityRealm.getGroupIdStrategy();
+
+    final SidIndex index = sidIndex(securityRealm);
+    final Collection<Role> rolesToWalk;
+    if (index == null) {
+      rolesToWalk = getRoles();
+    } else if (index.grants(type, sidName, principal, implying, strategy)) {
+      return true;
+    } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && principal) {
+      // Any role can match by name through the user's authorities, which the index does not cover.
+      rolesToWalk = getRoles();
+    } else {
+      // Macro roles decide through their extension, so the index leaves them out.
+      rolesToWalk = index.macroRoles();
+    }
+    if (rolesToWalk.isEmpty()) {
+      return false;
+    }
+
+    final PermissionEntry sid = new PermissionEntry(type, sidName);
+    final boolean[] hasPermission = { false };
 
     // Walk through the roles, and only add the roles having the given permission,
     // or a permission implying the given permission
-    new RoleWalker() {
+    new RoleWalker(rolesToWalk) {
 
       /**
        * Checks whether the given sid is granted permission.
@@ -179,7 +241,7 @@ public class RoleMap {
 
       @Override
       public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
+        if (hasAnyEnabled(current, implying)) {
           PermissionEntry entry = hasPermission(current, sid);
           if (entry != null) {
             // Handle roles macro
@@ -208,6 +270,7 @@ public class RoleMap {
             }
           } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && sid.getType() == AuthorizationType.USER) {
             try {
+              Cache<String, UserDetails> cache = userDetailsCache();
               UserDetails userDetails = cache.getIfPresent(sid.getSid());
               if (userDetails == null) {
                 userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid.getSid());
@@ -233,42 +296,192 @@ public class RoleMap {
     return hasPermission[0];
   }
 
-  /**
-   * Get the set of permissions which imply the permission {@code p}.
-   *
-   * @param p find permissions that imply this permission
-   * @return set of permissions which imply {@code p}
-   */
-  private static Set<Permission> getImplyingPermissions(Permission p) {
-    return implyingPermissionCache.get(p, RoleMap::cacheImplyingPermissions);
+  private void invalidateCaches() {
+    grantVersion.incrementAndGet();
+    clearMatchingRoleMapCache();
   }
 
   /**
-   * Finds the implying permissions and caches them for future use.
+   * The current {@link SidIndex}, rebuilt when roles, sids, the id strategies or {@link #FORCE_CASE_SENSITIVE} changed,
+   * and every hour.
    *
-   * @param permission the permission for which to cache implying permissions
-   * @return a set of permissions that imply this permission (including itself)
+   * @return the index, or {@code null} when an id strategy does not define equality by {@link IdStrategy#keyFor}, in
+   *     which case sids are compared role by role
    */
-  private static Set<Permission> cacheImplyingPermissions(Permission permission) {
-    Set<Permission> implyingPermissions;
-    if (PermissionHelper.isDangerous(permission)) {
-      /*
-       * if this is a dangerous permission, fall back to Administer unless we're in compat mode
-       */
-      implyingPermissions = getImplyingPermissions(Jenkins.ADMINISTER);
-    } else {
-      implyingPermissions = new HashSet<>();
+  @CheckForNull
+  private SidIndex sidIndex(SecurityRealm securityRealm) {
+    IdStrategy userStrategy = securityRealm.getUserIdStrategy();
+    IdStrategy groupStrategy = securityRealm.getGroupIdStrategy();
+    boolean caseSensitive = FORCE_CASE_SENSITIVE;
+    if (!caseSensitive && !(equalityIsKeyFor(userStrategy) && equalityIsKeyFor(groupStrategy))) {
+      return null;
+    }
+    long version = grantVersion.get();
+    SidIndex index = sidIndex;
+    long epoch = MATCHING_CACHE_EPOCH.get();
+    if (index == null || index.version() != version || index.epoch() != epoch || index.caseSensitive() != caseSensitive
+        || !userStrategy.equals(index.userStrategy()) || !groupStrategy.equals(index.groupStrategy())) {
+      index = SidIndex.build(version, epoch, caseSensitive, userStrategy, groupStrategy, grantedRoles);
+      sidIndex = index;
+    }
+    return index;
+  }
 
-      // Get the implying permissions
-      for (Permission p = permission; p != null; p = p.impliedBy) {
-        if (!p.getEnabled()) {
+  /**
+   * Whether two ids are equal exactly when their {@link IdStrategy#keyFor} values are, so ids can be looked up by key.
+   * True for the strategies in Jenkins core; other implementations do not promise it.
+   */
+  private static boolean equalityIsKeyFor(IdStrategy strategy) {
+    Class<?> type = strategy.getClass();
+    return type == IdStrategy.CaseInsensitive.class || type == IdStrategy.CaseSensitive.class
+        || type == IdStrategy.CaseSensitiveEmailAddress.class;
+  }
+
+  /** The most ids each of {@link #KEY_CACHES} holds before it starts over. */
+  private static final int KEY_CACHE_SIZE = 10_000;
+
+  /**
+   * {@link IdStrategy#keyFor} results by id, for each strategy class {@link #equalityIsKeyFor} accepts. Their keys
+   * depend only on the id, and looking one up costs less than lower-casing every identity on every check.
+   */
+  private static final Map<Class<?>, Map<String, String>> KEY_CACHES = new ConcurrentHashMap<>();
+
+  private static Map<String, String> keyCache(IdStrategy strategy) {
+    return KEY_CACHES.computeIfAbsent(strategy.getClass(), type -> new ConcurrentHashMap<>());
+  }
+
+  /** A role assigned to a sid, as written in the role's entry. */
+  private record Assignment(String sid, Role role) {
+  }
+
+  /**
+   * Non-macro roles by assigned sid, for {@link #hasPermission}. Roles are referenced rather than copied, so permission
+   * changes from templates apply immediately.
+   *
+   * @param version       {@link #grantVersion} when this index was built
+   * @param epoch         {@link #MATCHING_CACHE_EPOCH} when this index was built, so it is rebuilt every hour to pick up
+   *                      changes made to the sid sets outside this class, like {@link #matchingRoleMapCache}
+   * @param caseSensitive whether it was built for {@link #FORCE_CASE_SENSITIVE}
+   * @param userStrategy  the user id strategy keys in {@code users} come from
+   * @param groupStrategy the group id strategy keys in {@code groups} come from
+   * @param exact         with {@link #FORCE_CASE_SENSITIVE}: roles by exact entry
+   * @param users         otherwise: roles assigned to users (user and either entries), by user id key
+   * @param groups        otherwise: roles assigned to groups (group and either entries), by group id key
+   * @param macroRoles    roles whose extension decides, which are always walked
+   * @param userKeys      the shared {@link #KEY_CACHES} entry for {@code userStrategy}
+   * @param groupKeys     the shared {@link #KEY_CACHES} entry for {@code groupStrategy}
+   */
+  private record SidIndex(long version, long epoch, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
+      Map<PermissionEntry, List<Role>> exact, Map<String, List<Assignment>> users, Map<String, List<Assignment>> groups,
+      List<Role> macroRoles, Map<String, String> userKeys, Map<String, String> groupKeys) {
+
+    static SidIndex build(long version, long epoch, boolean caseSensitive, IdStrategy userStrategy, IdStrategy groupStrategy,
+        Map<Role, Set<PermissionEntry>> grantedRoles) {
+      Map<PermissionEntry, List<Role>> exact = new HashMap<>();
+      Map<String, List<Assignment>> users = new HashMap<>();
+      Map<String, List<Assignment>> groups = new HashMap<>();
+      List<Role> macroRoles = new ArrayList<>();
+      for (Map.Entry<Role, Set<PermissionEntry>> granted : grantedRoles.entrySet()) {
+        Role role = granted.getKey();
+        if (Macro.isMacro(role)) {
+          macroRoles.add(role);
           continue;
         }
-        implyingPermissions.add(p);
+        for (PermissionEntry entry : granted.getValue()) {
+          if (caseSensitive) {
+            exact.computeIfAbsent(entry, e -> new ArrayList<>()).add(role);
+            continue;
+          }
+          Assignment assignment = new Assignment(entry.getSid(), role);
+          if (entry.isApplicable(true)) {
+            users.computeIfAbsent(userStrategy.keyFor(entry.getSid()), k -> new ArrayList<>()).add(assignment);
+          }
+          if (entry.isApplicable(false)) {
+            groups.computeIfAbsent(groupStrategy.keyFor(entry.getSid()), k -> new ArrayList<>()).add(assignment);
+          }
+        }
       }
+      return new SidIndex(version, epoch, caseSensitive, userStrategy, groupStrategy, exact, users, groups,
+          List.copyOf(macroRoles), keyCache(userStrategy), keyCache(groupStrategy));
     }
 
-    return implyingPermissions;
+    /**
+     * Whether a non-macro role assigned to {@code sid} has an enabled permission from {@code implying}: the same as matching the sid
+     * against every role's entries, as {@link #hasPermission} did before the index.
+     */
+    boolean grants(AuthorizationType type, String sid, boolean principal, Permission[] implying, IdStrategy strategy) {
+      if (caseSensitive) {
+        return anyHas(exact.get(new PermissionEntry(type, sid)), implying)
+            || anyHas(exact.get(new PermissionEntry(AuthorizationType.EITHER, sid)), implying);
+      }
+      List<Assignment> candidates = (principal ? users : groups).get(key(principal ? userKeys : groupKeys, strategy, sid));
+      if (candidates != null) {
+        for (Assignment candidate : candidates) {
+          // Confirms the key match with the strategy's own equality, so the index can never grant more. Identical ids
+          // are equal under any strategy, and core's case-insensitive equality lower-cases both ids, so those skip it.
+          if (hasAnyEnabled(candidate.role(), implying)
+              && (candidate.sid().equals(sid) || strategy.equals(candidate.sid(), sid))) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    private static String key(Map<String, String> keys, IdStrategy strategy, String sid) {
+      String key = keys.get(sid);
+      if (key == null) {
+        key = strategy.keyFor(sid);
+        if (keys.size() >= KEY_CACHE_SIZE) {
+          keys.clear();
+        }
+        keys.put(sid, key);
+      }
+      return key;
+    }
+
+    private static boolean anyHas(@CheckForNull List<Role> roles, Permission[] implying) {
+      if (roles != null) {
+        for (Role role : roles) {
+          if (hasAnyEnabled(role, implying)) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+  }
+
+  /**
+   * The permission followed by the permissions that imply it, or {@link Jenkins#ADMINISTER} for a dangerous permission.
+   * The chain never changes, so it is worked out once per permission; whether each permission is enabled can change,
+   * so {@link #hasAnyEnabled} checks that on every use.
+   */
+  private static Permission[] implyingChain(Permission permission) {
+    Permission[] chain = IMPLYING_CHAINS.get(permission);
+    if (chain == null) {
+      chain = IMPLYING_CHAINS.computeIfAbsent(permission, RoleMap::computeImplyingChain);
+    }
+    return chain;
+  }
+
+  private static Permission[] computeImplyingChain(Permission permission) {
+    List<Permission> chain = new ArrayList<>();
+    Permission start = PermissionHelper.isDangerous(permission) ? Jenkins.ADMINISTER : permission;
+    for (Permission p = start; p != null; p = p.impliedBy) {
+      chain.add(p);
+    }
+    return chain.toArray(new Permission[0]);
+  }
+
+  /** Whether the role holds an enabled permission from the chain, without building a set on every check. */
+  private static boolean hasAnyEnabled(Role role, Permission[] chain) {
+    for (Permission p : chain) {
+      if (p.getEnabled() && role.hasPermission(p)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -299,7 +512,7 @@ public class RoleMap {
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
       this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
-      matchingRoleMapCache.invalidateAll();
+      invalidateCaches();
     }
   }
 
@@ -312,7 +525,7 @@ public class RoleMap {
    */
   public void addRole(Role role, Set<PermissionEntry> sids) {
     this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
-    matchingRoleMapCache.invalidateAll();
+    invalidateCaches();
   }
 
   /**
@@ -324,7 +537,7 @@ public class RoleMap {
   public void assignRole(Role role, PermissionEntry sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
-      matchingRoleMapCache.invalidateAll();
+      invalidateCaches();
     }
   }
 
@@ -341,7 +554,7 @@ public class RoleMap {
   public void assignRole(Role role, String sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(new PermissionEntry(AuthorizationType.EITHER, sid));
-      matchingRoleMapCache.invalidateAll();
+      invalidateCaches();
     }
   }
 
@@ -355,7 +568,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(sid);
-      matchingRoleMapCache.invalidateAll();
+      invalidateCaches();
     }
   }
 
@@ -373,7 +586,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
-      matchingRoleMapCache.invalidateAll();
+      invalidateCaches();
     }
   }
 
@@ -385,7 +598,7 @@ public class RoleMap {
   public void clearSidsForRole(Role role) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).clear();
-      matchingRoleMapCache.invalidateAll();
+      invalidateCaches();
     }
   }
 
@@ -399,7 +612,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(sid);
     }
-    matchingRoleMapCache.invalidateAll();
+    invalidateCaches();
   }
 
   /**
@@ -416,7 +629,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
     }
-    matchingRoleMapCache.invalidateAll();
+    invalidateCaches();
   }
 
   /**
@@ -491,7 +704,7 @@ public class RoleMap {
    */
   public void removeRole(Role role) {
     this.grantedRoles.remove(role);
-    matchingRoleMapCache.invalidateAll();
+    invalidateCaches();
   }
 
   /**
@@ -666,6 +879,42 @@ public class RoleMap {
     return roleSet;
   }
 
+  private void clearMatchingRoleMapCache() {
+    Cache<String, RoleMap> cache = matchingRoleMapCache;
+    if (cache != null) {
+      cache.invalidateAll();
+    }
+  }
+
+  private Cache<String, RoleMap> matchingRoleMapCache() {
+    Cache<String, RoleMap> cache = matchingRoleMapCache;
+    if (cache == null) {
+      synchronized (cacheLock) {
+        cache = matchingRoleMapCache;
+        if (cache == null) {
+          cache = Caffeine.newBuilder().maximumSize(2048).executor(Runnable::run).build();
+          matchingRoleMapCache = cache;
+        }
+      }
+    }
+    return cache;
+  }
+
+  private Cache<String, UserDetails> userDetailsCache() {
+    Cache<String, UserDetails> cache = userDetailsCache;
+    if (cache == null) {
+      synchronized (cacheLock) {
+        cache = userDetailsCache;
+        if (cache == null) {
+          cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
+              .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
+          userDetailsCache = cache;
+        }
+      }
+    }
+    return cache;
+  }
+
   /**
    * Create a sub-map of this {@link RoleMap} containing {@link Role}s that are applicable on the given
    * {@code itemNamePrefix}.
@@ -674,7 +923,13 @@ public class RoleMap {
    * @return A {@link RoleMap} containing roles that are applicable on the itemNamePrefix
    */
   public RoleMap newMatchingRoleMap(String itemNamePrefix) {
-    return matchingRoleMapCache.get(itemNamePrefix, this::createMatchingRoleMap);
+    Cache<String, RoleMap> cache = matchingRoleMapCache();
+    long epoch = MATCHING_CACHE_EPOCH.get();
+    if (epoch != matchingCacheEpoch) {
+      matchingCacheEpoch = epoch;
+      cache.invalidateAll();
+    }
+    return cache.get(itemNamePrefix, this::createMatchingRoleMap);
   }
 
   private RoleMap createMatchingRoleMap(String itemNamePrefix) {
@@ -801,9 +1056,9 @@ public class RoleMap {
     @Override
     @CheckForNull
     protected Boolean hasPermission(Sid sid, Permission permission) {
-      boolean principal = sid instanceof PrincipalSid ? true : false;
-      PermissionEntry entry = new PermissionEntry(principal ? AuthorizationType.USER : AuthorizationType.GROUP, toString(sid));
-      if (RoleMap.this.hasPermission(entry, permission, roleType, item)) {
+      AuthorizationType type = sid instanceof PrincipalSid ? AuthorizationType.USER : AuthorizationType.GROUP;
+      String sidName = toString(sid);
+      if (RoleMap.this.hasPermission(type, sidName, permission, roleType, item)) {
         if (item instanceof Item) {
           final ItemGroup parent = ((Item) item).getParent();
           if (parent instanceof Item && (Item.DISCOVER.equals(permission) || Item.READ.equals(permission))
@@ -828,7 +1083,7 @@ public class RoleMap {
         if (auth instanceof RoleBasedAuthorizationStrategy && pns instanceof RoleBasedProjectNamingStrategy) {
           RoleBasedAuthorizationStrategy rbas = (RoleBasedAuthorizationStrategy) auth;
           RoleMap roleMapProject = rbas.getRoleMap(RoleType.Project);
-          if (roleMapProject.hasPermission(entry, permission, RoleType.Project, item)) {
+          if (roleMapProject.hasPermission(type, sidName, permission, RoleType.Project, item)) {
             return true;
           }
         }
@@ -855,7 +1110,11 @@ public class RoleMap {
     boolean shouldAbort = false;
 
     RoleWalker() {
-      walk();
+      this(RoleMap.this.getRoles());
+    }
+
+    RoleWalker(Collection<Role> roles) {
+      walk(roles);
     }
 
     /**
@@ -872,7 +1131,10 @@ public class RoleMap {
      * Walk through the roles.
      */
     public void walk() {
-      Set<Role> roles = RoleMap.this.getRoles();
+      walk(RoleMap.this.getRoles());
+    }
+
+    private void walk(Collection<Role> roles) {
       for (Role current : roles) {
         perform(current);
         if (shouldAbort) {
@@ -885,5 +1147,20 @@ public class RoleMap {
      * The method to implement which will be called on each {@link Role}.
      */
     public abstract void perform(Role current);
+  }
+
+  /** Clears every {@link RoleMap}'s matching cache once an hour, see {@link #matchingRoleMapCache}. */
+  @Restricted(NoExternalUse.class)
+  @Extension
+  public static class MatchingCacheExpiry extends PeriodicWork {
+    @Override
+    public long getRecurrencePeriod() {
+      return HOUR;
+    }
+
+    @Override
+    protected void doRun() {
+      MATCHING_CACHE_EPOCH.incrementAndGet();
+    }
   }
 }
