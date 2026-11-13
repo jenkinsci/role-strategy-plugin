@@ -33,10 +33,12 @@ import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
 import hudson.Util;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Node;
+import hudson.model.PeriodicWork;
 import hudson.model.User;
 import hudson.security.AccessControlled;
 import hudson.security.AuthorizationStrategy;
@@ -54,9 +56,11 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -97,22 +101,40 @@ public class RoleMap {
 
   private static final Logger LOGGER = Logger.getLogger(RoleMap.class.getName());
 
-  private static final Cache<Permission, Set<Permission>> implyingPermissionCache = Caffeine.newBuilder().maximumSize(100)
-      .expireAfterWrite(20, TimeUnit.SECONDS).build();
+  /** See {@link #implyingChain}. Permissions are a fixed, small set, so entries are never evicted. */
+  private static final Map<Permission, Permission[]> IMPLYING_CHAINS = new ConcurrentHashMap<>();
 
-  static {
-    Permission.getAll().forEach(RoleMap::cacheImplyingPermissions);
-  }
+  /**
+   * User details for {@link Settings#TREAT_USER_AUTHORITIES_AS_ROLES}. Created when first needed, like
+   * {@link #matchingRoleMapCache}, because every {@link #newMatchingRoleMap} miss creates a map and building a cache
+   * costs more than the rest of that.
+   */
+  @CheckForNull
+  private volatile Cache<String, UserDetails> userDetailsCache;
 
-  private final Cache<String, UserDetails> cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
-      .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
+  /** Guards the creation of {@link #userDetailsCache} and {@link #matchingRoleMapCache}. */
+  private final transient Object cacheLock = new Object();
 
   /**
    * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)} for different
    * permissions for the same {@code itemNamePrefix}, so cache them and avoid wasting time matching regular expressions.
+   *
+   * <p>Entries have no time based expiry because that reads the clock on every lookup, which is expensive on hosts
+   * without a fast clock source. They are cleared whenever roles or sids change through this class, and every hour
+   * through {@link #MATCHING_CACHE_EPOCH} to also pick up changes made elsewhere, such as to the sid sets returned by
+   * {@link #getGrantedRolesEntries()}.
+   *
+   * <p>Maintenance such as eviction runs on the calling thread. With Caffeine's default executor every miss once the
+   * cache is full hands it to the common pool, and waking a pool thread costs more than the eviction itself.
    */
-  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048).expireAfterWrite(1, TimeUnit.HOURS)
-      .build();
+  @CheckForNull
+  private volatile Cache<String, RoleMap> matchingRoleMapCache;
+
+  /** Advanced every hour by {@link MatchingCacheExpiry}; a {@link RoleMap} clears its cache when it sees a new value. */
+  private static final AtomicLong MATCHING_CACHE_EPOCH = new AtomicLong();
+
+  /** The {@link #MATCHING_CACHE_EPOCH} value {@link #matchingRoleMapCache} was last cleared at. */
+  private volatile long matchingCacheEpoch = MATCHING_CACHE_EPOCH.get();
 
   RoleMap() {
     this.grantedRoles = new ConcurrentSkipListMap<>();
@@ -138,7 +160,7 @@ public class RoleMap {
    */
   @Restricted(NoExternalUse.class)
   public boolean hasPermission(PermissionEntry sid, Permission permission, RoleType roleType, AccessControlled controlledItem) {
-    final Set<Permission> permissions = getImplyingPermissions(permission);
+    final Permission[] implying = implyingChain(permission);
     final boolean[] hasPermission = { false };
     final SecurityRealm securityRealm = Jenkins.get().getSecurityRealm();
     final boolean principal = sid.getType() == AuthorizationType.USER;
@@ -179,7 +201,7 @@ public class RoleMap {
 
       @Override
       public void perform(Role current) {
-        if (current.hasAnyPermission(permissions)) {
+        if (hasAnyEnabled(current, implying)) {
           PermissionEntry entry = hasPermission(current, sid);
           if (entry != null) {
             // Handle roles macro
@@ -208,6 +230,7 @@ public class RoleMap {
             }
           } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && sid.getType() == AuthorizationType.USER) {
             try {
+              Cache<String, UserDetails> cache = userDetailsCache();
               UserDetails userDetails = cache.getIfPresent(sid.getSid());
               if (userDetails == null) {
                 userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid.getSid());
@@ -234,41 +257,35 @@ public class RoleMap {
   }
 
   /**
-   * Get the set of permissions which imply the permission {@code p}.
-   *
-   * @param p find permissions that imply this permission
-   * @return set of permissions which imply {@code p}
+   * The permission followed by the permissions that imply it, or {@link Jenkins#ADMINISTER} for a dangerous permission.
+   * The chain never changes, so it is worked out once per permission; whether each permission is enabled can change,
+   * so {@link #hasAnyEnabled} checks that on every use.
    */
-  private static Set<Permission> getImplyingPermissions(Permission p) {
-    return implyingPermissionCache.get(p, RoleMap::cacheImplyingPermissions);
+  private static Permission[] implyingChain(Permission permission) {
+    Permission[] chain = IMPLYING_CHAINS.get(permission);
+    if (chain == null) {
+      chain = IMPLYING_CHAINS.computeIfAbsent(permission, RoleMap::computeImplyingChain);
+    }
+    return chain;
   }
 
-  /**
-   * Finds the implying permissions and caches them for future use.
-   *
-   * @param permission the permission for which to cache implying permissions
-   * @return a set of permissions that imply this permission (including itself)
-   */
-  private static Set<Permission> cacheImplyingPermissions(Permission permission) {
-    Set<Permission> implyingPermissions;
-    if (PermissionHelper.isDangerous(permission)) {
-      /*
-       * if this is a dangerous permission, fall back to Administer unless we're in compat mode
-       */
-      implyingPermissions = getImplyingPermissions(Jenkins.ADMINISTER);
-    } else {
-      implyingPermissions = new HashSet<>();
+  private static Permission[] computeImplyingChain(Permission permission) {
+    List<Permission> chain = new ArrayList<>();
+    Permission start = PermissionHelper.isDangerous(permission) ? Jenkins.ADMINISTER : permission;
+    for (Permission p = start; p != null; p = p.impliedBy) {
+      chain.add(p);
+    }
+    return chain.toArray(new Permission[0]);
+  }
 
-      // Get the implying permissions
-      for (Permission p = permission; p != null; p = p.impliedBy) {
-        if (!p.getEnabled()) {
-          continue;
-        }
-        implyingPermissions.add(p);
+  /** Whether the role holds an enabled permission from the chain, without building a set on every check. */
+  private static boolean hasAnyEnabled(Role role, Permission[] chain) {
+    for (Permission p : chain) {
+      if (p.getEnabled() && role.hasPermission(p)) {
+        return true;
       }
     }
-
-    return implyingPermissions;
+    return false;
   }
 
   /**
@@ -299,7 +316,7 @@ public class RoleMap {
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
       this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -312,7 +329,7 @@ public class RoleMap {
    */
   public void addRole(Role role, Set<PermissionEntry> sids) {
     this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -324,7 +341,7 @@ public class RoleMap {
   public void assignRole(Role role, PermissionEntry sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -341,7 +358,7 @@ public class RoleMap {
   public void assignRole(Role role, String sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(new PermissionEntry(AuthorizationType.EITHER, sid));
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -355,7 +372,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(sid);
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -373,7 +390,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -385,7 +402,7 @@ public class RoleMap {
   public void clearSidsForRole(Role role) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).clear();
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -399,7 +416,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(sid);
     }
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -416,7 +433,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
     }
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -491,7 +508,7 @@ public class RoleMap {
    */
   public void removeRole(Role role) {
     this.grantedRoles.remove(role);
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -666,6 +683,42 @@ public class RoleMap {
     return roleSet;
   }
 
+  private void clearMatchingRoleMapCache() {
+    Cache<String, RoleMap> cache = matchingRoleMapCache;
+    if (cache != null) {
+      cache.invalidateAll();
+    }
+  }
+
+  private Cache<String, RoleMap> matchingRoleMapCache() {
+    Cache<String, RoleMap> cache = matchingRoleMapCache;
+    if (cache == null) {
+      synchronized (cacheLock) {
+        cache = matchingRoleMapCache;
+        if (cache == null) {
+          cache = Caffeine.newBuilder().maximumSize(2048).executor(Runnable::run).build();
+          matchingRoleMapCache = cache;
+        }
+      }
+    }
+    return cache;
+  }
+
+  private Cache<String, UserDetails> userDetailsCache() {
+    Cache<String, UserDetails> cache = userDetailsCache;
+    if (cache == null) {
+      synchronized (cacheLock) {
+        cache = userDetailsCache;
+        if (cache == null) {
+          cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
+              .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
+          userDetailsCache = cache;
+        }
+      }
+    }
+    return cache;
+  }
+
   /**
    * Create a sub-map of this {@link RoleMap} containing {@link Role}s that are applicable on the given
    * {@code itemNamePrefix}.
@@ -674,7 +727,13 @@ public class RoleMap {
    * @return A {@link RoleMap} containing roles that are applicable on the itemNamePrefix
    */
   public RoleMap newMatchingRoleMap(String itemNamePrefix) {
-    return matchingRoleMapCache.get(itemNamePrefix, this::createMatchingRoleMap);
+    Cache<String, RoleMap> cache = matchingRoleMapCache();
+    long epoch = MATCHING_CACHE_EPOCH.get();
+    if (epoch != matchingCacheEpoch) {
+      matchingCacheEpoch = epoch;
+      cache.invalidateAll();
+    }
+    return cache.get(itemNamePrefix, this::createMatchingRoleMap);
   }
 
   private RoleMap createMatchingRoleMap(String itemNamePrefix) {
@@ -885,5 +944,20 @@ public class RoleMap {
      * The method to implement which will be called on each {@link Role}.
      */
     public abstract void perform(Role current);
+  }
+
+  /** Clears every {@link RoleMap}'s matching cache once an hour, see {@link #matchingRoleMapCache}. */
+  @Restricted(NoExternalUse.class)
+  @Extension
+  public static class MatchingCacheExpiry extends PeriodicWork {
+    @Override
+    public long getRecurrencePeriod() {
+      return HOUR;
+    }
+
+    @Override
+    protected void doRun() {
+      MATCHING_CACHE_EPOCH.incrementAndGet();
+    }
   }
 }

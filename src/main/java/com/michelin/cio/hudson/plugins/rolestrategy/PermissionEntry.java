@@ -114,7 +114,8 @@ public class PermissionEntry implements Comparable<PermissionEntry> {
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, sid);
+    // Called on every permission check; Objects.hash would allocate an array each time.
+    return 31 * type.hashCode() + sid.hashCode();
   }
 
   @Override
