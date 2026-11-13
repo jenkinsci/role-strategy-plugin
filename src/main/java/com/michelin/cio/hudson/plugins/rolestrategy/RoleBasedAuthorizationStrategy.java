@@ -118,6 +118,10 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   private final RoleMap itemRoles;
   private Map<String, PermissionTemplate> permissionTemplates;
 
+  /** See {@link #getRootACL()}. {@code null} until first needed. */
+  @CheckForNull
+  private transient volatile SidACL rootAcl;
+
   private static final boolean USE_ITEM_AND_AGENT_ROLES = SystemProperties.getBoolean(
             RoleBasedAuthorizationStrategy.class.getName() + ".useItemAndAgentRoles", false);
 
@@ -227,7 +231,13 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Override
   @NonNull
   public SidACL getRootACL() {
-    return globalRoles.getACL(RoleType.Global, null);
+    // The ACL asks globalRoles on every check, so one instance serves for the life of the strategy.
+    SidACL acl = rootAcl;
+    if (acl == null) {
+      acl = globalRoles.getACL(RoleType.Global, null);
+      rootAcl = acl;
+    }
+    return acl;
   }
 
   /**
@@ -267,19 +277,19 @@ public class RoleBasedAuthorizationStrategy extends AuthorizationStrategy {
   @Override
   @NonNull
   public ACL getACL(@NonNull AbstractItem project) {
-    return itemRoles.newMatchingRoleMap(project.getFullName()).getACL(RoleType.Project, project).newInheritingACL(getRootACL());
+    return itemRoles.getItemAcl(RoleType.Project, project, project.getFullName(), getRootACL());
   }
 
   @Override
   @NonNull
   public ACL getACL(@NonNull Computer computer) {
-    return agentRoles.newMatchingRoleMap(computer.getName()).getACL(RoleType.Slave, computer).newInheritingACL(getRootACL());
+    return agentRoles.getItemAcl(RoleType.Slave, computer, computer.getName(), getRootACL());
   }
 
   @Override
   @NonNull
   public ACL getACL(@NonNull Node node) {
-    return agentRoles.newMatchingRoleMap(node.getNodeName()).getACL(RoleType.Slave, node).newInheritingACL(getRootACL());
+    return agentRoles.getItemAcl(RoleType.Slave, node, node.getNodeName(), getRootACL());
   }
 
   /**

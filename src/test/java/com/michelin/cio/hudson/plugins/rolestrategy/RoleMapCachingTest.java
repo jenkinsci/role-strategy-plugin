@@ -6,8 +6,12 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.synopsys.arc.jenkins.plugins.rolestrategy.RoleType;
+import hudson.model.FreeStyleProject;
 import hudson.model.Item;
+import hudson.model.User;
+import hudson.security.ACL;
 import hudson.security.Permission;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -16,6 +20,7 @@ import jenkins.model.Jenkins;
 import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
+import org.springframework.security.core.Authentication;
 
 @WithJenkins
 class RoleMapCachingTest {
@@ -76,5 +81,25 @@ class RoleMapCachingTest {
     RoleMap refreshed = map.newMatchingRoleMap("team/job");
     assertNotSame(matching, refreshed);
     assertTrue(refreshed.getGrantedRolesEntries().get(role).contains(ALICE));
+  }
+
+  @Test
+  void itemAclIsReusedAndFollowsRoleChanges(JenkinsRule j) throws Exception {
+    j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
+    Role builders = new Role("builders", Pattern.compile("job"), Set.of(Item.BUILD), null, null);
+    RoleMap items = new RoleMap(new TreeMap<>(Map.of(builders, new HashSet<>())));
+    RoleBasedAuthorizationStrategy strategy = new RoleBasedAuthorizationStrategy(
+        Map.of(RoleBasedAuthorizationStrategy.PROJECT, items));
+    j.jenkins.setAuthorizationStrategy(strategy);
+    FreeStyleProject job = j.createFreeStyleProject("job");
+    Authentication alice = User.getById("alice", true).impersonate2();
+
+    ACL acl = strategy.getACL(job);
+    assertSame(acl, strategy.getACL(job));
+    assertSame(strategy.getRootACL(), strategy.getRootACL());
+    assertFalse(acl.hasPermission2(alice, Item.BUILD));
+
+    items.assignRole(builders, ALICE);
+    assertTrue(strategy.getACL(job).hasPermission2(alice, Item.BUILD));
   }
 }
