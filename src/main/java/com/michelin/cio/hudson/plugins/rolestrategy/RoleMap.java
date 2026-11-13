@@ -104,8 +104,16 @@ public class RoleMap {
   /** See {@link #implyingChain}. Permissions are a fixed, small set, so entries are never evicted. */
   private static final Map<Permission, Permission[]> IMPLYING_CHAINS = new ConcurrentHashMap<>();
 
-  private final Cache<String, UserDetails> cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
-      .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
+  /**
+   * User details for {@link Settings#TREAT_USER_AUTHORITIES_AS_ROLES}. Created when first needed, like
+   * {@link #matchingRoleMapCache}, because every {@link #newMatchingRoleMap} miss creates a map and building a cache
+   * costs more than the rest of that.
+   */
+  @CheckForNull
+  private volatile Cache<String, UserDetails> userDetailsCache;
+
+  /** Guards the creation of {@link #userDetailsCache} and {@link #matchingRoleMapCache}. */
+  private final transient Object cacheLock = new Object();
 
   /**
    * {@link RoleMap}s are created again and again using {@link RoleMap#newMatchingRoleMap(String)} for different
@@ -119,8 +127,8 @@ public class RoleMap {
    * <p>Maintenance such as eviction runs on the calling thread. With Caffeine's default executor every miss once the
    * cache is full hands it to the common pool, and waking a pool thread costs more than the eviction itself.
    */
-  private final Cache<String, RoleMap> matchingRoleMapCache = Caffeine.newBuilder().maximumSize(2048)
-      .executor(Runnable::run).build();
+  @CheckForNull
+  private volatile Cache<String, RoleMap> matchingRoleMapCache;
 
   /** Advanced every hour by {@link MatchingCacheExpiry}; a {@link RoleMap} clears its cache when it sees a new value. */
   private static final AtomicLong MATCHING_CACHE_EPOCH = new AtomicLong();
@@ -222,6 +230,7 @@ public class RoleMap {
             }
           } else if (Settings.TREAT_USER_AUTHORITIES_AS_ROLES && sid.getType() == AuthorizationType.USER) {
             try {
+              Cache<String, UserDetails> cache = userDetailsCache();
               UserDetails userDetails = cache.getIfPresent(sid.getSid());
               if (userDetails == null) {
                 userDetails = Jenkins.get().getSecurityRealm().loadUserByUsername2(sid.getSid());
@@ -307,7 +316,7 @@ public class RoleMap {
   public void addRole(Role role) {
     if (this.getRole(role.getName()) == null) {
       this.grantedRoles.put(role, new CopyOnWriteArraySet<>());
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -320,7 +329,7 @@ public class RoleMap {
    */
   public void addRole(Role role, Set<PermissionEntry> sids) {
     this.grantedRoles.put(role, new CopyOnWriteArraySet<>(sids));
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -332,7 +341,7 @@ public class RoleMap {
   public void assignRole(Role role, PermissionEntry sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(sid);
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -349,7 +358,7 @@ public class RoleMap {
   public void assignRole(Role role, String sid) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).add(new PermissionEntry(AuthorizationType.EITHER, sid));
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -363,7 +372,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(sid);
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -381,7 +390,7 @@ public class RoleMap {
     Set<PermissionEntry> sids = grantedRoles.get(role);
     if (sids != null) {
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -393,7 +402,7 @@ public class RoleMap {
   public void clearSidsForRole(Role role) {
     if (this.hasRole(role)) {
       this.grantedRoles.get(role).clear();
-      matchingRoleMapCache.invalidateAll();
+      clearMatchingRoleMapCache();
     }
   }
 
@@ -407,7 +416,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(sid);
     }
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -424,7 +433,7 @@ public class RoleMap {
       Set<PermissionEntry> sids = entry.getValue();
       sids.remove(new PermissionEntry(AuthorizationType.EITHER, sid));
     }
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -499,7 +508,7 @@ public class RoleMap {
    */
   public void removeRole(Role role) {
     this.grantedRoles.remove(role);
-    matchingRoleMapCache.invalidateAll();
+    clearMatchingRoleMapCache();
   }
 
   /**
@@ -674,6 +683,42 @@ public class RoleMap {
     return roleSet;
   }
 
+  private void clearMatchingRoleMapCache() {
+    Cache<String, RoleMap> cache = matchingRoleMapCache;
+    if (cache != null) {
+      cache.invalidateAll();
+    }
+  }
+
+  private Cache<String, RoleMap> matchingRoleMapCache() {
+    Cache<String, RoleMap> cache = matchingRoleMapCache;
+    if (cache == null) {
+      synchronized (cacheLock) {
+        cache = matchingRoleMapCache;
+        if (cache == null) {
+          cache = Caffeine.newBuilder().maximumSize(2048).executor(Runnable::run).build();
+          matchingRoleMapCache = cache;
+        }
+      }
+    }
+    return cache;
+  }
+
+  private Cache<String, UserDetails> userDetailsCache() {
+    Cache<String, UserDetails> cache = userDetailsCache;
+    if (cache == null) {
+      synchronized (cacheLock) {
+        cache = userDetailsCache;
+        if (cache == null) {
+          cache = Caffeine.newBuilder().maximumSize(Settings.USER_DETAILS_CACHE_MAX_SIZE)
+              .expireAfterWrite(Settings.USER_DETAILS_CACHE_EXPIRATION_TIME_SEC, TimeUnit.SECONDS).build();
+          userDetailsCache = cache;
+        }
+      }
+    }
+    return cache;
+  }
+
   /**
    * Create a sub-map of this {@link RoleMap} containing {@link Role}s that are applicable on the given
    * {@code itemNamePrefix}.
@@ -682,12 +727,13 @@ public class RoleMap {
    * @return A {@link RoleMap} containing roles that are applicable on the itemNamePrefix
    */
   public RoleMap newMatchingRoleMap(String itemNamePrefix) {
+    Cache<String, RoleMap> cache = matchingRoleMapCache();
     long epoch = MATCHING_CACHE_EPOCH.get();
     if (epoch != matchingCacheEpoch) {
       matchingCacheEpoch = epoch;
-      matchingRoleMapCache.invalidateAll();
+      cache.invalidateAll();
     }
-    return matchingRoleMapCache.get(itemNamePrefix, this::createMatchingRoleMap);
+    return cache.get(itemNamePrefix, this::createMatchingRoleMap);
   }
 
   private RoleMap createMatchingRoleMap(String itemNamePrefix) {
